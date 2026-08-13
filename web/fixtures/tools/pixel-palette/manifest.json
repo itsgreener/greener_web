@@ -1,0 +1,8 @@
+{
+  "kind": "tool",
+  "entrypoint": "index.html",
+  "version": 1,
+  "requiredCapabilities": ["canvas", "worker", "download"],
+  "externalDomains": [],
+  "minViewport": { "width": 320, "height": 420 }
+}

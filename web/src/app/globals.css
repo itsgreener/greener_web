@@ -1,0 +1,42 @@
+:root {
+  /* Colores base — provisional hasta el diseño final (arquitectura §24.1) */
+  --color-bg: #ffffff;
+  --color-text: #111111;
+  --color-border: #e5e5e5;
+  --color-surface-hover: #f4f4f4;
+  --color-accent: #1f4d3a;
+
+  /* Layout */
+  --sidebar-width: 64px;
+
+  /* Espaciados */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+
+  /* Breakpoints de referencia (documentales — arquitectura §10.1) */
+  /* < 640px: 2 columnas · 640-899: 3 · 900-1199: 4 · 1200-1599: 5 · >=1600: 6 */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+body {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}

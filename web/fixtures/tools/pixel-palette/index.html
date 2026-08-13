@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pixel Palette</title>
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="tool">
+      <div class="controls">
+        <h1>Pixel Palette</h1>
+        <p>
+          Genera un degradado, calcula su paleta dominante en un Web Worker y descarga el resultado
+          — sin salir de esta página, sin iframe.
+        </p>
+        <button id="redraw" type="button">Nuevo degradado</button>
+        <button id="compute" type="button">Calcular paleta (Worker)</button>
+        <button id="download" type="button" disabled>Descargar paleta.json</button>
+        <ul id="palette" class="palette" aria-live="polite"></ul>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="canvas" width="480" height="320"></canvas>
+      </div>
+    </div>
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

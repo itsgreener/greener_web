@@ -1,0 +1,2986 @@
+{
+  "snapshot": {
+    "cases": [
+      {
+        "contentId": "98069cc4-163f-4b5f-baaf-5fe5504eeec6",
+        "force": 2,
+        "pinIds": [
+          "03ba02dd-ad5e-4f10-a6fe-513b03483fea",
+          "87047c3c-9b99-4737-b9b0-94490b3a0b49",
+          "512412fc-25b5-4288-996f-c42de9fbc3de"
+        ]
+      },
+      {
+        "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+        "force": 1,
+        "pinIds": [
+          "8cb8ffe4-445f-4dd8-beef-50ce9a20c04d",
+          "e1a997f0-0de0-41d7-9364-74a5a654b987",
+          "6de273d3-845e-4b45-8e85-025c3854c089",
+          "443b2169-a0f4-4fd4-aa47-e5edd4690673",
+          "19fe57c5-d0af-4851-9caa-eb54bfda09dc",
+          "b496af54-8cb3-470c-9abb-7c3f6589de34"
+        ]
+      },
+      {
+        "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+        "force": 2,
+        "pinIds": [
+          "4f64e5e7-a141-4d83-8a04-58f69f75c17e",
+          "2eb6db78-761d-4186-9acc-8585ad01cc1d",
+          "f7fa8659-ca7f-4bec-830c-0ec240426bbe",
+          "e6835d7c-d60b-4857-bc1d-dd6a6d09361e",
+          "8cf35e3d-a088-4068-bd84-e0b16b557963",
+          "9c75b85c-9eb0-44e2-b9f9-4ee2eef6cd22"
+        ]
+      },
+      {
+        "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+        "force": 3,
+        "pinIds": [
+          "f1b70a24-9dc2-434c-be3c-f45f2426750f",
+          "ffaa733b-2d4b-421a-b3dd-7bd9af017eea",
+          "a26ca25a-272e-43ce-b253-5ce714935189",
+          "c660eb04-b404-46da-bc16-5e33c699ecb0",
+          "66e2e2f8-225c-447c-b91c-de328c57acb6",
+          "d9c5fe62-8899-4dbb-ba12-ea40bf28cd33"
+        ]
+      },
+      {
+        "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+        "force": 1,
+        "pinIds": [
+          "ffb30478-feb0-4f26-9d0a-7d090298acb8",
+          "2c84ab7e-457d-4fa9-a154-bd732d5b0502",
+          "2305fd4a-0e87-4aa7-8319-8a50282aaf68",
+          "d64ee156-ba14-4559-9c5e-f09993cc2d44",
+          "517b862c-b461-47e7-b04c-7fde6a736ce8"
+        ]
+      },
+      {
+        "contentId": "4c16bf49-6b52-4176-996d-8f5e6badaafb",
+        "force": 4,
+        "pinIds": [
+          "7d8e6944-30ad-4e24-b6f6-2c09b496206d",
+          "026868e0-0a38-42e5-9875-47dd6542b99a",
+          "31ce1943-3380-40fe-80b4-cc4702446f9a",
+          "81f1344a-756d-404c-8483-40187fe8ded3"
+        ]
+      },
+      {
+        "contentId": "5d081614-8e53-4846-b1f5-3fee768ec649",
+        "force": 3,
+        "pinIds": [
+          "a27e6b9a-268c-4f52-9cfe-2d109c3af520",
+          "deb0a0b9-e877-4298-93a6-09a28f59cd5f",
+          "5a7b992f-d384-47f2-814d-16fc2e480b53",
+          "c6def08b-4e83-4ffc-bd73-5d7bb5684f39"
+        ]
+      },
+      {
+        "contentId": "54aa1fa7-d45d-4d92-a4f4-ab92617ee5b8",
+        "force": 3,
+        "pinIds": [
+          "f30b63a6-3122-4e57-b41e-5b4724a132b8",
+          "0e6f77e2-2265-4401-a764-70194ae325b4",
+          "ad2c91dc-6dad-46fc-b8f6-a5c97f0ba342",
+          "57e6e8ac-6060-48ea-b14e-bdff25993065"
+        ]
+      },
+      {
+        "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+        "force": 1,
+        "pinIds": [
+          "fd73600b-6923-4256-abe8-756e93801122",
+          "a774b1c6-9c38-41a7-a41b-5f06bfd0824a",
+          "4fe49ef7-ff16-488b-ac75-f27ace8ad304",
+          "995dfc4d-ea20-4006-9668-f80f86083bf7",
+          "a29ccf46-1ca8-40c8-949f-75b24f78f9b9"
+        ]
+      },
+      {
+        "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+        "force": 2,
+        "pinIds": [
+          "0adeda7d-b3ec-4e1c-b0e6-9c5e5147d46e",
+          "10ed61d7-a0ed-42a7-ba54-5604f2e291f0",
+          "0e342ff0-d12b-4b26-a2c6-377830a6124f",
+          "c4457070-3bd0-405b-b270-8389075eebca",
+          "efdc6d75-c555-4e6e-beed-18d68436aed0"
+        ]
+      },
+      {
+        "contentId": "14b6646c-0b05-44e6-be44-d845daaf2d4e",
+        "force": 1,
+        "pinIds": [
+          "aadef1fb-792b-44f1-a09c-2f043d6d7a10",
+          "ba889e06-b596-4fa3-8670-c2cb3495a41e",
+          "84ea9f44-5237-4600-a406-a3eeecff39d5",
+          "16d9cda3-ce55-4344-b85d-245f2b33752b"
+        ]
+      },
+      {
+        "contentId": "93b7e866-964d-4e7b-8968-b2c82e3f1e9c",
+        "force": 1,
+        "pinIds": [
+          "ceaac87e-c01b-4847-83ac-ba22db03c2ed",
+          "db177f87-1cf3-4379-9b0b-31a1c9ae6c08",
+          "810a5835-ff50-48e8-88bb-28abcebe9ae1"
+        ]
+      },
+      {
+        "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+        "force": 4,
+        "pinIds": [
+          "ced50791-9f4a-4a6e-9f71-e86a66cd9ea1",
+          "75811630-361f-4b1d-b287-6dbf04278ccd",
+          "d18ec631-08eb-4717-a37a-a79cc54ae4f6",
+          "079101ef-41a6-4ccf-ab07-cc9c052d647b",
+          "054ea338-5a66-4afb-82c8-e4c0a32d7022",
+          "7a4584d8-edc9-496c-b4e7-536343cad1c3"
+        ]
+      },
+      {
+        "contentId": "9d906757-b5bd-47e2-bbb0-b221f7011c96",
+        "force": 1,
+        "pinIds": [
+          "cd2cb63d-0a53-4767-99e5-f3734c9d4eb4",
+          "24a8e943-af4e-4b9b-b72f-43cf7f2266f2",
+          "cc87f9a7-3572-470b-a290-0236e58a4d87"
+        ]
+      },
+      {
+        "contentId": "4a7b40d3-9140-4dfb-a4f6-258c31e5fc1d",
+        "force": 2,
+        "pinIds": [
+          "0632de78-a97b-4bbd-a97f-4eac493b726e",
+          "de27a277-b8f9-4c47-98d2-35c1e547ea8c",
+          "8bb43cc7-0c17-4ea2-96e0-aca83e4ffdc9"
+        ]
+      },
+      {
+        "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+        "force": 1,
+        "pinIds": [
+          "bdbbd1da-0da1-4b01-aec8-af71cf0b86b6",
+          "6a73d366-1b9d-4d1d-8aa5-671618e70ab1",
+          "4c31b324-b2b4-44a2-8326-3d18570daafd",
+          "388b40f9-2997-4d4f-9634-5582d8e3a5b2",
+          "52117317-0849-41b1-b49e-45f8e5334fba",
+          "a1c1964e-8390-4a55-a568-1455a3a76c02"
+        ]
+      },
+      {
+        "contentId": "1698e738-3efc-4fc9-9642-bc94df1a51ff",
+        "force": 2,
+        "pinIds": [
+          "a5cc7a01-128c-4576-871c-d780ab390b04",
+          "352e68dd-020f-4fb3-b1eb-60bbf8cbd745",
+          "999b40e1-42d4-462c-b91d-d984bfe31164",
+          "88f9a646-c6d5-4751-bac7-b570437fead9"
+        ]
+      },
+      {
+        "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+        "force": 3,
+        "pinIds": [
+          "571fa352-97eb-4cff-81c9-5ff0c59be1b0",
+          "fb4fa7ad-b90d-439c-9aa5-e161036fa325",
+          "08943259-3e9d-4d8d-9d0c-01c799a8c6e8",
+          "7b8bb6be-47f9-4182-99bd-afc867e6604a",
+          "76039d03-f65a-45f1-8143-304ef8e72bf3"
+        ]
+      },
+      {
+        "contentId": "a2c4aba6-5047-40a3-bfc5-547de3467dc4",
+        "force": 2,
+        "pinIds": [
+          "1b1ebcaf-1916-4558-8853-5d2bcbff9218",
+          "fd0dde07-9cd9-437b-adb8-dfe199b1fada",
+          "df051e61-1e38-48ec-87ec-2d057630931e",
+          "607a68c5-860f-4eb5-8f85-b0115c432876"
+        ]
+      },
+      {
+        "contentId": "4ed3d917-7ba8-4d46-8463-e0cc51caa313",
+        "force": 2,
+        "pinIds": [
+          "9737c763-970a-494f-bfef-bada2236538e",
+          "223604e2-d223-4694-881e-51e63a0d5c46",
+          "b408a525-1b71-4c4a-a3b6-cbf4cd23a00a"
+        ]
+      },
+      {
+        "contentId": "ae022095-3d0c-41fa-a3ce-9eb45d7ca284",
+        "force": 1,
+        "pinIds": [
+          "f3f83a68-c8f1-4af8-a104-9bd08cd28f0b",
+          "e4cefbfa-874f-4598-9e98-e68cf47d5764",
+          "8117da14-ed0e-4948-8b42-511fc6762bd0",
+          "cf4ceaa9-86ac-4783-81db-9ed7c9afeb7d"
+        ]
+      },
+      {
+        "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+        "force": 1,
+        "pinIds": [
+          "b77cad4c-0143-4475-a1c8-25d263a7d74a",
+          "daad4bb3-f699-4a08-9db0-dba32b95b330",
+          "2551807f-9429-4d88-bee2-4585433d6a31",
+          "acde89a5-a380-4def-ba1b-6819eb94832d",
+          "c8b2c992-1f00-40b8-be49-1b05dc8b12d7"
+        ]
+      },
+      {
+        "contentId": "a1c1677e-2298-46e7-aced-69027dfc649a",
+        "force": 2,
+        "pinIds": [
+          "5ff8e738-f8f9-4b7f-9980-d794c5f94747",
+          "40345e13-f506-4459-befe-40ac28355339",
+          "43076269-9284-4212-9f98-3e27e92f22b0",
+          "c12c7bb0-d3c0-4069-a8e3-79fb1a476523"
+        ]
+      },
+      {
+        "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+        "force": 1,
+        "pinIds": [
+          "b3fdd14e-619f-4a9c-b3dc-5a83e1f0ca85",
+          "f9bb5ab0-0165-4497-8f7c-d243f8a66ce3",
+          "04b65bca-6d23-4e93-ac34-a7829130c969",
+          "692af5f5-def9-44b4-963a-ed05f8454d48",
+          "e6c162c1-188f-4efe-bbf7-ee4032ffb457"
+        ]
+      },
+      {
+        "contentId": "76f363ce-0ca0-4913-8789-6a54e18f76d7",
+        "force": 2,
+        "pinIds": [
+          "7b6cb4b8-df4a-4c98-b52d-ba51d5116ee9",
+          "39f38782-c827-49cc-8908-801ddb45edcd",
+          "2031bb4c-960b-4a3b-9d57-b73c4fc93047",
+          "e2bfaea5-d7c3-4d70-8fbc-4944af7f09a8"
+        ]
+      },
+      {
+        "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+        "force": 1,
+        "pinIds": [
+          "7ff4f621-003e-49c7-ba30-927ae0c587df",
+          "17985728-a7e5-4aa9-8bfb-6fa41293863f",
+          "b0e1666d-0ba8-4d92-98a4-84f32e27eb3e",
+          "c1ec38b0-5495-4cf6-9f05-3e8247b25227",
+          "e9ffc686-c4d9-4f78-8fbf-78e15649bd81"
+        ]
+      },
+      {
+        "contentId": "2fc5aee1-1065-4dc5-b192-c6453b6a2af6",
+        "force": 1,
+        "pinIds": [
+          "14c4c300-2160-4fe5-86be-b0901273368d",
+          "e31b0b20-c790-4e7e-a65c-680401a05aa2",
+          "c586c7a8-e3da-494a-8161-5b2a5e642a8a"
+        ]
+      },
+      {
+        "contentId": "a94c3b84-a10e-4417-8d66-ff9fe8a29327",
+        "force": 2,
+        "pinIds": [
+          "915a7f49-4442-4fb5-b431-60b58abb126a",
+          "ced44760-ba58-4070-a6e8-a34bcfc0c2e4",
+          "aacbc209-008c-4cda-b8c7-99e7218b2924"
+        ]
+      },
+      {
+        "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+        "force": 1,
+        "pinIds": [
+          "fcbc5237-36cf-46b3-81e3-59dbed3e239c",
+          "b88b6596-5f8c-4e9d-b896-ec155d1a7258",
+          "934c01f7-5283-46c7-8e7b-15690af3e9e2",
+          "be93b4e7-eaa2-4a3b-bcc5-b8e902b4cef3",
+          "fa43ad5f-1d44-4e7b-addb-8e3deb1fe54f",
+          "6d556899-c0a5-4b4b-81c7-ff416a90527c"
+        ]
+      },
+      {
+        "contentId": "62f6b708-3f53-49a5-b934-68bf6889c409",
+        "force": 2,
+        "pinIds": [
+          "0ee72098-7c5e-461a-af46-c975e1bc3395",
+          "6e03ef44-8d0f-4365-8426-da16e405f3c8",
+          "f87b981f-befa-4430-a9d6-9884442142cd",
+          "8421ee50-9fd8-48ba-9a41-9fe2d6314f54"
+        ]
+      },
+      {
+        "contentId": "75535000-ceee-464e-9ee1-46db855b863b",
+        "force": 1,
+        "pinIds": [
+          "d6cded4f-219f-4c7d-b6a4-72e9afd615e7",
+          "04febbe6-e013-4da2-8bcc-2c5485f465ac",
+          "410cc8a6-4005-4fe4-abca-2813639df96b"
+        ]
+      },
+      {
+        "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+        "force": 1,
+        "pinIds": [
+          "01108bd4-24b9-48e4-beca-9f0b4ef913c2",
+          "fd2bb351-40d8-4f53-8df1-dfbb8ffaab4e",
+          "03bb857c-9734-4d75-bc6a-9daf41f2d090",
+          "1b739eb4-45b2-4a9f-bf19-7f38c60531e9",
+          "46989cb7-ee0d-4304-adfb-a0a8461c539a"
+        ]
+      },
+      {
+        "contentId": "d9505cd6-aa3d-4396-87d0-8d90e6c553cc",
+        "force": 1,
+        "pinIds": [
+          "e5bced3e-a372-4868-a46e-f1a18894cab6",
+          "f6cbdbf5-8d20-4dcb-a877-bace7a8477e2",
+          "183bfb33-acfe-41df-9538-a09c3a92f4d0"
+        ]
+      },
+      {
+        "contentId": "9acb30c1-7041-4cb3-8a28-320200f10a8e",
+        "force": 3,
+        "pinIds": [
+          "4f89086b-05ee-4bbc-96f7-c565b467cd51",
+          "80aca19c-a2c4-45ee-b3d8-471671ceaf3a",
+          "07cd2b09-6888-4e6e-8784-956ad39a96b5"
+        ]
+      },
+      {
+        "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+        "force": 1,
+        "pinIds": [
+          "125dfd9a-2407-4bc7-bbd2-b7dd557c15d4",
+          "9086f0d1-e889-4cb3-b1cc-454ee5cdec5e",
+          "774395a1-760a-4c2a-a471-f3c2f513d822",
+          "b05b9a2e-6fd0-4132-a9df-187667758ad7",
+          "a9d18ddb-3cea-4882-865d-1e8f097af9b6",
+          "f2017309-9b40-4880-abfe-03a3e59ac322"
+        ]
+      },
+      {
+        "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+        "force": 1,
+        "pinIds": [
+          "f418ef4d-6344-4320-b920-34429cdfe139",
+          "862d5115-1c4f-484b-8bcd-ba503e6d33cf",
+          "6c4e9f76-63d5-485a-900e-64de1a978a56",
+          "e2c7954d-0f92-4510-ac17-82eeda0341a3",
+          "2f473de5-a17d-4f6b-9583-356eebfbea72"
+        ]
+      },
+      {
+        "contentId": "d7c6ad7a-c65d-4493-964c-d14846bbfde5",
+        "force": 3,
+        "pinIds": [
+          "4c0728fd-2576-4ede-b2dd-c1210eca5798",
+          "b6f07a72-8992-450d-a4a2-56772465dbf8",
+          "c3feb34f-ed3c-4e4f-b518-6c50f7cd7b64"
+        ]
+      },
+      {
+        "contentId": "272f5326-cbb8-4108-ae2f-4815b955d216",
+        "force": 2,
+        "pinIds": [
+          "dadea70a-76da-44b5-bc97-08f8431b9662",
+          "91f66b46-9f60-4f74-acc1-e23c04caf9e0",
+          "17e00b59-08ff-4b7a-8d05-90faa188446a"
+        ]
+      },
+      {
+        "contentId": "5fd275b9-e387-49aa-aa00-b801f49aaa56",
+        "force": 1,
+        "pinIds": [
+          "615efd7e-8fbf-412f-8140-77e61f5d8a32",
+          "ff8a7de9-eac7-4f4b-bc76-8f8923d09ff0",
+          "9e872bf6-2b50-4686-8f71-8c8e944e598b"
+        ]
+      },
+      {
+        "contentId": "d259d85c-a6ec-432a-a042-981040fca7c5",
+        "force": 1,
+        "pinIds": [
+          "0a7e4a1e-091f-45b1-a494-63d758b5eb06",
+          "f9f43c89-5e9a-4a18-a60c-41b869928f0d",
+          "a7731d17-188d-4dac-8a1a-7082b6518adc"
+        ]
+      },
+      {
+        "contentId": "107ef841-2e26-44c2-a1c3-c1603f0203f1",
+        "force": 2,
+        "pinIds": [
+          "329a07a5-f8ef-4904-aca1-51d00bddd84d",
+          "6023789b-a73e-47c0-adb2-2c15059416d3",
+          "90bfd48d-66c5-4595-88d6-63095474fc38"
+        ]
+      },
+      {
+        "contentId": "856ba80f-3d14-4006-b7e8-0ffb84c06644",
+        "force": 1,
+        "pinIds": [
+          "3242c125-2007-451a-b924-7b151d681222",
+          "08c89036-b1d6-466f-8921-0ef0a0b6ed25",
+          "86f27dcb-f1f3-42cf-99d4-d61d115673c2"
+        ]
+      },
+      {
+        "contentId": "c02a174e-13c9-4c8b-aa73-a591fd84b555",
+        "force": 1,
+        "pinIds": [
+          "1ae71057-76f3-4ebd-b4a7-8f99c6d979cd",
+          "a171566a-a595-4bc2-b365-35412e53de2f",
+          "fcb8965c-657f-473d-9513-b40728919207",
+          "ea20c10f-a797-45e1-a264-3d781c1ad92f"
+        ]
+      },
+      {
+        "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+        "force": 3,
+        "pinIds": [
+          "3170d0bc-ebba-4abb-a6e9-5c07359e0d9c",
+          "c13fef69-0851-41d3-863d-9768c33aa8fa",
+          "977634fc-4c34-4ad0-885b-9b3fb077e26e",
+          "8dbcc0af-40a1-4a39-a7a9-85234388cbf9",
+          "30826930-0ed7-4353-9f50-718017b2a2d0"
+        ]
+      },
+      {
+        "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+        "force": 3,
+        "pinIds": [
+          "4c228bfc-0fdd-44a6-9d5c-73290de03fa0",
+          "1265a53b-7a15-41d4-98cd-f00fba9271e1",
+          "28ffa5a8-e258-4615-bff8-768fd81e1421",
+          "5ffbf4ec-d73d-48b2-98cc-31fe7e5967ea",
+          "650e2112-04cb-4dbe-b699-a2127db64eb8"
+        ]
+      },
+      {
+        "contentId": "b7d9180a-3f2c-402d-b29e-185db65f7293",
+        "force": 1,
+        "pinIds": [
+          "510c18f9-6379-4974-b40f-e1e0b3c23ecb",
+          "233c8728-de48-43b7-a34f-b1e3a4f854a3",
+          "9e2d5316-d952-40c8-b215-d1d705521300"
+        ]
+      },
+      {
+        "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+        "force": 1,
+        "pinIds": [
+          "812776d7-1a97-4c21-8748-844c1ee23545",
+          "fffcf359-efdd-4c5c-bce3-64b50f7f61e1",
+          "e38e7558-11a6-4427-8155-6ddb62d0f8df",
+          "b7840986-5347-422b-ad0d-5a91c807d9d5",
+          "b3d033da-0dba-4763-9960-d9f23aec4662"
+        ]
+      },
+      {
+        "contentId": "d27a463f-deef-4615-8f16-b1738b4194f3",
+        "force": 1,
+        "pinIds": [
+          "94045ad3-08e2-43d1-bb3f-81fff96847e6",
+          "ee106258-3cc3-4cb8-a38f-f1c94fc28fee",
+          "1d05e6bd-2c1c-4277-ad8a-66aeef51a80f",
+          "4f00b002-2f69-41ef-b372-fafd57ba8571"
+        ]
+      },
+      {
+        "contentId": "b0aac9fc-8495-45bc-b1a1-fd56d97c8c05",
+        "force": 1,
+        "pinIds": [
+          "d7fdd778-e360-4ba4-b3ad-762d3981e1a3",
+          "992bf6f5-e7fd-4060-90e7-198515fc3a0e",
+          "13fbfdd6-0f7a-4e46-8779-ba3ae51e3b83"
+        ]
+      },
+      {
+        "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+        "force": 1,
+        "pinIds": [
+          "958826b5-77ae-4724-93b9-1cf9c8960fc0",
+          "30f12aef-952e-47ac-9d26-b079d7ad3291",
+          "aa2edf8a-29ec-4547-8e29-1aaf4bb0dfdb",
+          "b5e9fd39-8242-4192-a9ff-6e1788e5c5f1",
+          "04a5375c-e267-4249-b00d-fd87ffd1f178",
+          "2703287b-0986-4d89-bf55-182d67a7c4b6"
+        ]
+      }
+    ],
+    "insights": [],
+    "tools": [],
+    "channel": [
+      {
+        "contentId": "9fbc84e7-a8c8-4a17-b7e7-d5aa2ae3ec70",
+        "pinIds": [
+          "cf78d470-3209-4fb5-936e-fd0191a35d9b"
+        ]
+      },
+      {
+        "contentId": "a00a8d62-a74f-4585-8b9d-188d5a9786f7",
+        "pinIds": [
+          "f6a9aadf-b1d0-46ab-bdd7-9f10be0f69e6"
+        ]
+      },
+      {
+        "contentId": "e53fe4ff-19d7-43d4-90bf-54995afe7e1a",
+        "pinIds": [
+          "aefac55f-a780-4b84-b174-dfa07ee0cc04"
+        ]
+      },
+      {
+        "contentId": "9d2437e2-d283-49cf-9601-c30989fbbcf6",
+        "pinIds": [
+          "953602ab-e88e-416b-b223-552ceacfb76c"
+        ]
+      },
+      {
+        "contentId": "43ff1127-b1c5-4ade-bfc3-b6445d8b1a43",
+        "pinIds": [
+          "2474318f-0798-42a9-822d-4f693c0a13a8"
+        ]
+      },
+      {
+        "contentId": "a87b6f87-8629-48f3-9610-42f2e6cc31f2",
+        "pinIds": [
+          "bd717fd9-0fa7-4ee4-b7b2-964a106d9607"
+        ]
+      },
+      {
+        "contentId": "e88ad34f-8c9f-4c59-9f0e-c093d0d427d9",
+        "pinIds": [
+          "57ccd90f-5c14-47ac-a403-b7872af4ad3e"
+        ]
+      },
+      {
+        "contentId": "818d8527-b7db-4b26-a2f8-3ffaafb300a1",
+        "pinIds": [
+          "6aab1250-cf40-4e57-84c5-d528edaa3aa1"
+        ]
+      },
+      {
+        "contentId": "d6849bba-a6a9-4413-b76a-d865fd2e964f",
+        "pinIds": [
+          "f5cf0760-3b8d-4240-afb8-ee0c5108b8a7"
+        ]
+      }
+    ],
+    "other": []
+  },
+  "pinDirectory": {
+    "03ba02dd-ad5e-4f10-a6fe-513b03483fea": {
+      "contentId": "98069cc4-163f-4b5f-baaf-5fe5504eeec6",
+      "contentType": "case",
+      "contentTitle": "Cultiva Bio — Eventos",
+      "contentSlug": "cultiva-bio-1",
+      "ratio": "4:5",
+      "label": "Cultiva Bio — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Bio, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "87047c3c-9b99-4737-b9b0-94490b3a0b49": {
+      "contentId": "98069cc4-163f-4b5f-baaf-5fe5504eeec6",
+      "contentType": "case",
+      "contentTitle": "Cultiva Bio — Eventos",
+      "contentSlug": "cultiva-bio-1",
+      "ratio": "16:9",
+      "label": "Cultiva Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Cultiva Bio, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "512412fc-25b5-4288-996f-c42de9fbc3de": {
+      "contentId": "98069cc4-163f-4b5f-baaf-5fe5504eeec6",
+      "contentType": "case",
+      "contentTitle": "Cultiva Bio — Eventos",
+      "contentSlug": "cultiva-bio-1",
+      "ratio": "9:16",
+      "label": "Cultiva Bio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Bio, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "8cb8ffe4-445f-4dd8-beef-50ce9a20c04d": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "2:3",
+      "label": "Vertia Studio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Studio, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "e1a997f0-0de0-41d7-9364-74a5a654b987": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "3:4",
+      "label": "Vertia Studio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Studio, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "6de273d3-845e-4b45-8e85-025c3854c089": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "1:1",
+      "label": "Vertia Studio — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Studio, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "443b2169-a0f4-4fd4-aa47-e5edd4690673": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "1:1",
+      "label": "Vertia Studio — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Studio, pieza 4",
+      "cloudinaryPublicId": "sample"
+    },
+    "19fe57c5-d0af-4851-9caa-eb54bfda09dc": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "16:9",
+      "label": "Vertia Studio — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Studio, pieza 5",
+      "cloudinaryPublicId": "sample"
+    },
+    "b496af54-8cb3-470c-9abb-7c3f6589de34": {
+      "contentId": "f4c1dbe5-2467-4a31-aa30-31cf007eae95",
+      "contentType": "case",
+      "contentTitle": "Vertia Studio — Branding y marca",
+      "contentSlug": "vertia-studio-2",
+      "ratio": "3:4",
+      "label": "Vertia Studio — pieza 6",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Studio, pieza 6",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "4f64e5e7-a141-4d83-8a04-58f69f75c17e": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "1:1",
+      "label": "Campovía Studio — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Studio, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "2eb6db78-761d-4186-9acc-8585ad01cc1d": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "4:5",
+      "label": "Campovía Studio — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Studio, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "f7fa8659-ca7f-4bec-830c-0ec240426bbe": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "16:9",
+      "label": "Campovía Studio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Studio, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "e6835d7c-d60b-4857-bc1d-dd6a6d09361e": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "1:1",
+      "label": "Campovía Studio — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Studio, pieza 4",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "8cf35e3d-a088-4068-bd84-e0b16b557963": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "4:5",
+      "label": "Campovía Studio — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Campovía Studio, pieza 5",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "9c75b85c-9eb0-44e2-b9f9-4ee2eef6cd22": {
+      "contentId": "bc08b4d5-1145-4145-876f-3ad8603f50d7",
+      "contentType": "case",
+      "contentTitle": "Campovía Studio — Eventos",
+      "contentSlug": "campovia-studio-3",
+      "ratio": "2:3",
+      "label": "Campovía Studio — pieza 6",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Studio, pieza 6",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "f1b70a24-9dc2-434c-be3c-f45f2426750f": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "4:5",
+      "label": "Vivara Group — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vivara Group, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "ffaa733b-2d4b-421a-b3dd-7bd9af017eea": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "3:4",
+      "label": "Vivara Group — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vivara Group, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "a26ca25a-272e-43ce-b253-5ce714935189": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "9:16",
+      "label": "Vivara Group — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Group, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "c660eb04-b404-46da-bc16-5e33c699ecb0": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "9:16",
+      "label": "Vivara Group — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Group, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "66e2e2f8-225c-447c-b91c-de328c57acb6": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "3:4",
+      "label": "Vivara Group — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vivara Group, pieza 5",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "d9c5fe62-8899-4dbb-ba12-ea40bf28cd33": {
+      "contentId": "18418a00-5b8a-4b63-9fcd-46e8e8d5c2b0",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Alimentación",
+      "contentSlug": "vivara-group-4",
+      "ratio": "1:1",
+      "label": "Vivara Group — pieza 6",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vivara Group, pieza 6",
+      "cloudinaryPublicId": "sample"
+    },
+    "ffb30478-feb0-4f26-9d0a-7d090298acb8": {
+      "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+      "contentType": "case",
+      "contentTitle": "Campovía Group — Biotecnología",
+      "contentSlug": "campovia-group-5",
+      "ratio": "3:4",
+      "label": "Campovía Group — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Group, pieza 1",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "2c84ab7e-457d-4fa9-a154-bd732d5b0502": {
+      "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+      "contentType": "case",
+      "contentTitle": "Campovía Group — Biotecnología",
+      "contentSlug": "campovia-group-5",
+      "ratio": "9:16",
+      "label": "Campovía Group — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Campovía Group, pieza 2",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "2305fd4a-0e87-4aa7-8319-8a50282aaf68": {
+      "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+      "contentType": "case",
+      "contentTitle": "Campovía Group — Biotecnología",
+      "contentSlug": "campovia-group-5",
+      "ratio": "1:1",
+      "label": "Campovía Group — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Group, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "d64ee156-ba14-4559-9c5e-f09993cc2d44": {
+      "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+      "contentType": "case",
+      "contentTitle": "Campovía Group — Biotecnología",
+      "contentSlug": "campovia-group-5",
+      "ratio": "2:3",
+      "label": "Campovía Group — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Group, pieza 4",
+      "cloudinaryPublicId": "sheep"
+    },
+    "517b862c-b461-47e7-b04c-7fde6a736ce8": {
+      "contentId": "c664cba3-5e64-49c9-a68c-56f381db05e4",
+      "contentType": "case",
+      "contentTitle": "Campovía Group — Biotecnología",
+      "contentSlug": "campovia-group-5",
+      "ratio": "4:5",
+      "label": "Campovía Group — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Group, pieza 5",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "7d8e6944-30ad-4e24-b6f6-2c09b496206d": {
+      "contentId": "4c16bf49-6b52-4176-996d-8f5e6badaafb",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Agroalimentario",
+      "contentSlug": "vivara-group-6",
+      "ratio": "4:5",
+      "label": "Vivara Group — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Group, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "026868e0-0a38-42e5-9875-47dd6542b99a": {
+      "contentId": "4c16bf49-6b52-4176-996d-8f5e6badaafb",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Agroalimentario",
+      "contentSlug": "vivara-group-6",
+      "ratio": "1:1",
+      "label": "Vivara Group — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Group, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "31ce1943-3380-40fe-80b4-cc4702446f9a": {
+      "contentId": "4c16bf49-6b52-4176-996d-8f5e6badaafb",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Agroalimentario",
+      "contentSlug": "vivara-group-6",
+      "ratio": "9:16",
+      "label": "Vivara Group — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Group, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "81f1344a-756d-404c-8483-40187fe8ded3": {
+      "contentId": "4c16bf49-6b52-4176-996d-8f5e6badaafb",
+      "contentType": "case",
+      "contentTitle": "Vivara Group — Agroalimentario",
+      "contentSlug": "vivara-group-6",
+      "ratio": "4:5",
+      "label": "Vivara Group — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vivara Group, pieza 4",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "a27e6b9a-268c-4f52-9cfe-2d109c3af520": {
+      "contentId": "5d081614-8e53-4846-b1f5-3fee768ec649",
+      "contentType": "case",
+      "contentTitle": "Semilla Labs — Digital",
+      "contentSlug": "semilla-labs-7",
+      "ratio": "2:3",
+      "label": "Semilla Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Semilla Labs, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "deb0a0b9-e877-4298-93a6-09a28f59cd5f": {
+      "contentId": "5d081614-8e53-4846-b1f5-3fee768ec649",
+      "contentType": "case",
+      "contentTitle": "Semilla Labs — Digital",
+      "contentSlug": "semilla-labs-7",
+      "ratio": "9:16",
+      "label": "Semilla Labs — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Semilla Labs, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "5a7b992f-d384-47f2-814d-16fc2e480b53": {
+      "contentId": "5d081614-8e53-4846-b1f5-3fee768ec649",
+      "contentType": "case",
+      "contentTitle": "Semilla Labs — Digital",
+      "contentSlug": "semilla-labs-7",
+      "ratio": "9:16",
+      "label": "Semilla Labs — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Semilla Labs, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "c6def08b-4e83-4ffc-bd73-5d7bb5684f39": {
+      "contentId": "5d081614-8e53-4846-b1f5-3fee768ec649",
+      "contentType": "case",
+      "contentTitle": "Semilla Labs — Digital",
+      "contentSlug": "semilla-labs-7",
+      "ratio": "3:4",
+      "label": "Semilla Labs — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Semilla Labs, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "f30b63a6-3122-4e57-b41e-5b4724a132b8": {
+      "contentId": "54aa1fa7-d45d-4d92-a4f4-ab92617ee5b8",
+      "contentType": "case",
+      "contentTitle": "Vivara Bio — Biotecnología",
+      "contentSlug": "vivara-bio-8",
+      "ratio": "1:1",
+      "label": "Vivara Bio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Bio, pieza 1",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "0e6f77e2-2265-4401-a764-70194ae325b4": {
+      "contentId": "54aa1fa7-d45d-4d92-a4f4-ab92617ee5b8",
+      "contentType": "case",
+      "contentTitle": "Vivara Bio — Biotecnología",
+      "contentSlug": "vivara-bio-8",
+      "ratio": "4:5",
+      "label": "Vivara Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Vivara Bio, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "ad2c91dc-6dad-46fc-b8f6-a5c97f0ba342": {
+      "contentId": "54aa1fa7-d45d-4d92-a4f4-ab92617ee5b8",
+      "contentType": "case",
+      "contentTitle": "Vivara Bio — Biotecnología",
+      "contentSlug": "vivara-bio-8",
+      "ratio": "2:3",
+      "label": "Vivara Bio — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vivara Bio, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "57e6e8ac-6060-48ea-b14e-bdff25993065": {
+      "contentId": "54aa1fa7-d45d-4d92-a4f4-ab92617ee5b8",
+      "contentType": "case",
+      "contentTitle": "Vivara Bio — Biotecnología",
+      "contentSlug": "vivara-bio-8",
+      "ratio": "16:9",
+      "label": "Vivara Bio — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vivara Bio, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "fd73600b-6923-4256-abe8-756e93801122": {
+      "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+      "contentType": "case",
+      "contentTitle": "Fontal Group — Branding y marca",
+      "contentSlug": "fontal-group-9",
+      "ratio": "2:3",
+      "label": "Fontal Group — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Group, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "a774b1c6-9c38-41a7-a41b-5f06bfd0824a": {
+      "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+      "contentType": "case",
+      "contentTitle": "Fontal Group — Branding y marca",
+      "contentSlug": "fontal-group-9",
+      "ratio": "4:5",
+      "label": "Fontal Group — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Group, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "4fe49ef7-ff16-488b-ac75-f27ace8ad304": {
+      "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+      "contentType": "case",
+      "contentTitle": "Fontal Group — Branding y marca",
+      "contentSlug": "fontal-group-9",
+      "ratio": "16:9",
+      "label": "Fontal Group — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Group, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "995dfc4d-ea20-4006-9668-f80f86083bf7": {
+      "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+      "contentType": "case",
+      "contentTitle": "Fontal Group — Branding y marca",
+      "contentSlug": "fontal-group-9",
+      "ratio": "16:9",
+      "label": "Fontal Group — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Group, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "a29ccf46-1ca8-40c8-949f-75b24f78f9b9": {
+      "contentId": "970ec4e0-5414-4418-876e-a8bfe8c5fd95",
+      "contentType": "case",
+      "contentTitle": "Fontal Group — Branding y marca",
+      "contentSlug": "fontal-group-9",
+      "ratio": "3:4",
+      "label": "Fontal Group — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Group, pieza 5",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "0adeda7d-b3ec-4e1c-b0e6-9c5e5147d46e": {
+      "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+      "contentType": "case",
+      "contentTitle": "Cultiva — Branding y marca",
+      "contentSlug": "cultiva-10",
+      "ratio": "2:3",
+      "label": "Cultiva — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "10ed61d7-a0ed-42a7-ba54-5604f2e291f0": {
+      "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+      "contentType": "case",
+      "contentTitle": "Cultiva — Branding y marca",
+      "contentSlug": "cultiva-10",
+      "ratio": "4:5",
+      "label": "Cultiva — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "0e342ff0-d12b-4b26-a2c6-377830a6124f": {
+      "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+      "contentType": "case",
+      "contentTitle": "Cultiva — Branding y marca",
+      "contentSlug": "cultiva-10",
+      "ratio": "3:4",
+      "label": "Cultiva — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "c4457070-3bd0-405b-b270-8389075eebca": {
+      "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+      "contentType": "case",
+      "contentTitle": "Cultiva — Branding y marca",
+      "contentSlug": "cultiva-10",
+      "ratio": "1:1",
+      "label": "Cultiva — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva, pieza 4",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "efdc6d75-c555-4e6e-beed-18d68436aed0": {
+      "contentId": "e3ce3b9a-d371-42b4-99b5-7f38e894d88f",
+      "contentType": "case",
+      "contentTitle": "Cultiva — Branding y marca",
+      "contentSlug": "cultiva-10",
+      "ratio": "9:16",
+      "label": "Cultiva — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva, pieza 5",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "aadef1fb-792b-44f1-a09c-2f043d6d7a10": {
+      "contentId": "14b6646c-0b05-44e6-be44-d845daaf2d4e",
+      "contentType": "case",
+      "contentTitle": "Solvex Foods — Branding y marca",
+      "contentSlug": "solvex-foods-11",
+      "ratio": "9:16",
+      "label": "Solvex Foods — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex Foods, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "ba889e06-b596-4fa3-8670-c2cb3495a41e": {
+      "contentId": "14b6646c-0b05-44e6-be44-d845daaf2d4e",
+      "contentType": "case",
+      "contentTitle": "Solvex Foods — Branding y marca",
+      "contentSlug": "solvex-foods-11",
+      "ratio": "3:4",
+      "label": "Solvex Foods — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex Foods, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "84ea9f44-5237-4600-a406-a3eeecff39d5": {
+      "contentId": "14b6646c-0b05-44e6-be44-d845daaf2d4e",
+      "contentType": "case",
+      "contentTitle": "Solvex Foods — Branding y marca",
+      "contentSlug": "solvex-foods-11",
+      "ratio": "2:3",
+      "label": "Solvex Foods — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex Foods, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "16d9cda3-ce55-4344-b85d-245f2b33752b": {
+      "contentId": "14b6646c-0b05-44e6-be44-d845daaf2d4e",
+      "contentType": "case",
+      "contentTitle": "Solvex Foods — Branding y marca",
+      "contentSlug": "solvex-foods-11",
+      "ratio": "1:1",
+      "label": "Solvex Foods — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Foods, pieza 4",
+      "cloudinaryPublicId": "sample"
+    },
+    "ceaac87e-c01b-4847-83ac-ba22db03c2ed": {
+      "contentId": "93b7e866-964d-4e7b-8968-b2c82e3f1e9c",
+      "contentType": "case",
+      "contentTitle": "Semilla Group — Branding y marca",
+      "contentSlug": "semilla-group-12",
+      "ratio": "4:5",
+      "label": "Semilla Group — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Semilla Group, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "db177f87-1cf3-4379-9b0b-31a1c9ae6c08": {
+      "contentId": "93b7e866-964d-4e7b-8968-b2c82e3f1e9c",
+      "contentType": "case",
+      "contentTitle": "Semilla Group — Branding y marca",
+      "contentSlug": "semilla-group-12",
+      "ratio": "2:3",
+      "label": "Semilla Group — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Semilla Group, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "810a5835-ff50-48e8-88bb-28abcebe9ae1": {
+      "contentId": "93b7e866-964d-4e7b-8968-b2c82e3f1e9c",
+      "contentType": "case",
+      "contentTitle": "Semilla Group — Branding y marca",
+      "contentSlug": "semilla-group-12",
+      "ratio": "1:1",
+      "label": "Semilla Group — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Semilla Group, pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "ced50791-9f4a-4a6e-9f71-e86a66cd9ea1": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "2:3",
+      "label": "Fontal Co. — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Co., pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "75811630-361f-4b1d-b287-6dbf04278ccd": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "2:3",
+      "label": "Fontal Co. — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Co., pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "d18ec631-08eb-4717-a37a-a79cc54ae4f6": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "3:4",
+      "label": "Fontal Co. — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Co., pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "079101ef-41a6-4ccf-ab07-cc9c052d647b": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "2:3",
+      "label": "Fontal Co. — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Co., pieza 4",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "054ea338-5a66-4afb-82c8-e4c0a32d7022": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "4:5",
+      "label": "Fontal Co. — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Co., pieza 5",
+      "cloudinaryPublicId": "sheep"
+    },
+    "7a4584d8-edc9-496c-b4e7-536343cad1c3": {
+      "contentId": "29be83c8-e0de-4fe2-8f90-6df5bb16a8a1",
+      "contentType": "case",
+      "contentTitle": "Fontal Co. — Alimentación",
+      "contentSlug": "fontal-co-13",
+      "ratio": "16:9",
+      "label": "Fontal Co. — pieza 6",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Co., pieza 6",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "cd2cb63d-0a53-4767-99e5-f3734c9d4eb4": {
+      "contentId": "9d906757-b5bd-47e2-bbb0-b221f7011c96",
+      "contentType": "case",
+      "contentTitle": "Grania Bio — Digital",
+      "contentSlug": "grania-bio-14",
+      "ratio": "3:4",
+      "label": "Grania Bio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Grania Bio, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "24a8e943-af4e-4b9b-b72f-43cf7f2266f2": {
+      "contentId": "9d906757-b5bd-47e2-bbb0-b221f7011c96",
+      "contentType": "case",
+      "contentTitle": "Grania Bio — Digital",
+      "contentSlug": "grania-bio-14",
+      "ratio": "2:3",
+      "label": "Grania Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Grania Bio, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "cc87f9a7-3572-470b-a290-0236e58a4d87": {
+      "contentId": "9d906757-b5bd-47e2-bbb0-b221f7011c96",
+      "contentType": "case",
+      "contentTitle": "Grania Bio — Digital",
+      "contentSlug": "grania-bio-14",
+      "ratio": "1:1",
+      "label": "Grania Bio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Grania Bio, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "0632de78-a97b-4bbd-a97f-4eac493b726e": {
+      "contentId": "4a7b40d3-9140-4dfb-a4f6-258c31e5fc1d",
+      "contentType": "case",
+      "contentTitle": "Fontal Labs — Alimentación",
+      "contentSlug": "fontal-labs-15",
+      "ratio": "3:4",
+      "label": "Fontal Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Labs, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "de27a277-b8f9-4c47-98d2-35c1e547ea8c": {
+      "contentId": "4a7b40d3-9140-4dfb-a4f6-258c31e5fc1d",
+      "contentType": "case",
+      "contentTitle": "Fontal Labs — Alimentación",
+      "contentSlug": "fontal-labs-15",
+      "ratio": "2:3",
+      "label": "Fontal Labs — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Labs, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "8bb43cc7-0c17-4ea2-96e0-aca83e4ffdc9": {
+      "contentId": "4a7b40d3-9140-4dfb-a4f6-258c31e5fc1d",
+      "contentType": "case",
+      "contentTitle": "Fontal Labs — Alimentación",
+      "contentSlug": "fontal-labs-15",
+      "ratio": "9:16",
+      "label": "Fontal Labs — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Labs, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "bdbbd1da-0da1-4b01-aec8-af71cf0b86b6": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "4:5",
+      "label": "Fontal Bio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Bio, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "6a73d366-1b9d-4d1d-8aa5-671618e70ab1": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "16:9",
+      "label": "Fontal Bio — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Bio, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "4c31b324-b2b4-44a2-8326-3d18570daafd": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "1:1",
+      "label": "Fontal Bio — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Bio, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "388b40f9-2997-4d4f-9634-5582d8e3a5b2": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "9:16",
+      "label": "Fontal Bio — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Bio, pieza 4",
+      "cloudinaryPublicId": "sample"
+    },
+    "52117317-0849-41b1-b49e-45f8e5334fba": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "4:5",
+      "label": "Fontal Bio — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Bio, pieza 5",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "a1c1964e-8390-4a55-a568-1455a3a76c02": {
+      "contentId": "b6a8b855-383f-4720-a310-48fa1fc83e21",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Alimentación",
+      "contentSlug": "fontal-bio-16",
+      "ratio": "2:3",
+      "label": "Fontal Bio — pieza 6",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Bio, pieza 6",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "a5cc7a01-128c-4576-871c-d780ab390b04": {
+      "contentId": "1698e738-3efc-4fc9-9642-bc94df1a51ff",
+      "contentType": "case",
+      "contentTitle": "Campovía Bio — Biotecnología",
+      "contentSlug": "campovia-bio-17",
+      "ratio": "1:1",
+      "label": "Campovía Bio — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Bio, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "352e68dd-020f-4fb3-b1eb-60bbf8cbd745": {
+      "contentId": "1698e738-3efc-4fc9-9642-bc94df1a51ff",
+      "contentType": "case",
+      "contentTitle": "Campovía Bio — Biotecnología",
+      "contentSlug": "campovia-bio-17",
+      "ratio": "3:4",
+      "label": "Campovía Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Bio, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "999b40e1-42d4-462c-b91d-d984bfe31164": {
+      "contentId": "1698e738-3efc-4fc9-9642-bc94df1a51ff",
+      "contentType": "case",
+      "contentTitle": "Campovía Bio — Biotecnología",
+      "contentSlug": "campovia-bio-17",
+      "ratio": "1:1",
+      "label": "Campovía Bio — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Bio, pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "88f9a646-c6d5-4751-bac7-b570437fead9": {
+      "contentId": "1698e738-3efc-4fc9-9642-bc94df1a51ff",
+      "contentType": "case",
+      "contentTitle": "Campovía Bio — Biotecnología",
+      "contentSlug": "campovia-bio-17",
+      "ratio": "16:9",
+      "label": "Campovía Bio — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Bio, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "571fa352-97eb-4cff-81c9-5ff0c59be1b0": {
+      "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-18",
+      "ratio": "9:16",
+      "label": "Raizen Labs — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Raizen Labs, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "fb4fa7ad-b90d-439c-9aa5-e161036fa325": {
+      "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-18",
+      "ratio": "9:16",
+      "label": "Raizen Labs — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Raizen Labs, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "08943259-3e9d-4d8d-9d0c-01c799a8c6e8": {
+      "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-18",
+      "ratio": "16:9",
+      "label": "Raizen Labs — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Raizen Labs, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "7b8bb6be-47f9-4182-99bd-afc867e6604a": {
+      "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-18",
+      "ratio": "3:4",
+      "label": "Raizen Labs — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Raizen Labs, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "76039d03-f65a-45f1-8143-304ef8e72bf3": {
+      "contentId": "058e0420-1266-4707-93b9-90d17138f524",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-18",
+      "ratio": "16:9",
+      "label": "Raizen Labs — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Raizen Labs, pieza 5",
+      "cloudinaryPublicId": "sheep"
+    },
+    "1b1ebcaf-1916-4558-8853-5d2bcbff9218": {
+      "contentId": "a2c4aba6-5047-40a3-bfc5-547de3467dc4",
+      "contentType": "case",
+      "contentTitle": "Florent Group — Alimentación",
+      "contentSlug": "florent-group-19",
+      "ratio": "4:5",
+      "label": "Florent Group — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Florent Group, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "fd0dde07-9cd9-437b-adb8-dfe199b1fada": {
+      "contentId": "a2c4aba6-5047-40a3-bfc5-547de3467dc4",
+      "contentType": "case",
+      "contentTitle": "Florent Group — Alimentación",
+      "contentSlug": "florent-group-19",
+      "ratio": "2:3",
+      "label": "Florent Group — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Florent Group, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "df051e61-1e38-48ec-87ec-2d057630931e": {
+      "contentId": "a2c4aba6-5047-40a3-bfc5-547de3467dc4",
+      "contentType": "case",
+      "contentTitle": "Florent Group — Alimentación",
+      "contentSlug": "florent-group-19",
+      "ratio": "1:1",
+      "label": "Florent Group — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Florent Group, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "607a68c5-860f-4eb5-8f85-b0115c432876": {
+      "contentId": "a2c4aba6-5047-40a3-bfc5-547de3467dc4",
+      "contentType": "case",
+      "contentTitle": "Florent Group — Alimentación",
+      "contentSlug": "florent-group-19",
+      "ratio": "1:1",
+      "label": "Florent Group — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Florent Group, pieza 4",
+      "cloudinaryPublicId": "sheep"
+    },
+    "9737c763-970a-494f-bfef-bada2236538e": {
+      "contentId": "4ed3d917-7ba8-4d46-8463-e0cc51caa313",
+      "contentType": "case",
+      "contentTitle": "Fontal Foods — Branding y marca",
+      "contentSlug": "fontal-foods-20",
+      "ratio": "16:9",
+      "label": "Fontal Foods — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Foods, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "223604e2-d223-4694-881e-51e63a0d5c46": {
+      "contentId": "4ed3d917-7ba8-4d46-8463-e0cc51caa313",
+      "contentType": "case",
+      "contentTitle": "Fontal Foods — Branding y marca",
+      "contentSlug": "fontal-foods-20",
+      "ratio": "1:1",
+      "label": "Fontal Foods — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Foods, pieza 2",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "b408a525-1b71-4c4a-a3b6-cbf4cd23a00a": {
+      "contentId": "4ed3d917-7ba8-4d46-8463-e0cc51caa313",
+      "contentType": "case",
+      "contentTitle": "Fontal Foods — Branding y marca",
+      "contentSlug": "fontal-foods-20",
+      "ratio": "3:4",
+      "label": "Fontal Foods — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Foods, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "f3f83a68-c8f1-4af8-a104-9bd08cd28f0b": {
+      "contentId": "ae022095-3d0c-41fa-a3ce-9eb45d7ca284",
+      "contentType": "case",
+      "contentTitle": "Estival Foods — Eventos",
+      "contentSlug": "estival-foods-21",
+      "ratio": "16:9",
+      "label": "Estival Foods — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Estival Foods, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "e4cefbfa-874f-4598-9e98-e68cf47d5764": {
+      "contentId": "ae022095-3d0c-41fa-a3ce-9eb45d7ca284",
+      "contentType": "case",
+      "contentTitle": "Estival Foods — Eventos",
+      "contentSlug": "estival-foods-21",
+      "ratio": "16:9",
+      "label": "Estival Foods — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Estival Foods, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "8117da14-ed0e-4948-8b42-511fc6762bd0": {
+      "contentId": "ae022095-3d0c-41fa-a3ce-9eb45d7ca284",
+      "contentType": "case",
+      "contentTitle": "Estival Foods — Eventos",
+      "contentSlug": "estival-foods-21",
+      "ratio": "2:3",
+      "label": "Estival Foods — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Estival Foods, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "cf4ceaa9-86ac-4783-81db-9ed7c9afeb7d": {
+      "contentId": "ae022095-3d0c-41fa-a3ce-9eb45d7ca284",
+      "contentType": "case",
+      "contentTitle": "Estival Foods — Eventos",
+      "contentSlug": "estival-foods-21",
+      "ratio": "2:3",
+      "label": "Estival Foods — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Estival Foods, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "b77cad4c-0143-4475-a1c8-25d263a7d74a": {
+      "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+      "contentType": "case",
+      "contentTitle": "Vertia Labs — Biotecnología",
+      "contentSlug": "vertia-labs-22",
+      "ratio": "16:9",
+      "label": "Vertia Labs — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Labs, pieza 1",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "daad4bb3-f699-4a08-9db0-dba32b95b330": {
+      "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+      "contentType": "case",
+      "contentTitle": "Vertia Labs — Biotecnología",
+      "contentSlug": "vertia-labs-22",
+      "ratio": "9:16",
+      "label": "Vertia Labs — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia Labs, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "2551807f-9429-4d88-bee2-4585433d6a31": {
+      "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+      "contentType": "case",
+      "contentTitle": "Vertia Labs — Biotecnología",
+      "contentSlug": "vertia-labs-22",
+      "ratio": "4:5",
+      "label": "Vertia Labs — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia Labs, pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "acde89a5-a380-4def-ba1b-6819eb94832d": {
+      "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+      "contentType": "case",
+      "contentTitle": "Vertia Labs — Biotecnología",
+      "contentSlug": "vertia-labs-22",
+      "ratio": "4:5",
+      "label": "Vertia Labs — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Labs, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "c8b2c992-1f00-40b8-be49-1b05dc8b12d7": {
+      "contentId": "dee0affe-fafc-45c3-9deb-a5fdb2656163",
+      "contentType": "case",
+      "contentTitle": "Vertia Labs — Biotecnología",
+      "contentSlug": "vertia-labs-22",
+      "ratio": "1:1",
+      "label": "Vertia Labs — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia Labs, pieza 5",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "5ff8e738-f8f9-4b7f-9980-d794c5f94747": {
+      "contentId": "a1c1677e-2298-46e7-aced-69027dfc649a",
+      "contentType": "case",
+      "contentTitle": "Solvex Bio — Eventos",
+      "contentSlug": "solvex-bio-23",
+      "ratio": "3:4",
+      "label": "Solvex Bio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Bio, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "40345e13-f506-4459-befe-40ac28355339": {
+      "contentId": "a1c1677e-2298-46e7-aced-69027dfc649a",
+      "contentType": "case",
+      "contentTitle": "Solvex Bio — Eventos",
+      "contentSlug": "solvex-bio-23",
+      "ratio": "3:4",
+      "label": "Solvex Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Bio, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "43076269-9284-4212-9f98-3e27e92f22b0": {
+      "contentId": "a1c1677e-2298-46e7-aced-69027dfc649a",
+      "contentType": "case",
+      "contentTitle": "Solvex Bio — Eventos",
+      "contentSlug": "solvex-bio-23",
+      "ratio": "4:5",
+      "label": "Solvex Bio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex Bio, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "c12c7bb0-d3c0-4069-a8e3-79fb1a476523": {
+      "contentId": "a1c1677e-2298-46e7-aced-69027dfc649a",
+      "contentType": "case",
+      "contentTitle": "Solvex Bio — Eventos",
+      "contentSlug": "solvex-bio-23",
+      "ratio": "3:4",
+      "label": "Solvex Bio — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Bio, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "b3fdd14e-619f-4a9c-b3dc-5a83e1f0ca85": {
+      "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+      "contentType": "case",
+      "contentTitle": "Solvex — Digital",
+      "contentSlug": "solvex-24",
+      "ratio": "4:5",
+      "label": "Solvex — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "f9bb5ab0-0165-4497-8f7c-d243f8a66ce3": {
+      "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+      "contentType": "case",
+      "contentTitle": "Solvex — Digital",
+      "contentSlug": "solvex-24",
+      "ratio": "16:9",
+      "label": "Solvex — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "04b65bca-6d23-4e93-ac34-a7829130c969": {
+      "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+      "contentType": "case",
+      "contentTitle": "Solvex — Digital",
+      "contentSlug": "solvex-24",
+      "ratio": "16:9",
+      "label": "Solvex — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "692af5f5-def9-44b4-963a-ed05f8454d48": {
+      "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+      "contentType": "case",
+      "contentTitle": "Solvex — Digital",
+      "contentSlug": "solvex-24",
+      "ratio": "3:4",
+      "label": "Solvex — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "e6c162c1-188f-4efe-bbf7-ee4032ffb457": {
+      "contentId": "d2c59988-33c3-4c7e-9ad2-66f40cfed09f",
+      "contentType": "case",
+      "contentTitle": "Solvex — Digital",
+      "contentSlug": "solvex-24",
+      "ratio": "2:3",
+      "label": "Solvex — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Solvex, pieza 5",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "7b6cb4b8-df4a-4c98-b52d-ba51d5116ee9": {
+      "contentId": "76f363ce-0ca0-4913-8789-6a54e18f76d7",
+      "contentType": "case",
+      "contentTitle": "Olivara Farms — Digital",
+      "contentSlug": "olivara-farms-25",
+      "ratio": "2:3",
+      "label": "Olivara Farms — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Olivara Farms, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "39f38782-c827-49cc-8908-801ddb45edcd": {
+      "contentId": "76f363ce-0ca0-4913-8789-6a54e18f76d7",
+      "contentType": "case",
+      "contentTitle": "Olivara Farms — Digital",
+      "contentSlug": "olivara-farms-25",
+      "ratio": "2:3",
+      "label": "Olivara Farms — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Olivara Farms, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "2031bb4c-960b-4a3b-9d57-b73c4fc93047": {
+      "contentId": "76f363ce-0ca0-4913-8789-6a54e18f76d7",
+      "contentType": "case",
+      "contentTitle": "Olivara Farms — Digital",
+      "contentSlug": "olivara-farms-25",
+      "ratio": "4:5",
+      "label": "Olivara Farms — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Olivara Farms, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "e2bfaea5-d7c3-4d70-8fbc-4944af7f09a8": {
+      "contentId": "76f363ce-0ca0-4913-8789-6a54e18f76d7",
+      "contentType": "case",
+      "contentTitle": "Olivara Farms — Digital",
+      "contentSlug": "olivara-farms-25",
+      "ratio": "4:5",
+      "label": "Olivara Farms — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Olivara Farms, pieza 4",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "7ff4f621-003e-49c7-ba30-927ae0c587df": {
+      "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+      "contentType": "case",
+      "contentTitle": "Olivara Labs — Eventos",
+      "contentSlug": "olivara-labs-26",
+      "ratio": "16:9",
+      "label": "Olivara Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Olivara Labs, pieza 1",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "17985728-a7e5-4aa9-8bfb-6fa41293863f": {
+      "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+      "contentType": "case",
+      "contentTitle": "Olivara Labs — Eventos",
+      "contentSlug": "olivara-labs-26",
+      "ratio": "1:1",
+      "label": "Olivara Labs — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Olivara Labs, pieza 2",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "b0e1666d-0ba8-4d92-98a4-84f32e27eb3e": {
+      "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+      "contentType": "case",
+      "contentTitle": "Olivara Labs — Eventos",
+      "contentSlug": "olivara-labs-26",
+      "ratio": "3:4",
+      "label": "Olivara Labs — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Olivara Labs, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "c1ec38b0-5495-4cf6-9f05-3e8247b25227": {
+      "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+      "contentType": "case",
+      "contentTitle": "Olivara Labs — Eventos",
+      "contentSlug": "olivara-labs-26",
+      "ratio": "1:1",
+      "label": "Olivara Labs — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Olivara Labs, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "e9ffc686-c4d9-4f78-8fbf-78e15649bd81": {
+      "contentId": "58c13caa-130d-476f-8203-11e4f7e48ca2",
+      "contentType": "case",
+      "contentTitle": "Olivara Labs — Eventos",
+      "contentSlug": "olivara-labs-26",
+      "ratio": "3:4",
+      "label": "Olivara Labs — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Olivara Labs, pieza 5",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "14c4c300-2160-4fe5-86be-b0901273368d": {
+      "contentId": "2fc5aee1-1065-4dc5-b192-c6453b6a2af6",
+      "contentType": "case",
+      "contentTitle": "Florent Labs — Digital",
+      "contentSlug": "florent-labs-27",
+      "ratio": "16:9",
+      "label": "Florent Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Florent Labs, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "e31b0b20-c790-4e7e-a65c-680401a05aa2": {
+      "contentId": "2fc5aee1-1065-4dc5-b192-c6453b6a2af6",
+      "contentType": "case",
+      "contentTitle": "Florent Labs — Digital",
+      "contentSlug": "florent-labs-27",
+      "ratio": "4:5",
+      "label": "Florent Labs — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Florent Labs, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "c586c7a8-e3da-494a-8161-5b2a5e642a8a": {
+      "contentId": "2fc5aee1-1065-4dc5-b192-c6453b6a2af6",
+      "contentType": "case",
+      "contentTitle": "Florent Labs — Digital",
+      "contentSlug": "florent-labs-27",
+      "ratio": "3:4",
+      "label": "Florent Labs — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Florent Labs, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "915a7f49-4442-4fb5-b431-60b58abb126a": {
+      "contentId": "a94c3b84-a10e-4417-8d66-ff9fe8a29327",
+      "contentType": "case",
+      "contentTitle": "Vertia — Digital",
+      "contentSlug": "vertia-28",
+      "ratio": "3:4",
+      "label": "Vertia — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Vertia, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "ced44760-ba58-4070-a6e8-a34bcfc0c2e4": {
+      "contentId": "a94c3b84-a10e-4417-8d66-ff9fe8a29327",
+      "contentType": "case",
+      "contentTitle": "Vertia — Digital",
+      "contentSlug": "vertia-28",
+      "ratio": "3:4",
+      "label": "Vertia — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "aacbc209-008c-4cda-b8c7-99e7218b2924": {
+      "contentId": "a94c3b84-a10e-4417-8d66-ff9fe8a29327",
+      "contentType": "case",
+      "contentTitle": "Vertia — Digital",
+      "contentSlug": "vertia-28",
+      "ratio": "4:5",
+      "label": "Vertia — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Vertia, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "fcbc5237-36cf-46b3-81e3-59dbed3e239c": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "4:5",
+      "label": "Fontal Bio — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Bio, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "b88b6596-5f8c-4e9d-b896-ec155d1a7258": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "3:4",
+      "label": "Fontal Bio — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Bio, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "934c01f7-5283-46c7-8e7b-15690af3e9e2": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "16:9",
+      "label": "Fontal Bio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal Bio, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "be93b4e7-eaa2-4a3b-bcc5-b8e902b4cef3": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "16:9",
+      "label": "Fontal Bio — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal Bio, pieza 4",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "fa43ad5f-1d44-4e7b-addb-8e3deb1fe54f": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "16:9",
+      "label": "Fontal Bio — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Bio, pieza 5",
+      "cloudinaryPublicId": "sample"
+    },
+    "6d556899-c0a5-4b4b-81c7-ff416a90527c": {
+      "contentId": "1e4ca36b-262c-42e1-a7f1-f801c325e0bb",
+      "contentType": "case",
+      "contentTitle": "Fontal Bio — Eventos",
+      "contentSlug": "fontal-bio-29",
+      "ratio": "9:16",
+      "label": "Fontal Bio — pieza 6",
+      "cta": null,
+      "alt": "Imagen del caso Fontal Bio, pieza 6",
+      "cloudinaryPublicId": "sample"
+    },
+    "0ee72098-7c5e-461a-af46-c975e1bc3395": {
+      "contentId": "62f6b708-3f53-49a5-b934-68bf6889c409",
+      "contentType": "case",
+      "contentTitle": "Florent Studio — Eventos",
+      "contentSlug": "florent-studio-30",
+      "ratio": "9:16",
+      "label": "Florent Studio — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Florent Studio, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "6e03ef44-8d0f-4365-8426-da16e405f3c8": {
+      "contentId": "62f6b708-3f53-49a5-b934-68bf6889c409",
+      "contentType": "case",
+      "contentTitle": "Florent Studio — Eventos",
+      "contentSlug": "florent-studio-30",
+      "ratio": "4:5",
+      "label": "Florent Studio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Florent Studio, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "f87b981f-befa-4430-a9d6-9884442142cd": {
+      "contentId": "62f6b708-3f53-49a5-b934-68bf6889c409",
+      "contentType": "case",
+      "contentTitle": "Florent Studio — Eventos",
+      "contentSlug": "florent-studio-30",
+      "ratio": "1:1",
+      "label": "Florent Studio — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Florent Studio, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "8421ee50-9fd8-48ba-9a41-9fe2d6314f54": {
+      "contentId": "62f6b708-3f53-49a5-b934-68bf6889c409",
+      "contentType": "case",
+      "contentTitle": "Florent Studio — Eventos",
+      "contentSlug": "florent-studio-30",
+      "ratio": "3:4",
+      "label": "Florent Studio — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Florent Studio, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "d6cded4f-219f-4c7d-b6a4-72e9afd615e7": {
+      "contentId": "75535000-ceee-464e-9ee1-46db855b863b",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-31",
+      "ratio": "4:5",
+      "label": "Terraval Farms — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Terraval Farms, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "04febbe6-e013-4da2-8bcc-2c5485f465ac": {
+      "contentId": "75535000-ceee-464e-9ee1-46db855b863b",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-31",
+      "ratio": "16:9",
+      "label": "Terraval Farms — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Terraval Farms, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "410cc8a6-4005-4fe4-abca-2813639df96b": {
+      "contentId": "75535000-ceee-464e-9ee1-46db855b863b",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-31",
+      "ratio": "4:5",
+      "label": "Terraval Farms — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Terraval Farms, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "01108bd4-24b9-48e4-beca-9f0b4ef913c2": {
+      "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+      "contentType": "case",
+      "contentTitle": "Solvex Labs — Agroalimentario",
+      "contentSlug": "solvex-labs-32",
+      "ratio": "9:16",
+      "label": "Solvex Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Labs, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "fd2bb351-40d8-4f53-8df1-dfbb8ffaab4e": {
+      "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+      "contentType": "case",
+      "contentTitle": "Solvex Labs — Agroalimentario",
+      "contentSlug": "solvex-labs-32",
+      "ratio": "16:9",
+      "label": "Solvex Labs — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Labs, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "03bb857c-9734-4d75-bc6a-9daf41f2d090": {
+      "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+      "contentType": "case",
+      "contentTitle": "Solvex Labs — Agroalimentario",
+      "contentSlug": "solvex-labs-32",
+      "ratio": "4:5",
+      "label": "Solvex Labs — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex Labs, pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "1b739eb4-45b2-4a9f-bf19-7f38c60531e9": {
+      "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+      "contentType": "case",
+      "contentTitle": "Solvex Labs — Agroalimentario",
+      "contentSlug": "solvex-labs-32",
+      "ratio": "4:5",
+      "label": "Solvex Labs — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex Labs, pieza 4",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "46989cb7-ee0d-4304-adfb-a0a8461c539a": {
+      "contentId": "c4445c1f-6365-42c2-9306-e43ac156757c",
+      "contentType": "case",
+      "contentTitle": "Solvex Labs — Agroalimentario",
+      "contentSlug": "solvex-labs-32",
+      "ratio": "9:16",
+      "label": "Solvex Labs — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Labs, pieza 5",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "e5bced3e-a372-4868-a46e-f1a18894cab6": {
+      "contentId": "d9505cd6-aa3d-4396-87d0-8d90e6c553cc",
+      "contentType": "case",
+      "contentTitle": "Vertia Farms — Branding y marca",
+      "contentSlug": "vertia-farms-33",
+      "ratio": "4:5",
+      "label": "Vertia Farms — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Farms, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "f6cbdbf5-8d20-4dcb-a877-bace7a8477e2": {
+      "contentId": "d9505cd6-aa3d-4396-87d0-8d90e6c553cc",
+      "contentType": "case",
+      "contentTitle": "Vertia Farms — Branding y marca",
+      "contentSlug": "vertia-farms-33",
+      "ratio": "3:4",
+      "label": "Vertia Farms — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia Farms, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "183bfb33-acfe-41df-9538-a09c3a92f4d0": {
+      "contentId": "d9505cd6-aa3d-4396-87d0-8d90e6c553cc",
+      "contentType": "case",
+      "contentTitle": "Vertia Farms — Branding y marca",
+      "contentSlug": "vertia-farms-33",
+      "ratio": "9:16",
+      "label": "Vertia Farms — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Vertia Farms, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "4f89086b-05ee-4bbc-96f7-c565b467cd51": {
+      "contentId": "9acb30c1-7041-4cb3-8a28-320200f10a8e",
+      "contentType": "case",
+      "contentTitle": "Terraval Bio — Alimentación",
+      "contentSlug": "terraval-bio-34",
+      "ratio": "3:4",
+      "label": "Terraval Bio — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Terraval Bio, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "80aca19c-a2c4-45ee-b3d8-471671ceaf3a": {
+      "contentId": "9acb30c1-7041-4cb3-8a28-320200f10a8e",
+      "contentType": "case",
+      "contentTitle": "Terraval Bio — Alimentación",
+      "contentSlug": "terraval-bio-34",
+      "ratio": "9:16",
+      "label": "Terraval Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Terraval Bio, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "07cd2b09-6888-4e6e-8784-956ad39a96b5": {
+      "contentId": "9acb30c1-7041-4cb3-8a28-320200f10a8e",
+      "contentType": "case",
+      "contentTitle": "Terraval Bio — Alimentación",
+      "contentSlug": "terraval-bio-34",
+      "ratio": "1:1",
+      "label": "Terraval Bio — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Terraval Bio, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "125dfd9a-2407-4bc7-bbd2-b7dd557c15d4": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "2:3",
+      "label": "Fontal — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "9086f0d1-e889-4cb3-b1cc-454ee5cdec5e": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "1:1",
+      "label": "Fontal — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Fontal, pieza 2",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "774395a1-760a-4c2a-a471-f3c2f513d822": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "16:9",
+      "label": "Fontal — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Fontal, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "b05b9a2e-6fd0-4132-a9df-187667758ad7": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "16:9",
+      "label": "Fontal — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "a9d18ddb-3cea-4882-865d-1e8f097af9b6": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "16:9",
+      "label": "Fontal — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Fontal, pieza 5",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "f2017309-9b40-4880-abfe-03a3e59ac322": {
+      "contentId": "8b659dfe-98e6-48ec-8d04-1a72943b7a9f",
+      "contentType": "case",
+      "contentTitle": "Fontal — Biotecnología",
+      "contentSlug": "fontal-35",
+      "ratio": "4:5",
+      "label": "Fontal — pieza 6",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Fontal, pieza 6",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "f418ef4d-6344-4320-b920-34429cdfe139": {
+      "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-36",
+      "ratio": "2:3",
+      "label": "Raizen Labs — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Raizen Labs, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "862d5115-1c4f-484b-8bcd-ba503e6d33cf": {
+      "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-36",
+      "ratio": "9:16",
+      "label": "Raizen Labs — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Raizen Labs, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "6c4e9f76-63d5-485a-900e-64de1a978a56": {
+      "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-36",
+      "ratio": "16:9",
+      "label": "Raizen Labs — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Raizen Labs, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "e2c7954d-0f92-4510-ac17-82eeda0341a3": {
+      "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-36",
+      "ratio": "2:3",
+      "label": "Raizen Labs — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Raizen Labs, pieza 4",
+      "cloudinaryPublicId": "sheep"
+    },
+    "2f473de5-a17d-4f6b-9583-356eebfbea72": {
+      "contentId": "82778108-afbc-41a3-a9cd-04dd3682bd56",
+      "contentType": "case",
+      "contentTitle": "Raizen Labs — Eventos",
+      "contentSlug": "raizen-labs-36",
+      "ratio": "16:9",
+      "label": "Raizen Labs — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Raizen Labs, pieza 5",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "4c0728fd-2576-4ede-b2dd-c1210eca5798": {
+      "contentId": "d7c6ad7a-c65d-4493-964c-d14846bbfde5",
+      "contentType": "case",
+      "contentTitle": "Vertia Group — Branding y marca",
+      "contentSlug": "vertia-group-37",
+      "ratio": "4:5",
+      "label": "Vertia Group — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Group, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "b6f07a72-8992-450d-a4a2-56772465dbf8": {
+      "contentId": "d7c6ad7a-c65d-4493-964c-d14846bbfde5",
+      "contentType": "case",
+      "contentTitle": "Vertia Group — Branding y marca",
+      "contentSlug": "vertia-group-37",
+      "ratio": "4:5",
+      "label": "Vertia Group — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Vertia Group, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "c3feb34f-ed3c-4e4f-b518-6c50f7cd7b64": {
+      "contentId": "d7c6ad7a-c65d-4493-964c-d14846bbfde5",
+      "contentType": "case",
+      "contentTitle": "Vertia Group — Branding y marca",
+      "contentSlug": "vertia-group-37",
+      "ratio": "1:1",
+      "label": "Vertia Group — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Vertia Group, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "dadea70a-76da-44b5-bc97-08f8431b9662": {
+      "contentId": "272f5326-cbb8-4108-ae2f-4815b955d216",
+      "contentType": "case",
+      "contentTitle": "Nutrivo — Alimentación",
+      "contentSlug": "nutrivo-38",
+      "ratio": "4:5",
+      "label": "Nutrivo — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "91f66b46-9f60-4f74-acc1-e23c04caf9e0": {
+      "contentId": "272f5326-cbb8-4108-ae2f-4815b955d216",
+      "contentType": "case",
+      "contentTitle": "Nutrivo — Alimentación",
+      "contentSlug": "nutrivo-38",
+      "ratio": "16:9",
+      "label": "Nutrivo — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "17e00b59-08ff-4b7a-8d05-90faa188446a": {
+      "contentId": "272f5326-cbb8-4108-ae2f-4815b955d216",
+      "contentType": "case",
+      "contentTitle": "Nutrivo — Alimentación",
+      "contentSlug": "nutrivo-38",
+      "ratio": "3:4",
+      "label": "Nutrivo — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Nutrivo, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "615efd7e-8fbf-412f-8140-77e61f5d8a32": {
+      "contentId": "5fd275b9-e387-49aa-aa00-b801f49aaa56",
+      "contentType": "case",
+      "contentTitle": "Solvex — Branding y marca",
+      "contentSlug": "solvex-39",
+      "ratio": "4:5",
+      "label": "Solvex — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Solvex, pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "ff8a7de9-eac7-4f4b-bc76-8f8923d09ff0": {
+      "contentId": "5fd275b9-e387-49aa-aa00-b801f49aaa56",
+      "contentType": "case",
+      "contentTitle": "Solvex — Branding y marca",
+      "contentSlug": "solvex-39",
+      "ratio": "16:9",
+      "label": "Solvex — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "9e872bf6-2b50-4686-8f71-8c8e944e598b": {
+      "contentId": "5fd275b9-e387-49aa-aa00-b801f49aaa56",
+      "contentType": "case",
+      "contentTitle": "Solvex — Branding y marca",
+      "contentSlug": "solvex-39",
+      "ratio": "3:4",
+      "label": "Solvex — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Solvex, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "0a7e4a1e-091f-45b1-a494-63d758b5eb06": {
+      "contentId": "d259d85c-a6ec-432a-a042-981040fca7c5",
+      "contentType": "case",
+      "contentTitle": "Bionova Co. — Agroalimentario",
+      "contentSlug": "bionova-co-40",
+      "ratio": "4:5",
+      "label": "Bionova Co. — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Bionova Co., pieza 1",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "f9f43c89-5e9a-4a18-a60c-41b869928f0d": {
+      "contentId": "d259d85c-a6ec-432a-a042-981040fca7c5",
+      "contentType": "case",
+      "contentTitle": "Bionova Co. — Agroalimentario",
+      "contentSlug": "bionova-co-40",
+      "ratio": "16:9",
+      "label": "Bionova Co. — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Bionova Co., pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "a7731d17-188d-4dac-8a1a-7082b6518adc": {
+      "contentId": "d259d85c-a6ec-432a-a042-981040fca7c5",
+      "contentType": "case",
+      "contentTitle": "Bionova Co. — Agroalimentario",
+      "contentSlug": "bionova-co-40",
+      "ratio": "1:1",
+      "label": "Bionova Co. — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Bionova Co., pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "329a07a5-f8ef-4904-aca1-51d00bddd84d": {
+      "contentId": "107ef841-2e26-44c2-a1c3-c1603f0203f1",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Branding y marca",
+      "contentSlug": "campovia-co-41",
+      "ratio": "2:3",
+      "label": "Campovía Co. — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Co., pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "6023789b-a73e-47c0-adb2-2c15059416d3": {
+      "contentId": "107ef841-2e26-44c2-a1c3-c1603f0203f1",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Branding y marca",
+      "contentSlug": "campovia-co-41",
+      "ratio": "4:5",
+      "label": "Campovía Co. — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Campovía Co., pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "90bfd48d-66c5-4595-88d6-63095474fc38": {
+      "contentId": "107ef841-2e26-44c2-a1c3-c1603f0203f1",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Branding y marca",
+      "contentSlug": "campovia-co-41",
+      "ratio": "1:1",
+      "label": "Campovía Co. — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Co., pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "3242c125-2007-451a-b924-7b151d681222": {
+      "contentId": "856ba80f-3d14-4006-b7e8-0ffb84c06644",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Agroalimentario",
+      "contentSlug": "nutrivo-group-42",
+      "ratio": "9:16",
+      "label": "Nutrivo Group — pieza 1",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Nutrivo Group, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "08c89036-b1d6-466f-8921-0ef0a0b6ed25": {
+      "contentId": "856ba80f-3d14-4006-b7e8-0ffb84c06644",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Agroalimentario",
+      "contentSlug": "nutrivo-group-42",
+      "ratio": "4:5",
+      "label": "Nutrivo Group — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo Group, pieza 2",
+      "cloudinaryPublicId": "sheep"
+    },
+    "86f27dcb-f1f3-42cf-99d4-d61d115673c2": {
+      "contentId": "856ba80f-3d14-4006-b7e8-0ffb84c06644",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Agroalimentario",
+      "contentSlug": "nutrivo-group-42",
+      "ratio": "16:9",
+      "label": "Nutrivo Group — pieza 3",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Nutrivo Group, pieza 3",
+      "cloudinaryPublicId": "sheep"
+    },
+    "1ae71057-76f3-4ebd-b4a7-8f99c6d979cd": {
+      "contentId": "c02a174e-13c9-4c8b-aa73-a591fd84b555",
+      "contentType": "case",
+      "contentTitle": "Solvex Farms — Biotecnología",
+      "contentSlug": "solvex-farms-43",
+      "ratio": "2:3",
+      "label": "Solvex Farms — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex Farms, pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "a171566a-a595-4bc2-b365-35412e53de2f": {
+      "contentId": "c02a174e-13c9-4c8b-aa73-a591fd84b555",
+      "contentType": "case",
+      "contentTitle": "Solvex Farms — Biotecnología",
+      "contentSlug": "solvex-farms-43",
+      "ratio": "16:9",
+      "label": "Solvex Farms — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Farms, pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "fcb8965c-657f-473d-9513-b40728919207": {
+      "contentId": "c02a174e-13c9-4c8b-aa73-a591fd84b555",
+      "contentType": "case",
+      "contentTitle": "Solvex Farms — Biotecnología",
+      "contentSlug": "solvex-farms-43",
+      "ratio": "2:3",
+      "label": "Solvex Farms — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Farms, pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "ea20c10f-a797-45e1-a264-3d781c1ad92f": {
+      "contentId": "c02a174e-13c9-4c8b-aa73-a591fd84b555",
+      "contentType": "case",
+      "contentTitle": "Solvex Farms — Biotecnología",
+      "contentSlug": "solvex-farms-43",
+      "ratio": "16:9",
+      "label": "Solvex Farms — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Solvex Farms, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "3170d0bc-ebba-4abb-a6e9-5c07359e0d9c": {
+      "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-44",
+      "ratio": "3:4",
+      "label": "Terraval Farms — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Terraval Farms, pieza 1",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "c13fef69-0851-41d3-863d-9768c33aa8fa": {
+      "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-44",
+      "ratio": "3:4",
+      "label": "Terraval Farms — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Terraval Farms, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "977634fc-4c34-4ad0-885b-9b3fb077e26e": {
+      "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-44",
+      "ratio": "1:1",
+      "label": "Terraval Farms — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Terraval Farms, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "8dbcc0af-40a1-4a39-a7a9-85234388cbf9": {
+      "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-44",
+      "ratio": "1:1",
+      "label": "Terraval Farms — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Terraval Farms, pieza 4",
+      "cloudinaryPublicId": "sheep"
+    },
+    "30826930-0ed7-4353-9f50-718017b2a2d0": {
+      "contentId": "7246e488-1faf-47cb-bf4f-a21c38c490df",
+      "contentType": "case",
+      "contentTitle": "Terraval Farms — Eventos",
+      "contentSlug": "terraval-farms-44",
+      "ratio": "16:9",
+      "label": "Terraval Farms — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Terraval Farms, pieza 5",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "4c228bfc-0fdd-44a6-9d5c-73290de03fa0": {
+      "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+      "contentType": "case",
+      "contentTitle": "Brotia Bio — Digital",
+      "contentSlug": "brotia-bio-45",
+      "ratio": "4:5",
+      "label": "Brotia Bio — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Brotia Bio, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "1265a53b-7a15-41d4-98cd-f00fba9271e1": {
+      "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+      "contentType": "case",
+      "contentTitle": "Brotia Bio — Digital",
+      "contentSlug": "brotia-bio-45",
+      "ratio": "9:16",
+      "label": "Brotia Bio — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Brotia Bio, pieza 2",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "28ffa5a8-e258-4615-bff8-768fd81e1421": {
+      "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+      "contentType": "case",
+      "contentTitle": "Brotia Bio — Digital",
+      "contentSlug": "brotia-bio-45",
+      "ratio": "1:1",
+      "label": "Brotia Bio — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Brotia Bio, pieza 3",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "5ffbf4ec-d73d-48b2-98cc-31fe7e5967ea": {
+      "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+      "contentType": "case",
+      "contentTitle": "Brotia Bio — Digital",
+      "contentSlug": "brotia-bio-45",
+      "ratio": "16:9",
+      "label": "Brotia Bio — pieza 4",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Brotia Bio, pieza 4",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "650e2112-04cb-4dbe-b699-a2127db64eb8": {
+      "contentId": "f88e71a2-f684-45f1-8ed4-cab54304709c",
+      "contentType": "case",
+      "contentTitle": "Brotia Bio — Digital",
+      "contentSlug": "brotia-bio-45",
+      "ratio": "1:1",
+      "label": "Brotia Bio — pieza 5",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Brotia Bio, pieza 5",
+      "cloudinaryPublicId": "sample"
+    },
+    "510c18f9-6379-4974-b40f-e1e0b3c23ecb": {
+      "contentId": "b7d9180a-3f2c-402d-b29e-185db65f7293",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Biotecnología",
+      "contentSlug": "campovia-co-46",
+      "ratio": "2:3",
+      "label": "Campovía Co. — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Campovía Co., pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "233c8728-de48-43b7-a34f-b1e3a4f854a3": {
+      "contentId": "b7d9180a-3f2c-402d-b29e-185db65f7293",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Biotecnología",
+      "contentSlug": "campovia-co-46",
+      "ratio": "1:1",
+      "label": "Campovía Co. — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Campovía Co., pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "9e2d5316-d952-40c8-b215-d1d705521300": {
+      "contentId": "b7d9180a-3f2c-402d-b29e-185db65f7293",
+      "contentType": "case",
+      "contentTitle": "Campovía Co. — Biotecnología",
+      "contentSlug": "campovia-co-46",
+      "ratio": "3:4",
+      "label": "Campovía Co. — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Campovía Co., pieza 3",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "812776d7-1a97-4c21-8748-844c1ee23545": {
+      "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Alimentación",
+      "contentSlug": "nutrivo-group-47",
+      "ratio": "9:16",
+      "label": "Nutrivo Group — pieza 1",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo Group, pieza 1",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "fffcf359-efdd-4c5c-bce3-64b50f7f61e1": {
+      "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Alimentación",
+      "contentSlug": "nutrivo-group-47",
+      "ratio": "1:1",
+      "label": "Nutrivo Group — pieza 2",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Nutrivo Group, pieza 2",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "e38e7558-11a6-4427-8155-6ddb62d0f8df": {
+      "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Alimentación",
+      "contentSlug": "nutrivo-group-47",
+      "ratio": "4:5",
+      "label": "Nutrivo Group — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo Group, pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "b7840986-5347-422b-ad0d-5a91c807d9d5": {
+      "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Alimentación",
+      "contentSlug": "nutrivo-group-47",
+      "ratio": "4:5",
+      "label": "Nutrivo Group — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo Group, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "b3d033da-0dba-4763-9960-d9f23aec4662": {
+      "contentId": "92df3b29-b9eb-4555-8175-ea3d3c642bef",
+      "contentType": "case",
+      "contentTitle": "Nutrivo Group — Alimentación",
+      "contentSlug": "nutrivo-group-47",
+      "ratio": "4:5",
+      "label": "Nutrivo Group — pieza 5",
+      "cta": null,
+      "alt": "Imagen del caso Nutrivo Group, pieza 5",
+      "cloudinaryPublicId": "sheep"
+    },
+    "94045ad3-08e2-43d1-bb3f-81fff96847e6": {
+      "contentId": "d27a463f-deef-4615-8f16-b1738b4194f3",
+      "contentType": "case",
+      "contentTitle": "Solvex Co. — Biotecnología",
+      "contentSlug": "solvex-co-48",
+      "ratio": "9:16",
+      "label": "Solvex Co. — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Solvex Co., pieza 1",
+      "cloudinaryPublicId": "sheep"
+    },
+    "ee106258-3cc3-4cb8-a38f-f1c94fc28fee": {
+      "contentId": "d27a463f-deef-4615-8f16-b1738b4194f3",
+      "contentType": "case",
+      "contentTitle": "Solvex Co. — Biotecnología",
+      "contentSlug": "solvex-co-48",
+      "ratio": "3:4",
+      "label": "Solvex Co. — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Co., pieza 2",
+      "cloudinaryPublicId": "sample"
+    },
+    "1d05e6bd-2c1c-4277-ad8a-66aeef51a80f": {
+      "contentId": "d27a463f-deef-4615-8f16-b1738b4194f3",
+      "contentType": "case",
+      "contentTitle": "Solvex Co. — Biotecnología",
+      "contentSlug": "solvex-co-48",
+      "ratio": "4:5",
+      "label": "Solvex Co. — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Co., pieza 3",
+      "cloudinaryPublicId": "sample"
+    },
+    "4f00b002-2f69-41ef-b372-fafd57ba8571": {
+      "contentId": "d27a463f-deef-4615-8f16-b1738b4194f3",
+      "contentType": "case",
+      "contentTitle": "Solvex Co. — Biotecnología",
+      "contentSlug": "solvex-co-48",
+      "ratio": "4:5",
+      "label": "Solvex Co. — pieza 4",
+      "cta": null,
+      "alt": "Imagen del caso Solvex Co., pieza 4",
+      "cloudinaryPublicId": "sample"
+    },
+    "d7fdd778-e360-4ba4-b3ad-762d3981e1a3": {
+      "contentId": "b0aac9fc-8495-45bc-b1a1-fd56d97c8c05",
+      "contentType": "case",
+      "contentTitle": "Bionova Foods — Biotecnología",
+      "contentSlug": "bionova-foods-49",
+      "ratio": "16:9",
+      "label": "Bionova Foods — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Bionova Foods, pieza 1",
+      "cloudinaryPublicId": "kitten_fighting"
+    },
+    "992bf6f5-e7fd-4060-90e7-198515fc3a0e": {
+      "contentId": "b0aac9fc-8495-45bc-b1a1-fd56d97c8c05",
+      "contentType": "case",
+      "contentTitle": "Bionova Foods — Biotecnología",
+      "contentSlug": "bionova-foods-49",
+      "ratio": "4:5",
+      "label": "Bionova Foods — pieza 2",
+      "cta": null,
+      "alt": "Imagen del caso Bionova Foods, pieza 2",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "13fbfdd6-0f7a-4e46-8779-ba3ae51e3b83": {
+      "contentId": "b0aac9fc-8495-45bc-b1a1-fd56d97c8c05",
+      "contentType": "case",
+      "contentTitle": "Bionova Foods — Biotecnología",
+      "contentSlug": "bionova-foods-49",
+      "ratio": "9:16",
+      "label": "Bionova Foods — pieza 3",
+      "cta": null,
+      "alt": "Imagen del caso Bionova Foods, pieza 3",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "958826b5-77ae-4724-93b9-1cf9c8960fc0": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "3:4",
+      "label": "Cultiva Farms — pieza 1",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Farms, pieza 1",
+      "cloudinaryPublicId": "sample"
+    },
+    "30f12aef-952e-47ac-9d26-b079d7ad3291": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "4:5",
+      "label": "Cultiva Farms — pieza 2",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Farms, pieza 2",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "aa2edf8a-29ec-4547-8e29-1aaf4bb0dfdb": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "9:16",
+      "label": "Cultiva Farms — pieza 3",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva Farms, pieza 3",
+      "cloudinaryPublicId": "pm/woman_car"
+    },
+    "b5e9fd39-8242-4192-a9ff-6e1788e5c5f1": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "3:4",
+      "label": "Cultiva Farms — pieza 4",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Farms, pieza 4",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "04a5375c-e267-4249-b00d-fd87ffd1f178": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "4:5",
+      "label": "Cultiva Farms — pieza 5",
+      "cta": "Ver caso",
+      "alt": "Imagen del caso Cultiva Farms, pieza 5",
+      "cloudinaryPublicId": "sheep"
+    },
+    "2703287b-0986-4d89-bf55-182d67a7c4b6": {
+      "contentId": "196acdb4-f603-4e1a-aa15-70a4b98535b0",
+      "contentType": "case",
+      "contentTitle": "Cultiva Farms — Alimentación",
+      "contentSlug": "cultiva-farms-50",
+      "ratio": "1:1",
+      "label": "Cultiva Farms — pieza 6",
+      "cta": "Saber más",
+      "alt": "Imagen del caso Cultiva Farms, pieza 6",
+      "cloudinaryPublicId": "sheep"
+    },
+    "cf78d470-3209-4fb5-936e-fd0191a35d9b": {
+      "contentId": "9fbc84e7-a8c8-4a17-b7e7-d5aa2ae3ec70",
+      "contentType": "episode",
+      "contentTitle": "Brand the Future · Episodio 1: conversación con Clara Serra",
+      "contentSlug": "brand-the-future-episodio-1-05b30020",
+      "ratio": "16:9",
+      "label": "Brand the Future — Episodio 1",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 1 de Brand the Future, con Clara Serra",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "f6a9aadf-b1d0-46ab-bdd7-9f10be0f69e6": {
+      "contentId": "a00a8d62-a74f-4585-8b9d-188d5a9786f7",
+      "contentType": "episode",
+      "contentTitle": "Brand the Future · Episodio 2: conversación con Marc Oliveras",
+      "contentSlug": "brand-the-future-episodio-2-782e1019",
+      "ratio": "16:9",
+      "label": "Brand the Future — Episodio 2",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 2 de Brand the Future, con Marc Oliveras",
+      "cloudinaryPublicId": "ai/hiker"
+    },
+    "aefac55f-a780-4b84-b174-dfa07ee0cc04": {
+      "contentId": "e53fe4ff-19d7-43d4-90bf-54995afe7e1a",
+      "contentType": "episode",
+      "contentTitle": "Brand the Future · Episodio 3: conversación con Laia Roca",
+      "contentSlug": "brand-the-future-episodio-3-e9f4ddb5",
+      "ratio": "16:9",
+      "label": "Brand the Future — Episodio 3",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 3 de Brand the Future, con Laia Roca",
+      "cloudinaryPublicId": "sheep"
+    },
+    "953602ab-e88e-416b-b223-552ceacfb76c": {
+      "contentId": "9d2437e2-d283-49cf-9601-c30989fbbcf6",
+      "contentType": "episode",
+      "contentTitle": "Brand into Europe · Episodio 1: conversación con Pau Ferrer",
+      "contentSlug": "brand-into-europe-episodio-1-92e431f1",
+      "ratio": "16:9",
+      "label": "Brand into Europe — Episodio 1",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 1 de Brand into Europe, con Pau Ferrer",
+      "cloudinaryPublicId": "sample"
+    },
+    "2474318f-0798-42a9-822d-4f693c0a13a8": {
+      "contentId": "43ff1127-b1c5-4ade-bfc3-b6445d8b1a43",
+      "contentType": "episode",
+      "contentTitle": "Brand into Europe · Episodio 2: conversación con Jordi Puig",
+      "contentSlug": "brand-into-europe-episodio-2-c04054ad",
+      "ratio": "16:9",
+      "label": "Brand into Europe — Episodio 2",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 2 de Brand into Europe, con Jordi Puig",
+      "cloudinaryPublicId": "sheep"
+    },
+    "bd717fd9-0fa7-4ee4-b7b2-964a106d9607": {
+      "contentId": "a87b6f87-8629-48f3-9610-42f2e6cc31f2",
+      "contentType": "episode",
+      "contentTitle": "Brand into Europe · Episodio 3: conversación con Andreu Camps",
+      "contentSlug": "brand-into-europe-episodio-3-989fd740",
+      "ratio": "16:9",
+      "label": "Brand into Europe — Episodio 3",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 3 de Brand into Europe, con Andreu Camps",
+      "cloudinaryPublicId": "pm/kitchen"
+    },
+    "57ccd90f-5c14-47ac-a403-b7872af4ad3e": {
+      "contentId": "e88ad34f-8c9f-4c59-9f0e-c093d0d427d9",
+      "contentType": "episode",
+      "contentTitle": "Brand to Table · Episodio 1: conversación con Marc Oliveras",
+      "contentSlug": "brand-to-table-episodio-1-fa4dcd4b",
+      "ratio": "16:9",
+      "label": "Brand to Table — Episodio 1",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 1 de Brand to Table, con Marc Oliveras",
+      "cloudinaryPublicId": "sample"
+    },
+    "6aab1250-cf40-4e57-84c5-d528edaa3aa1": {
+      "contentId": "818d8527-b7db-4b26-a2f8-3ffaafb300a1",
+      "contentType": "episode",
+      "contentTitle": "Brand to Table · Episodio 2: conversación con Elena Vidal",
+      "contentSlug": "brand-to-table-episodio-2-ebb4a6c7",
+      "ratio": "16:9",
+      "label": "Brand to Table — Episodio 2",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 2 de Brand to Table, con Elena Vidal",
+      "cloudinaryPublicId": "sample"
+    },
+    "f5cf0760-3b8d-4240-afb8-ee0c5108b8a7": {
+      "contentId": "d6849bba-a6a9-4413-b76a-d865fd2e964f",
+      "contentType": "episode",
+      "contentTitle": "Brand to Table · Episodio 3: conversación con Elena Vidal",
+      "contentSlug": "brand-to-table-episodio-3-3dbacc62",
+      "ratio": "16:9",
+      "label": "Brand to Table — Episodio 3",
+      "cta": "Ver episodio",
+      "alt": "Miniatura del episodio 3 de Brand to Table, con Elena Vidal",
+      "cloudinaryPublicId": "pm/kitchen"
+    }
+  }
+}

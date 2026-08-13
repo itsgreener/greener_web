@@ -1,0 +1,99 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  /* Ancho disponible inyectado por el shell de Greener (arquitectura §12.3):
+     viewport menos la barra de iconos. Con fallback para pruebas aisladas
+     de la tool fuera del sitio (contrato §12.2). */
+  width: var(--greener-available-width, 100vw);
+  min-height: var(--greener-available-height, 100vh);
+  padding: 16px;
+}
+
+.tool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  /* La tool debe caber sin scroll en el viewport disponible (brief §5.3). */
+  max-height: var(--greener-available-height, 100vh);
+}
+
+.controls {
+  flex: 1 1 240px;
+  min-width: 220px;
+}
+
+.controls h1 {
+  font-size: 1.1rem;
+  margin: 0 0 8px;
+}
+
+.controls p {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+button {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 12px;
+  border: 1px solid #1f4d3a;
+  background: #ffffff;
+  color: #1f4d3a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button:not(:disabled):hover {
+  background: #1f4d3a;
+  color: #ffffff;
+}
+
+.palette {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.palette li {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.canvas-wrap {
+  flex: 2 1 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+canvas {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e5e5;
+}
