@@ -1,14 +1,4 @@
 -- Greener — 07: acceso de administración, redirecciones y auditoría — arquitectura §7.6
-
-create table admin_allowed_domain (
-  id uuid primary key default gen_random_uuid(),
-  domain text not null unique,
-  created_at timestamptz not null default now()
-);
-
-comment on table admin_allowed_domain is
-  'Allowlist de dominios de correo con acceso al ABM (arquitectura §15.2). Editable desde el propio ABM, no hardcodeada. Rol único: cualquier cuenta del dominio tiene el mismo nivel de acceso (confirmado con Greener).';
-
 create table admin_profile (
   user_id uuid primary key references auth.users (id) on delete cascade,
   display_name text,
