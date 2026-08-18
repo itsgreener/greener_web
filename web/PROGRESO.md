@@ -12,7 +12,7 @@ Se ha completado casi por entero la **Fase 0** del plan de ejecución (Anexo E d
 
 **Cifras actuales:**
 
-- **33 tests automáticos**, todos en verde (`npm test`).
+- **59 tests automáticos**, todos en verde (`npm test`).
 - **8 migraciones SQL** de Supabase, aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
 - **0 errores** de TypeScript, **0 avisos** de ESLint, build de producción limpio.
@@ -138,13 +138,37 @@ Se corrigió el `package.json` para reflejar las versiones reales del proyecto (
 - **Sin insights ni tools** (se suben manualmente, confirmado).
 
 Salidas generadas:
+
 - `supabase/seed_demo_data.sql` — listo para `supabase db push` / `psql`, sobre las 8 migraciones ya existentes.
 - `data/demo/feed-snapshot.json` — mismo shape que `FeedSnapshot` (§ motor de feed), con un `pinDirectory` auxiliar (título, ratio, alt, imagen) para no tener que volver a consultar Supabase al construir el prototipo de masonry.
 
 **Validado de extremo a extremo, no solo generado:**
+
 - El SQL se aplicó contra una base Postgres real (mismo proceso usado para las migraciones), sobre las 8 migraciones ya probadas.
 - Comprobada la integridad referencial con consultas reales: 0 pines huérfanos, 0 `pin_media` apuntando a un `media_asset` inexistente, 0 casos sin etiqueta, 0 episodios sin pin, 0 valores de `force` fuera de rango.
 - **Se cerró el ciclo con el motor de feed real**: un nuevo test (`tests/unit/dataset/demoDataset.test.ts`) alimenta este dataset a `generateRound()` (la función real, no un mock) y confirma que lo consume sin errores — incluida la redistribución correcta del hueco de insights/tools (0 en este dataset) que corrigió uno de los dos bugs encontrados anteriormente.
+
+### 2.9 Prototipo de masonry (Fase 1 — completado y validado)
+
+Nuevo módulo `src/modules/masonry/domain/` (puro, sin React ni Next.js, §24.4):
+
+- `layout.ts` — asigna cada pin a la columna con menor altura acumulada (shortest-column-first), calculando la altura desde el ratio cerrado del pin sin medir el DOM (§10.1).
+- `virtualization.ts` — mantiene montado el batch visible ± 2, sustituye el resto por espaciadores que conservan la posición de scroll (§10.2).
+
+**Motor de feed extendido para scroll continuo** (brief §4.6, "el feed no termina"):
+- `feed/domain/continuousFeed.ts` — concatena tandas consecutivas bajo demanda para servir cualquier rango de pines, sin que el llamante conozca el concepto de "ronda".
+- `feed/infrastructure/demoSnapshotSource.ts` + `feed/application/getDemoFeedBatch.ts` — conectan esto al dataset real (50 casos + 9 episodios), enriqueciendo cada pin con destino, ratio, alt e imagen.
+- **`/api/feed/demo`** — endpoint HTTP temporal del prototipo (no es el `/api/feed/sessions` final de §16.1: no persiste `feed_session`/`feed_round`, no firma cursor). Probado con `curl` real: 200 pines servidos en ~11 ms, atravesando varias tandas sin huecos ni duplicados.
+
+**Componentes React**, hook + componente separados (§24.2): `components/masonry/MasonryFeed/` y `components/pin/PinCard/`. Viven en `/preview/masonry`, una ruta deliberadamente separada de la Home real para no interferir con el trabajo de login/auth de tu compañera.
+
+**28 tests nuevos**, en 4 niveles distintos de verificación:
+1. Tests de propiedad del algoritmo de layout (500 runs cada uno): determinismo, conservación de items, sin pines fuera de rango, **sin solapes verticales dentro de una columna**, breakpoints exactos a la tabla de §10.1.
+2. Tests de virtualización: los espaciadores + lo montado siempre conservan la altura total exacta.
+3. **Prueba de humo con `jsdom`** (`@testing-library/react`): los componentes montan, hacen fetch y renderizan sin lanzar — algo que ni `tsc` ni `eslint` detectan por sí solos.
+4. Build de producción + servidor real + `curl` contra la API y la página.
+
+**3 errores reales corregidos**, encontrados por el linter estricto de React 19/Next 16 (no por revisión manual): acceso a una `ref` durante el render dentro de un `useMemo`, y un `setState` en efecto que requería justificación explícita porque es un patrón deliberado (la semilla de sesión solo puede generarse en cliente tras el montaje, §6.1).
 
 ---
 
@@ -154,7 +178,7 @@ Salidas generadas:
 npm install
 npm run lint          # ESLint
 npx tsc --noEmit       # TypeScript
-npm test               # 33 tests (unit + property-based)
+npm test               # 59 tests (unit + property-based + prueba de humo con jsdom)
 npm run build           # build de producción completo
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
@@ -182,7 +206,8 @@ npx supabase db push
 
 ### 4.1 Siguiente paso inmediato
 
-- **Prototipo de masonry** con los datos reales del dataset generado (50 casos + 9 episodios, `data/demo/feed-snapshot.json`) — es el paso lógico natural ahora que el dataset existe y ya se validó contra `generateRound()`, y ataca el riesgo técnico principal señalado en §22 (fps y restauración de scroll).
+- **Ajustar el algoritmo de layout con el diseño real** cuando esté disponible (el prototipo usa breakpoints propuestos por el equipo técnico, §10.1, "a validar por diseño").
+- **`/api/feed/sessions` real**: el prototipo usa `/api/feed/demo`, deliberadamente temporal (sin `feed_session`/`feed_round` persistidos, sin cursor firmado). Conectar el motor de feed a Supabase real es el siguiente paso natural de infraestructura.
 
 ### 4.2 Resto de la Fase 0 (Anexo E)
 
@@ -196,7 +221,7 @@ npx supabase db push
 ### 4.4 Fase 2 en adelante
 
 - Cliente de Supabase (browser/server) y endpoint `/api/feed/sessions` conectando el motor de feed ya probado con datos reales.
-- Autenticación del ABM con Google OAuth (el esquema y las políticas de RLS ya están listos para esto — falta la integración en la aplicación).
+- Autenticación del ABM con Google OAuth — **en curso, a cargo de otra persona del equipo**; el esquema y las políticas de RLS ya están listos para esto.
 - Módulos del ABM (contenidos, pines, medios, paquetes HTML).
 
 ---
