@@ -1,21 +1,25 @@
 # Greener — Estado del proyecto y próximos pasos
 
-Este documento resume, paso a paso, todo lo construido hasta ahora en el repositorio `greener-web`, cómo verificarlo, y qué queda pendiente. Complementa (no sustituye) el documento de **Arquitectura técnica V1.3**, que sigue siendo la fuente de verdad de las decisiones de diseño; aquí se documenta la ejecución concreta de esa arquitectura.
+Este documento resume, paso a paso, todo lo construido hasta ahora en el repositorio `greener-web`, cómo verificarlo, y qué queda pendiente. Complementa (no sustituye) el documento de **Arquitectura técnica V1.3**, que sigue siendo la fuente de verdad de las decisiones de diseño; aquí se documenta la ejecución concreta de esa arquitectura, en orden de prioridad real.
 
-Todas las referencias `§X` apuntan a secciones del documento de arquitectura.
+Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md` — a partir de ahora este es el único documento de estado. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado (ya ha pasado una vez — ver §6).
+
+Todas las referencias `§X` apuntan a secciones del documento de arquitectura. Última revisión: 18 de agosto de 2026, verificada ejecutando el código real (no solo por lectura).
 
 ---
 
 ## 1. Resumen ejecutivo
 
-Se ha completado casi por entero la **Fase 0** del plan de ejecución (Anexo E del documento): las dos piezas de mayor riesgo técnico del proyecto —el motor de feed y el contrato de tools/insights sin iframe— están implementadas, probadas automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales, no solo revisada visualmente.
+La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales. Además, ya existe una implementación funcional (sin tests todavía) del login del ABM con Google OAuth.
 
-**Cifras actuales:**
+Todo el housekeeping detectado en la auditoría del 18 de agosto que bloqueaba o ensuciaba el proyecto está resuelto y reverificado a cierre de esa misma jornada: build roto, dependencias de test que faltaban, y la discrepancia de nombres de variables de entorno. Quedan abiertos, sin urgencia técnica, el parámetro `hd` del login y dos decisiones de negocio a cerrar con Greener (ver §4.1 y §5).
 
-- **59 tests automáticos**, todos en verde (`npm test`).
+**Cifras actuales, verificadas a fecha de hoy:**
+
+- **59 tests automáticos, todos en verde** (`npm test`).
+- **0 errores de TypeScript**, **0 avisos de ESLint**, **build de producción limpio** (`npm run build`).
 - **8 migraciones SQL** de Supabase, aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
-- **0 errores** de TypeScript, **0 avisos** de ESLint, build de producción limpio.
 
 ---
 
@@ -23,152 +27,90 @@ Se ha completado casi por entero la **Fase 0** del plan de ejecución (Anexo E d
 
 ### 2.1 Scaffold del proyecto
 
-- Next.js **16.3.0** (App Router) + React **19.2.8** + TypeScript, siguiendo la estructura de carpetas del Anexo B: `src/app`, `src/modules/{content,feed,media,packages,admin,analytics}` organizados en capas `domain/application/infrastructure` (§24.4), `src/components`, `src/lib`.
-- Alias de imports `@/*` → `./src/*` configurado explícitamente en `tsconfig.json` (§24.6), ya que Next.js no lo hace por defecto.
+- Next.js **16.3.x** (App Router, Turbopack) + React **19.2.8** + TypeScript, siguiendo la estructura de carpetas del Anexo B: `src/app`, `src/modules/{content,feed,media,packages,admin,analytics}` organizados en capas `domain/application/infrastructure` (§24.4), `src/components`, `src/lib`.
+- Alias de imports `@/*` → `./src/*` configurado explícitamente en `tsconfig.json` (§24.6).
 - **ESLint + Prettier** configurados y en verde en todo el proyecto.
-- `src/lib/env.ts`: validación de variables de entorno con `zod` al arrancar la aplicación (§24.5) — falla explícitamente si falta una variable, en vez de descubrirlo en producción.
-- `.env.local.example`: plantilla de todas las variables necesarias (Supabase, Cloudinary), sin secretos reales.
+- `src/lib/env.ts`: validación de variables de entorno con `zod` al arrancar la aplicación (§24.5), con los nombres reales (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) — corregido el 18 ago, y ya usado por `lib/supabase/{client,server,proxy}.ts` en vez de leer `process.env` directo.
+- `.env.local.example`: plantilla de todas las variables necesarias (Supabase, Cloudinary), sin secretos reales — regenerada el 18 ago a partir del `.env.local` real.
 - `next.config.ts`: `remotePatterns` configurado para que `next/image` pueda optimizar imágenes servidas desde Cloudinary.
 - Fuente del sitio: se evitó `next/font/google` (requiere red en build time, arriesgado en el hosting de Dinahosting) a favor de fuentes de sistema.
+- `src/proxy.ts` (no `middleware.ts`): Next.js 16 renombró el fichero de middleware a `proxy.ts` — está usado correctamente, no es un error a corregir.
 
 ### 2.2 Shell público (menú lateral)
 
-- `src/components/shell/Shell/`: componente + hook (`useShell`) siguiendo la convención de carpeta de §24.2 (`index.tsx` / `*.module.css` / `use*.ts`).
-- `src/app/(public)/layout.tsx`: monta el `Shell` una única vez para toda la sección pública, para que el menú lateral no se remonte al navegar entre secciones (§24.3).
+- `src/components/shell/Shell/`: componente + hook (`useShell`) siguiendo la convención de carpeta de §24.2.
+- `src/app/(public)/layout.tsx`: monta el `Shell` una única vez para toda la sección pública (§24.3).
+- Menú confirmado fiel al brief: Home / Insights / Tools / Channel / Contacto — sin "Casos" ni "Shop".
 - CSS Modules con nesting nativo (`&`) y variables globales en `src/app/globals.css` (§24.1).
 
-### 2.3 Esquema de Supabase (Fase 0 — completado y validado)
+### 2.3 Esquema de Supabase (completado y validado)
 
-**8 migraciones** en `supabase/migrations/`, siguiendo exactamente el modelo de datos de §7:
+**8 migraciones** en `supabase/migrations/`, siguiendo el modelo de datos de §7:
 
-| Archivo                           | Contenido                                                                           |
-| --------------------------------- | ----------------------------------------------------------------------------------- |
-| `..._enums.sql`                   | Tipos enumerados compartidos                                                        |
-| `..._content_core.sql`            | Supertipo `content` + `content_translation`                                         |
-| `..._content_blocks.sql`          | Bloques de contenido genéricos (`content_block`), reutilizables por `case` y `page` |
-| `..._content_type_extensions.sql` | `case_detail`, `episode`, `html_package(_version)`                                  |
-| `..._media_pins.sql`              | `media_asset`, `pin`, `pin_media`                                                   |
-| `..._feed_taxonomy.sql`           | `tag`, `content_tag`, `feed_config`, `feed_session`, `feed_round`                   |
-| `..._admin_access.sql`            | `admin_allowed_domain`, `admin_profile`, `redirect_301`, `audit_log`                |
-| `..._rls_policies.sql`            | Función `is_admin()` + políticas de Row Level Security en **todas** las tablas      |
+| Archivo | Contenido |
+| --- | --- |
+| `..._enums.sql` | Tipos enumerados compartidos |
+| `..._content_core.sql` | Supertipo `content` + `content_translation` |
+| `..._content_blocks.sql` | Bloques de contenido genéricos (`content_block`), reutilizables por `case` y `page` |
+| `..._content_type_extensions.sql` | `case_detail`, `episode`, `html_package(_version)` |
+| `..._media_pins.sql` | `media_asset`, `pin`, `pin_media` |
+| `..._feed_taxonomy.sql` | `tag`, `content_tag`, `feed_config`, `feed_session`, `feed_round` |
+| `..._admin_access.sql` | `admin_allowed_domain`, `admin_profile`, `redirect_301`, `audit_log` |
+| `..._rls_policies.sql` | Función `is_admin()` + políticas de Row Level Security en **todas** las tablas |
 
-**Validación real, no solo revisión del SQL:**
+**Validación real, no solo revisión del SQL:** aplicadas contra PostgreSQL 16 real, probadas con un rol sin privilegios de superusuario (visitante anónimo → solo `published`; dominio autorizado → todo; dominio no autorizado → bloqueado; dos intentos de suplantación por substring de dominio → ambos rechazados).
 
-- Se instaló PostgreSQL 16 en el entorno de trabajo y se aplicaron las 8 migraciones contra una base real (con un esquema `auth` simulado, ya que el proyecto Supabase real aún no está conectado).
-- Se probó la seguridad con un rol **sin privilegios de superusuario** (imprescindible: Postgres ignora RLS para superusuarios):
-  - Visitante anónimo → solo ve contenido `published` ✓
-  - Cuenta de un dominio en `admin_allowed_domain` → ve todo y puede escribir ✓
-  - Cuenta de un dominio no autorizado → bloqueada tanto en lectura de borradores como en escritura (violación real de RLS, no solo de lógica de aplicación) ✓
-  - Dos intentos de suplantación por _substring_ de dominio (`notitsgreener.com`, `itsgreener.com.evil.com`) → ambos correctamente rechazados ✓
-- `supabase/seed.sql`: da de alta el primer dominio admin en desarrollo local.
-- `supabase/README.md`: instrucciones para aplicar las migraciones contra el proyecto real (`supabase link` + `supabase db push`).
+**Nota pendiente de cierre formal:** `feed_config` ya usa por defecto los ratios reasignados de ADR-11 (70% casos / 15% insights / 5% tools / 5% channel / 5% otros), pero el propio comentario SQL de la migración y el Anexo A del documento de arquitectura siguen marcando esa decisión como "pendiente de confirmar". El código ya la da por hecha — falta cerrarla formalmente con Greener y limpiar el comentario.
 
-**Decisión de negocio confirmada durante la implementación:** el "administrador único" del brief se reinterpretó como **rol único, multiusuario por dominio de correo** (no varias cuentas nombradas una a una) — corrige una ambigüedad real del brief original, confirmada contigo.
+**Nota pendiente de decisión:** el enum `tag_section` conserva el valor `'shop'` pese a que Shop está excluido por completo de V1 (ADR-10, §3 "sin código muerto"). Decidir si se retira o se documenta como hueco reservado a propósito.
 
-### 2.4 Motor de feed (Fase 0 — completado y validado)
+**Decisión de negocio confirmada:** el "administrador único" del brief se reinterpretó como **rol único, multiusuario por dominio de correo**, no varias cuentas nombradas una a una.
 
-Implementado en `src/modules/feed/domain/` como módulo de dominio puro (sin dependencia de Next.js ni Supabase, §24.4):
+### 2.4 Motor de feed (completado y validado)
 
-| Archivo             | Responsabilidad                                                                                                     |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `prng.ts`           | PRNG determinista (`mulberry32`) + hash de seeds para derivar streams independientes por caso/tipo/ronda            |
-| `quotas.ts`         | Reparto de cuotas por método de restos mayores, sobre el hueco que dejan los casos                                  |
-| `rotateQueue.ts`    | Rotación de colas circulares: pines de caso (por fuerza) y pools de insights/tools/channel/otros                    |
-| `constrainedMix.ts` | El algoritmo central: _weighted deficit round-robin_ + jitter determinista, con los 5 niveles de relajación de §8.4 |
-| `generateRound.ts`  | Orquestador — misma firma que el pseudocódigo del Anexo C                                                           |
+Implementado en `src/modules/feed/domain/` como módulo de dominio puro (sin dependencia de Next.js ni Supabase, §24.4): `prng.ts`, `quotas.ts`, `rotateQueue.ts`, `constrainedMix.ts`, `generateRound.ts`, `continuousFeed.ts` (extensión para scroll continuo, concatena tandas bajo demanda).
 
-**21 tests** (`tests/unit/feed/` + `tests/property/feed/`, estos últimos con `fast-check`, **2000 ejecuciones por propiedad**), verificando exactamente los criterios de aceptación de §20.1:
+**Todos exportados correctamente desde `src/modules/feed/domain/index.ts`** — este barrel dejó de reexportar `continuousFeed.ts` en algún punto del desarrollo, lo que rompía el build de producción entero (`getPinsInRange is not a function`) y 4 tests. Corregido el 18 de agosto.
 
-- Determinismo: misma seed + config + snapshot + ronda → siempre la misma secuencia.
-- Terminación garantizada, incluso con catálogos mínimos (5 insights, 30 tools).
-- Conservación exacta de pines: la mezcla nunca pierde ni inventa pines.
-- Separación mínima por contenido, respetando cuándo se relajó y por qué.
-- Casos límite: sin casos, un único pin, `force` mayor que los pines disponibles.
+**21+ tests** (`tests/unit/feed/` + `tests/property/feed/`, property-based con `fast-check`, 2000 ejecuciones por propiedad), verificando los criterios de §20.1: determinismo, terminación garantizada, conservación exacta de pines, separación mínima con relajación registrada, casos límite.
 
-**Dos bugs de diseño reales, encontrados por los tests de propiedad (no por revisión manual) y corregidos:**
+**Dos bugs de diseño reales, encontrados por tests de propiedad y corregidos** durante la implementación original: reparto de cuotas sobre el total en vez del hueco que dejan los casos; redistribución cuando un tipo de contenido no tiene ningún pin en el universo.
 
-1. El reparto de cuotas usaba el total completo de la tanda en vez del hueco que dejan los casos — habría desproporcionado el feed real.
-2. Cuando un tipo de contenido no tiene _ningún_ pin en el universo (no solo pocos), se le seguía pidiendo una cuota imposible de cumplir — ahora se redistribuye automáticamente.
+### 2.5 Tools/Insights sin iframe (completado y validado)
 
-### 2.5 Tools/Insights sin iframe (Fase 0 — completado y validado)
+Implementado en `src/modules/packages/` (domain/application/infrastructure, §24.4). Rutas servidas en `src/app/(public)/tools/[slug]/`, con CSP específico de ruta. Tool de ejemplo real (`fixtures/tools/pixel-palette/`): canvas + Web Worker + descarga — las tres capacidades de mayor riesgo de §22.
 
-Implementado en `src/modules/packages/` (domain/application/infrastructure, §24.4):
+**10 tests**: 6 sobre composición del documento, 4 ejecutando el `worker.js` real dentro de un sandbox de Node. Validado también por HTTP real (`next build` + `next start` + `curl`).
 
-| Archivo                                | Responsabilidad                                                                                                                                                   |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `domain/manifest.ts`                   | Contrato del paquete (§12.2), puro                                                                                                                                |
-| `application/composeToolDocument.ts`   | Compone **un único documento HTML real** (menú lateral + contenido del paquete), sin anidar `<html>`, usando `cheerio` para extraer `<head>`/`<body>` del paquete |
-| `infrastructure/localPackageSource.ts` | Lee el paquete desde disco (`fixtures/`) — **stand-in explícito de Supabase Storage**, la única pieza que cambiará al conectar datos reales                       |
-
-**Rutas servidas** (`src/app/(public)/tools/[slug]/`):
-
-- `route.ts`: sirve el documento compuesto, con CSP específico de la ruta.
-- `assets/[...file]/route.ts`: sirve los assets del paquete (CSS/JS/Worker) con el `Content-Type` correcto.
-
-**Tool de ejemplo real**, no un mock trivial (`fixtures/tools/pixel-palette/`): dibuja un degradado en `<canvas>`, calcula la paleta dominante en un **Web Worker** propio, y permite **descargar** el resultado como JSON — las tres capacidades de mayor riesgo señaladas en §22 para la decisión de servir sin iframe.
-
-**Problema real de arquitectura descubierto y resuelto durante la implementación:** las rutas relativas del paquete (`./assets/main.js`, y el `new Worker("./worker.js")` invocado _dentro_ del propio script) se resolvían mal sin barra final en la URL. Se corrigió inyectando `<base href>` en el documento compuesto — corrige ambos casos a la vez.
-
-**10 tests** (`tests/unit/packages/`):
-
-- 6 sobre la composición del documento (un único `<html>`, `<base>` correcto, variables CSS inyectadas, menú completo, contenido del paquete conservado).
-- 4 ejecutando el **archivo real** `worker.js` (no una copia) dentro de un sandbox de Node (`vm`), simulando el `self` de un Web Worker — evita que un "puerto" en TypeScript se desincronice del original.
-
-**Validado también por HTTP real** (`next build` + `next start` + `curl`, no solo tests): documento compuesto correctamente, assets servidos con MIME correcto y **byte-idénticos** al fixture, 404 correcto para una tool inexistente.
+**Problema real resuelto durante la implementación:** rutas relativas del paquete mal resueltas sin barra final en la URL — corregido inyectando `<base href>`.
 
 ### 2.6 Política de medios (Cloudinary)
 
-A partir del documento _"Política de subida y almacenamiento de contenido multimedia"_ que compartiste, se implementaron como reglas de dominio (`src/modules/media/`):
+`src/modules/media/`: `domain/mediaLimits.ts` (límites puros: 5 MB imagen, 100 MB / 3 min vídeo), `domain/mediaDelivery.ts` (regla "el feed nunca sirve el original"), `infrastructure/cloudinaryUrl.ts` (construcción de URLs `q_auto`/`f_auto`).
 
-- `domain/mediaLimits.ts`: límites de subida puros (5 MB imagen, 100 MB / 3 min vídeo), testeables sin depender de Cloudinary.
-- `domain/mediaDelivery.ts`: la regla "el feed nunca sirve el original" — anchos por contexto (feed vs. detalle) alineados con las columnas del masonry, y `poster_or_preview` vs. `full` para vídeo.
-- `infrastructure/cloudinaryUrl.ts`: construcción de URLs de transformación (`q_auto`, `f_auto`) a partir de las reglas de dominio anteriores.
+### 2.7 Dataset de datos falsos (completado y validado)
 
-### 2.7 Corrección de versiones
+`scripts/generate-demo-data.mjs`: generador determinista. 50 casos (219 pines), 9 episodios de Channel (vídeos de YouTube de terceros, solo para probar el embed), 6 imágenes de la cuenta demo de Cloudinary verificadas por HTTP real. Sin insights ni tools (se suben manualmente).
 
-Se corrigió el `package.json` para reflejar las versiones reales del proyecto (`next@16.3.0`, `react@19.2.8`), revirtiendo un pin incorrecto a Next 15 hecho antes de tener esa confirmación. `eslint-config-next` se realineó a la misma versión mayor.
+Salidas: `supabase/seed_demo_data.sql` (aplicado y validado con integridad referencial: 0 huérfanos) y `data/demo/feed-snapshot.json`. Cierra el ciclo con el motor de feed real vía `tests/unit/dataset/demoDataset.test.ts`.
 
-### 2.8 Dataset de datos falsos (Fase 0/1 — completado y validado)
+### 2.8 Prototipo de masonry (completado y validado)
 
-`scripts/generate-demo-data.mjs`: generador determinista (misma seed → mismo dataset en cada ejecución), independiente de la app. Genera:
+`src/modules/masonry/domain/`: `layout.ts` (shortest-column-first desde el ratio cerrado, sin medir DOM — breakpoints verificados exactos, byte a byte, contra la tabla de §10.1) y `virtualization.ts` (batch visible ± 2, espaciadores que conservan scroll).
 
-- **50 casos**, cada uno con `content` + `content_translation` (es) + `case_detail` (variante A/B/C, fuerza 1-5 con distribución ponderada hacia 1-2, cliente/sector/servicios ficticios), 3-6 pines por caso (219 pines en total), y una etiqueta de la sección Home (Agro/Food/Biotech/Brand/Digital/Events).
-- **9 episodios de Channel** (3 por programa), con `episode` + un pin propio cada uno, usando **vídeos de YouTube de terceros** (confirmado contigo: solo para probar el embed, no contenido real de Greener).
-- **6 imágenes** de la cuenta demo pública de Cloudinary, **verificadas una a una por HTTP real** antes de usarlas (`sample`, `sheep`, `kitten_fighting`, `pm/woman_car`, `pm/kitchen`, `ai/hiker`), reutilizadas entre todos los pines (confirmado: no hacía falta más variedad).
-- **Sin insights ni tools** (se suben manualmente, confirmado).
+`/api/feed/demo` — endpoint temporal del prototipo (no es el `/api/feed/sessions` final de §16.1: no persiste sesión/ronda, no firma cursor). Componentes React en `/preview/masonry`, ruta separada de la Home real.
 
-Salidas generadas:
+**28 tests**, en 4 niveles: propiedad del layout (500 runs), virtualización, smoke test con `jsdom`/`@testing-library/react` (dependencias que faltaban en `package.json` hasta el 18 de agosto — añadidas y verificadas), y build + servidor real + `curl`.
 
-- `supabase/seed_demo_data.sql` — listo para `supabase db push` / `psql`, sobre las 8 migraciones ya existentes.
-- `data/demo/feed-snapshot.json` — mismo shape que `FeedSnapshot` (§ motor de feed), con un `pinDirectory` auxiliar (título, ratio, alt, imagen) para no tener que volver a consultar Supabase al construir el prototipo de masonry.
+### 2.9 Login del ABM — implementado, sin documentar hasta ahora, sin tests
 
-**Validado de extremo a extremo, no solo generado:**
+`src/app/admin/{page.tsx,login/page.tsx}`, `src/app/auth/callback/route.ts`, `src/lib/supabase/{client,server,proxy}.ts`, `src/proxy.ts`: flujo completo de login con Google vía Supabase Auth, con verificación de dominio server-side en cada request (`proxy.ts` + RLS `is_admin()`), usando `getClaims()` — el patrón actualmente recomendado por Supabase para SSR con Next.js, no código improvisado.
 
-- El SQL se aplicó contra una base Postgres real (mismo proceso usado para las migraciones), sobre las 8 migraciones ya probadas.
-- Comprobada la integridad referencial con consultas reales: 0 pines huérfanos, 0 `pin_media` apuntando a un `media_asset` inexistente, 0 casos sin etiqueta, 0 episodios sin pin, 0 valores de `force` fuera de rango.
-- **Se cerró el ciclo con el motor de feed real**: un nuevo test (`tests/unit/dataset/demoDataset.test.ts`) alimenta este dataset a `generateRound()` (la función real, no un mock) y confirma que lo consume sin errores — incluida la redistribución correcta del hueco de insights/tools (0 en este dataset) que corrigió uno de los dos bugs encontrados anteriormente.
+**Qué falta**: tests (no hay ninguno todavía); el parámetro `hd` en `signInWithOAuth` (§15.2 lo especifica como sugerencia de UI, no es un fallo de seguridad porque la restricción real ya está bien implementada server-side); confirmar con quien lo esté llevando en el equipo que se puede dar por "hecho, pendiente de test".
 
-### 2.9 Prototipo de masonry (Fase 1 — completado y validado)
+### 2.10 Corrección de versiones
 
-Nuevo módulo `src/modules/masonry/domain/` (puro, sin React ni Next.js, §24.4):
-
-- `layout.ts` — asigna cada pin a la columna con menor altura acumulada (shortest-column-first), calculando la altura desde el ratio cerrado del pin sin medir el DOM (§10.1).
-- `virtualization.ts` — mantiene montado el batch visible ± 2, sustituye el resto por espaciadores que conservan la posición de scroll (§10.2).
-
-**Motor de feed extendido para scroll continuo** (brief §4.6, "el feed no termina"):
-- `feed/domain/continuousFeed.ts` — concatena tandas consecutivas bajo demanda para servir cualquier rango de pines, sin que el llamante conozca el concepto de "ronda".
-- `feed/infrastructure/demoSnapshotSource.ts` + `feed/application/getDemoFeedBatch.ts` — conectan esto al dataset real (50 casos + 9 episodios), enriqueciendo cada pin con destino, ratio, alt e imagen.
-- **`/api/feed/demo`** — endpoint HTTP temporal del prototipo (no es el `/api/feed/sessions` final de §16.1: no persiste `feed_session`/`feed_round`, no firma cursor). Probado con `curl` real: 200 pines servidos en ~11 ms, atravesando varias tandas sin huecos ni duplicados.
-
-**Componentes React**, hook + componente separados (§24.2): `components/masonry/MasonryFeed/` y `components/pin/PinCard/`. Viven en `/preview/masonry`, una ruta deliberadamente separada de la Home real para no interferir con el trabajo de login/auth de tu compañera.
-
-**28 tests nuevos**, en 4 niveles distintos de verificación:
-1. Tests de propiedad del algoritmo de layout (500 runs cada uno): determinismo, conservación de items, sin pines fuera de rango, **sin solapes verticales dentro de una columna**, breakpoints exactos a la tabla de §10.1.
-2. Tests de virtualización: los espaciadores + lo montado siempre conservan la altura total exacta.
-3. **Prueba de humo con `jsdom`** (`@testing-library/react`): los componentes montan, hacen fetch y renderizan sin lanzar — algo que ni `tsc` ni `eslint` detectan por sí solos.
-4. Build de producción + servidor real + `curl` contra la API y la página.
-
-**3 errores reales corregidos**, encontrados por el linter estricto de React 19/Next 16 (no por revisión manual): acceso a una `ref` durante el render dentro de un `useMemo`, y un `setState` en efecto que requería justificación explícita porque es un patrón deliberado (la semilla de sesión solo puede generarse en cliente tras el montaje, §6.1).
+`package.json` refleja las versiones reales (`next@16.3.x`, `react@19.2.8`).
 
 ---
 
@@ -176,63 +118,106 @@ Nuevo módulo `src/modules/masonry/domain/` (puro, sin React ni Next.js, §24.4)
 
 ```bash
 npm install
-npm run lint          # ESLint
-npx tsc --noEmit       # TypeScript
-npm test               # 59 tests (unit + property-based + prueba de humo con jsdom)
-npm run build           # build de producción completo
+npm run lint            # ESLint
+npx next build            # build de producción — genera también los tipos de ruta (.next/types)
+npx tsc --noEmit           # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
+npm test                   # 59 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
-Para probar la tool de ejemplo en vivo:
+Para probar la tool de ejemplo en vivo: `npm run build && npm run start` → `http://localhost:3000/tools/pixel-palette`.
 
-```bash
-npm run build && npm run start
-# visita http://localhost:3000/tools/pixel-palette
-```
-
-Para aplicar el esquema contra un proyecto Supabase real:
-
-```bash
-npx supabase login
-npx supabase link --project-ref <tu-project-ref>
-npx supabase db push
-```
-
-(instrucciones completas en `supabase/README.md`)
+Para aplicar el esquema contra un proyecto Supabase real: `npx supabase login && npx supabase link --project-ref <ref> && npx supabase db push` (instrucciones completas en `supabase/README.md`).
 
 ---
 
-## 4. Qué falta — próximos pasos
+## 4. Próximos pasos — checklist por fases
 
-### 4.1 Siguiente paso inmediato
+Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arquitectura, cruzado con el estado real verificado. `[x]` hecho y verificado · `[~]` hecho parcialmente / sin verificar del todo · `[ ]` pendiente.
 
-- **Ajustar el algoritmo de layout con el diseño real** cuando esté disponible (el prototipo usa breakpoints propuestos por el equipo técnico, §10.1, "a validar por diseño").
-- **`/api/feed/sessions` real**: el prototipo usa `/api/feed/demo`, deliberadamente temporal (sin `feed_session`/`feed_round` persistidos, sin cursor firmado). Conectar el motor de feed a Supabase real es el siguiente paso natural de infraestructura.
+### 4.1 Housekeeping inmediato
 
-### 4.2 Resto de la Fase 0 (Anexo E)
+- [x] Arreglar el export roto en `feed/domain/index.ts` (bloqueaba el build y 4 tests) — **hecho el 18 ago**.
+- [x] Añadir `@testing-library/react`, `@testing-library/jest-dom`, `jsdom` a `devDependencies` — **hecho el 18 ago**, no hizo falta tocar `vitest.config.ts` (el test ya usaba `// @vitest-environment jsdom` por fichero).
+- [x] Crear `.env.local.example` real — **hecho el 18 ago**.
+- [x] Actualizar `src/lib/env.ts` a los nombres reales de variable (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) y hacer que `lib/supabase/{client,server,proxy}.ts` importen `env` en vez de leer `process.env` directo — **hecho el 18 ago**. Nota: el primer intento solo añadió el import sin sustituir los usos de `process.env.X!`, lo que dejaba 3 avisos de ESLint (`no-unused-vars`) y no resolvía el problema de fondo; corregido reemplazando `process.env.X!` por `env.X` en los tres archivos.
+- [x] Corregir el import relativo de `src/app/auth/callback/route.ts` para usar el alias `@/*` — **hecho el 18 ago**.
+- [ ] Añadir `queryParams: { hd: '...' }` al `signInWithOAuth` de `admin/login/page.tsx`.
+- [x] Añadir `supabase/.temp/` al `.gitignore` — **hecho el 18 ago**. Pendiente aparte, sin urgencia: confirmar si `supabase/config.toml` existe localmente y, si es así, versionarlo para que el resto del equipo pueda levantar Supabase local.
+- [ ] Decidir y cerrar con Greener: `'shop'` en `tag_section` — ¿se retira o se documenta como reservado?
+- [ ] Cerrar formalmente ADR-11 (70/15/5/5/5) con Greener y limpiar el comentario de "pendiente" en la migración.
+- [ ] Confirmar con quien lleve el login del ABM el estado real de esa parte y añadir tests.
 
-- Cerrar el repertorio de bloques y las restricciones de las variantes A/B/C de caso — depende de que diseño lo defina, no es algo que se pueda avanzar en código todavía (Anexo A).
+### 4.2 Fase 1 (hasta el 15 de agosto)
 
-### 4.3 Fase 1 (hasta el 15 de agosto)
+- [ ] **Repertorio de bloques y restricciones de las variantes A/B/C de caso** (§11.3) — bloqueado por diseño; bloquea a su vez la especificación de contenido (Anexo A.1) y el editor de bloques del ABM.
+- [ ] Especificación de formatos para Greener (Anexo A.1) — depende del punto anterior.
+- [ ] Inventario de URLs actuales para las redirecciones 301 — no depende de nada más, se puede hacer ya.
+- [ ] Ajustar el algoritmo de layout con el diseño real cuando esté disponible (breakpoints actuales: propuesta técnica confirmada fiel a §10.1, pendiente de validar por diseño).
 
-- Especificación de formatos para Greener (depende del punto anterior de diseño).
-- Inventario de URLs actuales para las redirecciones 301 (depende de datos reales vuestros).
+### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
 
-### 4.4 Fase 2 en adelante
+- [~] Autenticación Google OAuth vía Supabase Auth — código presente, sin tests, sin confirmar (§2.9).
+- [ ] CRUD de `content` y extensiones vía Server Actions + zod.
+- [ ] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales).
+- [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
+- [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado.
+- [ ] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` (hoy solo cubre auth).
+- [ ] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo`.
 
-- Cliente de Supabase (browser/server) y endpoint `/api/feed/sessions` conectando el motor de feed ya probado con datos reales.
-- Autenticación del ABM con Google OAuth — **en curso, a cargo de otra persona del equipo**; el esquema y las políticas de RLS ya están listos para esto.
-- Módulos del ABM (contenidos, pines, medios, paquetes HTML).
+### 4.4 Fase 3 (hasta el 15 de septiembre)
+
+- [ ] Home y subhomes con el feed real.
+- [ ] Página de caso con las tres variantes (bloqueado hasta que Fase 1 cierre el repertorio de bloques).
+- [ ] Restauración de scroll y semilla de sesión contra datos reales.
+- [ ] Primeras métricas reales de LCP/CLS.
+
+### 4.5 Fase 4 (hasta el 22 de septiembre)
+
+- [ ] Insights y Tools en producción sobre Supabase Storage real.
+- [ ] Channel, con afinidad de episodios (§13.1).
+- [ ] Contacto y Mailchimp con doble opt-in.
+- [ ] Páginas legales.
+- [ ] Analítica Plausible (§18.2).
+- [ ] Cabeceras de seguridad globales (HSTS, CSP, `frame-ancestors`, `Referrer-Policy`, `X-Content-Type-Options`) para el resto del sitio — hoy solo están en `/tools`.
+
+### 4.6 Fase 5 (26-30 de septiembre) — QA y cierre
+
+- [ ] Tests E2E de los criterios de aceptación críticos de §20.1.
+- [ ] Auditoría de cookies y consentimiento (Plausible, YouTube-nocookie, Vimeo, Spotify).
+- [ ] Verificación de las redirecciones 301.
+- [ ] Accesibilidad: teclado, foco, `alt`, contraste, `prefers-reduced-motion`, carrusel, menú solo-iconos con labels.
+- [ ] Carga real de contenido por Greener contra el ABM ya terminado.
+
+### 4.7 1 de octubre — Publicación y monitorización reforzada
 
 ---
 
-## 5. Decisiones y confirmaciones registradas en esta fase de implementación
+## 5. Decisiones pendientes con Greener (Anexo A.2)
 
-Además de las recogidas en el Anexo A del documento de arquitectura:
+Ninguna depende de escribir código — bloquean trabajo posterior si no se cierran a tiempo.
 
-- Admin: rol único, multiusuario por dominio de correo (no cuentas nombradas individualmente) — confirmado.
-- `client`/`sector`/`services` de caso: texto libre, no traducido — confirmado.
-- Cloudinary sustituye a Supabase Storage para imagen/vídeo; Supabase Storage se reserva para paquetes HTML — confirmado e implementado.
-- Tools/insights se sirven en el mismo origen, sin iframe — confirmado, implementado y validado con una tool real.
-- Next.js 16.3.0 / React 19.2.8 son las versiones reales del proyecto (no Next 15 como se asumió inicialmente) — corregido.
-- Dataset de demostración: 50 casos, sin insights ni tools (se suben manualmente), episodios de Channel con vídeos de terceros permitidos explícitamente para probar el embed — confirmado y generado.
+| Decisión | Bloquea | Estado |
+| --- | --- | --- |
+| Reasignación 5% Shop → Channel (ADR-11): 70/15/5/5/5 | Datos de prueba del feed | Implementado en código; falta cierre formal |
+| Repertorio de bloques y restricciones de variantes A/B/C | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño |
+| Pesos y bitrates máximos de imagen/vídeo | LCP y consumo móvil predecibles | Abierto |
+| Alcance real del dominio permitido en el ABM (§15.2) | Módulo de Acceso del ABM | Abierto — ¿todo el dominio corporativo o sub-allowlist para contratistas? |
+| Límites del plan de Cloudinary frente al volumen real | `eager transformations` vs bajo demanda | Abierto |
+| Auditoría de embeds y cookies de terceros (Vimeo, Spotify) | Si hace falta banner de consentimiento antes de Channel | Abierto |
+| Traducción asistida por IA en el ABM (opcional) | Si se incluye en V1 o se deja fuera | Abierto, no bloqueante |
+
+---
+
+## 6. Historial de correcciones a este documento
+
+- **18 ago 2026 (cierre de jornada)**: aplicados y reverificados de extremo a extremo (lint, `tsc --noEmit`, 59/59 tests, `next build`) los cuatro fixes de housekeeping abiertos por la mañana:
+  - Export roto en `feed/domain/index.ts` (bloqueaba el build entero).
+  - Dependencias de test que faltaban (`@testing-library/react`, `@testing-library/jest-dom`, `jsdom`).
+  - `env.ts` con los nombres reales de variable, y `client.ts`/`server.ts`/`proxy.ts` usando `env.X` en vez de `process.env.X!` (el primer intento solo añadió el import sin sustituir los usos; quedaban 3 avisos de ESLint hasta completarlo).
+  - Import relativo largo en `auth/callback/route.ts`, ahora con el alias `@/*`.
+
+  Quedan abiertos sin urgencia: el parámetro `hd` en el login de Google, y las dos decisiones de negocio con Greener (§5). El `.gitignore` ya incluye `/supabase/.temp/`.
+
+- **18 ago 2026 (mañana)**: fusión de `PROGRESO.md` y `CHECKLIST.md` en un único documento. Se corrigieron afirmaciones que ya no eran ciertas ("59 tests todos en verde", "0 errores de TypeScript", "build de producción limpio" — no lo estaban en ese momento por un export roto y dependencias de test que faltaban; ambos corregidos y reverificados el mismo día). Se documentó por primera vez el login del ABM, que ya tenía código funcional sin reflejar en el documento anterior.
+- Decisiones y confirmaciones previas: admin como rol único multiusuario por dominio; `client`/`sector`/`services` de caso sin traducir; Cloudinary sustituye a Supabase Storage para imagen/vídeo; tools/insights sin iframe, validado con una tool real; Next.js 16.3.x / React 19.2.8 confirmados como versiones reales del proyecto; dataset de demostración sin insights ni tools.

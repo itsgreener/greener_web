@@ -4,3 +4,4 @@ export * from "./quotas";
 export * from "./rotateQueue";
 export * from "./constrainedMix";
 export * from "./generateRound";
+export * from "./continuousFeed";

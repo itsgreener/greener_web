@@ -8,8 +8,8 @@ import { z } from "zod";
 const envSchema = z.object({
   // Supabase
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+  SUPABASE_SECRET_KEY: z.string().min(1),
 
   // Cloudinary — originales, derivadas y CDN de imagen/vídeo (arquitectura §5, §9.2)
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
@@ -31,10 +31,10 @@ function loadEnv(): Env {
   if (!parsed.success) {
     console.error(
       "❌ Variables de entorno inválidas o incompletas:\n",
-      parsed.error.flatten().fieldErrors
+      parsed.error.flatten().fieldErrors,
     );
     throw new Error(
-      "Configuración de entorno inválida. Revisa .env.local contra .env.local.example."
+      "Configuración de entorno inválida. Revisa .env.local contra .env.local.example.",
     );
   }
 
