@@ -27,9 +27,6 @@ create table feed_config (
   updated_at timestamptz not null default now()
 );
 
-comment on table feed_config is
-  'Fila única, editable desde ABM (arquitectura §8.1). Ratios provisionales: ADR-11 pendiente de confirmar (Anexo A).';
-
 -- Restringe la tabla a una única fila de configuración
 create unique index feed_config_single_row on feed_config ((true));
 

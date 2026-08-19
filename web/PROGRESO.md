@@ -145,7 +145,7 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 - [ ] Añadir `queryParams: { hd: '...' }` al `signInWithOAuth` de `admin/login/page.tsx`.
 - [x] Añadir `supabase/.temp/` al `.gitignore` — **hecho el 18 ago**. Pendiente aparte, sin urgencia: confirmar si `supabase/config.toml` existe localmente y, si es así, versionarlo para que el resto del equipo pueda levantar Supabase local.
 - [ ] Decidir y cerrar con Greener: `'shop'` en `tag_section` — ¿se retira o se documenta como reservado?
-- [ ] Cerrar formalmente ADR-11 (70/15/5/5/5) con Greener y limpiar el comentario de "pendiente" en la migración.
+- [x] Cerrar formalmente ADR-11 (70/15/5/5/5) con Greener y limpiar el comentario de "pendiente" en la migración.
 - [ ] Confirmar con quien lleve el login del ABM el estado real de esa parte y añadir tests.
 
 ### 4.2 Fase 1 (hasta el 15 de agosto)
