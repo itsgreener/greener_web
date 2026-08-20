@@ -20,6 +20,7 @@ export default async function ContentsPage() {
         <p>No hay contenidos.</p>
       ) : (
         <table>
+
           <thead>
             <tr>
               <th>Título</th>
@@ -27,22 +28,50 @@ export default async function ContentsPage() {
               <th>Estado</th>
               <th>Slug</th>
               <th>Idioma</th>
+              <th>Acciones</th>
             </tr>
           </thead>
 
           <tbody>
+
             {contents.map((content) => (
               <tr key={content.id}>
-                <td>{content.title}</td>
-                <td>{content.type}</td>
-                <td>{content.status}</td>
-                <td>{content.slug}</td>
+
+                <td>
+                  {content.title}
+                </td>
+
+                <td>
+                  {content.type}
+                </td>
+
+                <td>
+                  {content.status}
+                </td>
+
+                <td>
+                  {content.slug}
+                </td>
+
                 <td>
                   {content.defaultLocale}
                 </td>
+
+                <td>
+                  <Link
+                    href={
+                      `/admin/contents/${content.id}/edit`
+                    }
+                  >
+                    Editar
+                  </Link>
+                </td>
+
               </tr>
             ))}
+
           </tbody>
+
         </table>
       )}
 

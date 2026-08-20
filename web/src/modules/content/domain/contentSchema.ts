@@ -34,6 +34,23 @@ export const createContentSchema = z.object({
     .min(1, 'El título es obligatorio'),
 })
 
+export const updateContentSchema =
+  createContentSchema.extend({
+    id: z
+      .string()
+      .uuid(
+        'El identificador del contenido no es válido'
+      ),
+  })
+
+export const deleteContentSchema = z.object({
+  id: z
+    .string()
+    .uuid(
+      'El identificador del contenido no es válido'
+    ),
+})
+
 export type ContentType =
   z.infer<typeof contentTypeSchema>
 
@@ -42,3 +59,9 @@ export type Locale =
 
 export type CreateContentInput =
   z.infer<typeof createContentSchema>
+
+export type UpdateContentInput =
+  z.infer<typeof updateContentSchema>
+
+export type DeleteContentInput =
+  z.infer<typeof deleteContentSchema>
