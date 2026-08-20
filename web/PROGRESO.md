@@ -12,14 +12,17 @@ Todas las referencias `§X` apuntan a secciones del documento de arquitectura. �
 
 La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales. Además, ya existe una implementación funcional (sin tests todavía) del login del ABM con Google OAuth.
 
+**Novedad del 19 de agosto**: `/api/feed/sessions` real (§16.1) construido y probado, sustituyendo al prototipo `/api/feed/demo` en lo que a arquitectura se refiere (el demo sigue existiendo aparte, sin tocar). Es la primera pieza de la Fase 2 (ABM base) ya cerrada — ver §2.12.
+
 Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está resuelto y reverificado: build roto, dependencias de test que faltaban, discrepancia de nombres de variables de entorno, y el import relativo del callback de auth. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **59 tests automáticos, todos en verde** (`npm test`).
+- **76 tests automáticos, todos en verde** (`npm test`) — 59 previos + 17 nuevos de la API real de sesiones de feed.
 - **0 errores de TypeScript**, **0 avisos de ESLint**, **build de producción limpio** (`npm run build`).
 - **8 migraciones SQL** de Supabase, aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
+- **Pendiente de verificación**: la consulta real de `/api/feed/sessions` contra el proyecto Supabase real — construida contra el esquema exacto migrado, pero sin poder ejecutarla de extremo a extremo por una restricción de red del entorno donde se escribió (ver §2.12 e Instrucciones de prueba).
 
 ---
 
@@ -137,6 +140,31 @@ Pendiente de hacer con este listado (no bloquea nada de lo anterior, pero es tra
 - Añadir una fila a `redirect_301` por cada uno de los 13 slugs: `tools.itsgreener.com/tools/{slug}` → `/tools/{slug}` y `insight.itsgreener.com/insight/{slug}` → `/insights/{slug}` (nota: el brief pluraliza "insights" en la ruta nueva, el origen actual usa singular "insight" — confirmar que es así y no un error de transcripción antes de cargar las redirecciones).
 - Migrar el HTML real de cada una de las 9 tools y 4 insights al contrato de paquete ZIP de §12.2 (ninguna se ha migrado todavía — `pixel-palette`, la única tool que existe hoy en el repo, es una tool de ejemplo nueva construida para el spike de Fase 0, no una de estas 9).
 
+### 2.12 API real de sesiones de feed — `/api/feed/sessions` (§16.1), 19 ago
+
+Construida entera, con tests, primera pieza cerrada de la Fase 2. Sustituye a `/api/feed/demo` en lo arquitectónico (ese endpoint sigue existiendo tal cual, sin tocar — es el prototipo aislado de Fase 1, Anexo E.2).
+
+**Archivos nuevos**, capas `domain/application/infrastructure` (§24.4):
+
+| Archivo | Qué hace |
+| --- | --- |
+| `src/lib/supabase/serviceClient.ts` | Cliente con `SUPABASE_SECRET_KEY` (service role), exclusivo para `feed_session`/`feed_round` — esas dos tablas no tienen política pública de RLS a propósito (§8.5: "el cliente no puede alterar cuotas ni seed"), están gateadas solo por `is_admin()` a nivel de esquema. |
+| `src/lib/supabase/publicReadClient.ts` | Cliente de lectura pública sin manejo de cookies, para el resto de tablas (sí tienen política pública). |
+| `modules/feed/infrastructure/supabaseFeedSource.ts` | Construye el `FeedSnapshot` real desde `content`/`pin`/`pin_media`/`media_asset`/`case_detail` — sustituye al dataset demo, tal como preveía el propio comentario de `demoSnapshotSource.ts`. Incluye `getPinDirectoryByIds`, consulta ligera para enriquecer una ronda ya cacheada sin releer todo el catálogo. |
+| `modules/feed/infrastructure/feedSessionRepository.ts` | CRUD de `feed_session`/`feed_round`. |
+| `modules/feed/infrastructure/cursor.ts` | Cursor opaco y firmado (HMAC-SHA256, reutiliza `SUPABASE_SECRET_KEY` como secreto — no hizo falta ninguna variable de entorno nueva). |
+| `modules/feed/application/createFeedSession.ts` | Caso de uso de `POST /api/feed/sessions`. |
+| `modules/feed/application/getFeedSessionBatch.ts` | Caso de uso de `GET /api/feed/{sessionId}?cursor=...`: si la ronda pedida ya existe en `feed_round`, la lee tal cual (inmutable — los pines ya servidos no cambian aunque cambie el contenido publicado después); si no existe, la calcula con `generateRound()` (el motor ya probado en Fase 0) y la persiste antes de devolverla. |
+| `app/api/feed/sessions/route.ts`, `app/api/feed/[sessionId]/route.ts` | Route handlers. |
+
+**Alcance deliberado**: solo `scope: "home"` por ahora (todo el catálogo publicado, sin filtro de etiqueta) — subhomes y `scope=related-cases` necesitan filtrado por tag y quedan para la Fase 3 (Anexo E.4), no están bloqueando nada de lo anterior.
+
+**17 tests nuevos** (`tests/unit/feed/cursor.test.ts`, `createFeedSession.test.ts`, `getFeedSessionBatch.test.ts`): firma/verificación del cursor (incluye manipulación de payload y de firma por separado), validación de scope, hash de filtro estable sin importar el orden de claves, y el caso de uso completo contra un repositorio en memoria — cubre sesión inexistente, sesión caducada, primera ronda (genera y persiste), ronda ya cacheada (confirma que **no** se vuelve a leer el catálogo completo), cursor de otra sesión, cursor corrupto, y determinismo.
+
+**Hallazgo de diseño corregido de paso**: `env.ts` valida de forma síncrona en cuanto se importa el módulo, no de forma perezosa. Cualquier test que tocara (aunque fuera transitivamente) `cursor.ts` o `serviceClient.ts` reventaba por falta de variables de entorno, aunque el test no usara Supabase para nada. Arreglado añadiendo `tests/setup.ts` (variables de entorno de prueba, sin secretos reales) registrado en `vitest.config.ts` — no se ha tocado el diseño de `env.ts` en producción, es puramente un fix del entorno de test.
+
+**Pendiente de verificar, importante**: la consulta real contra Supabase (el `select()` anidado `content → pin → pin_media → media_asset`) está escrita contra el esquema exacto de las 8 migraciones, pero no se ha podido ejecutar de extremo a extremo — el entorno donde se escribió no tiene salida de red a `supabase.co`. Las rutas de validación (scope inválido, cuerpo sin `scope`, sesión inexistente) sí se probaron por HTTP real y funcionan. Instrucciones detalladas de cómo terminar de validarlo, en el documento aparte de instrucciones de prueba.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -146,11 +174,13 @@ npm install
 npm run lint            # ESLint
 npx next build            # build de producción — genera también los tipos de ruta (.next/types)
 npx tsc --noEmit           # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                   # 59 tests (unit + property-based + smoke con jsdom)
+npm test                   # 76 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
 Para probar la tool de ejemplo en vivo: `npm run build && npm run start` → `http://localhost:3000/tools/pixel-palette`.
+
+Para probar la API real de sesiones de feed: ver el documento aparte de instrucciones de prueba (§2.12).
 
 Para aplicar el esquema contra un proyecto Supabase real: `npx supabase login && npx supabase link --project-ref <ref> && npx supabase db push` (instrucciones completas en `supabase/README.md`).
 
@@ -189,7 +219,7 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 - [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
 - [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado.
 - [ ] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` (hoy solo cubre auth).
-- [ ] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo`.
+- [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho el 19 ago** (§2.12). Pendiente de verificación E2E contra Supabase real, ver instrucciones de prueba aparte.
 
 ### 4.4 Fase 3 (hasta el 15 de septiembre)
 
@@ -236,6 +266,8 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 ---
 
 ## 6. Historial de correcciones a este documento
+
+- **19 ago 2026 (2)**: implementado `/api/feed/sessions` real (§16.1) — primera pieza cerrada de la Fase 2 (§2.12). 17 tests nuevos, 76/76 en verde. De paso, corregido un problema de diseño en el entorno de test: `env.ts` validaba de forma síncrona al importarse, lo que rompía cualquier test que tocara transitivamente un módulo relacionado con Supabase aunque no lo usara — arreglado con `tests/setup.ts`, sin tocar `env.ts` de producción. Pendiente: verificar contra el proyecto Supabase real (sin salida de red desde el entorno de desarrollo actual a `supabase.co`).
 
 - **19 ago 2026**: recibida la "Política de subida y almacenamiento de contenido multimedia" oficial. Confirma exactos los límites que ya estaban implementados como placeholder en `src/modules/media/` (5 MB imagen, 100 MB / 3 min vídeo, WebP/AVIF, MP4/H.264, feed-nunca-original, lazy loading) — no hizo falta ningún cambio de código. Cierra las dos últimas filas de la tabla de decisiones pendientes relacionadas con medios: pesos/bitrates y plan de Cloudinary (**Free**, cuenta creada y verificada por el equipo).
 
