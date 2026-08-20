@@ -1,0 +1,51 @@
+import Link from 'next/link'
+
+import {
+  listContents,
+} from '@/modules/content/application/listContents'
+
+export default async function ContentsPage() {
+  const contents = await listContents()
+
+  return (
+    <main>
+
+      <h1>Contents</h1>
+
+      <Link href="/admin/contents/new">
+        Nuevo contenido
+      </Link>
+
+      {contents.length === 0 ? (
+        <p>No hay contenidos.</p>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Tipo</th>
+              <th>Estado</th>
+              <th>Slug</th>
+              <th>Idioma</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {contents.map((content) => (
+              <tr key={content.id}>
+                <td>{content.title}</td>
+                <td>{content.type}</td>
+                <td>{content.status}</td>
+                <td>{content.slug}</td>
+                <td>
+                  {content.defaultLocale}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+    </main>
+  )
+}
