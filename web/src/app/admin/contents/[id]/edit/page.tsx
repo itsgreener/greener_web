@@ -47,8 +47,6 @@ export default async function EditContentPage({
 
       <hr />
 
-      <h2>Zona peligrosa</h2>
-
       <DeleteContentButton
         id={content.id}
         status={content.status}
