@@ -12,7 +12,7 @@ Todas las referencias `§X` apuntan a secciones del documento de arquitectura. �
 
 La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales. Además, ya existe una implementación funcional (sin tests todavía) del login del ABM con Google OAuth.
 
-**Novedad del 19 de agosto**: `/api/feed/sessions` real (§16.1) construido y probado, sustituyendo al prototipo `/api/feed/demo` en lo que a arquitectura se refiere (el demo sigue existiendo aparte, sin tocar). Es la primera pieza de la Fase 2 (ABM base) ya cerrada — ver §2.12.
+**Novedad del 19-20 de agosto**: `/api/feed/sessions` real (§16.1) construido, probado con 76 tests automáticos, y **verificado de extremo a extremo contra el proyecto Supabase real** — primera pieza cerrada del todo de la Fase 2 (ABM base), ver §2.12. De paso, se fijó la versión de Node del proyecto en **24.15.0** (LTS), con `engines` en `package.json` y `.nvmrc` (§2.10).
 
 Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está resuelto y reverificado: build roto, dependencias de test que faltaban, discrepancia de nombres de variables de entorno, y el import relativo del callback de auth. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
 
@@ -22,7 +22,6 @@ Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está 
 - **0 errores de TypeScript**, **0 avisos de ESLint**, **build de producción limpio** (`npm run build`).
 - **8 migraciones SQL** de Supabase, aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
-- **Pendiente de verificación**: la consulta real de `/api/feed/sessions` contra el proyecto Supabase real — construida contra el esquema exacto migrado, pero sin poder ejecutarla de extremo a extremo por una restricción de red del entorno donde se escribió (ver §2.12 e Instrucciones de prueba).
 
 ---
 
@@ -123,6 +122,16 @@ Salidas: `supabase/seed_demo_data.sql` (aplicado y validado con integridad refer
 
 `package.json` refleja las versiones reales (`next@16.3.x`, `react@19.2.8`).
 
+**Versión de Node fijada (20 ago)**: `npm install` avisaba (`EBADENGINE`) de que `jsdom@30` necesita Node `^22.22.2 || ^24.15.0 || >=26.0.0`, y el equipo estaba en 24.13.0 — por debajo del mínimo de la rama 24.x. Se decidió subir a **Node 24.15.0**, no saltar a Node 26: en agosto de 2026, Node 26 sigue siendo la rama Current, no entra en LTS hasta octubre — Node 24 es la Active LTS recomendada para producción.
+
+- `package.json`: añadido `"engines": { "node": ">=24.15.0 <25.0.0" }` — el límite superior es deliberado, evita instalar Node 25 (rama impar, ya fin de vida) o saltar sin querer a Node 26 antes de que sea LTS.
+- `@types/node` actualizado de `^20` a `^24.13.3`, para que los tipos coincidan con el runtime real.
+- `.nvmrc` nuevo en la raíz, con `24.15.0` — para que `nvm use` funcione directo.
+
+**Nota honesta sobre verificación**: el entorno donde se construyó esto solo tenía Node 22.22.2 disponible (sin red hacia nodejs.org para instalar otra versión), así que lint/tsc/tests/build se reverificaron ahí, no contra 24.15.0 exacto. El equipo sí lo verificó en su máquina con Node 24.15.0 real — todo correcto, salvo un fallo de configuración que apareció al hacerlo (ver más abajo).
+
+**Bug de configuración encontrado y corregido al verificar en local (20 ago)**: `tests/unit/feed/cursor.test.ts` (y los otros dos tests nuevos de sesiones de feed) fallaban con `Configuración de entorno inválida` al ejecutar `npm test` en local. Causa: en la copia del equipo, `vitest.config.ts` no tenía la línea `setupFiles: ["./tests/setup.ts"]` — sin ella, Vitest nunca ejecuta `tests/setup.ts` aunque el archivo exista en el repo, así que cualquier test que dependa (aunque sea transitivamente) de `env.ts` revienta al no encontrar las variables de entorno. Con esa línea añadida, los 76 tests pasan también en local. Apuntado aquí porque es un fallo silencioso y fácil de repetir si alguien recrea `vitest.config.ts` desde cero más adelante.
+
 ### 2.11 Inventario de tools e insights en producción (18 ago)
 
 Confirmado por Greener. Es el catálogo real a migrar bajo `/tools/[slug]` e `/insights/[slug]` (§12), y el input principal para el punto "inventario de URLs para 301" de la Fase 1 (§4.2) en lo que a tools/insights se refiere — falta todavía el inventario del resto del sitio actual (home, páginas sueltas, etc.).
@@ -163,7 +172,7 @@ Construida entera, con tests, primera pieza cerrada de la Fase 2. Sustituye a `/
 
 **Hallazgo de diseño corregido de paso**: `env.ts` valida de forma síncrona en cuanto se importa el módulo, no de forma perezosa. Cualquier test que tocara (aunque fuera transitivamente) `cursor.ts` o `serviceClient.ts` reventaba por falta de variables de entorno, aunque el test no usara Supabase para nada. Arreglado añadiendo `tests/setup.ts` (variables de entorno de prueba, sin secretos reales) registrado en `vitest.config.ts` — no se ha tocado el diseño de `env.ts` en producción, es puramente un fix del entorno de test.
 
-**Pendiente de verificar, importante**: la consulta real contra Supabase (el `select()` anidado `content → pin → pin_media → media_asset`) está escrita contra el esquema exacto de las 8 migraciones, pero no se ha podido ejecutar de extremo a extremo — el entorno donde se escribió no tiene salida de red a `supabase.co`. Las rutas de validación (scope inválido, cuerpo sin `scope`, sesión inexistente) sí se probaron por HTTP real y funcionan. Instrucciones detalladas de cómo terminar de validarlo, en el documento aparte de instrucciones de prueba.
+**Verificado de extremo a extremo contra Supabase real (20 ago) — cerrado.** El equipo probó el flujo completo siguiendo las instrucciones de prueba aparte: creación de sesión, primer lote con datos insertados por SQL directo, avance de cursor a la ronda 1, 404 en sesión inexistente, y repetición de la ronda 0 devolviendo exactamente los mismos pines (confirma que se lee `feed_round` ya persistida, no se recalcula). El `select()` anidado `content → pin → pin_media → media_asset` funciona tal cual estaba escrito, sin ajustes. Único matiz observado: con `force` mayor que el número de pines disponibles en la cola de un caso, el mismo pin aparece repetido en el lote — comportamiento esperado y documentado en §4.3 del brief, no un bug.
 
 ---
 
@@ -219,7 +228,7 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 - [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
 - [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado.
 - [ ] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` (hoy solo cubre auth).
-- [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho el 19 ago** (§2.12). Pendiente de verificación E2E contra Supabase real, ver instrucciones de prueba aparte.
+- [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho y verificado E2E contra Supabase real el 20 ago** (§2.12).
 
 ### 4.4 Fase 3 (hasta el 15 de septiembre)
 
@@ -266,6 +275,8 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 ---
 
 ## 6. Historial de correcciones a este documento
+
+- **20 ago 2026**: cerrada del todo la verificación E2E de `/api/feed/sessions` contra Supabase real (§2.12) — el equipo confirmó el flujo completo con datos insertados por SQL. Fijada la versión de Node del proyecto en 24.15.0 LTS (§2.10): `engines` en `package.json`, `.nvmrc`, `@types/node` actualizado. Encontrado y corregido un fallo de configuración al verificar en local: faltaba `setupFiles: ["./tests/setup.ts"]` en `vitest.config.ts`, sin lo cual los tests nuevos de feed sessions fallaban por falta de variables de entorno aunque `tests/setup.ts` existiera en el repo.
 
 - **19 ago 2026 (2)**: implementado `/api/feed/sessions` real (§16.1) — primera pieza cerrada de la Fase 2 (§2.12). 17 tests nuevos, 76/76 en verde. De paso, corregido un problema de diseño en el entorno de test: `env.ts` validaba de forma síncrona al importarse, lo que rompía cualquier test que tocara transitivamente un módulo relacionado con Supabase aunque no lo usara — arreglado con `tests/setup.ts`, sin tocar `env.ts` de producción. Pendiente: verificar contra el proyecto Supabase real (sin salida de red desde el entorno de desarrollo actual a `supabase.co`).
 
