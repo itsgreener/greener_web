@@ -12,7 +12,7 @@ Todas las referencias `§X` apuntan a secciones del documento de arquitectura. �
 
 La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales. Además, ya existe una implementación funcional (sin tests todavía) del login del ABM con Google OAuth.
 
-Todo el housekeeping detectado en la auditoría del 18 de agosto que bloqueaba o ensuciaba el proyecto está resuelto y reverificado a cierre de esa misma jornada: build roto, dependencias de test que faltaban, y la discrepancia de nombres de variables de entorno. Quedan abiertos, sin urgencia técnica, el parámetro `hd` del login y dos decisiones de negocio a cerrar con Greener (ver §4.1 y §5).
+Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está resuelto y reverificado: build roto, dependencias de test que faltaban, discrepancia de nombres de variables de entorno, y el import relativo del callback de auth. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
@@ -60,9 +60,11 @@ Todo el housekeeping detectado en la auditoría del 18 de agosto que bloqueaba o
 
 **Validación real, no solo revisión del SQL:** aplicadas contra PostgreSQL 16 real, probadas con un rol sin privilegios de superusuario (visitante anónimo → solo `published`; dominio autorizado → todo; dominio no autorizado → bloqueado; dos intentos de suplantación por substring de dominio → ambos rechazados).
 
-**Nota pendiente de cierre formal:** `feed_config` ya usa por defecto los ratios reasignados de ADR-11 (70% casos / 15% insights / 5% tools / 5% channel / 5% otros), pero el propio comentario SQL de la migración y el Anexo A del documento de arquitectura siguen marcando esa decisión como "pendiente de confirmar". El código ya la da por hecha — falta cerrarla formalmente con Greener y limpiar el comentario.
+**ADR-11 cerrado (18 ago):** confirmado con Greener el reparto 70% casos / 15% insights / 5% tools / 5% channel / 5% otros, ya usado por defecto en `feed_config`. Falta solo un housekeeping menor: quitar el comentario SQL de "provisional / pendiente de confirmar" de la migración `..._feed_taxonomy.sql`.
 
-**Nota pendiente de decisión:** el enum `tag_section` conserva el valor `'shop'` pese a que Shop está excluido por completo de V1 (ADR-10, §3 "sin código muerto"). Decidir si se retira o se documenta como hueco reservado a propósito.
+**`'shop'` en `tag_section` — decidido (18 ago):** se mantiene en el enum de forma deliberada, como hueco reservado para una futura actualización de la página que reintroduzca Shop. No es código muerto por descuido, es una reserva consciente — documentado aquí para que quien lo lea más adelante no lo confunda con un olvido del ADR-10.
+
+**Estado en el proyecto Supabase real (`web-greener`), confirmado el 18 ago:** las 8 migraciones ya están aplicadas contra el proyecto real, no solo contra una base de pruebas — `admin_allowed_domain` ya tiene los 3 dominios (`itsgreener.com`, `ffforward.ai`, `villamagia.com`); el resto de tablas existen con el esquema completo pero están vacías, a la espera de la Fase 2 (ABM) y la carga de contenido real.
 
 **Decisión de negocio confirmada:** el "administrador único" del brief se reinterpretó como **rol único, multiusuario por dominio de correo**, no varias cuentas nombradas una a una.
 
@@ -84,9 +86,15 @@ Implementado en `src/modules/packages/` (domain/application/infrastructure, §24
 
 **Problema real resuelto durante la implementación:** rutas relativas del paquete mal resueltas sin barra final en la URL — corregido inyectando `<base href>`.
 
-### 2.6 Política de medios (Cloudinary)
+### 2.6 Política de medios (Cloudinary) — confirmada oficialmente el 19 ago
 
-`src/modules/media/`: `domain/mediaLimits.ts` (límites puros: 5 MB imagen, 100 MB / 3 min vídeo), `domain/mediaDelivery.ts` (regla "el feed nunca sirve el original"), `infrastructure/cloudinaryUrl.ts` (construcción de URLs `q_auto`/`f_auto`).
+`src/modules/media/`: `domain/mediaLimits.ts` (límites puros: 5 MB imagen, 100 MB / 3 min vídeo), `domain/mediaDelivery.ts` (regla "el feed nunca sirve el original": imagen 320-960px en feed vs hasta 1920px en detalle; vídeo poster/preview de 5s en feed vs completo en detalle), `infrastructure/cloudinaryUrl.ts` (construcción de URLs `q_auto`/`f_auto`).
+
+Estos valores, que se implementaron como placeholder de trabajo antes de tener una decisión formal, se confirman **exactos** contra la "Política de subida y almacenamiento de contenido multimedia" recibida el 19 de agosto: límites de subida (5 MB / 100 MB / 3 min), formatos recomendados (WebP/AVIF, MP4/H.264), estrategia de feed-nunca-original y lazy loading (`loading="lazy"` ya en `PinCard`) coinciden punto por punto sin necesidad de tocar código.
+
+**Plan de Cloudinary confirmado: Free** (25 credits/mes), cuenta ya creada y verificada — Plus (~99 USD/mes) queda como siguiente escalón si el consumo real en producción lo justifica, a decidir por métricas (almacenamiento, bandwidth, transformaciones, procesamiento de vídeo), no por número de casos.
+
+**Hueco pendiente, no bloqueante**: `PinCard` solo renderiza pines de imagen por ahora. Las funciones de vídeo (`buildVideoPosterUrl`/`buildVideoPreviewUrl`/`buildVideoFullUrl`) ya existen en `cloudinaryUrl.ts` pero ningún componente las usa todavía — pendiente para cuando se aborden pines de vídeo/carrusel en `PinCard`.
 
 ### 2.7 Dataset de datos falsos (completado y validado)
 
@@ -106,11 +114,28 @@ Salidas: `supabase/seed_demo_data.sql` (aplicado y validado con integridad refer
 
 `src/app/admin/{page.tsx,login/page.tsx}`, `src/app/auth/callback/route.ts`, `src/lib/supabase/{client,server,proxy}.ts`, `src/proxy.ts`: flujo completo de login con Google vía Supabase Auth, con verificación de dominio server-side en cada request (`proxy.ts` + RLS `is_admin()`), usando `getClaims()` — el patrón actualmente recomendado por Supabase para SSR con Next.js, no código improvisado.
 
-**Qué falta**: tests (no hay ninguno todavía); el parámetro `hd` en `signInWithOAuth` (§15.2 lo especifica como sugerencia de UI, no es un fallo de seguridad porque la restricción real ya está bien implementada server-side); confirmar con quien lo esté llevando en el equipo que se puede dar por "hecho, pendiente de test".
+**Qué falta**: tests (no hay ninguno todavía); confirmar con quien lo esté llevando en el equipo que se puede dar por "hecho, pendiente de test". Los 3 dominios (`itsgreener.com`, `ffforward.ai`, `villamagia.com`) ya están en `admin_allowed_domain` del proyecto Supabase real — confirmado el 18 ago, el resto de tablas existen (esquema completo migrado) pero están vacías, a la espera de contenido real. El parámetro `hd` de §15.2 se descarta deliberadamente: con 3 dominios reales autorizados, `hd` (que solo admite uno o `*`) no puede representarlos sin resultar engañoso en el selector de Google; la restricción real sigue siendo, sin cambios, `is_admin()` server-side.
 
 ### 2.10 Corrección de versiones
 
 `package.json` refleja las versiones reales (`next@16.3.x`, `react@19.2.8`).
+
+### 2.11 Inventario de tools e insights en producción (18 ago)
+
+Confirmado por Greener. Es el catálogo real a migrar bajo `/tools/[slug]` e `/insights/[slug]` (§12), y el input principal para el punto "inventario de URLs para 301" de la Fase 1 (§4.2) en lo que a tools/insights se refiere — falta todavía el inventario del resto del sitio actual (home, páginas sueltas, etc.).
+
+**Tools** — origen `https://tools.itsgreener.com/tools/{slug}` (9):
+
+`carousel-studio`, `contour-fill`, `cubica`, `destructor`, `pattern-foundry`, `pixel-stretch`, `plain-painter`, `reconstructor`, `rafaga`
+
+**Insights** — origen `https://insight.itsgreener.com/insight/{slug}` (4):
+
+`efectovozinha`, `algospeak`, `avanzadadulce`, `diccionarioemojis`
+
+Pendiente de hacer con este listado (no bloquea nada de lo anterior, pero es trabajo real de la Fase 4, §12 y §16.1):
+
+- Añadir una fila a `redirect_301` por cada uno de los 13 slugs: `tools.itsgreener.com/tools/{slug}` → `/tools/{slug}` y `insight.itsgreener.com/insight/{slug}` → `/insights/{slug}` (nota: el brief pluraliza "insights" en la ruta nueva, el origen actual usa singular "insight" — confirmar que es así y no un error de transcripción antes de cargar las redirecciones).
+- Migrar el HTML real de cada una de las 9 tools y 4 insights al contrato de paquete ZIP de §12.2 (ninguna se ha migrado todavía — `pixel-palette`, la única tool que existe hoy en el repo, es una tool de ejemplo nueva construida para el spike de Fase 0, no una de estas 9).
 
 ---
 
@@ -142,17 +167,18 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 - [x] Crear `.env.local.example` real — **hecho el 18 ago**.
 - [x] Actualizar `src/lib/env.ts` a los nombres reales de variable (`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`) y hacer que `lib/supabase/{client,server,proxy}.ts` importen `env` en vez de leer `process.env` directo — **hecho el 18 ago**. Nota: el primer intento solo añadió el import sin sustituir los usos de `process.env.X!`, lo que dejaba 3 avisos de ESLint (`no-unused-vars`) y no resolvía el problema de fondo; corregido reemplazando `process.env.X!` por `env.X` en los tres archivos.
 - [x] Corregir el import relativo de `src/app/auth/callback/route.ts` para usar el alias `@/*` — **hecho el 18 ago**.
-- [ ] Añadir `queryParams: { hd: '...' }` al `signInWithOAuth` de `admin/login/page.tsx`.
+- [x] `hd` en el login de Google — **decidido el 18 ago: no se añade**. Hay 3 dominios reales autorizados (`itsgreener.com`, `ffforward.ai`, `villamagia.com`); `hd` de Google solo admite un dominio o el comodín `*`, así que fijar uno solo sería engañoso en el selector de cuentas. La restricción real ya vive enteramente en `is_admin()` / `admin_allowed_domain`, sin cambios.
+- [x] Insertar `ffforward.ai` y `villamagia.com` en `admin_allowed_domain` del proyecto Supabase real (`web-greener`) — **confirmado el 18 ago: ya están los 3 dominios en la tabla real**. El resto del esquema está creado (8 migraciones aplicadas) pero sin datos todavía, a la espera de la Fase 2 (ABM) y la carga de contenido real.
 - [x] Añadir `supabase/.temp/` al `.gitignore` — **hecho el 18 ago**. Pendiente aparte, sin urgencia: confirmar si `supabase/config.toml` existe localmente y, si es así, versionarlo para que el resto del equipo pueda levantar Supabase local.
-- [ ] Decidir y cerrar con Greener: `'shop'` en `tag_section` — ¿se retira o se documenta como reservado?
-- [x] Cerrar formalmente ADR-11 (70/15/5/5/5) con Greener y limpiar el comentario de "pendiente" en la migración.
+- [x] Decidir y cerrar con Greener: `'shop'` en `tag_section` — **cerrado el 18 ago**: se queda como hueco reservado para futuras actualizaciones (Shop podría reintroducirse más adelante).
+- [x] Cerrar formalmente ADR-11 (70/15/5/5/5) con Greener — **cerrado el 18 ago**. Queda pendiente solo limpiar el comentario "provisional" de la migración SQL (housekeeping cosmético, no bloqueante).
 - [ ] Confirmar con quien lleve el login del ABM el estado real de esa parte y añadir tests.
 
 ### 4.2 Fase 1 (hasta el 15 de agosto)
 
 - [ ] **Repertorio de bloques y restricciones de las variantes A/B/C de caso** (§11.3) — bloqueado por diseño; bloquea a su vez la especificación de contenido (Anexo A.1) y el editor de bloques del ABM.
 - [ ] Especificación de formatos para Greener (Anexo A.1) — depende del punto anterior.
-- [ ] Inventario de URLs actuales para las redirecciones 301 — no depende de nada más, se puede hacer ya.
+- [~] Inventario de URLs actuales para las redirecciones 301 — catálogo de tools (9) e insights (4) confirmado por Greener el 18 ago (§2.11); falta el inventario del resto del sitio actual para completarlo.
 - [ ] Ajustar el algoritmo de layout con el diseño real cuando esté disponible (breakpoints actuales: propuesta técnica confirmada fiel a §10.1, pendiente de validar por diseño).
 
 ### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
@@ -199,18 +225,23 @@ Ninguna depende de escribir código — bloquean trabajo posterior si no se cier
 
 | Decisión | Bloquea | Estado |
 | --- | --- | --- |
-| Reasignación 5% Shop → Channel (ADR-11): 70/15/5/5/5 | Datos de prueba del feed | Implementado en código; falta cierre formal |
 | Repertorio de bloques y restricciones de variantes A/B/C | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño |
-| Pesos y bitrates máximos de imagen/vídeo | LCP y consumo móvil predecibles | Abierto |
-| Alcance real del dominio permitido en el ABM (§15.2) | Módulo de Acceso del ABM | Abierto — ¿todo el dominio corporativo o sub-allowlist para contratistas? |
-| Límites del plan de Cloudinary frente al volumen real | `eager transformations` vs bajo demanda | Abierto |
 | Auditoría de embeds y cookies de terceros (Vimeo, Spotify) | Si hace falta banner de consentimiento antes de Channel | Abierto |
 | Traducción asistida por IA en el ABM (opcional) | Si se incluye en V1 o se deja fuera | Abierto, no bloqueante |
+
+Cerradas el 18 de agosto: reasignación 5% Shop → Channel (ADR-11, 70/15/5/5/5); permanencia de `'shop'` en `tag_section` como hueco reservado (§2.3); alcance del dominio permitido en el ABM — **son 3 dominios reales, no uno**: `itsgreener.com`, `ffforward.ai`, `villamagia.com` (§4.1) — no sub-allowlist de contratistas, los 3 tienen el mismo nivel de acceso.
+
+Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de Cloudinary — política de subida y almacenamiento recibida oficialmente (§2.6), confirma exactos los valores ya implementados (5 MB imagen, 100 MB / 3 min vídeo) y fija plan **Free** de Cloudinary, cuenta ya creada y verificada.
 
 ---
 
 ## 6. Historial de correcciones a este documento
 
+- **19 ago 2026**: recibida la "Política de subida y almacenamiento de contenido multimedia" oficial. Confirma exactos los límites que ya estaban implementados como placeholder en `src/modules/media/` (5 MB imagen, 100 MB / 3 min vídeo, WebP/AVIF, MP4/H.264, feed-nunca-original, lazy loading) — no hizo falta ningún cambio de código. Cierra las dos últimas filas de la tabla de decisiones pendientes relacionadas con medios: pesos/bitrates y plan de Cloudinary (**Free**, cuenta creada y verificada por el equipo).
+
+- **18 ago 2026 (noche, 2)**: confirmado que el proyecto Supabase real (`web-greener`) ya tiene las 8 migraciones aplicadas y los 3 dominios cargados en `admin_allowed_domain`; el resto de tablas están creadas pero vacías. Cierra del todo el punto de `admin_allowed_domain` abierto en la entrada anterior.
+- **18 ago 2026 (noche)**: aclarado que el acceso al ABM cubre 3 dominios reales (`itsgreener.com`, `ffforward.ai`, `villamagia.com`), no uno solo. Decisión: no añadir `hd` al login de Google (solo admite un dominio o `*`, y ninguno de los dos representa bien 3 dominios reales sin resultar engañoso) — la restricción sigue siendo enteramente server-side vía `is_admin()`. Corregido `supabase/seed.sql`, que solo insertaba `itsgreener.com`; pendiente aplicar los 3 dominios también en el proyecto Supabase real.
+- **18 ago 2026 (tarde)**: cerradas dos decisiones de negocio con Greener — ADR-11 confirmado con los valores ya implementados (70/15/5/5/5) y `'shop'` se mantiene en `tag_section` como hueco reservado para una futura reintroducción de Shop, no por descuido. Añadido el inventario real de 9 tools y 4 insights en producción (§2.11), input para las redirecciones 301 de la Fase 1.
 - **18 ago 2026 (cierre de jornada)**: aplicados y reverificados de extremo a extremo (lint, `tsc --noEmit`, 59/59 tests, `next build`) los cuatro fixes de housekeeping abiertos por la mañana:
   - Export roto en `feed/domain/index.ts` (bloqueaba el build entero).
   - Dependencias de test que faltaban (`@testing-library/react`, `@testing-library/jest-dom`, `jsdom`).
