@@ -14,7 +14,6 @@ import {
 export type UpdateContentActionState = {
   fieldErrors?: {
     id?: string[]
-    type?: string[]
     slug?: string[]
     defaultLocale?: string[]
     title?: string[]
@@ -31,7 +30,6 @@ export async function updateContentAction(
   const result =
     updateContentSchema.safeParse({
       id: formData.get('id'),
-      type: formData.get('type'),
       slug: formData.get('slug'),
       defaultLocale:
         formData.get('defaultLocale'),

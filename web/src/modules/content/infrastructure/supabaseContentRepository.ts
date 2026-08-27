@@ -33,7 +33,8 @@ function mapContent(
   const translation =
     row.translations.find(
       (item) =>
-        item.locale === row.default_locale
+        item.locale ===
+        row.default_locale
     )
 
   return {
@@ -41,9 +42,12 @@ function mapContent(
     type: row.type,
     status: row.status,
     slug: row.slug,
-    defaultLocale: row.default_locale,
-    title: translation?.title ?? '',
-    createdAt: row.created_at,
+    defaultLocale:
+      row.default_locale,
+    title:
+      translation?.title ?? '',
+    createdAt:
+      row.created_at,
   }
 }
 
@@ -52,7 +56,9 @@ function createRepositoryError(
   code?: string
 ) {
   const error =
-    new Error(message) as Error & {
+    new Error(
+      message
+    ) as Error & {
       code?: string
     }
 
@@ -65,9 +71,13 @@ export const supabaseContentRepository:
   ContentRepository = {
 
   async list() {
-    const supabase = await createClient()
+    const supabase =
+      await createClient()
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('content')
       .select(`
         id,
@@ -81,9 +91,12 @@ export const supabaseContentRepository:
           title
         )
       `)
-      .order('created_at', {
-        ascending: false,
-      })
+      .order(
+        'created_at',
+        {
+          ascending: false,
+        }
+      )
 
     if (error) {
       throw createRepositoryError(
@@ -93,15 +106,24 @@ export const supabaseContentRepository:
     }
 
     const rows =
-      (data ?? []) as SupabaseContentRow[]
+      (data ?? []) as
+        SupabaseContentRow[]
 
-    return rows.map(mapContent)
+    return rows.map(
+      mapContent
+    )
   },
 
-  async getById(id: string) {
-    const supabase = await createClient()
+  async getById(
+    id: string
+  ) {
+    const supabase =
+      await createClient()
 
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from('content')
       .select(`
         id,
@@ -115,7 +137,10 @@ export const supabaseContentRepository:
           title
         )
       `)
-      .eq('id', id)
+      .eq(
+        'id',
+        id
+      )
       .maybeSingle()
 
     if (error) {
@@ -130,26 +155,37 @@ export const supabaseContentRepository:
     }
 
     return mapContent(
-      data as SupabaseContentRow
+      data as
+        SupabaseContentRow
     )
   },
 
   async createDraft(
-    input: CreateContentInput
+    input:
+      CreateContentInput
   ) {
-    const supabase = await createClient()
+    const supabase =
+      await createClient()
 
-    const { data, error } =
-      await supabase.rpc(
-        'create_content_draft',
-        {
-          p_type: input.type,
-          p_slug: input.slug,
-          p_default_locale:
-            input.defaultLocale,
-          p_title: input.title,
-        }
-      )
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      'create_content_draft',
+      {
+        p_type:
+          input.type,
+
+        p_slug:
+          input.slug,
+
+        p_default_locale:
+          input.defaultLocale,
+
+        p_title:
+          input.title,
+      }
+    )
 
     if (error) {
       throw createRepositoryError(
@@ -162,22 +198,28 @@ export const supabaseContentRepository:
   },
 
   async update(
-    input: UpdateContentInput
+    input:
+      UpdateContentInput
   ) {
-    const supabase = await createClient()
+    const supabase =
+      await createClient()
 
-    const { data, error } =
-      await supabase.rpc(
-        'update_content',
-        {
-          p_content_id: input.id,
-          p_type: input.type,
-          p_slug: input.slug,
-          p_default_locale:
-            input.defaultLocale,
-          p_title: input.title,
-        }
-      )
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      'update_content',
+      {
+        p_content_id:
+          input.id,
+
+        p_slug:
+          input.slug,
+
+        p_default_locale:
+          input.defaultLocale,
+      }
+    )
 
     if (error) {
       throw createRepositoryError(
@@ -190,17 +232,22 @@ export const supabaseContentRepository:
   },
 
   async delete(
-    input: DeleteContentInput
+    input:
+      DeleteContentInput
   ) {
-    const supabase = await createClient()
+    const supabase =
+      await createClient()
 
-    const { data, error } =
-      await supabase.rpc(
-        'delete_content',
-        {
-          p_content_id: input.id,
-        }
-      )
+    const {
+      data,
+      error,
+    } = await supabase.rpc(
+      'delete_content',
+      {
+        p_content_id:
+          input.id,
+      }
+    )
 
     if (error) {
       throw createRepositoryError(

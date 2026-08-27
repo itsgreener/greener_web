@@ -31,17 +31,34 @@ export const createContentSchema = z.object({
   title: z
     .string()
     .trim()
-    .min(1, 'El título es obligatorio'),
+    .min(
+      1,
+      'El título es obligatorio'
+    ),
 })
 
-export const updateContentSchema =
-  createContentSchema.extend({
-    id: z
-      .string()
-      .uuid(
-        'El identificador del contenido no es válido'
-      ),
-  })
+export const updateContentSchema = z.object({
+  id: z
+    .string()
+    .uuid(
+      'El identificador del contenido no es válido'
+    ),
+
+  slug: z
+    .string()
+    .trim()
+    .min(
+      1,
+      'El slug es obligatorio'
+    )
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      'Usa minúsculas, números y guiones'
+    ),
+
+  defaultLocale:
+    localeSchema,
+})
 
 export const deleteContentSchema = z.object({
   id: z
@@ -52,16 +69,26 @@ export const deleteContentSchema = z.object({
 })
 
 export type ContentType =
-  z.infer<typeof contentTypeSchema>
+  z.infer<
+    typeof contentTypeSchema
+  >
 
 export type Locale =
-  z.infer<typeof localeSchema>
+  z.infer<
+    typeof localeSchema
+  >
 
 export type CreateContentInput =
-  z.infer<typeof createContentSchema>
+  z.infer<
+    typeof createContentSchema
+  >
 
 export type UpdateContentInput =
-  z.infer<typeof updateContentSchema>
+  z.infer<
+    typeof updateContentSchema
+  >
 
 export type DeleteContentInput =
-  z.infer<typeof deleteContentSchema>
+  z.infer<
+    typeof deleteContentSchema
+  >

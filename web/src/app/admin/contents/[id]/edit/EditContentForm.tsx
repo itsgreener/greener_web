@@ -1,6 +1,8 @@
 'use client'
 
-import { useActionState } from 'react'
+import {
+  useActionState,
+} from 'react'
 
 import type {
   ContentDetail,
@@ -17,6 +19,27 @@ const initialState = {
 
 type Props = {
   content: ContentDetail
+}
+
+function getContentTypeLabel(
+  type: ContentDetail['type']
+) {
+  switch (type) {
+    case 'case':
+      return 'Case'
+
+    case 'insight':
+      return 'Insight'
+
+    case 'tool':
+      return 'Tool'
+
+    case 'episode':
+      return 'Episode'
+
+    case 'page':
+      return 'Page'
+  }
 }
 
 export default function EditContentForm({
@@ -41,61 +64,14 @@ export default function EditContentForm({
       />
 
       <div>
-        <label htmlFor="type">
-          Tipo
-        </label>
-
-        <select
-          id="type"
-          name="type"
-          defaultValue={content.type}
-        >
-          <option value="case">
-            Case
-          </option>
-
-          <option value="insight">
-            Insight
-          </option>
-
-          <option value="tool">
-            Tool
-          </option>
-
-          <option value="episode">
-            Episode
-          </option>
-
-          <option value="page">
-            Page
-          </option>
-        </select>
-
-        {state.fieldErrors?.type?.[0] && (
-          <p>
-            {state.fieldErrors.type[0]}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="title">
-          Título
-        </label>
-
-        <input
-          id="title"
-          name="title"
-          type="text"
-          defaultValue={content.title}
-          required
-        />
-
-        {state.fieldErrors?.title?.[0] && (
-          <p>
-            {state.fieldErrors.title[0]}
-          </p>
-        )}
+        <strong>
+          Tipo:
+        </strong>{' '}
+        {
+          getContentTypeLabel(
+            content.type
+          )
+        }
       </div>
 
       <div>
@@ -107,20 +83,30 @@ export default function EditContentForm({
           id="slug"
           name="slug"
           type="text"
-          defaultValue={content.slug}
+          defaultValue={
+            content.slug
+          }
           required
         />
 
-        {state.fieldErrors?.slug?.[0] && (
+        {state
+          .fieldErrors
+          ?.slug?.[0] && (
           <p>
-            {state.fieldErrors.slug[0]}
+            {
+              state
+                .fieldErrors
+                .slug[0]
+            }
           </p>
         )}
       </div>
 
       <div>
-        <label htmlFor="defaultLocale">
-          Idioma
+        <label
+          htmlFor="defaultLocale"
+        >
+          Idioma principal
         </label>
 
         <select
@@ -143,11 +129,13 @@ export default function EditContentForm({
           </option>
         </select>
 
-        {state.fieldErrors
+        {state
+          .fieldErrors
           ?.defaultLocale?.[0] && (
           <p>
             {
-              state.fieldErrors
+              state
+                .fieldErrors
                 .defaultLocale[0]
             }
           </p>
@@ -155,12 +143,16 @@ export default function EditContentForm({
       </div>
 
       <div>
-        <strong>Estado:</strong>{' '}
+        <strong>
+          Estado:
+        </strong>{' '}
         {content.status}
       </div>
 
       {state.formError && (
-        <p>{state.formError}</p>
+        <p>
+          {state.formError}
+        </p>
       )}
 
       <button
@@ -169,7 +161,7 @@ export default function EditContentForm({
       >
         {pending
           ? 'Guardando...'
-          : 'Guardar cambios'}
+          : 'Guardar datos generales'}
       </button>
 
     </form>

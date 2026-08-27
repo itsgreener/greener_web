@@ -4,12 +4,11 @@ import { useActionState } from 'react'
 
 import {
   createContentAction,
+  type CreateContentActionState,
 } from '../actions'
 
-const initialState = {
-  fieldErrors: {},
-  formError: undefined,
-}
+const initialState:
+  CreateContentActionState = {}
 
 export default function NewContentForm() {
   const [
@@ -34,12 +33,32 @@ export default function NewContentForm() {
           name="type"
           defaultValue="case"
         >
-          <option value="case">Case</option>
-          <option value="insight">Insight</option>
-          <option value="tool">Tool</option>
-          <option value="episode">Episode</option>
-          <option value="page">Page</option>
+          <option value="case">
+            Case
+          </option>
+
+          <option value="insight">
+            Insight
+          </option>
+
+          <option value="tool">
+            Tool
+          </option>
+
+          <option value="episode">
+            Episode
+          </option>
+
+          <option value="page">
+            Page
+          </option>
         </select>
+
+        {state.fieldErrors?.type?.[0] && (
+          <p>
+            {state.fieldErrors.type[0]}
+          </p>
+        )}
       </div>
 
       <div>
@@ -50,6 +69,7 @@ export default function NewContentForm() {
         <input
           id="title"
           name="title"
+          type="text"
           required
         />
 
@@ -68,6 +88,7 @@ export default function NewContentForm() {
         <input
           id="slug"
           name="slug"
+          type="text"
           placeholder="mi-primer-caso"
           required
         />
@@ -81,7 +102,7 @@ export default function NewContentForm() {
 
       <div>
         <label htmlFor="defaultLocale">
-          Idioma
+          Idioma principal
         </label>
 
         <select
@@ -89,14 +110,36 @@ export default function NewContentForm() {
           name="defaultLocale"
           defaultValue="es"
         >
-          <option value="es">Español</option>
-          <option value="en">English</option>
-          <option value="ca">Català</option>
+          <option value="es">
+            Español
+          </option>
+
+          <option value="en">
+            English
+          </option>
+
+          <option value="ca">
+            Català
+          </option>
         </select>
+
+        {state
+          .fieldErrors
+          ?.defaultLocale?.[0] && (
+          <p>
+            {
+              state
+                .fieldErrors
+                .defaultLocale[0]
+            }
+          </p>
+        )}
       </div>
 
       {state.formError && (
-        <p>{state.formError}</p>
+        <p>
+          {state.formError}
+        </p>
       )}
 
       <button

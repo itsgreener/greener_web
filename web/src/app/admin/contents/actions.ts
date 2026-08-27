@@ -26,7 +26,6 @@ export async function createContentAction(
   _previousState: CreateContentActionState,
   formData: FormData
 ): Promise<CreateContentActionState> {
-
   const result =
     createContentSchema.safeParse({
       type: formData.get('type'),
@@ -46,7 +45,6 @@ export async function createContentAction(
   try {
     await createContent(result.data)
   } catch (error) {
-
     if (
       error instanceof Error &&
       'code' in error &&
@@ -54,7 +52,9 @@ export async function createContentAction(
     ) {
       return {
         fieldErrors: {
-          slug: ['Este slug ya existe'],
+          slug: [
+            'Este slug ya existe',
+          ],
         },
       }
     }
