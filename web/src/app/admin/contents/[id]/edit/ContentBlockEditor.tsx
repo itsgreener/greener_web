@@ -23,6 +23,12 @@ import BlockTranslationForm
 import DeleteContentBlockButton
   from './DeleteContentBlockButton'
 
+import ImageBlockMediaUpload
+  from './ImageBlockMediaUpload'
+
+import VideoBlockMediaUpload
+  from './VideoBlockMediaUpload'
+
 type Props = {
   block: ContentBlock
   availableLocales: Locale[]
@@ -32,7 +38,8 @@ const initialState:
   UpdateBlockActionState = {}
 
 function getBlockTypeLabel(
-  type: ContentBlock['type']
+  type:
+    ContentBlock['type']
 ) {
   switch (type) {
     case 'rich_text':
@@ -59,7 +66,6 @@ export default function ContentBlockEditor({
   block,
   availableLocales,
 }: Props) {
-
   const [
     state,
     formAction,
@@ -69,18 +75,15 @@ export default function ContentBlockEditor({
     initialState
   )
 
-  const isMediaBlock =
-    block.type === 'image' ||
-    block.type === 'carousel' ||
-    block.type === 'video'
-
   return (
     <section>
 
       <h3>
-        {getBlockTypeLabel(
-          block.type
-        )}
+        {
+          getBlockTypeLabel(
+            block.type
+          )
+        }
       </h3>
 
       <p>
@@ -98,7 +101,9 @@ export default function ContentBlockEditor({
         <input
           type="hidden"
           name="contentId"
-          value={block.contentId}
+          value={
+            block.contentId
+          }
         />
 
         <div>
@@ -185,18 +190,50 @@ export default function ContentBlockEditor({
 
       </form>
 
-      {isMediaBlock && (
+      {block.type ===
+        'image' && (
+        <ImageBlockMediaUpload
+          blockId={
+            block.id
+          }
+          contentId={
+            block.contentId
+          }
+          media={
+            block.media
+          }
+        />
+      )}
+
+      {block.type ===
+        'video' && (
+        <VideoBlockMediaUpload
+          blockId={
+            block.id
+          }
+          contentId={
+            block.contentId
+          }
+          media={
+            block.media
+          }
+        />
+      )}
+
+      {block.type ===
+        'carousel' && (
         <p>
-          Media pendiente de integrar
-          con Cloudinary.
+          El carrusel se
+          implementará en el
+          siguiente bloque.
         </p>
       )}
 
       {block.type ===
         'links_credits' ? (
         <p>
-          La estructura traducible
-          de Links / Credits queda
+          La estructura de
+          Links / Credits queda
           pendiente del diseño final.
         </p>
       ) : (
@@ -207,9 +244,9 @@ export default function ContentBlockEditor({
 
           {availableLocales.map(
             (locale) => {
-
               const translation =
-                block.translations
+                block
+                  .translations
                   .find(
                     (item) =>
                       item.locale ===

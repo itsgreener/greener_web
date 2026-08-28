@@ -1,4 +1,8 @@
 import type {
+  MediaAsset,
+} from '@/modules/media/domain/mediaAssetSchema'
+
+import type {
   ContentBlockConfig,
   ContentBlockTranslation,
   ContentBlockType,
@@ -14,8 +18,15 @@ export type ContentBlock = {
   type: ContentBlockType
   sortOrder: number
   config: ContentBlockConfig
-  mediaId: string | null
+
+  mediaId:
+    string | null
+
+  media:
+    MediaAsset | null
+
   createdAt: string
+
   translations:
     ContentBlockTranslation[]
 }
@@ -26,15 +37,18 @@ export interface ContentBlockRepository {
   ): Promise<ContentBlock[]>
 
   create(
-    input: CreateContentBlockInput
+    input:
+      CreateContentBlockInput
   ): Promise<string>
 
   update(
-    input: UpdateContentBlockInput
+    input:
+      UpdateContentBlockInput
   ): Promise<string>
 
   delete(
-    input: DeleteContentBlockInput
+    input:
+      DeleteContentBlockInput
   ): Promise<string>
 
   upsertTranslation(

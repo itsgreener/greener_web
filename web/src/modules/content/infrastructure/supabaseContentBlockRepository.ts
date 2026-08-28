@@ -3,6 +3,12 @@ import {
 } from '@/lib/supabase/server'
 
 import type {
+  MediaAsset,
+  MediaKind,
+  MediaStatus,
+} from '@/modules/media/domain/mediaAssetSchema'
+
+import type {
   ContentBlock,
   ContentBlockRepository,
 } from '../domain/contentBlockRepository'
@@ -28,6 +34,19 @@ type SupabaseBlockTranslationRow = {
   quote_text: string | null
 }
 
+type SupabaseMediaAssetRow = {
+  id: string
+  kind: MediaKind
+  cloudinary_public_id: string
+  format: string | null
+  width: number | null
+  height: number | null
+  duration_seconds: number | null
+  bytes: number | null
+  status: MediaStatus
+  created_at: string
+}
+
 type SupabaseContentBlockRow = {
   id: string
   content_id: string
@@ -36,6 +55,11 @@ type SupabaseContentBlockRow = {
   config: unknown
   media_id: string | null
   created_at: string
+
+  media:
+    | SupabaseMediaAssetRow
+    | SupabaseMediaAssetRow[]
+    | null
 
   translations:
     SupabaseBlockTranslationRow[]
@@ -72,12 +96,78 @@ function normalizeConfig(
   return {}
 }
 
+function normalizeMediaRow(
+  value:
+    | SupabaseMediaAssetRow
+    | SupabaseMediaAssetRow[]
+    | null
+): SupabaseMediaAssetRow | null {
+  if (!value) {
+    return null
+  }
+
+  if (Array.isArray(value)) {
+    return value[0] ?? null
+  }
+
+  return value
+}
+
+function mapMediaAsset(
+  value:
+    | SupabaseMediaAssetRow
+    | SupabaseMediaAssetRow[]
+    | null
+): MediaAsset | null {
+  const row =
+    normalizeMediaRow(
+      value
+    )
+
+  if (!row) {
+    return null
+  }
+
+  return {
+    id:
+      row.id,
+
+    kind:
+      row.kind,
+
+    cloudinaryPublicId:
+      row.cloudinary_public_id,
+
+    format:
+      row.format,
+
+    width:
+      row.width,
+
+    height:
+      row.height,
+
+    durationSeconds:
+      row.duration_seconds,
+
+    bytes:
+      row.bytes,
+
+    status:
+      row.status,
+
+    createdAt:
+      row.created_at,
+  }
+}
+
 function mapTranslation(
   blockId: string,
   row: SupabaseBlockTranslationRow
 ): ContentBlockTranslation {
   return {
     blockId,
+
     locale:
       row.locale,
 
@@ -115,6 +205,11 @@ function mapBlock(
 
     mediaId:
       row.media_id,
+
+    media:
+      mapMediaAsset(
+        row.media
+      ),
 
     createdAt:
       row.created_at,
@@ -154,6 +249,20 @@ export const supabaseContentBlockRepository:
         config,
         media_id,
         created_at,
+
+        media:media_asset (
+          id,
+          kind,
+          cloudinary_public_id,
+          format,
+          width,
+          height,
+          duration_seconds,
+          bytes,
+          status,
+          created_at
+        ),
+
         translations:content_block_translation (
           locale,
           body_rich_text,
@@ -185,10 +294,11 @@ export const supabaseContentBlockRepository:
       )
     }
 
-    return (
-      (data ?? []) as
+    const rows =
+      (data ?? []) as unknown as
         SupabaseContentBlockRow[]
-    ).map(
+
+    return rows.map(
       mapBlock
     )
   },
