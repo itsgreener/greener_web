@@ -14,15 +14,15 @@ La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed 
 
 **Novedad del 20-28 de agosto**: CRUD completo de `content` (borrador, edición, traducciones por idioma, bloques genéricos, detalle de caso) y subida de imagen/vídeo a Cloudinary desde el ABM, construidos por el equipo mientras se preparaba esta revisión — ver §2.13. Sin tests en ese momento; es la brecha que cierra la auditoría de hoy.
 
-**Novedad del 7 de septiembre**: auditoría completa del trabajo de CRUD/ABM/medios (§2.13), con **95 tests nuevos** (schemas, capa de aplicación con repositorios mockeados, y el server action de borrado de medios) y cinco correcciones reales encontradas y resueltas — ver §2.14: auditoría que faltaba en dos funciones de mutación, versión de Node revertida por error, `Prettier` sin configurar (368 ficheros desalineados), medios huérfanos al sustituir imagen/vídeo de un bloque, y límites de medios duplicados en tres sitios. De paso se destapó y se cerró un hueco real que nadie había visto: `register_image_for_block` no tenía tope de tamaño en SQL, a diferencia de vídeo.
+**Novedad del 7 de septiembre**: jornada de auditoría y cierre de la Fase 2, en tres bloques — (1) auditoría completa del CRUD/ABM/medios de agosto, con 95 tests nuevos y cinco correcciones reales (§2.14): auditoría que faltaba en dos funciones de mutación, versión de Node revertida por error, `Prettier` sin configurar (368 ficheros desalineados), medios huérfanos al sustituir imagen/vídeo, y límites de medios duplicados en tres sitios — de paso se destapó y cerró un hueco real: `register_image_for_block` no tenía tope de tamaño en SQL, a diferencia de vídeo; (2) login del ABM revisado y testeado por primera vez, con el middleware endurecido para cubrir también las rutas `/api/admin/*` (§2.9); (3) implementados los estados editoriales `draft`/`scheduled`/`published` en el ABM, con publicar-ahora, programar y despublicar (§2.15) — el cuarto estado, **preview firmado, queda deliberadamente aplazado a la Fase 3**, porque no existe todavía ninguna plantilla pública sobre la que montarlo.
 
 Todo el housekeeping técnico detectado en la auditoría del 18 de agosto sigue resuelto y reverificado. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **184 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos.
+- **224 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos + 20 del login/proxy + 20 de los estados editoriales.
 - **0 errores de TypeScript**, **0 avisos de ESLint**, **`npm run format:check` en verde en los 368 ficheros del repo** (antes de hoy, nunca se había verificado formalmente), **build de producción limpio** (`npm run build`).
-- **13 migraciones SQL** de Supabase (8 del esquema base + 5 del CRUD/ABM/medios, incluidas las 3 de hoy), aplicadas y probadas contra una base de datos real.
+- **21 migraciones SQL** de Supabase (8 del esquema base + 9 del CRUD/ABM/medios de agosto + 4 de hoy: auditoría, medios huérfanos, tope de imagen y estados editoriales), aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
 
 ---
@@ -114,11 +114,15 @@ Salidas: `supabase/seed_demo_data.sql` (aplicado y validado con integridad refer
 
 **28 tests**, en 4 niveles: propiedad del layout (500 runs), virtualización, smoke test con `jsdom`/`@testing-library/react` (dependencias que faltaban en `package.json` hasta el 18 de agosto — añadidas y verificadas), y build + servidor real + `curl`.
 
-### 2.9 Login del ABM — implementado, sin documentar hasta ahora, sin tests
+### 2.9 Login del ABM — implementado, revisado y testeado (7 sep)
 
 `src/app/admin/{page.tsx,login/page.tsx}`, `src/app/auth/callback/route.ts`, `src/lib/supabase/{client,server,proxy}.ts`, `src/proxy.ts`: flujo completo de login con Google vía Supabase Auth, con verificación de dominio server-side en cada request (`proxy.ts` + RLS `is_admin()`), usando `getClaims()` — el patrón actualmente recomendado por Supabase para SSR con Next.js, no código improvisado.
 
-**Qué falta**: tests (no hay ninguno todavía); confirmar con quien lo esté llevando en el equipo que se puede dar por "hecho, pendiente de test". Los 3 dominios (`itsgreener.com`, `ffforward.ai`, `villamagia.com`) ya están en `admin_allowed_domain` del proyecto Supabase real — confirmado el 18 ago, el resto de tablas existen (esquema completo migrado) pero están vacías, a la espera de contenido real. El parámetro `hd` de §15.2 se descarta deliberadamente: con 3 dominios reales autorizados, `hd` (que solo admite uno o `*`) no puede representarlos sin resultar engañoso en el selector de Google; la restricción real sigue siendo, sin cambios, `is_admin()` server-side.
+**Confirmado el 7 sep: se da por hecho.** Los 3 dominios (`itsgreener.com`, `ffforward.ai`, `villamagia.com`) ya están en `admin_allowed_domain` del proyecto Supabase real — confirmado el 18 ago, el resto de tablas existen (esquema completo migrado) pero están vacías, a la espera de contenido real. El parámetro `hd` de §15.2 se descarta deliberadamente: con 3 dominios reales autorizados, `hd` (que solo admite uno o `*`) no puede representarlos sin resultar engañoso en el selector de Google; la restricción real sigue siendo, sin cambios, `is_admin()` server-side.
+
+**20 tests nuevos (7 sep)**, cerrando la brecha que quedaba abierta desde el 18 de agosto: `updateSession.test.ts` (8 — login libre en `/admin/login`, redirect en páginas, JSON 401/403 en rutas API, dominio no autorizado, fallo de `is_admin()` tratado como "no admin"), `authCallback.test.ts` (6 — intercambio de código, `next` relativo, protección open-redirect con origen absoluto, y el caso protocol-relative `//evil.com`, que resultó ser seguro por cómo se concatena con `origin` — no hizo falta tocar código, solo confirmarlo con un test), `mediaSignRoutes.test.ts` (6 — la segunda barrera de autenticación en las rutas de firma de Cloudinary, independiente del middleware).
+
+**Endurecido de paso**: el middleware (`src/proxy.ts`) solo protegía `/admin/:path*`, no `/api/admin/:path*` — las rutas de firma se libraban porque comprobaban `is_admin()` ellas mismas, pero cualquier ruta nueva bajo `/api/admin/` que no se acordara de hacerlo se habría quedado sin proteger. Ampliado el `matcher` a `['/admin/:path*', '/api/admin/:path*']`, con un matiz: las rutas API no pueden recibir el mismo `redirect()` que las páginas (el cliente hace `fetch()` esperando JSON; seguir un redirect a `/admin/login` le devolvería la página de login como si fuera un 200 válido), así que `updateSession` ahora distingue por prefijo de ruta y devuelve JSON 401/403 en `/api/admin/*`.
 
 ### 2.10 Corrección de versiones
 
@@ -180,7 +184,7 @@ Construida entera, con tests, primera pieza cerrada de la Fase 2. Sustituye a `/
 
 Construido por el equipo mientras se preparaba esta revisión, sin actualizar este documento en su momento (de ahí que no aparezca fechado día a día). Cubre gran parte de la Fase 2 (§4.3):
 
-- **`src/modules/content/`** (domain/application/infrastructure, §24.4): CRUD completo de `content` (crear borrador, editar, borrar — solo en estado `draft`), `content_translation` por idioma (con la restricción de que un episodio solo admite su locale por defecto, §7.3), `content_block` genérico con su traducción por bloque, y `case_detail`. 5 migraciones nuevas (`20260820...` a `20260828...`), cada una con su función `security invoker` + `is_admin()` + `audit_log` — salvo dos que se quedaron sin auditoría, corregido hoy (§2.14).
+- **`src/modules/content/`** (domain/application/infrastructure, §24.4): CRUD completo de `content` (crear borrador, editar, borrar — solo en estado `draft`), `content_translation` por idioma (con la restricción de que un episodio solo admite su locale por defecto, §7.3), `content_block` genérico con su traducción por bloque, y `case_detail`. 9 migraciones nuevas (`20260820...` a `20260828...`), cada una con su función `security invoker` + `is_admin()` + `audit_log` — salvo dos que se quedaron sin auditoría, corregido hoy (§2.14).
 - **`src/modules/media/`**: subida de imagen/vídeo a Cloudinary vía signed upload (firma en servidor, secret que nunca llega al navegador, exactamente como describe §9.2), con validación de límites (5 MB imagen, 100 MB / 180 s vídeo) en cliente, en el schema de zod y en la función SQL — aunque, hasta hoy, el límite de imagen faltaba en SQL (§2.14).
 - **`src/app/admin/contents/`**: ABM funcional de principio a fin — listado, alta, edición con pestañas de traducción, editor de bloques con subida de imagen/vídeo inline, borrado protegido a solo-`draft` con confirmación. El carrusel queda pendiente ("se implementará en el siguiente bloque", visible en el propio editor) y no hay todavía estados `scheduled`/`published` ni preview firmado — sigue abierto en el checklist (§4.3).
 - **Housekeeping encontrado y corregido en la auditoría, no en este bloque**: `@types/node` había vuelto a `^20` en algún punto (despiste, revertido hoy), y no existía `.prettierrc` — el código de este bloque usa comillas simples y sin punto y coma, el resto del repo usaba el estilo por defecto de Prettier (comillas dobles, con punto y coma); nunca se había verificado `npm run format:check`, y fallaba en los 368 ficheros del repo. Todo esto se resuelve en §2.14.
@@ -203,7 +207,19 @@ Repaso completo del bloque anterior: lectura de cada migración y cada fichero n
 - Capa de aplicación con el repositorio mockeado (`vi.mock`): a diferencia de `modules/feed/application/`, que recibe el repositorio como parámetro y por eso se testea con un repositorio en memoria (§2.12), `modules/content/` y `modules/media/` importan el repositorio concreto directamente — la interfaz (`ContentRepository`, `MediaAssetRepository`...) existe pero nada la usa para inyectar. No se ha tocado esa arquitectura, solo se ha mockeado el módulo para poder testear sin Supabase real; **queda anotado como inconsistencia con §24.4** ("repositorios sustituibles detrás de una interfaz") para quien retome esto.
 - `tests/unit/admin/mediaActions.test.ts`: el server action `deleteBlockMediaAction` — orden Postgres→Cloudinary, aborto sin llamar a Cloudinary si Postgres falla, y el caso del `warning` no bloqueante.
 
-**Zona sin tocar, sigue pendiente**: el login del ABM (§2.9) sigue sin tests. `data/demo/` y `fixtures/` no se han revisado a fondo en esta auditoría — no hay indicios de problema, simplemente no ha dado tiempo.
+**Zona sin tocar, sigue pendiente**: `data/demo/` y `fixtures/` no se habían revisado a fondo en esta auditoría — revisado el 7 sep (§2.15), limpio, sin acción necesaria.
+
+### 2.15 Estados editoriales en el ABM y decisión sobre preview — 7 sep
+
+Implementados los tres estados que faltaban del checklist de la Fase 2 (§4.3, §15.3): `draft` → `scheduled` → `published`, y vuelta a `draft` (`unpublish`).
+
+- **Migración `20260907100000_admin_content_publish_states.sql`**: `publish_content` (marca `published`, fija `publish_at = now()`), `schedule_content` (marca `scheduled`, exige `publish_at` estrictamente futuro), `unpublish_content` (vuelve a `draft`, limpia `publish_at`). Las tres con `is_admin()` y `audit_log`, mismo patrón que el resto.
+- **Sin lógica extra para la "ventana de gracia" del unpublish** (brief: "se retira de nuevas sesiones, manteniendo una ventana de gracia para sesiones existentes"): no hacía falta — `content_public_read` (RLS) ya comprueba `status = 'published'` en cada lectura nueva, y `feed_round` ya es inmutable una vez generada (§8.5), así que las sesiones de feed ya abiertas siguen viendo lo que tenían servido sin tocar nada de esto.
+- **`src/modules/content/`**: `publishContentSchema`/`scheduleContentSchema` (con `z.coerce.date()` y validación de fecha futura)/`unpublishContentSchema` en el domain; `ContentRepository` extendida con `publish`/`schedule`/`unpublish`; `publishAt` añadido a `ContentDetail`/`ContentListItem` y a las dos consultas del repositorio.
+- **ABM**: `publishActions.ts` (server actions) + `PublishControls.tsx` — publicar ahora / programar con un `<input type="datetime-local">` / despublicar, mostrando el estado actual y la fecha según corresponda. Colocado justo debajo del ID en el editor, por delante de los datos generales: es la acción más importante de la página. Columna "Publicación" añadida al listado.
+- **41 tests nuevos**: schemas (fecha futura/pasada/exactamente-ahora/formato `datetime-local` del navegador), capa de aplicación con el repositorio mockeado, y los tres server actions.
+
+**Preview — decisión tomada (7 sep): aplazado a la Fase 3, no se implementa ahora.** No existe todavía ninguna plantilla pública (`/work/[slug]` y el resto son Fase 3, bloqueados por el repertorio de bloques de diseño, §5). Se valoraron dos opciones: una infraestructura mínima ahora (token firmado con expiración, vista de solo-lectura sin maquetar) o esperar a que exista la plantilla real para montar el preview firmado sobre ella. Se eligió la segunda — el ABM se queda sin ese botón hasta entonces. **Pendiente real de §15.3, sin fecha todavía.**
 
 ---
 
@@ -215,7 +231,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier — nuevo desde el 7 sep, antes no se verificaba
 npx next build              # build de producción — genera también los tipos de ruta (.next/types)
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 184 tests (unit + property-based + smoke con jsdom)
+npm test                     # 224 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
@@ -254,11 +270,11 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 ### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
 
-- [~] Autenticación Google OAuth vía Supabase Auth — código presente, **sigue sin tests** (§2.9), sin cambios en esta auditoría.
+- [x] Autenticación Google OAuth vía Supabase Auth — **confirmada y testeada el 7 sep** (§2.9), 20 tests nuevos. Middleware endurecido para cubrir también `/api/admin/*`.
 - [x] CRUD de `content` y extensiones vía Server Actions + zod — **hecho (20-28 ago) y auditado con 95 tests el 7 sep** (§2.13, §2.14): borrador, edición, traducciones, bloques, case detail, e imagen/vídeo vía Cloudinary. El carrusel queda explícitamente para después.
 - [ ] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales) — sigue sin empezar; distinto de la subida de imagen/vídeo de bloques, que sí está hecha.
 - [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
-- [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado — todo lo creado desde el ABM se queda en `draft` para siempre, no hay botón de publicar.
+- [~] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado — **`draft`/`scheduled`/`published` hechos y testeados el 7 sep** (§2.15): publicar ahora, programar, despublicar. **`preview` aplazado a la Fase 3 a propósito** (decisión del 7 sep): no hay plantilla pública sobre la que montarlo todavía. Pendiente aparte, sin resolver hoy: no existe mecanismo de publicación automática cuando llega la fecha programada (`publish_at`) — hace falta decidir cron externo vs. `pg_cron` en Supabase antes de que el primer contenido programado se quede esperando sin publicarse solo.
 - [x] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` — hecho como parte del CRUD (§2.13).
 - [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho y verificado E2E contra Supabase real el 20 ago** (§2.12).
 
@@ -294,11 +310,14 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 Ninguna depende de escribir código — bloquean trabajo posterior si no se cierran a tiempo.
 
-| Decisión                                                   | Bloquea                                                 | Estado                      |
-| ---------------------------------------------------------- | ------------------------------------------------------- | --------------------------- |
-| Repertorio de bloques y restricciones de variantes A/B/C   | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño |
-| Auditoría de embeds y cookies de terceros (Vimeo, Spotify) | Si hace falta banner de consentimiento antes de Channel | Abierto                     |
-| Traducción asistida por IA en el ABM (opcional)            | Si se incluye en V1 o se deja fuera                     | Abierto, no bloqueante      |
+| Decisión                                                                                | Bloquea                                                 | Estado                                                                                                                                                        |
+| --------------------------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Repertorio de bloques y restricciones de variantes A/B/C                                | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño                                                                                                                                   |
+| Auditoría de embeds y cookies de terceros (Vimeo, Spotify)                              | Si hace falta banner de consentimiento antes de Channel | Abierto                                                                                                                                                       |
+| Traducción asistida por IA en el ABM (opcional)                                         | Si se incluye en V1 o se deja fuera                     | Abierto, no bloqueante                                                                                                                                        |
+| Mecanismo de publicación automática al llegar `publish_at` (cron externo vs. `pg_cron`) | Que el contenido programado se publique solo            | Abierto — no bloquea usar el ABM hoy (publicar/programar/despublicar manual funciona), pero bloquea que "programar" cumpla su promesa sin intervención humana |
+
+Cerrada el 7 de septiembre: preview firmado (§15.3) — se aplaza a la Fase 3, cuando exista una plantilla pública real sobre la que montarlo (§2.15). No es una decisión de Greener, es una secuenciación técnica.
 
 Cerradas el 18 de agosto: reasignación 5% Shop → Channel (ADR-11, 70/15/5/5/5); permanencia de `'shop'` en `tag_section` como hueco reservado (§2.3); alcance del dominio permitido en el ABM — **son 3 dominios reales, no uno**: `itsgreener.com`, `ffforward.ai`, `villamagia.com` (§4.1) — no sub-allowlist de contratistas, los 3 tienen el mismo nivel de acceso.
 
@@ -308,7 +327,13 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 
 ## 6. Historial de correcciones a este documento
 
-- **7 sep 2026**: auditado el bloque de CRUD de content/media/ABM construido entre el 20 y el 28 de agosto, que se había quedado sin reflejar en este documento y sin ningún test (§2.13). Escritos 95 tests nuevos y resueltas cinco correcciones pedidas explícitamente (§2.14): auditoría que faltaba en `create_content_draft`/`update_content`, `@types/node` revertido de `^20` a `^24.13.3`, `.prettierrc`/`.prettierignore` añadidos y todo el repo reformateado (368 ficheros, antes nunca verificado), medios huérfanos resueltos con `unlink_and_delete_media_asset` + borrado en Cloudinary antes de subir el sustituto, y límites de medios unificados en `mediaLimits.ts` como fuente única del lado TypeScript. De propina, se encontró y cerró un límite de tamaño que faltaba en `register_image_for_block` (SQL). 184/184 tests en verde, `format:check`/`lint`/`tsc`/`build` limpios.
+- **7 sep 2026**: jornada de auditoría y cierre de la Fase 2, en tres bloques.
+
+  1. Auditado el bloque de CRUD de content/media/ABM construido entre el 20 y el 28 de agosto, que se había quedado sin reflejar en este documento y sin ningún test (§2.13). Escritos 95 tests nuevos y resueltas cinco correcciones pedidas explícitamente (§2.14): auditoría que faltaba en `create_content_draft`/`update_content`, `@types/node` revertido de `^20` a `^24.13.3`, `.prettierrc`/`.prettierignore` añadidos y todo el repo reformateado (368 ficheros, antes nunca verificado), medios huérfanos resueltos con `unlink_and_delete_media_asset` + borrado en Cloudinary antes de subir el sustituto, y límites de medios unificados en `mediaLimits.ts` como fuente única del lado TypeScript. De propina, se encontró y cerró un límite de tamaño que faltaba en `register_image_for_block` (SQL).
+  2. Login del ABM confirmado y testeado por primera vez (§2.9): 20 tests nuevos (middleware, callback OAuth, rutas de firma). Middleware ampliado a `/api/admin/*`, distinguiendo JSON 401/403 en rutas API de `redirect()` en páginas.
+  3. Implementados los estados editoriales `draft`/`scheduled`/`published` en el ABM (§2.15): publicar ahora, programar con fecha futura, despublicar — 20 tests nuevos. Preview (el cuarto estado de §15.3) se aplaza deliberadamente a la Fase 3 por falta de plantilla pública; queda además pendiente, sin resolver hoy, decidir el mecanismo de publicación automática cuando llega `publish_at` (§5).
+
+  **224/224 tests en verde**, `format:check`/`lint`/`tsc`/`build` limpios en cada uno de los tres bloques.
 
 - **20 ago 2026**: cerrada del todo la verificación E2E de `/api/feed/sessions` contra Supabase real (§2.12) — el equipo confirmó el flujo completo con datos insertados por SQL. Fijada la versión de Node del proyecto en 24.15.0 LTS (§2.10): `engines` en `package.json`, `.nvmrc`, `@types/node` actualizado. Encontrado y corregido un fallo de configuración al verificar en local: faltaba `setupFiles: ["./tests/setup.ts"]` en `vitest.config.ts`, sin lo cual los tests nuevos de feed sessions fallaban por falta de variables de entorno aunque `tests/setup.ts` existiera en el repo.
 

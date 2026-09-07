@@ -20,6 +20,8 @@ import ContentBlocks from './ContentBlocks'
 
 import DeleteContentButton from './DeleteContentButton'
 
+import PublishControls from './PublishControls'
+
 type Props = {
   params: Promise<{
     id: string
@@ -52,6 +54,14 @@ export default async function EditContentPage({ params }: Props) {
       <h1>Editar contenido</h1>
 
       <p>ID: {content.id}</p>
+
+      <PublishControls
+        contentId={content.id}
+        status={content.status}
+        publishAt={content.publishAt}
+      />
+
+      <hr />
 
       <h2>Datos generales</h2>
 

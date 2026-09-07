@@ -20,6 +20,7 @@ export default async function ContentsPage() {
               <th>Título</th>
               <th>Tipo</th>
               <th>Estado</th>
+              <th>Publicación</th>
               <th>Slug</th>
               <th>Idioma</th>
               <th>Acciones</th>
@@ -34,6 +35,15 @@ export default async function ContentsPage() {
                 <td>{content.type}</td>
 
                 <td>{content.status}</td>
+
+                <td>
+                  {content.publishAt
+                    ? new Date(content.publishAt).toLocaleString('es-ES', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })
+                    : '—'}
+                </td>
 
                 <td>{content.slug}</td>
 

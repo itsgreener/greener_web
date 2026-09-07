@@ -26,6 +26,9 @@ vi.mock('@/modules/content/infrastructure/supabaseContentRepository', () => ({
     createDraft: vi.fn(),
     update: vi.fn(),
     delete: vi.fn(),
+    publish: vi.fn(),
+    schedule: vi.fn(),
+    unpublish: vi.fn(),
   },
 }))
 
@@ -307,5 +310,101 @@ describe('upsertContentBlockTranslation', () => {
     expect(
       supabaseContentBlockRepository.upsertTranslation,
     ).toHaveBeenCalledOnce()
+  })
+})
+
+describe('publishContent', () => {
+  it('delega en supabaseContentRepository.publish', async () => {
+    const { publishContent } =
+      await import('@/modules/content/application/publishContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    vi.mocked(supabaseContentRepository.publish).mockResolvedValue(CONTENT_ID)
+
+    const result = await publishContent({ id: CONTENT_ID })
+
+    expect(result).toBe(CONTENT_ID)
+    expect(supabaseContentRepository.publish).toHaveBeenCalledWith({
+      id: CONTENT_ID,
+    })
+  })
+
+  it('rechaza un id inválido sin llamar al repositorio', async () => {
+    const { publishContent } =
+      await import('@/modules/content/application/publishContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    await expect(publishContent({ id: 'no-es-uuid' })).rejects.toThrow()
+
+    expect(supabaseContentRepository.publish).not.toHaveBeenCalled()
+  })
+})
+
+describe('scheduleContent', () => {
+  it('delega en supabaseContentRepository.schedule con una fecha futura', async () => {
+    const { scheduleContent } =
+      await import('@/modules/content/application/scheduleContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    vi.mocked(supabaseContentRepository.schedule).mockResolvedValue(CONTENT_ID)
+
+    const future = new Date(Date.now() + 60_000)
+
+    const result = await scheduleContent({ id: CONTENT_ID, publishAt: future })
+
+    expect(result).toBe(CONTENT_ID)
+    expect(supabaseContentRepository.schedule).toHaveBeenCalledOnce()
+
+    const calledWith = vi.mocked(supabaseContentRepository.schedule).mock
+      .calls[0][0]
+    expect(calledWith.id).toBe(CONTENT_ID)
+    expect(calledWith.publishAt).toBeInstanceOf(Date)
+  })
+
+  it('rechaza una fecha pasada sin llamar al repositorio', async () => {
+    const { scheduleContent } =
+      await import('@/modules/content/application/scheduleContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    const past = new Date(Date.now() - 60_000)
+
+    await expect(
+      scheduleContent({ id: CONTENT_ID, publishAt: past }),
+    ).rejects.toThrow()
+
+    expect(supabaseContentRepository.schedule).not.toHaveBeenCalled()
+  })
+})
+
+describe('unpublishContent', () => {
+  it('delega en supabaseContentRepository.unpublish', async () => {
+    const { unpublishContent } =
+      await import('@/modules/content/application/unpublishContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    vi.mocked(supabaseContentRepository.unpublish).mockResolvedValue(CONTENT_ID)
+
+    const result = await unpublishContent({ id: CONTENT_ID })
+
+    expect(result).toBe(CONTENT_ID)
+    expect(supabaseContentRepository.unpublish).toHaveBeenCalledWith({
+      id: CONTENT_ID,
+    })
+  })
+
+  it('rechaza un id inválido sin llamar al repositorio', async () => {
+    const { unpublishContent } =
+      await import('@/modules/content/application/unpublishContent')
+    const { supabaseContentRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentRepository')
+
+    await expect(unpublishContent({ id: 'no-es-uuid' })).rejects.toThrow()
+
+    expect(supabaseContentRepository.unpublish).not.toHaveBeenCalled()
   })
 })

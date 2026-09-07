@@ -10,6 +10,9 @@ import type {
   CreateContentInput,
   DeleteContentInput,
   Locale,
+  PublishContentInput,
+  ScheduleContentInput,
+  UnpublishContentInput,
   UpdateContentInput,
 } from '../domain/contentSchema'
 
@@ -20,6 +23,7 @@ type SupabaseContentRow = {
   slug: string
   default_locale: Locale
   created_at: string
+  publish_at: string | null
 
   translations: Array<{
     locale: Locale
@@ -40,6 +44,7 @@ function mapContent(row: SupabaseContentRow): ContentDetail {
     defaultLocale: row.default_locale,
     title: translation?.title ?? '',
     createdAt: row.created_at,
+    publishAt: row.publish_at,
   }
 }
 
@@ -67,6 +72,7 @@ export const supabaseContentRepository: ContentRepository = {
         slug,
         default_locale,
         created_at,
+        publish_at,
         translations:content_translation (
           locale,
           title
@@ -99,6 +105,7 @@ export const supabaseContentRepository: ContentRepository = {
         slug,
         default_locale,
         created_at,
+        publish_at,
         translations:content_translation (
           locale,
           title
@@ -161,6 +168,50 @@ export const supabaseContentRepository: ContentRepository = {
     const supabase = await createClient()
 
     const { data, error } = await supabase.rpc('delete_content', {
+      p_content_id: input.id,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+
+  async publish(input: PublishContentInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('publish_content', {
+      p_content_id: input.id,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+
+  async schedule(input: ScheduleContentInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('schedule_content', {
+      p_content_id: input.id,
+
+      p_publish_at: input.publishAt.toISOString(),
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+
+  async unpublish(input: UnpublishContentInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('unpublish_content', {
       p_content_id: input.id,
     })
 

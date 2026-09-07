@@ -5,6 +5,9 @@ import {
   createContentSchema,
   updateContentSchema,
   deleteContentSchema,
+  publishContentSchema,
+  scheduleContentSchema,
+  unpublishContentSchema,
 } from '@/modules/content/domain/contentSchema'
 
 describe('contentTypeSchema', () => {
@@ -139,5 +142,79 @@ describe('deleteContentSchema', () => {
 
   it('rechaza un id vacío', () => {
     expect(deleteContentSchema.safeParse({ id: '' }).success).toBe(false)
+  })
+})
+
+describe('publishContentSchema / unpublishContentSchema', () => {
+  it('ambos aceptan solo un id uuid — publicar/despublicar no llevan más datos', () => {
+    const input = { id: '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f' }
+
+    expect(publishContentSchema.safeParse(input).success).toBe(true)
+    expect(unpublishContentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('ambos rechazan un id inválido', () => {
+    const input = { id: 'no-es-uuid' }
+
+    expect(publishContentSchema.safeParse(input).success).toBe(false)
+    expect(unpublishContentSchema.safeParse(input).success).toBe(false)
+  })
+})
+
+describe('scheduleContentSchema', () => {
+  const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
+
+  it('acepta una fecha futura', () => {
+    const future = new Date(Date.now() + 60_000).toISOString()
+
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: future,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza una fecha pasada — coincide con schedule_content (SQL)', () => {
+    const past = new Date(Date.now() - 60_000).toISOString()
+
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: past,
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza exactamente "ahora mismo" — debe ser estrictamente futura', () => {
+    const now = new Date().toISOString()
+
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: now,
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('acepta un input type="datetime-local" del formulario del ABM (sin zona horaria) vía z.coerce.date()', () => {
+    const future = new Date(Date.now() + 3_600_000)
+    const localValue = future.toISOString().slice(0, 16) // "YYYY-MM-DDTHH:mm"
+
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: localValue,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza una fecha que no se puede parsear', () => {
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: 'no-es-una-fecha',
+    })
+
+    expect(result.success).toBe(false)
   })
 })

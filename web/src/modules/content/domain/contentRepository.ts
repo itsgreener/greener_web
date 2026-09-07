@@ -3,6 +3,9 @@ import type {
   CreateContentInput,
   DeleteContentInput,
   Locale,
+  PublishContentInput,
+  ScheduleContentInput,
+  UnpublishContentInput,
   UpdateContentInput,
 } from './contentSchema'
 
@@ -16,6 +19,7 @@ export type ContentListItem = {
   defaultLocale: Locale
   title: string
   createdAt: string
+  publishAt: string | null
 }
 
 export type ContentDetail = {
@@ -26,6 +30,7 @@ export type ContentDetail = {
   defaultLocale: Locale
   title: string
   createdAt: string
+  publishAt: string | null
 }
 
 export interface ContentRepository {
@@ -38,4 +43,10 @@ export interface ContentRepository {
   update(input: UpdateContentInput): Promise<string>
 
   delete(input: DeleteContentInput): Promise<string>
+
+  publish(input: PublishContentInput): Promise<string>
+
+  schedule(input: ScheduleContentInput): Promise<string>
+
+  unpublish(input: UnpublishContentInput): Promise<string>
 }
