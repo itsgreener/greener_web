@@ -6,10 +6,7 @@ import type {
   UpdateContentInput,
 } from './contentSchema'
 
-export type ContentStatus =
-  | 'draft'
-  | 'scheduled'
-  | 'published'
+export type ContentStatus = 'draft' | 'scheduled' | 'published'
 
 export type ContentListItem = {
   id: string
@@ -34,19 +31,11 @@ export type ContentDetail = {
 export interface ContentRepository {
   list(): Promise<ContentListItem[]>
 
-  getById(
-    id: string
-  ): Promise<ContentDetail | null>
+  getById(id: string): Promise<ContentDetail | null>
 
-  createDraft(
-    input: CreateContentInput
-  ): Promise<string>
+  createDraft(input: CreateContentInput): Promise<string>
 
-  update(
-    input: UpdateContentInput
-  ): Promise<string>
+  update(input: UpdateContentInput): Promise<string>
 
-  delete(
-    input: DeleteContentInput
-  ): Promise<string>
+  delete(input: DeleteContentInput): Promise<string>
 }

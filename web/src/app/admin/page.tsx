@@ -5,13 +5,9 @@ export default function AdminPage() {
     <main>
       <h1>Greener Admin</h1>
 
-      <p>
-        Sesión iniciada correctamente.
-      </p>
+      <p>Sesión iniciada correctamente.</p>
 
-      <Link href="/admin/contents">
-        Gestionar contenidos
-      </Link>
+      <Link href="/admin/contents">Gestionar contenidos</Link>
     </main>
   )
 }

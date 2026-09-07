@@ -3,15 +3,13 @@
 import { createClient } from '@/lib/supabase/client'
 
 export default function AdminLoginPage() {
-
   const loginWithGoogle = async () => {
     const supabase = createClient()
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo:
-          `${window.location.origin}/auth/callback?next=/admin`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/admin`,
       },
     })
 
@@ -24,9 +22,7 @@ export default function AdminLoginPage() {
     <main>
       <h1>Greener Admin</h1>
 
-      <button onClick={loginWithGoogle}>
-        Entrar con Google
-      </button>
+      <button onClick={loginWithGoogle}>Entrar con Google</button>
     </main>
   )
 }

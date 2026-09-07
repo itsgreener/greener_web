@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod'
 
 /**
  * Validación de variables de entorno al arrancar la aplicación.
@@ -20,25 +20,25 @@ const envSchema = z.object({
   ADMIN_ALLOWED_DOMAIN_FALLBACK: z.string().min(1).optional(),
 
   // Site
-  NEXT_PUBLIC_SITE_URL: z.string().url().default("http://localhost:3000"),
-});
+  NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
+})
 
-export type Env = z.infer<typeof envSchema>;
+export type Env = z.infer<typeof envSchema>
 
 function loadEnv(): Env {
-  const parsed = envSchema.safeParse(process.env);
+  const parsed = envSchema.safeParse(process.env)
 
   if (!parsed.success) {
     console.error(
-      "❌ Variables de entorno inválidas o incompletas:\n",
+      '❌ Variables de entorno inválidas o incompletas:\n',
       parsed.error.flatten().fieldErrors,
-    );
+    )
     throw new Error(
-      "Configuración de entorno inválida. Revisa .env.local contra .env.local.example.",
-    );
+      'Configuración de entorno inválida. Revisa .env.local contra .env.local.example.',
+    )
   }
 
-  return parsed.data;
+  return parsed.data
 }
 
-export const env = loadEnv();
+export const env = loadEnv()

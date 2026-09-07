@@ -1,23 +1,23 @@
-import { getPinsInRange, type FeedConfig } from "@/modules/feed/domain";
-import { getDemoSnapshot } from "@/modules/feed/infrastructure/demoSnapshotSource";
+import { getPinsInRange, type FeedConfig } from '@/modules/feed/domain'
+import { getDemoSnapshot } from '@/modules/feed/infrastructure/demoSnapshotSource'
 
 export interface FeedBatchItem {
-  pinId: string;
-  contentId: string;
-  kind: string;
-  destination: string;
-  ratio: string;
-  label: string;
-  cta: string | null;
-  alt: string;
-  cloudinaryPublicId: string;
-  relaxationLevel: number;
+  pinId: string
+  contentId: string
+  kind: string
+  destination: string
+  ratio: string
+  label: string
+  cta: string | null
+  alt: string
+  cloudinaryPublicId: string
+  relaxationLevel: number
 }
 
 export interface FeedBatchResult {
-  items: FeedBatchItem[];
-  nextOffset: number;
-  hasMore: boolean;
+  items: FeedBatchItem[]
+  nextOffset: number
+  hasMore: boolean
 }
 
 // Ratios provisionales (ADR-11 pendiente de confirmar — Anexo A del
@@ -26,10 +26,10 @@ const DEMO_CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
   mixWindow: 20,
   distanceWindow: 10,
-};
+}
 
-function destinationFor(contentType: "case" | "episode", slug: string): string {
-  return contentType === "case" ? `/work/${slug}` : `/channel/${slug}`;
+function destinationFor(contentType: 'case' | 'episode', slug: string): string {
+  return contentType === 'case' ? `/work/${slug}` : `/channel/${slug}`
 }
 
 /**
@@ -41,16 +41,18 @@ function destinationFor(contentType: "case" | "episode", slug: string): string {
 export async function getDemoFeedBatch(
   seed: string,
   offset: number,
-  count: number
+  count: number,
 ): Promise<FeedBatchResult> {
-  const { snapshot, pinDirectory } = await getDemoSnapshot();
+  const { snapshot, pinDirectory } = await getDemoSnapshot()
 
-  const { items } = getPinsInRange(snapshot, DEMO_CONFIG, seed, offset, count);
+  const { items } = getPinsInRange(snapshot, DEMO_CONFIG, seed, offset, count)
 
   const enriched: FeedBatchItem[] = items.map((pin) => {
-    const meta = pinDirectory[pin.pinId];
+    const meta = pinDirectory[pin.pinId]
     if (!meta) {
-      throw new Error(`Pin ${pin.pinId} no tiene entrada en pinDirectory — dataset inconsistente.`);
+      throw new Error(
+        `Pin ${pin.pinId} no tiene entrada en pinDirectory — dataset inconsistente.`,
+      )
     }
     return {
       pinId: pin.pinId,
@@ -63,8 +65,8 @@ export async function getDemoFeedBatch(
       alt: meta.alt,
       cloudinaryPublicId: meta.cloudinaryPublicId,
       relaxationLevel: pin.relaxationLevel,
-    };
-  });
+    }
+  })
 
   return {
     items: enriched,
@@ -73,5 +75,5 @@ export async function getDemoFeedBatch(
     // el universo tenga al menos un pin. getPinsInRange ya lo garantiza
     // devolviendo menos ítems solo si el universo está vacío.
     hasMore: enriched.length === count,
-  };
+  }
 }

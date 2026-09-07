@@ -1,5 +1,5 @@
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
-import { env } from "@/lib/env";
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { env } from '@/lib/env'
 
 /**
  * Cliente de Supabase con la SECRET KEY (service role): salta RLS por
@@ -26,5 +26,5 @@ export function createServiceClient() {
         persistSession: false,
       },
     },
-  );
+  )
 }

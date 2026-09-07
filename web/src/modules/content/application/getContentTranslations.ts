@@ -1,12 +1,5 @@
-import {
-  supabaseContentTranslationRepository,
-} from '../infrastructure/supabaseContentTranslationRepository'
+import { supabaseContentTranslationRepository } from '../infrastructure/supabaseContentTranslationRepository'
 
-export async function getContentTranslations(
-  contentId: string
-) {
-  return supabaseContentTranslationRepository
-    .listByContentId(
-      contentId
-    )
+export async function getContentTranslations(contentId: string) {
+  return supabaseContentTranslationRepository.listByContentId(contentId)
 }

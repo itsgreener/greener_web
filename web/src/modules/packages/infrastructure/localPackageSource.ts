@@ -1,6 +1,10 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { PackageManifest, PackageNotFoundError, ResolvedPackage } from "../domain/manifest";
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import {
+  PackageManifest,
+  PackageNotFoundError,
+  ResolvedPackage,
+} from '../domain/manifest'
 
 /**
  * Lee un paquete de tool/insight desde fixtures/ en disco.
@@ -13,54 +17,59 @@ import { PackageManifest, PackageNotFoundError, ResolvedPackage } from "../domai
  * consume (app/(public)/tools/[slug]) no cambia (arquitectura §24.4).
  */
 export async function getLocalPackage(
-  kind: "tool" | "insight",
-  slug: string
+  kind: 'tool' | 'insight',
+  slug: string,
 ): Promise<ResolvedPackage> {
-  const dir = join(process.cwd(), "fixtures", kind === "tool" ? "tools" : "insights", slug);
+  const dir = join(
+    process.cwd(),
+    'fixtures',
+    kind === 'tool' ? 'tools' : 'insights',
+    slug,
+  )
 
-  let manifestRaw: string;
-  let html: string;
+  let manifestRaw: string
+  let html: string
   try {
-    manifestRaw = await readFile(join(dir, "manifest.json"), "utf-8");
+    manifestRaw = await readFile(join(dir, 'manifest.json'), 'utf-8')
   } catch {
-    throw new PackageNotFoundError(slug);
+    throw new PackageNotFoundError(slug)
   }
 
-  const manifest = JSON.parse(manifestRaw) as PackageManifest;
+  const manifest = JSON.parse(manifestRaw) as PackageManifest
 
   try {
-    html = await readFile(join(dir, manifest.entrypoint), "utf-8");
+    html = await readFile(join(dir, manifest.entrypoint), 'utf-8')
   } catch {
-    throw new PackageNotFoundError(slug);
+    throw new PackageNotFoundError(slug)
   }
 
-  return { slug, manifest, html };
+  return { slug, manifest, html }
 }
 
 /** Resuelve un asset (CSS/JS/etc.) del mismo paquete, por ruta relativa. */
 export async function getLocalPackageAsset(
-  kind: "tool" | "insight",
+  kind: 'tool' | 'insight',
   slug: string,
-  assetPath: string[]
+  assetPath: string[],
 ): Promise<Buffer> {
   const dir = join(
     process.cwd(),
-    "fixtures",
-    kind === "tool" ? "tools" : "insights",
+    'fixtures',
+    kind === 'tool' ? 'tools' : 'insights',
     slug,
-    "assets"
-  );
-  const filePath = join(dir, ...assetPath);
+    'assets',
+  )
+  const filePath = join(dir, ...assetPath)
 
   // Protección básica contra path traversal (equivalente ligero a la
   // validación zip-slip de la subida real, arquitectura §12.5).
   if (!filePath.startsWith(dir)) {
-    throw new PackageNotFoundError(slug);
+    throw new PackageNotFoundError(slug)
   }
 
   try {
-    return await readFile(filePath);
+    return await readFile(filePath)
   } catch {
-    throw new PackageNotFoundError(slug);
+    throw new PackageNotFoundError(slug)
   }
 }

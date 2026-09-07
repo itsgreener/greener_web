@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { PinCard } from "@/components/pin/PinCard";
-import { useMasonryFeed } from "./useMasonryFeed";
-import styles from "./MasonryFeed.module.css";
+import { PinCard } from '@/components/pin/PinCard'
+import { useMasonryFeed } from './useMasonryFeed'
+import styles from './MasonryFeed.module.css'
 
 /**
  * Prototipo de Fase 1 (Anexo E.1): retícula masonry con scroll continuo
@@ -11,11 +11,16 @@ import styles from "./MasonryFeed.module.css";
  * antes de construir el ABM encima (arquitectura §22).
  */
 export function MasonryFeed() {
-  const { containerRef, positioned, totalHeight, isLoading, itemCount } = useMasonryFeed();
+  const { containerRef, positioned, totalHeight, isLoading, itemCount } =
+    useMasonryFeed()
 
   return (
     <div className={styles.wrapper}>
-      <div ref={containerRef} className={styles.container} style={{ height: totalHeight }}>
+      <div
+        ref={containerRef}
+        className={styles.container}
+        style={{ height: totalHeight }}
+      >
         {positioned.map((p) =>
           p.mounted ? (
             <PinCard
@@ -35,12 +40,12 @@ export function MasonryFeed() {
                 height: p.height,
               }}
             />
-          )
+          ),
         )}
       </div>
       <div id="greener-feed-sentinel" className={styles.sentinel} />
       {isLoading && <p className={styles.status}>Cargando más pines…</p>}
       <p className={styles.status}>{itemCount} pines cargados</p>
     </div>
-  );
+  )
 }

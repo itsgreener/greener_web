@@ -11,7 +11,7 @@ body {
   font-family:
     system-ui,
     -apple-system,
-    "Segoe UI",
+    'Segoe UI',
     Roboto,
     sans-serif;
   /* Ancho disponible inyectado por el shell de Greener (arquitectura §12.3):

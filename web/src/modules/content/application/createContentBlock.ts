@@ -3,19 +3,10 @@ import {
   type CreateContentBlockInput,
 } from '../domain/contentBlockSchema'
 
-import {
-  supabaseContentBlockRepository,
-} from '../infrastructure/supabaseContentBlockRepository'
+import { supabaseContentBlockRepository } from '../infrastructure/supabaseContentBlockRepository'
 
-export async function createContentBlock(
-  input: CreateContentBlockInput
-) {
-  const validated =
-    createContentBlockSchema
-      .parse(input)
+export async function createContentBlock(input: CreateContentBlockInput) {
+  const validated = createContentBlockSchema.parse(input)
 
-  return supabaseContentBlockRepository
-    .create(
-      validated
-    )
+  return supabaseContentBlockRepository.create(validated)
 }

@@ -1,10 +1,5 @@
-import {
-  supabaseCaseDetailRepository,
-} from '../infrastructure/supabaseCaseDetailRepository'
+import { supabaseCaseDetailRepository } from '../infrastructure/supabaseCaseDetailRepository'
 
-export async function getCaseDetail(
-  contentId: string
-) {
-  return supabaseCaseDetailRepository
-    .getByContentId(contentId)
+export async function getCaseDetail(contentId: string) {
+  return supabaseCaseDetailRepository.getByContentId(contentId)
 }

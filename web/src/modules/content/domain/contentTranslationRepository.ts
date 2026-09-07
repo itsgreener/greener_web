@@ -4,14 +4,7 @@ import type {
 } from './contentTranslationSchema'
 
 export interface ContentTranslationRepository {
-  listByContentId(
-    contentId: string
-  ): Promise<
-    ContentTranslation[]
-  >
+  listByContentId(contentId: string): Promise<ContentTranslation[]>
 
-  upsert(
-    input:
-      UpsertContentTranslationInput
-  ): Promise<string>
+  upsert(input: UpsertContentTranslationInput): Promise<string>
 }

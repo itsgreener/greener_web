@@ -1,5 +1,5 @@
-import { generateRound } from "./generateRound";
-import type { FeedConfig, FeedSnapshot, GeneratedPin } from "./types";
+import { generateRound } from './generateRound'
+import type { FeedConfig, FeedSnapshot, GeneratedPin } from './types'
 
 /**
  * El feed no termina (brief §4.6): cuando se agota una tanda empieza otra,
@@ -16,29 +16,29 @@ export function getPinsInRange(
   config: FeedConfig,
   seed: string,
   startIndex: number,
-  count: number
+  count: number,
 ): { items: GeneratedPin[]; roundsUsed: number } {
-  const items: GeneratedPin[] = [];
-  let roundIndex = 0;
-  let cursor = 0;
+  const items: GeneratedPin[] = []
+  let roundIndex = 0
+  let cursor = 0
 
   // Cota de seguridad: si el universo está vacío, generateRound devuelve
   // tandas de longitud 0 indefinidamente — sin este límite el bucle no
   // terminaría nunca.
-  const MAX_ROUNDS = 500;
+  const MAX_ROUNDS = 500
 
   while (cursor < startIndex + count && roundIndex < MAX_ROUNDS) {
-    const { sequence } = generateRound(snapshot, config, seed, roundIndex);
-    if (sequence.length === 0) break; // universo vacío: no hay nada que servir
+    const { sequence } = generateRound(snapshot, config, seed, roundIndex)
+    if (sequence.length === 0) break // universo vacío: no hay nada que servir
 
     for (const pin of sequence) {
       if (cursor >= startIndex && cursor < startIndex + count) {
-        items.push(pin);
+        items.push(pin)
       }
-      cursor++;
+      cursor++
     }
-    roundIndex++;
+    roundIndex++
   }
 
-  return { items, roundsUsed: roundIndex };
+  return { items, roundsUsed: roundIndex }
 }

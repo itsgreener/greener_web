@@ -1,6 +1,4 @@
-import type {
-  MediaAsset,
-} from '@/modules/media/domain/mediaAssetSchema'
+import type { MediaAsset } from '@/modules/media/domain/mediaAssetSchema'
 
 import type {
   ContentBlockConfig,
@@ -19,40 +17,23 @@ export type ContentBlock = {
   sortOrder: number
   config: ContentBlockConfig
 
-  mediaId:
-    string | null
+  mediaId: string | null
 
-  media:
-    MediaAsset | null
+  media: MediaAsset | null
 
   createdAt: string
 
-  translations:
-    ContentBlockTranslation[]
+  translations: ContentBlockTranslation[]
 }
 
 export interface ContentBlockRepository {
-  listByContentId(
-    contentId: string
-  ): Promise<ContentBlock[]>
+  listByContentId(contentId: string): Promise<ContentBlock[]>
 
-  create(
-    input:
-      CreateContentBlockInput
-  ): Promise<string>
+  create(input: CreateContentBlockInput): Promise<string>
 
-  update(
-    input:
-      UpdateContentBlockInput
-  ): Promise<string>
+  update(input: UpdateContentBlockInput): Promise<string>
 
-  delete(
-    input:
-      DeleteContentBlockInput
-  ): Promise<string>
+  delete(input: DeleteContentBlockInput): Promise<string>
 
-  upsertTranslation(
-    input:
-      UpsertContentBlockTranslationInput
-  ): Promise<string>
+  upsertTranslation(input: UpsertContentBlockTranslationInput): Promise<string>
 }

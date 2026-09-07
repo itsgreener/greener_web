@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   images: {
@@ -6,11 +6,11 @@ const nextConfig: NextConfig = {
     // (arquitectura §5, §9.2 — Cloudinary es la fuente de originales/derivadas).
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "res.cloudinary.com",
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
       },
     ],
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig

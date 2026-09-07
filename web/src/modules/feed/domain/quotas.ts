@@ -1,9 +1,9 @@
-import type { FeedRatios } from "./types";
+import type { FeedRatios } from './types'
 
 /** Claves de FeedRatios distintas de "cases" — deliberadamente en plural,
  * igual que los campos de feed_config, y NO acopladas al FeedContentKind
  * singular de un pin (que es "insight"/"tool", no "insights"/"tools"). */
-export type QuotaRatioKey = "insights" | "tools" | "channel" | "other";
+export type QuotaRatioKey = 'insights' | 'tools' | 'channel' | 'other'
 
 /**
  * Método de restos mayores (largest remainder / Hamilton): reparte
@@ -15,34 +15,38 @@ export type QuotaRatioKey = "insights" | "tools" | "channel" | "other";
  */
 export function largestRemainderQuotas(
   remainingTotal: number,
-  ratios: FeedRatios
+  ratios: FeedRatios,
 ): Record<QuotaRatioKey, number> {
-  const kinds: QuotaRatioKey[] = ["insights", "tools", "channel", "other"];
-  const nonCaseWeight = kinds.reduce((sum, k) => sum + ratios[k], 0);
+  const kinds: QuotaRatioKey[] = ['insights', 'tools', 'channel', 'other']
+  const nonCaseWeight = kinds.reduce((sum, k) => sum + ratios[k], 0)
 
   if (remainingTotal <= 0 || nonCaseWeight <= 0) {
-    return { insights: 0, tools: 0, channel: 0, other: 0 };
+    return { insights: 0, tools: 0, channel: 0, other: 0 }
   }
 
-  const rawShares = kinds.map((k) => (remainingTotal * ratios[k]) / nonCaseWeight);
-  const floors = rawShares.map(Math.floor);
-  const remainders = rawShares.map((v, i) => v - floors[i]);
+  const rawShares = kinds.map(
+    (k) => (remainingTotal * ratios[k]) / nonCaseWeight,
+  )
+  const floors = rawShares.map(Math.floor)
+  const remainders = rawShares.map((v, i) => v - floors[i])
 
-  const assigned = floors.reduce((a, b) => a + b, 0);
-  let remaining = Math.round(remainingTotal - assigned);
+  const assigned = floors.reduce((a, b) => a + b, 0)
+  let remaining = Math.round(remainingTotal - assigned)
 
   // Reparte las unidades sobrantes a quienes tienen el resto más alto.
-  const order = kinds.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a]);
+  const order = kinds
+    .map((_, i) => i)
+    .sort((a, b) => remainders[b] - remainders[a])
 
-  const quotas = [...floors];
+  const quotas = [...floors]
   for (let i = 0; i < order.length && remaining > 0; i++) {
-    quotas[order[i]] += 1;
-    remaining--;
+    quotas[order[i]] += 1
+    remaining--
   }
 
-  const result = {} as Record<QuotaRatioKey, number>;
+  const result = {} as Record<QuotaRatioKey, number>
   kinds.forEach((k, i) => {
-    result[k] = quotas[i];
-  });
-  return result;
+    result[k] = quotas[i]
+  })
+  return result
 }

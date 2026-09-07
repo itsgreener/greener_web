@@ -1,10 +1,10 @@
-import Link from "next/link";
-import styles from "./Shell.module.css";
-import { useShell } from "./useShell";
+import Link from 'next/link'
+import styles from './Shell.module.css'
+import { useShell } from './useShell'
 
 type ShellProps = {
-  children: React.ReactNode;
-};
+  children: React.ReactNode
+}
 
 /**
  * Shell público de Greener: menú lateral de iconos siempre visible (brief §6)
@@ -15,7 +15,7 @@ type ShellProps = {
  * no está cerrado (arquitectura §24.1): solo fija la disposición base.
  */
 export function Shell({ children }: ShellProps) {
-  const { navItems } = useShell();
+  const { navItems } = useShell()
 
   return (
     <div className={styles.shell}>
@@ -32,5 +32,5 @@ export function Shell({ children }: ShellProps) {
       </nav>
       <main className={styles.content}>{children}</main>
     </div>
-  );
+  )
 }

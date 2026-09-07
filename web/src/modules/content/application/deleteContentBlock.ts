@@ -3,19 +3,10 @@ import {
   type DeleteContentBlockInput,
 } from '../domain/contentBlockSchema'
 
-import {
-  supabaseContentBlockRepository,
-} from '../infrastructure/supabaseContentBlockRepository'
+import { supabaseContentBlockRepository } from '../infrastructure/supabaseContentBlockRepository'
 
-export async function deleteContentBlock(
-  input: DeleteContentBlockInput
-) {
-  const validated =
-    deleteContentBlockSchema
-      .parse(input)
+export async function deleteContentBlock(input: DeleteContentBlockInput) {
+  const validated = deleteContentBlockSchema.parse(input)
 
-  return supabaseContentBlockRepository
-    .delete(
-      validated
-    )
+  return supabaseContentBlockRepository.delete(validated)
 }

@@ -1,18 +1,19 @@
-import type { Metadata } from "next";
-import "./globals.css";
+import type { Metadata } from 'next'
+import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: "Greener",
-    template: "%s · Greener",
+    default: 'Greener',
+    template: '%s · Greener',
   },
-  description: "Greener — descubrimiento visual, casos, insights y herramientas.",
-};
+  description:
+    'Greener — descubrimiento visual, casos, insights y herramientas.',
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en">
       <body>{children}</body>
     </html>
-  );
+  )
 }

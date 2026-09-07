@@ -5,24 +5,24 @@
  */
 
 export interface PackageManifest {
-  kind: "tool" | "insight";
-  entrypoint: string;
-  version: number;
-  requiredCapabilities: string[];
-  externalDomains: string[];
-  minViewport: { width: number; height: number };
+  kind: 'tool' | 'insight'
+  entrypoint: string
+  version: number
+  requiredCapabilities: string[]
+  externalDomains: string[]
+  minViewport: { width: number; height: number }
 }
 
 export interface ResolvedPackage {
-  slug: string;
-  manifest: PackageManifest;
+  slug: string
+  manifest: PackageManifest
   /** HTML del entrypoint, ya listo para componer con el shell (§12.3). */
-  html: string;
+  html: string
 }
 
 export class PackageNotFoundError extends Error {
   constructor(slug: string) {
-    super(`No se encontró ningún paquete publicado para "${slug}".`);
-    this.name = "PackageNotFoundError";
+    super(`No se encontró ningún paquete publicado para "${slug}".`)
+    this.name = 'PackageNotFoundError'
   }
 }

@@ -1,26 +1,26 @@
-import * as cheerio from "cheerio";
-import type { ResolvedPackage } from "../domain/manifest";
+import * as cheerio from 'cheerio'
+import type { ResolvedPackage } from '../domain/manifest'
 
 export interface Viewport {
-  width: number;
-  height: number;
-  sidebarWidth: number;
+  width: number
+  height: number
+  sidebarWidth: number
 }
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home" },
-  { href: "/insights", label: "Insights" },
-  { href: "/tools", label: "Tools" },
-  { href: "/channel", label: "Channel" },
-  { href: "/contact", label: "Contacto" },
-];
+  { href: '/', label: 'Home' },
+  { href: '/insights', label: 'Insights' },
+  { href: '/tools', label: 'Tools' },
+  { href: '/channel', label: 'Channel' },
+  { href: '/contact', label: 'Contacto' },
+]
 
 function renderSidebar(): string {
   const items = NAV_ITEMS.map(
     (item) =>
-      `<li><a href="${item.href}" title="${item.label}" aria-label="${item.label}">${item.label[0]}</a></li>`
-  ).join("");
-  return `<nav class="greener-sidebar" aria-label="Navegación principal"><ul>${items}</ul></nav>`;
+      `<li><a href="${item.href}" title="${item.label}" aria-label="${item.label}">${item.label[0]}</a></li>`,
+  ).join('')
+  return `<nav class="greener-sidebar" aria-label="Navegación principal"><ul>${items}</ul></nav>`
 }
 
 const SHELL_STYLES = `
@@ -31,7 +31,7 @@ const SHELL_STYLES = `
   .greener-sidebar a { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; color: #111; text-decoration: none; font-family: system-ui, sans-serif; }
   .greener-sidebar a:hover { background: #f4f4f4; }
   .greener-package-content { min-width: 0; }
-`;
+`
 
 /**
  * Compone en un único documento HTML real: el menú lateral de iconos
@@ -47,14 +47,14 @@ const SHELL_STYLES = `
 export function composeToolDocument(
   pkg: ResolvedPackage,
   viewport: Viewport,
-  basePath: string
+  basePath: string,
 ): string {
-  const $ = cheerio.load(pkg.html);
+  const $ = cheerio.load(pkg.html)
 
-  const headChildren = $("head").html() ?? "";
-  const bodyChildren = $("body").html() ?? "";
+  const headChildren = $('head').html() ?? ''
+  const bodyChildren = $('body').html() ?? ''
 
-  const cssVars = `--greener-available-width: ${viewport.width}px; --greener-available-height: ${viewport.height}px; --greener-sidebar-width: ${viewport.sidebarWidth}px;`;
+  const cssVars = `--greener-available-width: ${viewport.width}px; --greener-available-height: ${viewport.height}px; --greener-sidebar-width: ${viewport.sidebarWidth}px;`
 
   return `<!doctype html>
 <html lang="es">
@@ -78,5 +78,5 @@ export function composeToolDocument(
       </main>
     </div>
   </body>
-</html>`;
+</html>`
 }

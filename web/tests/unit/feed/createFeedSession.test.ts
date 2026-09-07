@@ -1,55 +1,64 @@
-import { describe, it, expect, vi } from "vitest";
-import { createFeedSession, UnsupportedScopeError } from "@/modules/feed/application/createFeedSession";
-import type { FeedSessionRow } from "@/modules/feed/infrastructure/feedSessionRepository";
+import { describe, it, expect, vi } from 'vitest'
+import {
+  createFeedSession,
+  UnsupportedScopeError,
+} from '@/modules/feed/application/createFeedSession'
+import type { FeedSessionRow } from '@/modules/feed/infrastructure/feedSessionRepository'
 
 function fakeRow(overrides: Partial<FeedSessionRow> = {}): FeedSessionRow {
   return {
-    id: "session-1",
-    seed: "seed-1",
-    scope: "home",
+    id: 'session-1',
+    seed: 'seed-1',
+    scope: 'home',
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
     ...overrides,
-  };
+  }
 }
 
-describe("createFeedSession", () => {
+describe('createFeedSession', () => {
   it("crea la sesión para scope 'home' y devuelve su id", async () => {
-    const createRow = vi.fn().mockResolvedValue(fakeRow());
+    const createRow = vi.fn().mockResolvedValue(fakeRow())
 
-    const result = await createFeedSession({ scope: "home" }, createRow);
+    const result = await createFeedSession({ scope: 'home' }, createRow)
 
-    expect(result.sessionId).toBe("session-1");
-    expect(createRow).toHaveBeenCalledWith({ scope: "home", filterHash: null });
-  });
+    expect(result.sessionId).toBe('session-1')
+    expect(createRow).toHaveBeenCalledWith({ scope: 'home', filterHash: null })
+  })
 
-  it("rechaza un scope todavía no soportado sin llegar a Supabase", async () => {
-    const createRow = vi.fn();
+  it('rechaza un scope todavía no soportado sin llegar a Supabase', async () => {
+    const createRow = vi.fn()
 
-    await expect(createFeedSession({ scope: "related-cases" }, createRow)).rejects.toThrow(
-      UnsupportedScopeError
-    );
-    expect(createRow).not.toHaveBeenCalled();
-  });
+    await expect(
+      createFeedSession({ scope: 'related-cases' }, createRow),
+    ).rejects.toThrow(UnsupportedScopeError)
+    expect(createRow).not.toHaveBeenCalled()
+  })
 
-  it("calcula el mismo filterHash sin importar el orden de las claves del filtro", async () => {
-    const createRow = vi.fn().mockResolvedValue(fakeRow());
+  it('calcula el mismo filterHash sin importar el orden de las claves del filtro', async () => {
+    const createRow = vi.fn().mockResolvedValue(fakeRow())
 
-    await createFeedSession({ scope: "home", filter: { tag: "branding", lang: "es" } }, createRow);
-    const firstHash = createRow.mock.calls[0][0].filterHash;
+    await createFeedSession(
+      { scope: 'home', filter: { tag: 'branding', lang: 'es' } },
+      createRow,
+    )
+    const firstHash = createRow.mock.calls[0][0].filterHash
 
-    createRow.mockClear();
-    await createFeedSession({ scope: "home", filter: { lang: "es", tag: "branding" } }, createRow);
-    const secondHash = createRow.mock.calls[0][0].filterHash;
+    createRow.mockClear()
+    await createFeedSession(
+      { scope: 'home', filter: { lang: 'es', tag: 'branding' } },
+      createRow,
+    )
+    const secondHash = createRow.mock.calls[0][0].filterHash
 
-    expect(firstHash).toBe(secondHash);
-    expect(firstHash).not.toBeNull();
-  });
+    expect(firstHash).toBe(secondHash)
+    expect(firstHash).not.toBeNull()
+  })
 
-  it("sin filtro, filterHash es null (no una cadena vacía con hash)", async () => {
-    const createRow = vi.fn().mockResolvedValue(fakeRow());
+  it('sin filtro, filterHash es null (no una cadena vacía con hash)', async () => {
+    const createRow = vi.fn().mockResolvedValue(fakeRow())
 
-    await createFeedSession({ scope: "home" }, createRow);
+    await createFeedSession({ scope: 'home' }, createRow)
 
-    expect(createRow).toHaveBeenCalledWith({ scope: "home", filterHash: null });
-  });
-});
+    expect(createRow).toHaveBeenCalledWith({ scope: 'home', filterHash: null })
+  })
+})

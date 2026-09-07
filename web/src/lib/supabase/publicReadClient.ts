@@ -10,10 +10,14 @@ import { env } from '@/lib/env'
  * no la tiene.
  */
 export function createPublicReadClient() {
-  return createSupabaseClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
+  return createSupabaseClient(
+    env.NEXT_PUBLIC_SUPABASE_URL,
+    env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
     },
-  })
+  )
 }

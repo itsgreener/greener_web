@@ -1,78 +1,44 @@
 'use client'
 
-import {
-  useActionState,
-} from 'react'
+import { useActionState } from 'react'
 
-import {
-  deleteBlockAction,
-  type DeleteBlockActionState,
-} from './blockActions'
+import { deleteBlockAction, type DeleteBlockActionState } from './blockActions'
 
 type Props = {
   id: string
   contentId: string
 }
 
-const initialState:
-  DeleteBlockActionState = {}
+const initialState: DeleteBlockActionState = {}
 
-export default function DeleteContentBlockButton({
-  id,
-  contentId,
-}: Props) {
-
-  const [
-    state,
-    formAction,
-    pending,
-  ] = useActionState(
+export default function DeleteContentBlockButton({ id, contentId }: Props) {
+  const [state, formAction, pending] = useActionState(
     deleteBlockAction,
-    initialState
+    initialState,
   )
 
   return (
     <form
       action={formAction}
       onSubmit={(event) => {
-        const confirmed =
-          window.confirm(
-            '¿Seguro que quieres eliminar este bloque? Sus traducciones también se eliminarán.'
-          )
+        const confirmed = window.confirm(
+          '¿Seguro que quieres eliminar este bloque? Sus traducciones también se eliminarán.',
+        )
 
         if (!confirmed) {
           event.preventDefault()
         }
       }}
     >
+      <input type="hidden" name="id" value={id} />
 
-      <input
-        type="hidden"
-        name="id"
-        value={id}
-      />
+      <input type="hidden" name="contentId" value={contentId} />
 
-      <input
-        type="hidden"
-        name="contentId"
-        value={contentId}
-      />
+      {state.error && <p>{state.error}</p>}
 
-      {state.error && (
-        <p>
-          {state.error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        disabled={pending}
-      >
-        {pending
-          ? 'Eliminando...'
-          : 'Eliminar bloque'}
+      <button type="submit" disabled={pending}>
+        {pending ? 'Eliminando...' : 'Eliminar bloque'}
       </button>
-
     </form>
   )
 }

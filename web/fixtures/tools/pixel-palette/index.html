@@ -11,12 +11,14 @@
       <div class="controls">
         <h1>Pixel Palette</h1>
         <p>
-          Genera un degradado, calcula su paleta dominante en un Web Worker y descarga el resultado
-          — sin salir de esta página, sin iframe.
+          Genera un degradado, calcula su paleta dominante en un Web Worker y
+          descarga el resultado — sin salir de esta página, sin iframe.
         </p>
         <button id="redraw" type="button">Nuevo degradado</button>
         <button id="compute" type="button">Calcular paleta (Worker)</button>
-        <button id="download" type="button" disabled>Descargar paleta.json</button>
+        <button id="download" type="button" disabled>
+          Descargar paleta.json
+        </button>
         <ul id="palette" class="palette" aria-live="polite"></ul>
       </div>
       <div class="canvas-wrap">

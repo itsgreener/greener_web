@@ -1,10 +1,6 @@
-import {
-  createClient,
-} from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
-import type {
-  CaseDetailRepository,
-} from '../domain/caseDetailRepository'
+import type { CaseDetailRepository } from '../domain/caseDetailRepository'
 
 import type {
   CaseDetail,
@@ -14,8 +10,7 @@ import type {
 
 type SupabaseCaseDetailRow = {
   content_id: string
-  template_variant:
-    CaseTemplateVariant
+  template_variant: CaseTemplateVariant
   force: number
   client: string | null
   sector: string | null
@@ -25,23 +20,17 @@ type SupabaseCaseDetailRow = {
   links: unknown
 }
 
-function createRepositoryError(
-  message: string,
-  code?: string
-) {
-  const error =
-    new Error(message) as Error & {
-      code?: string
-    }
+function createRepositoryError(message: string, code?: string) {
+  const error = new Error(message) as Error & {
+    code?: string
+  }
 
   error.code = code
 
   return error
 }
 
-function normalizeJsonArray(
-  value: unknown
-): unknown[] {
+function normalizeJsonArray(value: unknown): unknown[] {
   if (Array.isArray(value)) {
     return value
   }
@@ -49,58 +38,36 @@ function normalizeJsonArray(
   return []
 }
 
-function mapCaseDetail(
-  row: SupabaseCaseDetailRow
-): CaseDetail {
+function mapCaseDetail(row: SupabaseCaseDetailRow): CaseDetail {
   return {
-    contentId:
-      row.content_id,
+    contentId: row.content_id,
 
-    templateVariant:
-      row.template_variant,
+    templateVariant: row.template_variant,
 
-    force:
-      row.force,
+    force: row.force,
 
-    client:
-      row.client,
+    client: row.client,
 
-    sector:
-      row.sector,
+    sector: row.sector,
 
-    services:
-      row.services,
+    services: row.services,
 
-    year:
-      row.year,
+    year: row.year,
 
-    credits:
-      normalizeJsonArray(
-        row.credits
-      ),
+    credits: normalizeJsonArray(row.credits),
 
-    links:
-      normalizeJsonArray(
-        row.links
-      ),
+    links: normalizeJsonArray(row.links),
   }
 }
 
-export const supabaseCaseDetailRepository:
-  CaseDetailRepository = {
+export const supabaseCaseDetailRepository: CaseDetailRepository = {
+  async getByContentId(contentId: string) {
+    const supabase = await createClient()
 
-  async getByContentId(
-    contentId: string
-  ) {
-    const supabase =
-      await createClient()
-
-    const {
-      data,
-      error,
-    } = await supabase
+    const { data, error } = await supabase
       .from('case_detail')
-      .select(`
+      .select(
+        `
         content_id,
         template_variant,
         force,
@@ -110,75 +77,47 @@ export const supabaseCaseDetailRepository:
         year,
         credits,
         links
-      `)
-      .eq(
-        'content_id',
-        contentId
+      `,
       )
+      .eq('content_id', contentId)
       .maybeSingle()
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     if (!data) {
       return null
     }
 
-    return mapCaseDetail(
-      data as SupabaseCaseDetailRow
-    )
+    return mapCaseDetail(data as SupabaseCaseDetailRow)
   },
 
-  async upsert(
-    input: UpsertCaseDetailInput
-  ) {
-    const supabase =
-      await createClient()
+  async upsert(input: UpsertCaseDetailInput) {
+    const supabase = await createClient()
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      'upsert_case_detail',
-      {
-        p_content_id:
-          input.contentId,
+    const { data, error } = await supabase.rpc('upsert_case_detail', {
+      p_content_id: input.contentId,
 
-        p_template_variant:
-          input.templateVariant,
+      p_template_variant: input.templateVariant,
 
-        p_force:
-          input.force,
+      p_force: input.force,
 
-        p_client:
-          input.client,
+      p_client: input.client,
 
-        p_sector:
-          input.sector,
+      p_sector: input.sector,
 
-        p_services:
-          input.services,
+      p_services: input.services,
 
-        p_year:
-          input.year,
+      p_year: input.year,
 
-        p_credits:
-          input.credits,
+      p_credits: input.credits,
 
-        p_links:
-          input.links,
-      }
-    )
+      p_links: input.links,
+    })
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     return data as string

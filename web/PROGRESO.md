@@ -4,23 +4,25 @@ Este documento resume, paso a paso, todo lo construido hasta ahora en el reposit
 
 Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md` — a partir de ahora este es el único documento de estado. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado (ya ha pasado una vez — ver §6).
 
-Todas las referencias `§X` apuntan a secciones del documento de arquitectura. Última revisión: 18 de agosto de 2026, verificada ejecutando el código real (no solo por lectura).
+Todas las referencias `§X` apuntan a secciones del documento de arquitectura. Última revisión: 7 de septiembre de 2026, verificada ejecutando el código real (no solo por lectura).
 
 ---
 
 ## 1. Resumen ejecutivo
 
-La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales. Además, ya existe una implementación funcional (sin tests todavía) del login del ABM con Google OAuth.
+La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed y el contrato de tools/insights sin iframe —las dos piezas de mayor riesgo técnico— están implementados, probados automáticamente y funcionando de extremo a extremo. El esquema de datos de Supabase está migrado y su seguridad (RLS) validada con casos reales.
 
-**Novedad del 19-20 de agosto**: `/api/feed/sessions` real (§16.1) construido, probado con 76 tests automáticos, y **verificado de extremo a extremo contra el proyecto Supabase real** — primera pieza cerrada del todo de la Fase 2 (ABM base), ver §2.12. De paso, se fijó la versión de Node del proyecto en **24.15.0** (LTS), con `engines` en `package.json` y `.nvmrc` (§2.10).
+**Novedad del 20-28 de agosto**: CRUD completo de `content` (borrador, edición, traducciones por idioma, bloques genéricos, detalle de caso) y subida de imagen/vídeo a Cloudinary desde el ABM, construidos por el equipo mientras se preparaba esta revisión — ver §2.13. Sin tests en ese momento; es la brecha que cierra la auditoría de hoy.
 
-Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está resuelto y reverificado: build roto, dependencias de test que faltaban, discrepancia de nombres de variables de entorno, y el import relativo del callback de auth. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
+**Novedad del 7 de septiembre**: auditoría completa del trabajo de CRUD/ABM/medios (§2.13), con **95 tests nuevos** (schemas, capa de aplicación con repositorios mockeados, y el server action de borrado de medios) y cinco correcciones reales encontradas y resueltas — ver §2.14: auditoría que faltaba en dos funciones de mutación, versión de Node revertida por error, `Prettier` sin configurar (368 ficheros desalineados), medios huérfanos al sustituir imagen/vídeo de un bloque, y límites de medios duplicados en tres sitios. De paso se destapó y se cerró un hueco real que nadie había visto: `register_image_for_block` no tenía tope de tamaño en SQL, a diferencia de vídeo.
+
+Todo el housekeeping técnico detectado en la auditoría del 18 de agosto sigue resuelto y reverificado. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **76 tests automáticos, todos en verde** (`npm test`) — 59 previos + 17 nuevos de la API real de sesiones de feed.
-- **0 errores de TypeScript**, **0 avisos de ESLint**, **build de producción limpio** (`npm run build`).
-- **8 migraciones SQL** de Supabase, aplicadas y probadas contra una base de datos real.
+- **184 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos.
+- **0 errores de TypeScript**, **0 avisos de ESLint**, **`npm run format:check` en verde en los 368 ficheros del repo** (antes de hoy, nunca se había verificado formalmente), **build de producción limpio** (`npm run build`).
+- **13 migraciones SQL** de Supabase (8 del esquema base + 5 del CRUD/ABM/medios, incluidas las 3 de hoy), aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
 
 ---
@@ -49,16 +51,16 @@ Todo el housekeeping técnico detectado en la auditoría del 18 de agosto está 
 
 **8 migraciones** en `supabase/migrations/`, siguiendo el modelo de datos de §7:
 
-| Archivo | Contenido |
-| --- | --- |
-| `..._enums.sql` | Tipos enumerados compartidos |
-| `..._content_core.sql` | Supertipo `content` + `content_translation` |
-| `..._content_blocks.sql` | Bloques de contenido genéricos (`content_block`), reutilizables por `case` y `page` |
-| `..._content_type_extensions.sql` | `case_detail`, `episode`, `html_package(_version)` |
-| `..._media_pins.sql` | `media_asset`, `pin`, `pin_media` |
-| `..._feed_taxonomy.sql` | `tag`, `content_tag`, `feed_config`, `feed_session`, `feed_round` |
-| `..._admin_access.sql` | `admin_allowed_domain`, `admin_profile`, `redirect_301`, `audit_log` |
-| `..._rls_policies.sql` | Función `is_admin()` + políticas de Row Level Security en **todas** las tablas |
+| Archivo                           | Contenido                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------- |
+| `..._enums.sql`                   | Tipos enumerados compartidos                                                        |
+| `..._content_core.sql`            | Supertipo `content` + `content_translation`                                         |
+| `..._content_blocks.sql`          | Bloques de contenido genéricos (`content_block`), reutilizables por `case` y `page` |
+| `..._content_type_extensions.sql` | `case_detail`, `episode`, `html_package(_version)`                                  |
+| `..._media_pins.sql`              | `media_asset`, `pin`, `pin_media`                                                   |
+| `..._feed_taxonomy.sql`           | `tag`, `content_tag`, `feed_config`, `feed_session`, `feed_round`                   |
+| `..._admin_access.sql`            | `admin_allowed_domain`, `admin_profile`, `redirect_301`, `audit_log`                |
+| `..._rls_policies.sql`            | Función `is_admin()` + políticas de Row Level Security en **todas** las tablas      |
 
 **Validación real, no solo revisión del SQL:** aplicadas contra PostgreSQL 16 real, probadas con un rol sin privilegios de superusuario (visitante anónimo → solo `published`; dominio autorizado → todo; dominio no autorizado → bloqueado; dos intentos de suplantación por substring de dominio → ambos rechazados).
 
@@ -155,16 +157,16 @@ Construida entera, con tests, primera pieza cerrada de la Fase 2. Sustituye a `/
 
 **Archivos nuevos**, capas `domain/application/infrastructure` (§24.4):
 
-| Archivo | Qué hace |
-| --- | --- |
-| `src/lib/supabase/serviceClient.ts` | Cliente con `SUPABASE_SECRET_KEY` (service role), exclusivo para `feed_session`/`feed_round` — esas dos tablas no tienen política pública de RLS a propósito (§8.5: "el cliente no puede alterar cuotas ni seed"), están gateadas solo por `is_admin()` a nivel de esquema. |
-| `src/lib/supabase/publicReadClient.ts` | Cliente de lectura pública sin manejo de cookies, para el resto de tablas (sí tienen política pública). |
-| `modules/feed/infrastructure/supabaseFeedSource.ts` | Construye el `FeedSnapshot` real desde `content`/`pin`/`pin_media`/`media_asset`/`case_detail` — sustituye al dataset demo, tal como preveía el propio comentario de `demoSnapshotSource.ts`. Incluye `getPinDirectoryByIds`, consulta ligera para enriquecer una ronda ya cacheada sin releer todo el catálogo. |
-| `modules/feed/infrastructure/feedSessionRepository.ts` | CRUD de `feed_session`/`feed_round`. |
-| `modules/feed/infrastructure/cursor.ts` | Cursor opaco y firmado (HMAC-SHA256, reutiliza `SUPABASE_SECRET_KEY` como secreto — no hizo falta ninguna variable de entorno nueva). |
-| `modules/feed/application/createFeedSession.ts` | Caso de uso de `POST /api/feed/sessions`. |
-| `modules/feed/application/getFeedSessionBatch.ts` | Caso de uso de `GET /api/feed/{sessionId}?cursor=...`: si la ronda pedida ya existe en `feed_round`, la lee tal cual (inmutable — los pines ya servidos no cambian aunque cambie el contenido publicado después); si no existe, la calcula con `generateRound()` (el motor ya probado en Fase 0) y la persiste antes de devolverla. |
-| `app/api/feed/sessions/route.ts`, `app/api/feed/[sessionId]/route.ts` | Route handlers. |
+| Archivo                                                               | Qué hace                                                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/supabase/serviceClient.ts`                                   | Cliente con `SUPABASE_SECRET_KEY` (service role), exclusivo para `feed_session`/`feed_round` — esas dos tablas no tienen política pública de RLS a propósito (§8.5: "el cliente no puede alterar cuotas ni seed"), están gateadas solo por `is_admin()` a nivel de esquema.                                                         |
+| `src/lib/supabase/publicReadClient.ts`                                | Cliente de lectura pública sin manejo de cookies, para el resto de tablas (sí tienen política pública).                                                                                                                                                                                                                             |
+| `modules/feed/infrastructure/supabaseFeedSource.ts`                   | Construye el `FeedSnapshot` real desde `content`/`pin`/`pin_media`/`media_asset`/`case_detail` — sustituye al dataset demo, tal como preveía el propio comentario de `demoSnapshotSource.ts`. Incluye `getPinDirectoryByIds`, consulta ligera para enriquecer una ronda ya cacheada sin releer todo el catálogo.                    |
+| `modules/feed/infrastructure/feedSessionRepository.ts`                | CRUD de `feed_session`/`feed_round`.                                                                                                                                                                                                                                                                                                |
+| `modules/feed/infrastructure/cursor.ts`                               | Cursor opaco y firmado (HMAC-SHA256, reutiliza `SUPABASE_SECRET_KEY` como secreto — no hizo falta ninguna variable de entorno nueva).                                                                                                                                                                                               |
+| `modules/feed/application/createFeedSession.ts`                       | Caso de uso de `POST /api/feed/sessions`.                                                                                                                                                                                                                                                                                           |
+| `modules/feed/application/getFeedSessionBatch.ts`                     | Caso de uso de `GET /api/feed/{sessionId}?cursor=...`: si la ronda pedida ya existe en `feed_round`, la lee tal cual (inmutable — los pines ya servidos no cambian aunque cambie el contenido publicado después); si no existe, la calcula con `generateRound()` (el motor ya probado en Fase 0) y la persiste antes de devolverla. |
+| `app/api/feed/sessions/route.ts`, `app/api/feed/[sessionId]/route.ts` | Route handlers.                                                                                                                                                                                                                                                                                                                     |
 
 **Alcance deliberado**: solo `scope: "home"` por ahora (todo el catálogo publicado, sin filtro de etiqueta) — subhomes y `scope=related-cases` necesitan filtrado por tag y quedan para la Fase 3 (Anexo E.4), no están bloqueando nada de lo anterior.
 
@@ -174,16 +176,46 @@ Construida entera, con tests, primera pieza cerrada de la Fase 2. Sustituye a `/
 
 **Verificado de extremo a extremo contra Supabase real (20 ago) — cerrado.** El equipo probó el flujo completo siguiendo las instrucciones de prueba aparte: creación de sesión, primer lote con datos insertados por SQL directo, avance de cursor a la ronda 1, 404 en sesión inexistente, y repetición de la ronda 0 devolviendo exactamente los mismos pines (confirma que se lee `feed_round` ya persistida, no se recalcula). El `select()` anidado `content → pin → pin_media → media_asset` funciona tal cual estaba escrito, sin ajustes. Único matiz observado: con `force` mayor que el número de pines disponibles en la cola de un caso, el mismo pin aparece repetido en el lote — comportamiento esperado y documentado en §4.3 del brief, no un bug.
 
+### 2.13 CRUD de content, bloques y medios (Cloudinary) — 20-28 ago, sin tests hasta la auditoría del 7 sep
+
+Construido por el equipo mientras se preparaba esta revisión, sin actualizar este documento en su momento (de ahí que no aparezca fechado día a día). Cubre gran parte de la Fase 2 (§4.3):
+
+- **`src/modules/content/`** (domain/application/infrastructure, §24.4): CRUD completo de `content` (crear borrador, editar, borrar — solo en estado `draft`), `content_translation` por idioma (con la restricción de que un episodio solo admite su locale por defecto, §7.3), `content_block` genérico con su traducción por bloque, y `case_detail`. 5 migraciones nuevas (`20260820...` a `20260828...`), cada una con su función `security invoker` + `is_admin()` + `audit_log` — salvo dos que se quedaron sin auditoría, corregido hoy (§2.14).
+- **`src/modules/media/`**: subida de imagen/vídeo a Cloudinary vía signed upload (firma en servidor, secret que nunca llega al navegador, exactamente como describe §9.2), con validación de límites (5 MB imagen, 100 MB / 180 s vídeo) en cliente, en el schema de zod y en la función SQL — aunque, hasta hoy, el límite de imagen faltaba en SQL (§2.14).
+- **`src/app/admin/contents/`**: ABM funcional de principio a fin — listado, alta, edición con pestañas de traducción, editor de bloques con subida de imagen/vídeo inline, borrado protegido a solo-`draft` con confirmación. El carrusel queda pendiente ("se implementará en el siguiente bloque", visible en el propio editor) y no hay todavía estados `scheduled`/`published` ni preview firmado — sigue abierto en el checklist (§4.3).
+- **Housekeeping encontrado y corregido en la auditoría, no en este bloque**: `@types/node` había vuelto a `^20` en algún punto (despiste, revertido hoy), y no existía `.prettierrc` — el código de este bloque usa comillas simples y sin punto y coma, el resto del repo usaba el estilo por defecto de Prettier (comillas dobles, con punto y coma); nunca se había verificado `npm run format:check`, y fallaba en los 368 ficheros del repo. Todo esto se resuelve en §2.14.
+
+### 2.14 Auditoría de content/media/ABM y cinco correcciones — 7 sep
+
+Repaso completo del bloque anterior: lectura de cada migración y cada fichero nuevo contra la arquitectura V1.3, `npm run lint` / `next build` / `tsc --noEmit` / `npm test` ejecutados de verdad, y 95 tests nuevos escritos donde no había ninguno. Además, cinco correcciones pedidas explícitamente y ya verificadas:
+
+1. **Auditoría que faltaba** — `create_content_draft` y `update_content` no insertaban en `audit_log`, a diferencia del resto de funciones de mutación (incumplía §16.2). Corregido en `20260907090000_admin_content_audit_log_fix.sql`, redefiniendo ambas funciones sin tocar su firma ni el resto de su comportamiento.
+2. **`@types/node`** — revertido a `^24.13.3` (el despiste era justo eso, un despiste; no hacía falta más investigación).
+3. **Prettier sin configurar** — añadidos `.prettierrc` (`semi: false`, `singleQuote: true`, `trailingComma: "all"`) y `.prettierignore`, y corrido `prettier --write .` sobre todo el repo. Los 368 ficheros pasan `format:check` ahora; el cambio es puramente de formato (comillas y punto y coma), sin tocar lógica.
+4. **Medios huérfanos al sustituir imagen/vídeo** — nueva función SQL `unlink_and_delete_media_asset` (`20260907091500_admin_unlink_delete_media_asset.sql`): desvincula el bloque y borra el `media_asset` en una transacción; si el medio sigue referenciado en otro bloque, otro pin o `content.og_media_id`, la propia FK de `content_block.media_id` (sin `ON DELETE CASCADE`) hace fallar el `DELETE` y se revierte todo — no hubo que reimplementar esa comprobación a mano. Nuevo flujo en el ABM (`ImageBlockMediaUpload.tsx`, `VideoBlockMediaUpload.tsx`, `mediaActions.ts` → `deleteBlockMediaAction`): al sustituir, primero se borra en Postgres, y solo si eso tiene éxito se borra el archivo real en Cloudinary (`deleteCloudinaryAsset`, nueva, requirió añadir `cloudinary.config()` global — antes solo se firmaban subidas). Si falla el borrado en Postgres, se aborta sin subir nada nuevo; si Postgres va bien pero Cloudinary falla, se avisa con un `warning` no bloqueante en vez de impedir la subida — **decisión de diseño discutible, revisar si en algún momento se prefiere que sea bloqueante**.
+5. **Límites de medios duplicados** — `mediaAssetSchema.ts` (zod) ahora importa `IMAGE_LIMITS`/`VIDEO_LIMITS` desde `mediaLimits.ts` en vez de repetir los números. El lado SQL sigue necesariamente aparte (Postgres no puede importar TypeScript), documentado con comentarios que apuntan a `mediaLimits.ts` como fuente.
+
+**Hallazgo real encontrado de propina, al hacer el punto 5**: `register_image_for_block` no tenía tope de tamaño en SQL — a diferencia de `register_video_for_block`, que sí comprobaba 100 MB. Cerrado en `20260907093000_admin_image_size_limit.sql` (5 MB, igual que el resto de capas) y en el zod schema correspondiente.
+
+**95 tests nuevos**, en `tests/unit/content/` y `tests/unit/media/`:
+
+- Schemas de zod puros, sin mocks: `contentSchema`, `contentBlockSchema`, `contentTranslationSchema`, `caseDetailSchema`, `mediaAssetSchema` (incluido `deleteBlockMediaSchema`), y `mediaLimits`/`cloudinaryUrl`.
+- Capa de aplicación con el repositorio mockeado (`vi.mock`): a diferencia de `modules/feed/application/`, que recibe el repositorio como parámetro y por eso se testea con un repositorio en memoria (§2.12), `modules/content/` y `modules/media/` importan el repositorio concreto directamente — la interfaz (`ContentRepository`, `MediaAssetRepository`...) existe pero nada la usa para inyectar. No se ha tocado esa arquitectura, solo se ha mockeado el módulo para poder testear sin Supabase real; **queda anotado como inconsistencia con §24.4** ("repositorios sustituibles detrás de una interfaz") para quien retome esto.
+- `tests/unit/admin/mediaActions.test.ts`: el server action `deleteBlockMediaAction` — orden Postgres→Cloudinary, aborto sin llamar a Cloudinary si Postgres falla, y el caso del `warning` no bloqueante.
+
+**Zona sin tocar, sigue pendiente**: el login del ABM (§2.9) sigue sin tests. `data/demo/` y `fixtures/` no se han revisado a fondo en esta auditoría — no hay indicios de problema, simplemente no ha dado tiempo.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
 
 ```bash
 npm install
-npm run lint            # ESLint
-npx next build            # build de producción — genera también los tipos de ruta (.next/types)
-npx tsc --noEmit           # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                   # 76 tests (unit + property-based + smoke con jsdom)
+npm run lint               # ESLint
+npm run format:check       # Prettier — nuevo desde el 7 sep, antes no se verificaba
+npx next build              # build de producción — genera también los tipos de ruta (.next/types)
+npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
+npm test                     # 184 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
@@ -222,12 +254,12 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 ### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
 
-- [~] Autenticación Google OAuth vía Supabase Auth — código presente, sin tests, sin confirmar (§2.9).
-- [ ] CRUD de `content` y extensiones vía Server Actions + zod.
-- [ ] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales).
+- [~] Autenticación Google OAuth vía Supabase Auth — código presente, **sigue sin tests** (§2.9), sin cambios en esta auditoría.
+- [x] CRUD de `content` y extensiones vía Server Actions + zod — **hecho (20-28 ago) y auditado con 95 tests el 7 sep** (§2.13, §2.14): borrador, edición, traducciones, bloques, case detail, e imagen/vídeo vía Cloudinary. El carrusel queda explícitamente para después.
+- [ ] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales) — sigue sin empezar; distinto de la subida de imagen/vídeo de bloques, que sí está hecha.
 - [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
-- [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado.
-- [ ] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` (hoy solo cubre auth).
+- [ ] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado — todo lo creado desde el ABM se queda en `draft` para siempre, no hay botón de publicar.
+- [x] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` — hecho como parte del CRUD (§2.13).
 - [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho y verificado E2E contra Supabase real el 20 ago** (§2.12).
 
 ### 4.4 Fase 3 (hasta el 15 de septiembre)
@@ -262,11 +294,11 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 Ninguna depende de escribir código — bloquean trabajo posterior si no se cierran a tiempo.
 
-| Decisión | Bloquea | Estado |
-| --- | --- | --- |
-| Repertorio de bloques y restricciones de variantes A/B/C | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño |
-| Auditoría de embeds y cookies de terceros (Vimeo, Spotify) | Si hace falta banner de consentimiento antes de Channel | Abierto |
-| Traducción asistida por IA en el ABM (opcional) | Si se incluye en V1 o se deja fuera | Abierto, no bloqueante |
+| Decisión                                                   | Bloquea                                                 | Estado                      |
+| ---------------------------------------------------------- | ------------------------------------------------------- | --------------------------- |
+| Repertorio de bloques y restricciones de variantes A/B/C   | Editor de bloques del ABM + especificación de contenido | Abierto — depende de diseño |
+| Auditoría de embeds y cookies de terceros (Vimeo, Spotify) | Si hace falta banner de consentimiento antes de Channel | Abierto                     |
+| Traducción asistida por IA en el ABM (opcional)            | Si se incluye en V1 o se deja fuera                     | Abierto, no bloqueante      |
 
 Cerradas el 18 de agosto: reasignación 5% Shop → Channel (ADR-11, 70/15/5/5/5); permanencia de `'shop'` en `tag_section` como hueco reservado (§2.3); alcance del dominio permitido en el ABM — **son 3 dominios reales, no uno**: `itsgreener.com`, `ffforward.ai`, `villamagia.com` (§4.1) — no sub-allowlist de contratistas, los 3 tienen el mismo nivel de acceso.
 
@@ -275,6 +307,8 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 ---
 
 ## 6. Historial de correcciones a este documento
+
+- **7 sep 2026**: auditado el bloque de CRUD de content/media/ABM construido entre el 20 y el 28 de agosto, que se había quedado sin reflejar en este documento y sin ningún test (§2.13). Escritos 95 tests nuevos y resueltas cinco correcciones pedidas explícitamente (§2.14): auditoría que faltaba en `create_content_draft`/`update_content`, `@types/node` revertido de `^20` a `^24.13.3`, `.prettierrc`/`.prettierignore` añadidos y todo el repo reformateado (368 ficheros, antes nunca verificado), medios huérfanos resueltos con `unlink_and_delete_media_asset` + borrado en Cloudinary antes de subir el sustituto, y límites de medios unificados en `mediaLimits.ts` como fuente única del lado TypeScript. De propina, se encontró y cerró un límite de tamaño que faltaba en `register_image_for_block` (SQL). 184/184 tests en verde, `format:check`/`lint`/`tsc`/`build` limpios.
 
 - **20 ago 2026**: cerrada del todo la verificación E2E de `/api/feed/sessions` contra Supabase real (§2.12) — el equipo confirmó el flujo completo con datos insertados por SQL. Fijada la versión de Node del proyecto en 24.15.0 LTS (§2.10): `engines` en `package.json`, `.nvmrc`, `@types/node` actualizado. Encontrado y corregido un fallo de configuración al verificar en local: faltaba `setupFiles: ["./tests/setup.ts"]` en `vitest.config.ts`, sin lo cual los tests nuevos de feed sessions fallaban por falta de variables de entorno aunque `tests/setup.ts` existiera en el repo.
 

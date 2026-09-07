@@ -3,13 +3,9 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
-import {
-  deleteContentSchema,
-} from '@/modules/content/domain/contentSchema'
+import { deleteContentSchema } from '@/modules/content/domain/contentSchema'
 
-import {
-  deleteContent,
-} from '@/modules/content/application/deleteContent'
+import { deleteContent } from '@/modules/content/application/deleteContent'
 
 export type DeleteContentActionState = {
   error?: string
@@ -17,17 +13,15 @@ export type DeleteContentActionState = {
 
 export async function deleteContentAction(
   _previousState: DeleteContentActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<DeleteContentActionState> {
-  const result =
-    deleteContentSchema.safeParse({
-      id: formData.get('id'),
-    })
+  const result = deleteContentSchema.safeParse({
+    id: formData.get('id'),
+  })
 
   if (!result.success) {
     return {
-      error:
-        'El identificador del contenido no es válido.',
+      error: 'El identificador del contenido no es válido.',
     }
   }
 
@@ -38,31 +32,21 @@ export async function deleteContentAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Only draft content can be deleted'
-      )
+      error.message.includes('Only draft content can be deleted')
     ) {
       return {
-        error:
-          'Solo se pueden eliminar contenidos en estado draft.',
+        error: 'Solo se pueden eliminar contenidos en estado draft.',
       }
     }
 
-    if (
-      error instanceof Error &&
-      error.message.includes(
-        'Content not found'
-      )
-    ) {
+    if (error instanceof Error && error.message.includes('Content not found')) {
       return {
-        error:
-          'El contenido ya no existe.',
+        error: 'El contenido ya no existe.',
       }
     }
 
     return {
-      error:
-        'No se ha podido eliminar el contenido.',
+      error: 'No se ha podido eliminar el contenido.',
     }
   }
 

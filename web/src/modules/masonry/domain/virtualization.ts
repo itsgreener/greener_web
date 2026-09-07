@@ -6,36 +6,40 @@
  */
 
 export interface BatchHeight {
-  batchIndex: number;
-  height: number;
+  batchIndex: number
+  height: number
 }
 
 export interface VirtualizationResult {
-  mountedBatchIndexes: Set<number>;
+  mountedBatchIndexes: Set<number>
   /** Alto acumulado antes del primer batch montado — hueco superior. */
-  topSpacerHeight: number;
+  topSpacerHeight: number
   /** Alto acumulado después del último batch montado — hueco inferior. */
-  bottomSpacerHeight: number;
+  bottomSpacerHeight: number
 }
 
-const MOUNT_RADIUS = 2;
+const MOUNT_RADIUS = 2
 
 export function computeVirtualization(
   batchHeights: BatchHeight[],
-  visibleBatchIndex: number
+  visibleBatchIndex: number,
 ): VirtualizationResult {
-  const mountedBatchIndexes = new Set<number>();
-  for (let i = visibleBatchIndex - MOUNT_RADIUS; i <= visibleBatchIndex + MOUNT_RADIUS; i++) {
-    if (i >= 0 && i < batchHeights.length) mountedBatchIndexes.add(i);
+  const mountedBatchIndexes = new Set<number>()
+  for (
+    let i = visibleBatchIndex - MOUNT_RADIUS;
+    i <= visibleBatchIndex + MOUNT_RADIUS;
+    i++
+  ) {
+    if (i >= 0 && i < batchHeights.length) mountedBatchIndexes.add(i)
   }
 
-  let topSpacerHeight = 0;
-  let bottomSpacerHeight = 0;
+  let topSpacerHeight = 0
+  let bottomSpacerHeight = 0
   for (const { batchIndex, height } of batchHeights) {
-    if (mountedBatchIndexes.has(batchIndex)) continue;
-    if (batchIndex < visibleBatchIndex) topSpacerHeight += height;
-    else bottomSpacerHeight += height;
+    if (mountedBatchIndexes.has(batchIndex)) continue
+    if (batchIndex < visibleBatchIndex) topSpacerHeight += height
+    else bottomSpacerHeight += height
   }
 
-  return { mountedBatchIndexes, topSpacerHeight, bottomSpacerHeight };
+  return { mountedBatchIndexes, topSpacerHeight, bottomSpacerHeight }
 }

@@ -3,16 +3,10 @@ import {
   type DeleteContentInput,
 } from '../domain/contentSchema'
 
-import {
-  supabaseContentRepository,
-} from '../infrastructure/supabaseContentRepository'
+import { supabaseContentRepository } from '../infrastructure/supabaseContentRepository'
 
-export async function deleteContent(
-  input: DeleteContentInput
-) {
-  const validated =
-    deleteContentSchema.parse(input)
+export async function deleteContent(input: DeleteContentInput) {
+  const validated = deleteContentSchema.parse(input)
 
-  return supabaseContentRepository
-    .delete(validated)
+  return supabaseContentRepository.delete(validated)
 }

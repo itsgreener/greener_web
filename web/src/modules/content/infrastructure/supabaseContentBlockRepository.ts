@@ -1,6 +1,4 @@
-import {
-  createClient,
-} from '@/lib/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 
 import type {
   MediaAsset,
@@ -23,9 +21,7 @@ import type {
   UpsertContentBlockTranslationInput,
 } from '../domain/contentBlockSchema'
 
-import type {
-  Locale,
-} from '../domain/contentSchema'
+import type { Locale } from '../domain/contentSchema'
 
 type SupabaseBlockTranslationRow = {
   locale: Locale
@@ -56,51 +52,31 @@ type SupabaseContentBlockRow = {
   media_id: string | null
   created_at: string
 
-  media:
-    | SupabaseMediaAssetRow
-    | SupabaseMediaAssetRow[]
-    | null
+  media: SupabaseMediaAssetRow | SupabaseMediaAssetRow[] | null
 
-  translations:
-    SupabaseBlockTranslationRow[]
+  translations: SupabaseBlockTranslationRow[]
 }
 
-function createRepositoryError(
-  message: string,
-  code?: string
-) {
-  const error =
-    new Error(
-      message
-    ) as Error & {
-      code?: string
-    }
+function createRepositoryError(message: string, code?: string) {
+  const error = new Error(message) as Error & {
+    code?: string
+  }
 
   error.code = code
 
   return error
 }
 
-function normalizeConfig(
-  value: unknown
-): ContentBlockConfig {
-  if (
-    typeof value === 'object' &&
-    value !== null &&
-    !Array.isArray(value)
-  ) {
-    return value as
-      ContentBlockConfig
+function normalizeConfig(value: unknown): ContentBlockConfig {
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    return value as ContentBlockConfig
   }
 
   return {}
 }
 
 function normalizeMediaRow(
-  value:
-    | SupabaseMediaAssetRow
-    | SupabaseMediaAssetRow[]
-    | null
+  value: SupabaseMediaAssetRow | SupabaseMediaAssetRow[] | null,
 ): SupabaseMediaAssetRow | null {
   if (!value) {
     return null
@@ -114,134 +90,86 @@ function normalizeMediaRow(
 }
 
 function mapMediaAsset(
-  value:
-    | SupabaseMediaAssetRow
-    | SupabaseMediaAssetRow[]
-    | null
+  value: SupabaseMediaAssetRow | SupabaseMediaAssetRow[] | null,
 ): MediaAsset | null {
-  const row =
-    normalizeMediaRow(
-      value
-    )
+  const row = normalizeMediaRow(value)
 
   if (!row) {
     return null
   }
 
   return {
-    id:
-      row.id,
+    id: row.id,
 
-    kind:
-      row.kind,
+    kind: row.kind,
 
-    cloudinaryPublicId:
-      row.cloudinary_public_id,
+    cloudinaryPublicId: row.cloudinary_public_id,
 
-    format:
-      row.format,
+    format: row.format,
 
-    width:
-      row.width,
+    width: row.width,
 
-    height:
-      row.height,
+    height: row.height,
 
-    durationSeconds:
-      row.duration_seconds,
+    durationSeconds: row.duration_seconds,
 
-    bytes:
-      row.bytes,
+    bytes: row.bytes,
 
-    status:
-      row.status,
+    status: row.status,
 
-    createdAt:
-      row.created_at,
+    createdAt: row.created_at,
   }
 }
 
 function mapTranslation(
   blockId: string,
-  row: SupabaseBlockTranslationRow
+  row: SupabaseBlockTranslationRow,
 ): ContentBlockTranslation {
   return {
     blockId,
 
-    locale:
-      row.locale,
+    locale: row.locale,
 
-    bodyRichText:
-      row.body_rich_text,
+    bodyRichText: row.body_rich_text,
 
-    caption:
-      row.caption,
+    caption: row.caption,
 
-    quoteText:
-      row.quote_text,
+    quoteText: row.quote_text,
   }
 }
 
-function mapBlock(
-  row: SupabaseContentBlockRow
-): ContentBlock {
+function mapBlock(row: SupabaseContentBlockRow): ContentBlock {
   return {
-    id:
-      row.id,
+    id: row.id,
 
-    contentId:
-      row.content_id,
+    contentId: row.content_id,
 
-    type:
-      row.type,
+    type: row.type,
 
-    sortOrder:
-      row.sort_order,
+    sortOrder: row.sort_order,
 
-    config:
-      normalizeConfig(
-        row.config
-      ),
+    config: normalizeConfig(row.config),
 
-    mediaId:
-      row.media_id,
+    mediaId: row.media_id,
 
-    media:
-      mapMediaAsset(
-        row.media
-      ),
+    media: mapMediaAsset(row.media),
 
-    createdAt:
-      row.created_at,
+    createdAt: row.created_at,
 
-    translations:
-      row.translations.map(
-        (translation) =>
-          mapTranslation(
-            row.id,
-            translation
-          )
-      ),
+    translations: row.translations.map((translation) =>
+      mapTranslation(row.id, translation),
+    ),
   }
 }
 
-export const supabaseContentBlockRepository:
-  ContentBlockRepository = {
+export const supabaseContentBlockRepository: ContentBlockRepository = {
+  async listByContentId(contentId: string) {
+    const supabase = await createClient()
 
-  async listByContentId(
-    contentId: string
-  ) {
-    const supabase =
-      await createClient()
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from(
-        'content_block'
-      )
-      .select(`
+    const { data, error } = await supabase
+      .from('content_block')
+      .select(
+        `
         id,
         content_id,
         type,
@@ -269,174 +197,97 @@ export const supabaseContentBlockRepository:
           caption,
           quote_text
         )
-      `)
-      .eq(
-        'content_id',
-        contentId
+      `,
       )
-      .order(
-        'sort_order',
-        {
-          ascending: true,
-        }
-      )
-      .order(
-        'created_at',
-        {
-          ascending: true,
-        }
-      )
+      .eq('content_id', contentId)
+      .order('sort_order', {
+        ascending: true,
+      })
+      .order('created_at', {
+        ascending: true,
+      })
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
-    const rows =
-      (data ?? []) as unknown as
-        SupabaseContentBlockRow[]
+    const rows = (data ?? []) as unknown as SupabaseContentBlockRow[]
 
-    return rows.map(
-      mapBlock
-    )
+    return rows.map(mapBlock)
   },
 
-  async create(
-    input:
-      CreateContentBlockInput
-  ) {
-    const supabase =
-      await createClient()
+  async create(input: CreateContentBlockInput) {
+    const supabase = await createClient()
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      'create_content_block',
-      {
-        p_content_id:
-          input.contentId,
+    const { data, error } = await supabase.rpc('create_content_block', {
+      p_content_id: input.contentId,
 
-        p_type:
-          input.type,
+      p_type: input.type,
 
-        p_sort_order:
-          input.sortOrder,
+      p_sort_order: input.sortOrder,
 
-        p_config:
-          input.config,
-      }
-    )
+      p_config: input.config,
+    })
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     return data as string
   },
 
-  async update(
-    input:
-      UpdateContentBlockInput
-  ) {
-    const supabase =
-      await createClient()
+  async update(input: UpdateContentBlockInput) {
+    const supabase = await createClient()
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      'update_content_block',
-      {
-        p_block_id:
-          input.id,
+    const { data, error } = await supabase.rpc('update_content_block', {
+      p_block_id: input.id,
 
-        p_sort_order:
-          input.sortOrder,
+      p_sort_order: input.sortOrder,
 
-        p_config:
-          input.config,
-      }
-    )
+      p_config: input.config,
+    })
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     return data as string
   },
 
-  async delete(
-    input:
-      DeleteContentBlockInput
-  ) {
-    const supabase =
-      await createClient()
+  async delete(input: DeleteContentBlockInput) {
+    const supabase = await createClient()
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
-      'delete_content_block',
-      {
-        p_block_id:
-          input.id,
-      }
-    )
+    const { data, error } = await supabase.rpc('delete_content_block', {
+      p_block_id: input.id,
+    })
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     return data as string
   },
 
-  async upsertTranslation(
-    input:
-      UpsertContentBlockTranslationInput
-  ) {
-    const supabase =
-      await createClient()
+  async upsertTranslation(input: UpsertContentBlockTranslationInput) {
+    const supabase = await createClient()
 
-    const {
-      data,
-      error,
-    } = await supabase.rpc(
+    const { data, error } = await supabase.rpc(
       'upsert_content_block_translation',
       {
-        p_block_id:
-          input.blockId,
+        p_block_id: input.blockId,
 
-        p_locale:
-          input.locale,
+        p_locale: input.locale,
 
-        p_body_rich_text:
-          input.bodyRichText,
+        p_body_rich_text: input.bodyRichText,
 
-        p_caption:
-          input.caption,
+        p_caption: input.caption,
 
-        p_quote_text:
-          input.quoteText,
-      }
+        p_quote_text: input.quoteText,
+      },
     )
 
     if (error) {
-      throw createRepositoryError(
-        error.message,
-        error.code
-      )
+      throw createRepositoryError(error.message, error.code)
     }
 
     return data as string

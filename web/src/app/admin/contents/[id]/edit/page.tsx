@@ -1,40 +1,24 @@
-import Link
-  from 'next/link'
+import Link from 'next/link'
 
-import {
-  notFound,
-} from 'next/navigation'
+import { notFound } from 'next/navigation'
 
-import {
-  getContent,
-} from '@/modules/content/application/getContent'
+import { getContent } from '@/modules/content/application/getContent'
 
-import {
-  getCaseDetail,
-} from '@/modules/content/application/getCaseDetail'
+import { getCaseDetail } from '@/modules/content/application/getCaseDetail'
 
-import {
-  getContentTranslations,
-} from '@/modules/content/application/getContentTranslations'
+import { getContentTranslations } from '@/modules/content/application/getContentTranslations'
 
-import {
-  getContentBlocks,
-} from '@/modules/content/application/getContentBlocks'
+import { getContentBlocks } from '@/modules/content/application/getContentBlocks'
 
-import EditContentForm
-  from './EditContentForm'
+import EditContentForm from './EditContentForm'
 
-import ContentTranslations
-  from './ContentTranslations'
+import ContentTranslations from './ContentTranslations'
 
-import CaseDetailForm
-  from './CaseDetailForm'
+import CaseDetailForm from './CaseDetailForm'
 
-import ContentBlocks
-  from './ContentBlocks'
+import ContentBlocks from './ContentBlocks'
 
-import DeleteContentButton
-  from './DeleteContentButton'
+import DeleteContentButton from './DeleteContentButton'
 
 type Props = {
   params: Promise<{
@@ -42,112 +26,55 @@ type Props = {
   }>
 }
 
-export default async function EditContentPage({
-  params,
-}: Props) {
+export default async function EditContentPage({ params }: Props) {
+  const { id } = await params
 
-  const { id } =
-    await params
-
-  const content =
-    await getContent(id)
+  const content = await getContent(id)
 
   if (!content) {
     notFound()
   }
 
-  const supportsBlocks =
-    content.type === 'case' ||
-    content.type === 'page'
+  const supportsBlocks = content.type === 'case' || content.type === 'page'
 
-  const [
-    translations,
-    caseDetail,
-    blocks,
-  ] = await Promise.all([
+  const [translations, caseDetail, blocks] = await Promise.all([
+    getContentTranslations(content.id),
 
-    getContentTranslations(
-      content.id
-    ),
+    content.type === 'case' ? getCaseDetail(content.id) : Promise.resolve(null),
 
-    content.type === 'case'
-      ? getCaseDetail(
-          content.id
-        )
-      : Promise.resolve(
-          null
-        ),
-
-    supportsBlocks
-      ? getContentBlocks(
-          content.id
-        )
-      : Promise.resolve(
-          []
-        ),
+    supportsBlocks ? getContentBlocks(content.id) : Promise.resolve([]),
   ])
 
   return (
     <main>
+      <Link href="/admin/contents">← Volver a contenidos</Link>
 
-      <Link href="/admin/contents">
-        ← Volver a contenidos
-      </Link>
+      <h1>Editar contenido</h1>
 
-      <h1>
-        Editar contenido
-      </h1>
+      <p>ID: {content.id}</p>
 
-      <p>
-        ID: {content.id}
-      </p>
+      <h2>Datos generales</h2>
 
-      <h2>
-        Datos generales
-      </h2>
-
-      <EditContentForm
-        content={content}
-      />
+      <EditContentForm content={content} />
 
       <hr />
 
-      <h2>
-        Traducciones
-      </h2>
+      <h2>Traducciones</h2>
 
       <ContentTranslations
-        contentId={
-          content.id
-        }
-        contentType={
-          content.type
-        }
-        defaultLocale={
-          content.defaultLocale
-        }
-        translations={
-          translations
-        }
+        contentId={content.id}
+        contentType={content.type}
+        defaultLocale={content.defaultLocale}
+        translations={translations}
       />
 
-      {content.type ===
-        'case' && (
+      {content.type === 'case' && (
         <>
           <hr />
 
-          <h2>
-            Datos del Case
-          </h2>
+          <h2>Datos del Case</h2>
 
-          <CaseDetailForm
-            contentId={
-              content.id
-            }
-            caseDetail={
-              caseDetail
-            }
-          />
+          <CaseDetailForm contentId={content.id} caseDetail={caseDetail} />
         </>
       )}
 
@@ -155,37 +82,21 @@ export default async function EditContentPage({
         <>
           <hr />
 
-          <h2>
-            Contenido
-          </h2>
+          <h2>Contenido</h2>
 
           <ContentBlocks
-            contentId={
-              content.id
-            }
-            blocks={
-              blocks
-            }
-            translations={
-              translations
-            }
+            contentId={content.id}
+            blocks={blocks}
+            translations={translations}
           />
         </>
       )}
 
       <hr />
 
-      <h2>
-        Zona peligrosa
-      </h2>
+      <h2>Zona peligrosa</h2>
 
-      <DeleteContentButton
-        id={content.id}
-        status={
-          content.status
-        }
-      />
-
+      <DeleteContentButton id={content.id} status={content.status} />
     </main>
   )
 }

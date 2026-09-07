@@ -3,19 +3,10 @@ import {
   type UpdateContentBlockInput,
 } from '../domain/contentBlockSchema'
 
-import {
-  supabaseContentBlockRepository,
-} from '../infrastructure/supabaseContentBlockRepository'
+import { supabaseContentBlockRepository } from '../infrastructure/supabaseContentBlockRepository'
 
-export async function updateContentBlock(
-  input: UpdateContentBlockInput
-) {
-  const validated =
-    updateContentBlockSchema
-      .parse(input)
+export async function updateContentBlock(input: UpdateContentBlockInput) {
+  const validated = updateContentBlockSchema.parse(input)
 
-  return supabaseContentBlockRepository
-    .update(
-      validated
-    )
+  return supabaseContentBlockRepository.update(validated)
 }

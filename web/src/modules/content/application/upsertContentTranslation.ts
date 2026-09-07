@@ -3,20 +3,12 @@ import {
   type UpsertContentTranslationInput,
 } from '../domain/contentTranslationSchema'
 
-import {
-  supabaseContentTranslationRepository,
-} from '../infrastructure/supabaseContentTranslationRepository'
+import { supabaseContentTranslationRepository } from '../infrastructure/supabaseContentTranslationRepository'
 
 export async function upsertContentTranslation(
-  input:
-    UpsertContentTranslationInput
+  input: UpsertContentTranslationInput,
 ) {
-  const validated =
-    contentTranslationSchema
-      .parse(input)
+  const validated = contentTranslationSchema.parse(input)
 
-  return supabaseContentTranslationRepository
-    .upsert(
-      validated
-    )
+  return supabaseContentTranslationRepository.upsert(validated)
 }

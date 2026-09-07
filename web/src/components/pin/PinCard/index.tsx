@@ -1,27 +1,30 @@
-import { buildImageUrl, buildImageSrcSet } from "@/modules/media/infrastructure/cloudinaryUrl";
-import styles from "./PinCard.module.css";
+import {
+  buildImageUrl,
+  buildImageSrcSet,
+} from '@/modules/media/infrastructure/cloudinaryUrl'
+import styles from './PinCard.module.css'
 
 export interface PinCardData {
-  pinId: string;
-  destination: string;
-  ratio: string;
-  label: string;
-  cta: string | null;
-  alt: string;
-  cloudinaryPublicId: string;
+  pinId: string
+  destination: string
+  ratio: string
+  label: string
+  cta: string | null
+  alt: string
+  cloudinaryPublicId: string
 }
 
 export interface PinCardStyle {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
+  x: number
+  y: number
+  width: number
+  height: number
 }
 
 /** Convierte el ratio cerrado del pin (brief §3) a aspect-ratio CSS. */
 function aspectRatioCss(ratio: string): string {
-  const [w, h] = ratio.split(":").map(Number);
-  return `${w} / ${h}`;
+  const [w, h] = ratio.split(':').map(Number)
+  return `${w} / ${h}`
 }
 
 /**
@@ -29,7 +32,13 @@ function aspectRatioCss(ratio: string): string {
  * de medios §3), espacio reservado antes de la descarga (evita CLS, §9.2,
  * §10.1) y posicionada por transform, no por flujo normal del documento.
  */
-export function PinCard({ pin, style }: { pin: PinCardData; style: PinCardStyle }) {
+export function PinCard({
+  pin,
+  style,
+}: {
+  pin: PinCardData
+  style: PinCardStyle
+}) {
   return (
     <a
       href={pin.destination}
@@ -39,13 +48,20 @@ export function PinCard({ pin, style }: { pin: PinCardData; style: PinCardStyle 
         width: style.width,
       }}
     >
-      <div className={styles.media} style={{ aspectRatio: aspectRatioCss(pin.ratio) }}>
+      <div
+        className={styles.media}
+        style={{ aspectRatio: aspectRatioCss(pin.ratio) }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element -- la URL ya viene
             transformada (q_auto/f_auto/ancho) por modules/media/infrastructure/cloudinaryUrl.ts;
             next/image la retransformaría de nuevo sin necesidad (arquitectura §9.2). */}
         <img
-          src={buildImageUrl(pin.cloudinaryPublicId, "feed", Math.round(style.width))}
-          srcSet={buildImageSrcSet(pin.cloudinaryPublicId, "feed")}
+          src={buildImageUrl(
+            pin.cloudinaryPublicId,
+            'feed',
+            Math.round(style.width),
+          )}
+          srcSet={buildImageSrcSet(pin.cloudinaryPublicId, 'feed')}
           sizes={`${Math.round(style.width)}px`}
           alt={pin.alt}
           loading="lazy"
@@ -56,5 +72,5 @@ export function PinCard({ pin, style }: { pin: PinCardData; style: PinCardStyle 
       </div>
       <p className={styles.label}>{pin.label}</p>
     </a>
-  );
+  )
 }

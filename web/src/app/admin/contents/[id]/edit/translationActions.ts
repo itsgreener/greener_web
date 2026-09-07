@@ -1,16 +1,10 @@
 'use server'
 
-import {
-  revalidatePath,
-} from 'next/cache'
+import { revalidatePath } from 'next/cache'
 
-import {
-  contentTranslationSchema,
-} from '@/modules/content/domain/contentTranslationSchema'
+import { contentTranslationSchema } from '@/modules/content/domain/contentTranslationSchema'
 
-import {
-  upsertContentTranslation,
-} from '@/modules/content/application/upsertContentTranslation'
+import { upsertContentTranslation } from '@/modules/content/application/upsertContentTranslation'
 
 export type TranslationActionState = {
   fieldErrors?: {
@@ -26,123 +20,68 @@ export type TranslationActionState = {
   success?: boolean
 }
 
-function nullableText(
-  value:
-    FormDataEntryValue | null
-): string | null {
-  if (
-    typeof value !== 'string'
-  ) {
+function nullableText(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== 'string') {
     return null
   }
 
-  const trimmed =
-    value.trim()
+  const trimmed = value.trim()
 
-  return trimmed === ''
-    ? null
-    : trimmed
+  return trimmed === '' ? null : trimmed
 }
 
 export async function saveTranslationAction(
-  _previousState:
-    TranslationActionState,
-  formData: FormData
+  _previousState: TranslationActionState,
+  formData: FormData,
 ): Promise<TranslationActionState> {
+  const result = contentTranslationSchema.safeParse({
+    contentId: formData.get('contentId'),
 
-  const result =
-    contentTranslationSchema
-      .safeParse({
-        contentId:
-          formData.get(
-            'contentId'
-          ),
+    locale: formData.get('locale'),
 
-        locale:
-          formData.get(
-            'locale'
-          ),
+    title: formData.get('title'),
 
-        title:
-          formData.get(
-            'title'
-          ),
+    seoTitle: nullableText(formData.get('seoTitle')),
 
-        seoTitle:
-          nullableText(
-            formData.get(
-              'seoTitle'
-            )
-          ),
+    seoDescription: nullableText(formData.get('seoDescription')),
 
-        seoDescription:
-          nullableText(
-            formData.get(
-              'seoDescription'
-            )
-          ),
-
-        summary:
-          nullableText(
-            formData.get(
-              'summary'
-            )
-          ),
-      })
+    summary: nullableText(formData.get('summary')),
+  })
 
   if (!result.success) {
     return {
-      fieldErrors:
-        result.error
-          .flatten()
-          .fieldErrors,
+      fieldErrors: result.error.flatten().fieldErrors,
     }
   }
 
   try {
-    await upsertContentTranslation(
-      result.data
-    )
+    await upsertContentTranslation(result.data)
   } catch (error) {
     console.error(error)
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Episode only supports its default locale'
-      )
+      error.message.includes('Episode only supports its default locale')
     ) {
       return {
-        formError:
-          'Los episodios solo admiten su idioma principal.',
+        formError: 'Los episodios solo admiten su idioma principal.',
       }
     }
 
-    if (
-      error instanceof Error &&
-      error.message.includes(
-        'Content not found'
-      )
-    ) {
+    if (error instanceof Error && error.message.includes('Content not found')) {
       return {
-        formError:
-          'El contenido ya no existe.',
+        formError: 'El contenido ya no existe.',
       }
     }
 
     return {
-      formError:
-        'No se ha podido guardar la traducción.',
+      formError: 'No se ha podido guardar la traducción.',
     }
   }
 
-  revalidatePath(
-    `/admin/contents/${result.data.contentId}/edit`
-  )
+  revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 
-  revalidatePath(
-    '/admin/contents'
-  )
+  revalidatePath('/admin/contents')
 
   return {
     success: true,

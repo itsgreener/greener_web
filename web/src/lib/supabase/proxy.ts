@@ -30,7 +30,7 @@ export async function updateSession(request: NextRequest) {
           })
         },
       },
-    }
+    },
   )
 
   const pathname = request.nextUrl.pathname
@@ -55,8 +55,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   // Verificar que el dominio sigue autorizado
-  const { data: isAdmin, error: adminError } =
-    await supabase.rpc('is_admin')
+  const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin')
 
   if (adminError || !isAdmin) {
     const url = request.nextUrl.clone()

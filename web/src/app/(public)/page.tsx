@@ -1,4 +1,4 @@
-import styles from "./page.module.css";
+import styles from './page.module.css'
 
 /**
  * Placeholder de la Home. El feed real (motor de tandas, masonry, scroll
@@ -11,5 +11,5 @@ export default function Home() {
       <h1>Greener</h1>
       <p>Home — pendiente de conectar el motor de feed.</p>
     </div>
-  );
+  )
 }

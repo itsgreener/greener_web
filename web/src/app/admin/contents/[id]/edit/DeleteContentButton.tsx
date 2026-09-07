@@ -2,9 +2,7 @@
 
 import { useActionState } from 'react'
 
-import type {
-  ContentStatus,
-} from '@/modules/content/domain/contentRepository'
+import type { ContentStatus } from '@/modules/content/domain/contentRepository'
 
 import {
   deleteContentAction,
@@ -16,28 +14,19 @@ type Props = {
   status: ContentStatus
 }
 
-const initialState:
-  DeleteContentActionState = {}
+const initialState: DeleteContentActionState = {}
 
-export default function DeleteContentButton({
-  id,
-  status,
-}: Props) {
-  const [
-    state,
-    formAction,
-    pending,
-  ] = useActionState(
+export default function DeleteContentButton({ id, status }: Props) {
+  const [state, formAction, pending] = useActionState(
     deleteContentAction,
-    initialState
+    initialState,
   )
 
   if (status !== 'draft') {
     return (
       <div>
         <p>
-          Este contenido no se puede eliminar
-          porque no está en estado draft.
+          Este contenido no se puede eliminar porque no está en estado draft.
         </p>
       </div>
     )
@@ -47,33 +36,21 @@ export default function DeleteContentButton({
     <form
       action={formAction}
       onSubmit={(event) => {
-        const confirmed =
-          window.confirm(
-            '¿Seguro que quieres eliminar este contenido? Esta acción no se puede deshacer.'
-          )
+        const confirmed = window.confirm(
+          '¿Seguro que quieres eliminar este contenido? Esta acción no se puede deshacer.',
+        )
 
         if (!confirmed) {
           event.preventDefault()
         }
       }}
     >
-      <input
-        type="hidden"
-        name="id"
-        value={id}
-      />
+      <input type="hidden" name="id" value={id} />
 
-      {state.error && (
-        <p>{state.error}</p>
-      )}
+      {state.error && <p>{state.error}</p>}
 
-      <button
-        type="submit"
-        disabled={pending}
-      >
-        {pending
-          ? 'Eliminando...'
-          : 'Eliminar contenido'}
+      <button type="submit" disabled={pending}>
+        {pending ? 'Eliminando...' : 'Eliminar contenido'}
       </button>
     </form>
   )
