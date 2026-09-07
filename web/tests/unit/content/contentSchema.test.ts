@@ -197,16 +197,40 @@ describe('scheduleContentSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('acepta un input type="datetime-local" del formulario del ABM (sin zona horaria) vía z.coerce.date()', () => {
-    const future = new Date(Date.now() + 3_600_000)
-    const localValue = future.toISOString().slice(0, 16) // "YYYY-MM-DDTHH:mm"
+  it('acepta una cadena ISO con Z explícito — el formato que produce localDateTimeToIsoUtc() en el navegador antes de enviar el formulario', () => {
+    const future = new Date(Date.now() + 3_600_000).toISOString()
 
     const result = scheduleContentSchema.safeParse({
       id: CONTENT_ID,
-      publishAt: localValue,
+      publishAt: future,
     })
 
     expect(result.success).toBe(true)
+  })
+
+  it('un datetime-local SIN zona horaria es ambiguo y no debe usarse directamente aquí — la conversión a UTC vive en el navegador (datetimeLocal.ts), no en este schema, precisamente porque z.coerce.date() interpretaría la cadena con la zona horaria del proceso Node del servidor, no la del admin', () => {
+    // Este test documenta la razón de ser de localDateTimeToIsoUtc(), no
+    // afirma nada sobre "aceptar o rechazar": con Z explícito (arriba) el
+    // resultado es determinista en cualquier zona horaria; sin él, no lo es
+    // — y ese fue exactamente el bug (§6, entrada del 7 de septiembre).
+    const rawLocalValue = '2026-09-07T13:39'
+
+    const result = scheduleContentSchema.safeParse({
+      id: CONTENT_ID,
+      publishAt: rawLocalValue,
+    })
+
+    // El resultado (éxito o fracaso) depende de la zona horaria del proceso
+    // que ejecuta el test, así que no se afirma cuál es — solo que no
+    // revienta y que, si tiene éxito, coincide con new Date() en este mismo
+    // proceso (mismo criterio ambiguo, consistente consigo mismo).
+    if (result.success) {
+      expect(result.data.publishAt.getTime()).toBe(
+        new Date(rawLocalValue).getTime(),
+      )
+    } else {
+      expect(result.success).toBe(false)
+    }
   })
 
   it('rechaza una fecha que no se puede parsear', () => {
