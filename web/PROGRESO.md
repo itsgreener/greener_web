@@ -20,7 +20,7 @@ Todo el housekeeping técnico detectado en la auditoría del 18 de agosto sigue 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **224 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos + 20 del login/proxy + 20 de los estados editoriales.
+- **229 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos + 20 del login/proxy + 20 de los estados editoriales + 5 del bug de zona horaria (§2.16).
 - **0 errores de TypeScript**, **0 avisos de ESLint**, **`npm run format:check` en verde en los 368 ficheros del repo** (antes de hoy, nunca se había verificado formalmente), **build de producción limpio** (`npm run build`).
 - **21 migraciones SQL** de Supabase (8 del esquema base + 9 del CRUD/ABM/medios de agosto + 4 de hoy: auditoría, medios huérfanos, tope de imagen y estados editoriales), aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
@@ -221,6 +221,26 @@ Implementados los tres estados que faltaban del checklist de la Fase 2 (§4.3, �
 
 **Preview — decisión tomada (7 sep): aplazado a la Fase 3, no se implementa ahora.** No existe todavía ninguna plantilla pública (`/work/[slug]` y el resto son Fase 3, bloqueados por el repertorio de bloques de diseño, §5). Se valoraron dos opciones: una infraestructura mínima ahora (token firmado con expiración, vista de solo-lectura sin maquetar) o esperar a que exista la plantilla real para montar el preview firmado sobre ella. Se eligió la segunda — el ABM se queda sin ese botón hasta entonces. **Pendiente real de §15.3, sin fecha todavía.**
 
+### 2.16 Bug de zona horaria en "Programar" y endurecimiento del middleware — 7 sep (tarde)
+
+Al correr la suite en local (macOS, zona horaria España) aparecieron 4 tests en rojo que en el sandbox de la revisión (UTC) pasaban limpios — la clase de fallo que solo se ve fuera de un entorno en UTC, exactamente el tipo de cosa que conviene coger antes de producción.
+
+**Bug real, no de test: `<input type="datetime-local">` sin conversión de zona horaria.** El valor de ese input no lleva zona horaria ("2026-09-07T13:39"). `scheduleContentSchema` lo parseaba con `z.coerce.date()`, que interpreta una cadena así con la zona horaria del **proceso Node que la ejecuta** — en el navegador del admin (Madrid) es una cosa, en el servidor de producción (previsiblemente UTC en Dinahosting si nadie fija `TZ`) es otra, con 1-2 horas de diferencia según la época del año. Una fecha pensada como futura por el admin podía leerse como pasada en el servidor, o programarse en el momento equivocado sin que nadie se diera cuenta hasta que tocara.
+
+**Arreglado convirtiendo en el navegador, no en el servidor**: `datetimeLocal.ts` (nuevo, `localDateTimeToIsoUtc`) usa el propio `new Date()` del navegador — que sí sabe la zona horaria real del admin, sea cual sea — para convertir el valor a una cadena ISO con `Z` explícito antes de enviarlo. `PublishControls.tsx` pasó de un `<input name="publishAt">` directo a un input controlado (sin `name`, solo UI) más un campo oculto con el valor ya convertido; el servidor nunca tiene que adivinar la zona horaria de nadie. `scheduleContentSchema` no cambió — ya aceptaba ISO con `Z` correctamente, el problema nunca estuvo ahí.
+
+**El otro fallo (2 tests de `updateSession` con `/api/admin/*`): no reproducido en el sandbox de la revisión, primer intento de arreglo insuficiente — ver §2.17.**
+
+**5 tests nuevos/reescritos** (`datetimeLocal.test.ts`), y el test de `contentSchema.test.ts` que asumía el comportamiento con bug reescrito para documentar el contrato correcto (ISO con `Z` explícito) en vez de afirmar algo que dependía de en qué zona horaria se ejecutara. **229/229 tests, `format:check`/`lint`/`tsc`/`build` limpios.**
+
+### 2.17 Segunda vuelta al fallo de `/api/admin/*` y dos despistes propios — 7 sep (noche)
+
+Segundo log de la misma máquina: dos fallos reales confirmados y corregidos, y el fallo de `updateSession` seguía exactamente igual.
+
+- **`datetimeLocal.test.ts` fallaba con "Cannot find package"**: usaba un `import` estático de una ruta con `[id]` en medio (`@/app/admin/contents/[id]/edit/datetimeLocal`). En esa máquina, el resolvedor de alias de Vite falla con imports **estáticos** de rutas con corchetes, pero no con `await import(...)` **dinámico** — que es justo el patrón que ya usaban `mediaActions.test.ts` y `publishActions.test.ts` sin problema. Arreglado pasando los cuatro tests a import dinámico.
+- **Despiste propio en `publishActions.test.ts`**: al arreglar el bug de zona horaria (§2.16) actualicé el test de `contentSchema.test.ts` pero se me olvidaron dos usos idénticos de la misma fecha ambigua (sin `Z`) en `publishActions.test.ts` — el mismo bug que acababa de documentar, colado en mi propio test. Corregido a `.toISOString()` completo en los tres sitios.
+- **`updateSession` con `/api/admin/*`: el "arreglo" anterior no arreglaba nada.** Al leer el código fuente real de `NextRequest` (`node_modules/next/dist/server/web/spec-extension/request.js`), `request.url` **tampoco** es independiente de `NextURL` — el getter devuelve `nextUrl.toString()`, así que `new URL(request.url).pathname` seguía pasando por el mismo análisis interno de `NextURL` (i18n, `basePath`, etc.) que `request.nextUrl.pathname`. De ahí que el resultado no cambiara ni un poco entre el primer y el segundo intento: no era que la solución estuviera mal pensada, es que no era una solución distinta. **Sigue sin reproducirse en el sandbox de la revisión.** Como diagnóstico más barato que seguir adivinando a ciegas, se ha pedido borrar la caché de Vite (`rm -rf node_modules/.vite`) antes de repetir, porque dos intentos de arreglo con resultado idéntico byte a byte es la firma típica de una caché de módulos que no se está invalidando al sobrescribir ficheros fuera del flujo normal de un editor/git. También se ha endurecido la construcción de `NextRequest` en el test (string en vez de objeto `URL`) por si acaso, aunque sin mucha confianza en que sea la causa real. **Pendiente de confirmación con el log completo si reaparece.**
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -231,7 +251,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier — nuevo desde el 7 sep, antes no se verificaba
 npx next build              # build de producción — genera también los tipos de ruta (.next/types)
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 224 tests (unit + property-based + smoke con jsdom)
+npm test                     # 229 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
@@ -326,6 +346,10 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 ---
 
 ## 6. Historial de correcciones a este documento
+
+- **7 sep 2026 (noche)**: segundo log de tests en local. Dos fallos reales confirmados y corregidos (§2.17): import estático de una ruta con `[id]` fallando en `datetimeLocal.test.ts` (pasado a import dinámico, igual que el resto), y un despiste propio — dos usos de una fecha ambigua sin `Z` que se me olvidaron actualizar en `publishActions.test.ts` al arreglar el bug de zona horaria de la tarde. El fallo de `updateSession` en `/api/admin/*` seguía igual pese al cambio anterior; investigado a fondo (código fuente real de `NextRequest`/`NextURL`), se descubrió que `request.url` tampoco es independiente de `NextURL` — de ahí que el primer "arreglo" no cambiara nada. Sigue sin reproducirse en el sandbox de la revisión; pedido borrar caché de Vite como diagnóstico antes de seguir adivinando a ciegas.
+
+- **7 sep 2026 (tarde)**: al ejecutar la suite en local (macOS, zona horaria España) aparecieron 4 tests en rojo que en el entorno de la revisión (UTC) pasaban — ver §2.16. Arreglado un bug real: "Programar" no convertía el `<input type="datetime-local">` a UTC antes de enviarlo, así que el servidor lo interpretaba con su propia zona horaria en vez de la del admin — con el hosting previsiblemente en UTC, una fecha pensada en Madrid podía leerse 1-2 horas antes o después. Arreglado convirtiendo en el navegador (`datetimeLocal.ts`), no en el servidor. El otro fallo (JSON 401/403 en `/api/admin/*`) no se pudo reproducir para confirmar la causa; el middleware se endureció de todos modos calculando el pathname con `URL` estándar en vez de `nextUrl.pathname`. 229/229 tests, resto de la verificación limpia.
 
 - **7 sep 2026**: jornada de auditoría y cierre de la Fase 2, en tres bloques.
 

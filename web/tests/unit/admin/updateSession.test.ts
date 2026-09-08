@@ -18,7 +18,7 @@ vi.mock('@supabase/ssr', () => ({
 }))
 
 function makeRequest(pathname: string) {
-  return new NextRequest(new URL(pathname, 'http://localhost:3000'))
+  return new NextRequest(new URL(pathname, 'http://localhost:3000').toString())
 }
 
 function withClaims(hasClaims: boolean) {

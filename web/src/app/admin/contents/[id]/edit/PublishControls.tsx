@@ -1,8 +1,10 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 
 import type { ContentStatus } from '@/modules/content/domain/contentRepository'
+
+import { localDateTimeToIsoUtc } from './datetimeLocal'
 
 import {
   publishContentAction,
@@ -48,6 +50,9 @@ export default function PublishControls({
     publishInitialState,
   )
 
+  const [rawPublishAt, setRawPublishAt] = useState('')
+  const isoPublishAt = localDateTimeToIsoUtc(rawPublishAt)
+
   return (
     <div>
       <p>
@@ -74,16 +79,19 @@ export default function PublishControls({
         <form action={scheduleAction}>
           <input type="hidden" name="id" value={contentId} />
 
-          <label htmlFor="publishAt">Programar para</label>
+          <input type="hidden" name="publishAt" value={isoPublishAt ?? ''} />
+
+          <label htmlFor="publishAt-input">Programar para</label>
 
           <input
-            id="publishAt"
-            name="publishAt"
+            id="publishAt-input"
             type="datetime-local"
             required
+            value={rawPublishAt}
+            onChange={(event) => setRawPublishAt(event.target.value)}
           />
 
-          <button type="submit" disabled={scheduling}>
+          <button type="submit" disabled={scheduling || !isoPublishAt}>
             {scheduling ? 'Programando...' : 'Programar'}
           </button>
 

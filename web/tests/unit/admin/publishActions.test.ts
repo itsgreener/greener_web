@@ -82,7 +82,7 @@ describe('scheduleContentAction', () => {
 
     vi.mocked(scheduleContent).mockResolvedValue(CONTENT_ID)
 
-    const future = new Date(Date.now() + 3_600_000).toISOString().slice(0, 16)
+    const future = new Date(Date.now() + 3_600_000).toISOString()
 
     const result = await scheduleContentAction(
       {},
@@ -99,7 +99,7 @@ describe('scheduleContentAction', () => {
     const { scheduleContent } =
       await import('@/modules/content/application/scheduleContent')
 
-    const past = new Date(Date.now() - 3_600_000).toISOString().slice(0, 16)
+    const past = new Date(Date.now() - 3_600_000).toISOString()
 
     const result = await scheduleContentAction(
       {},
@@ -120,7 +120,7 @@ describe('scheduleContentAction', () => {
       new Error('La fecha de publicación debe ser futura'),
     )
 
-    const future = new Date(Date.now() + 3_600_000).toISOString().slice(0, 16)
+    const future = new Date(Date.now() + 3_600_000).toISOString()
 
     const result = await scheduleContentAction(
       {},
