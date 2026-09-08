@@ -17,10 +17,24 @@ export const VIDEO_LIMITS = {
   recommendedCodec: 'h264',
 } as const
 
+/**
+ * Límite de duración específico del vídeo de un pin "animated" (§9.1: MP4
+ * + WebM, máximo 5 s, loop). Es un límite de negocio distinto al de
+ * VIDEO_LIMITS.maxDurationSeconds (180 s, vídeo de un bloque de
+ * contenido) — un pin animado es un loop corto tipo GIF, no el vídeo de
+ * un caso. El tamaño en bytes sí reutiliza VIDEO_LIMITS.maxSizeBytes: un
+ * clip de 5 s nunca se acerca a 100 MB, así que un límite propio no
+ * aporta nada.
+ */
+export const PIN_ANIMATION_LIMITS = {
+  maxDurationSeconds: 5,
+} as const
+
 export type MediaValidationError =
   | { code: 'IMAGE_TOO_LARGE'; maxBytes: number }
   | { code: 'VIDEO_TOO_LARGE'; maxBytes: number }
   | { code: 'VIDEO_TOO_LONG'; maxSeconds: number }
+  | { code: 'ANIMATION_TOO_LONG'; maxSeconds: number }
 
 /**
  * Valida un original de imagen contra el límite de subida (5 MB).
@@ -51,6 +65,26 @@ export function validateVideoUpload(
     return {
       code: 'VIDEO_TOO_LONG',
       maxSeconds: VIDEO_LIMITS.maxDurationSeconds,
+    }
+  }
+  return null
+}
+
+/**
+ * Valida un vídeo de pin "animated" contra el tamaño general de vídeo y
+ * el límite de duración propio de una animación (5 s), no el de 180 s.
+ */
+export function validatePinAnimationUpload(
+  sizeBytes: number,
+  durationSeconds: number,
+): MediaValidationError | null {
+  if (sizeBytes > VIDEO_LIMITS.maxSizeBytes) {
+    return { code: 'VIDEO_TOO_LARGE', maxBytes: VIDEO_LIMITS.maxSizeBytes }
+  }
+  if (durationSeconds > PIN_ANIMATION_LIMITS.maxDurationSeconds) {
+    return {
+      code: 'ANIMATION_TOO_LONG',
+      maxSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
     }
   }
   return null

@@ -1,0 +1,164 @@
+import { createClient } from '@/lib/supabase/server'
+
+import type { PinRepository, PinListItem } from '../domain/pinRepository'
+import type {
+  CreatePinInput,
+  DeletePinInput,
+  UpdatePinInput,
+} from '../domain/pinSchema'
+
+function createRepositoryError(message: string, code?: string) {
+  const error = new Error(message) as Error & {
+    code?: string
+  }
+
+  error.code = code
+
+  return error
+}
+
+type SupabasePinRow = {
+  id: string
+  content_id: string
+  type: PinListItem['type']
+  ratio: string
+  label: string
+  cta: string | null
+  language: string
+  autoplay_mode: PinListItem['autoplayMode']
+  speed_ms: number | null
+  queue_order: number
+  alt: string
+  created_at: string
+  pin_media: Array<{
+    media_id: string
+    slide_order: number
+    media_asset: {
+      kind: 'image' | 'video'
+      cloudinary_public_id: string
+    } | null
+  }>
+}
+
+function mapPin(row: SupabasePinRow): PinListItem {
+  return {
+    id: row.id,
+    contentId: row.content_id,
+    type: row.type,
+    ratio: row.ratio,
+    label: row.label,
+    cta: row.cta,
+    language: row.language,
+    autoplayMode: row.autoplay_mode,
+    speedMs: row.speed_ms,
+    queueOrder: row.queue_order,
+    alt: row.alt,
+    createdAt: row.created_at,
+    media: row.pin_media
+      .filter((pm) => pm.media_asset !== null)
+      .map((pm) => ({
+        id: pm.media_id,
+        kind: pm.media_asset!.kind,
+        cloudinaryPublicId: pm.media_asset!.cloudinary_public_id,
+        slideOrder: pm.slide_order,
+      }))
+      .sort((a, b) => a.slideOrder - b.slideOrder),
+  }
+}
+
+export const supabasePinRepository: PinRepository = {
+  async listByContentId(contentId: string) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('pin')
+      .select(
+        `
+        id,
+        content_id,
+        type,
+        ratio,
+        label,
+        cta,
+        language,
+        autoplay_mode,
+        speed_ms,
+        queue_order,
+        alt,
+        created_at,
+        pin_media (
+          media_id,
+          slide_order,
+          media_asset ( kind, cloudinary_public_id )
+        )
+      `,
+      )
+      .eq('content_id', contentId)
+      .order('queue_order', { ascending: true })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return (data as unknown as SupabasePinRow[]).map(mapPin)
+  },
+
+  async create(input: CreatePinInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('create_pin', {
+      p_content_id: input.contentId,
+      p_type: input.type,
+      p_ratio: input.ratio,
+      p_label: input.label,
+      p_cta: input.cta ?? null,
+      p_language: input.language,
+      p_autoplay_mode: input.autoplayMode ?? null,
+      p_speed_ms: input.speedMs ?? null,
+      p_queue_order: input.queueOrder,
+      p_alt: input.alt,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+
+  async update(input: UpdatePinInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('update_pin', {
+      p_pin_id: input.id,
+      p_ratio: input.ratio,
+      p_label: input.label,
+      p_cta: input.cta ?? null,
+      p_language: input.language,
+      p_autoplay_mode: input.autoplayMode ?? null,
+      p_speed_ms: input.speedMs ?? null,
+      p_queue_order: input.queueOrder,
+      p_alt: input.alt,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+
+  async delete(input: DeletePinInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('delete_pin', {
+      p_pin_id: input.id,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data as string
+  },
+}

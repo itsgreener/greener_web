@@ -10,6 +10,10 @@ import { getContentTranslations } from '@/modules/content/application/getContent
 
 import { getContentBlocks } from '@/modules/content/application/getContentBlocks'
 
+import { listHtmlPackageVersions } from '@/modules/packages/application/listHtmlPackageVersions'
+
+import { listPins } from '@/modules/pin/application/listPins'
+
 import EditContentForm from './EditContentForm'
 
 import ContentTranslations from './ContentTranslations'
@@ -17,6 +21,14 @@ import ContentTranslations from './ContentTranslations'
 import CaseDetailForm from './CaseDetailForm'
 
 import ContentBlocks from './ContentBlocks'
+
+import PackageUpload from './PackageUpload'
+
+import PinList from './PinList'
+
+import NewPinForm from './NewPinForm'
+
+import BulkPinUpload from './BulkPinUpload'
 
 import DeleteContentButton from './DeleteContentButton'
 
@@ -38,14 +50,24 @@ export default async function EditContentPage({ params }: Props) {
   }
 
   const supportsBlocks = content.type === 'case' || content.type === 'page'
+  const supportsPackage = content.type === 'tool' || content.type === 'insight'
 
-  const [translations, caseDetail, blocks] = await Promise.all([
-    getContentTranslations(content.id),
+  const [translations, caseDetail, blocks, packageVersions, pins] =
+    await Promise.all([
+      getContentTranslations(content.id),
 
-    content.type === 'case' ? getCaseDetail(content.id) : Promise.resolve(null),
+      content.type === 'case'
+        ? getCaseDetail(content.id)
+        : Promise.resolve(null),
 
-    supportsBlocks ? getContentBlocks(content.id) : Promise.resolve([]),
-  ])
+      supportsBlocks ? getContentBlocks(content.id) : Promise.resolve([]),
+
+      supportsPackage
+        ? listHtmlPackageVersions(content.id)
+        : Promise.resolve([]),
+
+      listPins(content.id),
+    ])
 
   return (
     <main>
@@ -101,6 +123,26 @@ export default async function EditContentPage({ params }: Props) {
           />
         </>
       )}
+
+      {supportsPackage && (
+        <>
+          <hr />
+
+          <h2>Paquete HTML</h2>
+
+          <PackageUpload contentId={content.id} versions={packageVersions} />
+        </>
+      )}
+
+      <hr />
+
+      <h2>Pines</h2>
+
+      <PinList contentId={content.id} pins={pins} />
+
+      <NewPinForm contentId={content.id} />
+
+      <BulkPinUpload contentId={content.id} />
 
       <hr />
 

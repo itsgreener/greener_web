@@ -11,6 +11,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    serverActions: {
+      // Por defecto 1 MB — insuficiente para un ZIP de tool/insight. 20 MB
+      // coincide con PACKAGE_LIMITS.maxZipSizeBytes (modules/packages/domain/
+      // packageLimits.ts); si esa cifra cambia, cambiar también aquí.
+      bodySizeLimit: '20mb',
+    },
+  },
 }
 
 export default nextConfig

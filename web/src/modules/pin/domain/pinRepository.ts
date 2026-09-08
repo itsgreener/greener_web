@@ -1,0 +1,37 @@
+import type {
+  CreatePinInput,
+  DeletePinInput,
+  PinType,
+  UpdatePinInput,
+} from './pinSchema'
+
+export type PinListItem = {
+  id: string
+  contentId: string
+  type: PinType
+  ratio: string
+  label: string
+  cta: string | null
+  language: string
+  autoplayMode: 'viewport' | 'hover' | null
+  speedMs: number | null
+  queueOrder: number
+  alt: string
+  createdAt: string
+  media: Array<{
+    id: string
+    kind: 'image' | 'video'
+    cloudinaryPublicId: string
+    slideOrder: number
+  }>
+}
+
+export interface PinRepository {
+  listByContentId(contentId: string): Promise<PinListItem[]>
+
+  create(input: CreatePinInput): Promise<string>
+
+  update(input: UpdatePinInput): Promise<string>
+
+  delete(input: DeletePinInput): Promise<string>
+}

@@ -16,10 +16,8 @@ function contentTypeFor(filename: string): string {
 }
 
 /**
- * Sirve los assets de una tool (CSS, JS, el Worker) bajo su propia ruta,
- * mismo origen (arquitectura §12.1). El Content-Type correcto es
- * imprescindible: un worker.js servido con MIME incorrecto no arranca en
- * la mayoría de navegadores.
+ * Sirve los assets de un insight bajo su propia ruta, mismo origen
+ * (§12.1) — copia deliberada de la de tools, ver route.ts del padre.
  */
 export async function GET(
   _request: NextRequest,
@@ -28,7 +26,7 @@ export async function GET(
   const { slug, file } = await params
 
   try {
-    const contents = await getStoragePackageAsset('tool', slug, file)
+    const contents = await getStoragePackageAsset('insight', slug, file)
     const filename = file[file.length - 1] ?? ''
 
     return new NextResponse(new Uint8Array(contents), {

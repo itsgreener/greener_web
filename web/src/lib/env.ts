@@ -19,6 +19,9 @@ const envSchema = z.object({
   // Google OAuth (login del ABM vía Supabase Auth, restringido por dominio — arquitectura §15.2)
   ADMIN_ALLOWED_DOMAIN_FALLBACK: z.string().min(1).optional(),
 
+  // Escaneo antivirus de paquetes ZIP subidos (arquitectura §12.5)
+  CLOUDMERSIVE_API_KEY: z.string().min(1),
+
   // Site
   NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
 })

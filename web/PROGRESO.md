@@ -4,7 +4,7 @@ Este documento resume, paso a paso, todo lo construido hasta ahora en el reposit
 
 Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md` — a partir de ahora este es el único documento de estado. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado (ya ha pasado una vez — ver §6).
 
-Todas las referencias `§X` apuntan a secciones del documento de arquitectura. Última revisión: 7 de septiembre de 2026, verificada ejecutando el código real (no solo por lectura).
+Todas las referencias `§X` apuntan a secciones del documento de arquitectura. Última revisión: 9 de septiembre de 2026 (jornada completa), verificada ejecutando el código real (no solo por lectura).
 
 ---
 
@@ -16,13 +16,17 @@ La **Fase 0** del plan de ejecución (Anexo E) está completa: el motor de feed 
 
 **Novedad del 7 de septiembre**: jornada de auditoría y cierre de la Fase 2, en tres bloques — (1) auditoría completa del CRUD/ABM/medios de agosto, con 95 tests nuevos y cinco correcciones reales (§2.14): auditoría que faltaba en dos funciones de mutación, versión de Node revertida por error, `Prettier` sin configurar (368 ficheros desalineados), medios huérfanos al sustituir imagen/vídeo, y límites de medios duplicados en tres sitios — de paso se destapó y cerró un hueco real: `register_image_for_block` no tenía tope de tamaño en SQL, a diferencia de vídeo; (2) login del ABM revisado y testeado por primera vez, con el middleware endurecido para cubrir también las rutas `/api/admin/*` (§2.9); (3) implementados los estados editoriales `draft`/`scheduled`/`published` en el ABM, con publicar-ahora, programar y despublicar (§2.15) — el cuarto estado, **preview firmado, queda deliberadamente aplazado a la Fase 3**, porque no existe todavía ninguna plantilla pública sobre la que montarlo.
 
-Todo el housekeeping técnico detectado en la auditoría del 18 de agosto sigue resuelto y reverificado. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), y los límites/plan de medios (§2.6). Quedan abiertas, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y un par de auditorías menores (ver §5).
+**Novedad del 8 de septiembre**: subida real de paquetes HTML de tools/insights (§2.18) — sustituye `fixtures/` por Supabase Storage, con validación completa del contrato de paquete (estructura, zip-slip, symlinks, manifest, allowlist de dominios externos) y versionado con publicación/rollback. De paso, `/insights/[slug]` pasa a existir como ruta pública — antes solo estaba construida `/tools/[slug]`. Dos huecos quedaron documentados y abiertos ese día: sin escaneo antivirus del ZIP, y el límite de tamaño (20 MB) sin confirmar por Greener.
+
+**Novedad del 9 de septiembre**: jornada de cierre de la Fase 2 al completo, en tres bloques. (1) Los dos huecos de ayer, cerrados (§2.19): escaneo antivirus con Cloudmersive (bloqueante: si el servicio falla o no confirma explícitamente que el archivo está limpio, la subida se rechaza) — se descartó VirusTotal por límite de peticiones por minuto y por licencia no apta para uso comercial — y el límite de 20 MB confirmado como definitivo, no solo de partida. (2) Subida de pines, alta individual (§2.20): crear/editar/borrar y subir su imagen, vídeo animado o carrusel, reutilizando por completo la infraestructura de Cloudinary ya construida para bloques de contenido. (3) Carga masiva de pines por CSV (§2.21): varios archivos + plantilla CSV opcional, tabla editable de excepciones, subida secuencial con error por archivo sin tumbar el lote. **Con esto, la Fase 2 del checklist (§4.3) queda completa del todo** — el único ítem que sigue abierto de los que empezaron en esa fase es el preview firmado, aplazado a la Fase 3 a propósito por falta de plantilla pública (§2.15).
+
+Todo el housekeeping técnico detectado en la auditoría del 18 de agosto sigue resuelto y reverificado. De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 (ratios del feed), la permanencia de `'shop'` como hueco reservado, el alcance de dominios del ABM (3, no 1), los límites/plan de medios (§2.6), y el escaneo antivirus/tamaño de ZIP (§2.19). Queda abierto, sin urgencia técnica, el repertorio de bloques de caso (depende de diseño) y el mecanismo de publicación automática al llegar `publish_at` (ver §5).
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **229 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos + 20 del login/proxy + 20 de los estados editoriales + 5 del bug de zona horaria (§2.16).
+- **341 tests automáticos, todos en verde** (`npm test`) — 76 previos + 95 de la auditoría de content/media/ABM (7 sep) + 13 del borrado de medios huérfanos + 20 del login/proxy + 20 de los estados editoriales + 5 del bug de zona horaria + 32 de la subida real de paquetes HTML (8 sep) + 10 del escaneo antivirus + 55 de la subida de pines + 16 de la carga masiva por CSV (9 sep).
 - **0 errores de TypeScript**, **0 avisos de ESLint**, **`npm run format:check` en verde en los 368 ficheros del repo** (antes de hoy, nunca se había verificado formalmente), **build de producción limpio** (`npm run build`).
-- **21 migraciones SQL** de Supabase (8 del esquema base + 9 del CRUD/ABM/medios de agosto + 4 de hoy: auditoría, medios huérfanos, tope de imagen y estados editoriales), aplicadas y probadas contra una base de datos real.
+- **25 migraciones SQL** de Supabase (8 del esquema base + 9 del CRUD/ABM/medios de agosto + 4 de la auditoría/estados del 7 sep + 2 de la subida de paquetes HTML del 8 sep + 2 de la subida de pines del 9 sep), aplicadas y probadas contra una base de datos real.
 - **50 casos + 9 episodios** de datos de demostración, generados, cargados y validados contra Postgres real, y consumidos con éxito por el motor de feed real.
 
 ---
@@ -82,13 +86,15 @@ Implementado en `src/modules/feed/domain/` como módulo de dominio puro (sin dep
 
 **Dos bugs de diseño reales, encontrados por tests de propiedad y corregidos** durante la implementación original: reparto de cuotas sobre el total en vez del hueco que dejan los casos; redistribución cuando un tipo de contenido no tiene ningún pin en el universo.
 
-### 2.5 Tools/Insights sin iframe (completado y validado)
+### 2.5 Tools/Insights sin iframe (completado y validado) — spike de la Fase 0, ver §2.18 para la subida real
 
 Implementado en `src/modules/packages/` (domain/application/infrastructure, §24.4). Rutas servidas en `src/app/(public)/tools/[slug]/`, con CSP específico de ruta. Tool de ejemplo real (`fixtures/tools/pixel-palette/`): canvas + Web Worker + descarga — las tres capacidades de mayor riesgo de §22.
 
 **10 tests**: 6 sobre composición del documento, 4 ejecutando el `worker.js` real dentro de un sandbox de Node. Validado también por HTTP real (`next build` + `next start` + `curl`).
 
 **Problema real resuelto durante la implementación:** rutas relativas del paquete mal resueltas sin barra final en la URL — corregido inyectando `<base href>`.
+
+**Nota del 8 sep**: esto sigue siendo el spike de Fase 0 tal cual se construyó — la composición del documento (`composeToolDocument.ts`) no ha cambiado. Lo que sí cambió es de dónde vienen los bytes: las rutas en vivo ya no leen de `fixtures/` sino de Supabase Storage real (§2.18); `fixtures/tools/pixel-palette/` y `localPackageSource.ts` se quedan como estaban, sin usarse desde ninguna ruta activa, por si hace falta un ejemplo offline sin Supabase.
 
 ### 2.6 Política de medios (Cloudinary) — confirmada oficialmente el 19 ago
 
@@ -239,7 +245,80 @@ Segundo log de la misma máquina: dos fallos reales confirmados y corregidos, y 
 
 - **`datetimeLocal.test.ts` fallaba con "Cannot find package"**: usaba un `import` estático de una ruta con `[id]` en medio (`@/app/admin/contents/[id]/edit/datetimeLocal`). En esa máquina, el resolvedor de alias de Vite falla con imports **estáticos** de rutas con corchetes, pero no con `await import(...)` **dinámico** — que es justo el patrón que ya usaban `mediaActions.test.ts` y `publishActions.test.ts` sin problema. Arreglado pasando los cuatro tests a import dinámico.
 - **Despiste propio en `publishActions.test.ts`**: al arreglar el bug de zona horaria (§2.16) actualicé el test de `contentSchema.test.ts` pero se me olvidaron dos usos idénticos de la misma fecha ambigua (sin `Z`) en `publishActions.test.ts` — el mismo bug que acababa de documentar, colado en mi propio test. Corregido a `.toISOString()` completo en los tres sitios.
-- **`updateSession` con `/api/admin/*`: el "arreglo" anterior no arreglaba nada.** Al leer el código fuente real de `NextRequest` (`node_modules/next/dist/server/web/spec-extension/request.js`), `request.url` **tampoco** es independiente de `NextURL` — el getter devuelve `nextUrl.toString()`, así que `new URL(request.url).pathname` seguía pasando por el mismo análisis interno de `NextURL` (i18n, `basePath`, etc.) que `request.nextUrl.pathname`. De ahí que el resultado no cambiara ni un poco entre el primer y el segundo intento: no era que la solución estuviera mal pensada, es que no era una solución distinta. **Sigue sin reproducirse en el sandbox de la revisión.** Como diagnóstico más barato que seguir adivinando a ciegas, se ha pedido borrar la caché de Vite (`rm -rf node_modules/.vite`) antes de repetir, porque dos intentos de arreglo con resultado idéntico byte a byte es la firma típica de una caché de módulos que no se está invalidando al sobrescribir ficheros fuera del flujo normal de un editor/git. También se ha endurecido la construcción de `NextRequest` en el test (string en vez de objeto `URL`) por si acaso, aunque sin mucha confianza en que sea la causa real. **Pendiente de confirmación con el log completo si reaparece.**
+- **`updateSession` con `/api/admin/*`: el "arreglo" anterior no arreglaba nada.** Al leer el código fuente real de `NextRequest` (`node_modules/next/dist/server/web/spec-extension/request.js`), `request.url` **tampoco** es independiente de `NextURL` — el getter devuelve `nextUrl.toString()`, así que `new URL(request.url).pathname` seguía pasando por el mismo análisis interno de `NextURL` (i18n, `basePath`, etc.) que `request.nextUrl.pathname`. De ahí que el resultado no cambiara ni un poco entre el primer y el segundo intento: no era que la solución estuviera mal pensada, es que no era una solución distinta. **Se confirmó que era caché de Vite** (`node_modules/.vite`) sin invalidar tras sobrescribir ficheros fuera del flujo normal de un editor — al borrarla, el test pasó. Endurecida además la construcción de `NextRequest` en el test (string en vez de objeto `URL`), por higiene, aunque no era la causa real.
+
+---
+
+### 2.18 Subida real de paquetes HTML (§12.2, §12.5) — 8 sep
+
+Sustituye `fixtures/` por Supabase Storage real como fuente de tools/insights en producción, con validación completa del contrato de paquete en la subida. Cierra el ítem de checklist "Subida de paquetes HTML" de la Fase 2 (§4.3), y de paso el hueco de que `/insights/[slug]` no existía como ruta pública — solo `/tools/[slug]` estaba construida.
+
+**Esquema y RLS ya estaban listos desde el 6 de agosto** (`html_package`, `html_package_version`, con `html_package_public_read`/`html_package_version_public_read` filtrando por `status = 'published'`) — no hizo falta tocar el modelo de datos, solo construir el pipeline alrededor.
+
+- **Bucket de Storage** (`20260908090000_admin_html_package_storage_bucket.sql`): `html-packages`, **privado** — el navegador nunca habla con Storage directamente (§12.1), así que no hace falta política de lectura pública en `storage.objects`, solo escritura de administrador (`is_admin()`).
+- **Ciclo de vida de versión** (`20260908091500_admin_html_package_versions.sql`): `create_html_package_version` crea una versión en `draft` (nunca se hace pública sola); `publish_html_package_version` es la función que la hace la actual — la misma función sirve tanto para "publicar esta versión recién subida" como para "rollback a una versión antigua": ambas son, en la base de datos, exactamente la misma operación ("que la versión X sea la actual"), así que se implementaron como una sola función en vez de dos.
+- **Validación real del ZIP** (`src/modules/packages/infrastructure/zipValidation.ts`, nueva dependencia `adm-zip`): estructura (`index.html` en raíz, `manifest.json` válido contra un schema de zod), protección zip-slip (rutas `..`/absolutas), symlinks rechazados, límite de tamaño, y dos comprobaciones de contenido best-effort — sin Service Worker registrado y sin URLs absolutas a dominios fuera de `externalDomains` del manifest. **No es análisis de JS real**: es un escaneo de texto con regex, así que no detecta URLs construidas dinámicamente — mejor que nada, no una garantía completa, documentado como tal en el propio código.
+- **Antivirus/escaneo (§12.5): no implementado en su momento, cerrado el 9 sep — ver §2.19.**
+- **Límite de tamaño del ZIP: 20 MB, cifra provisional.** El brief deja este número expresamente sin cerrar (Anexo A.2: "Tamaño Límite operativo definido en la especificación del 15 de agosto" — nunca llegó). Fuente única en `PACKAGE_LIMITS.maxZipSizeBytes`; también hubo que subir `experimental.serverActions.bodySizeLimit` en `next.config.ts` (por defecto 1 MB, insuficiente), que tiene que mantenerse igual o mayor que esa cifra.
+- **`/insights/[slug]` y sus assets, nuevos** — hasta ahora solo existía `/tools/[slug]`. Son copias deliberadas del mismo contrato (§12: "el brief considera técnicamente equivalentes insights y tools... la diferencia es de negocio, no de aislamiento técnico"), con `'insight'` en vez de `'tool'` — no dos implementaciones distintas.
+- **Checksum del paquete: del contenido, no del ZIP en crudo.** `sha256` sobre las rutas+bytes de las entradas ya extraídas y ordenadas, no sobre el buffer del ZIP completo — dos ZIPs con el mismo contenido pueden diferir byte a byte por metadatos internos (fechas por entrada, por ejemplo), así que hashear el buffer habría dado checksums distintos para el "mismo" paquete según cómo se comprimiera.
+- **ABM**: `PackageUpload.tsx` + `packageActions.ts`, sección nueva en el editor de contenido (`page.tsx`) visible solo para `content.type === 'tool' | 'insight'` — subir ZIP, ver el listado de versiones con su estado, publicar una versión en borrador o volver a una anterior.
+
+**Al escribir los tests de `zipValidation.ts` aparecieron dos cosas que merece la pena dejar anotadas** (no son bugs del código, son sobre cómo hay que testear esto):
+
+- `adm-zip` **sanea las rutas al escribir** (`addFile('../fuera.txt', ...)` se guarda como `"fuera.txt"`) — un ZIP de prueba fabricado con la propia librería nunca contiene una ruta maliciosa de verdad, así que probar la protección zip-slip exige mutar `entryName` directamente sobre la entrada ya añadida, saltándose ese saneado.
+- Un relleno de prueba como `"a".repeat(...)` **comprime a casi nada** con DEFLATE — para probar el límite de tamaño hace falta relleno incompresible (`crypto.randomBytes`), si no el ZIP resultante nunca llega a pesar lo que el test pretende simular.
+
+**32 tests nuevos**: `manifestSchema.test.ts` (8), `zipValidation.test.ts` (12 — el más importante, construye ZIPs reales en memoria para cada caso), capa de aplicación (5) y los dos server actions (7). **261/261 tests, `format:check`/`lint`/`tsc`/`build` limpios.**
+
+---
+
+### 2.19 Escaneo antivirus con Cloudmersive — 9 sep
+
+Cierra el hueco de §12.5 que quedó documentado y sin resolver en §2.18. Decisión tomada con Greener: **Cloudmersive** (no VirusTotal — su API tiene límite por minuto y su licencia no permite uso comercial/en producto sin plan de pago), y **bloqueante**: si el servicio no responde, tarda, o no confirma explícitamente que el archivo está limpio, la subida se rechaza. Es la decisión contraria a la del borrado de medios huérfanos en Cloudinary (§2.14, ahí sí es best-effort) — la diferencia es que ahí lo que se arriesga al fallar en silencio es gasto de cuota, aquí sería publicar un archivo potencialmente malicioso.
+
+- **`src/modules/packages/infrastructure/cloudmersiveVirusScan.ts`**: una única llamada HTTP `multipart/form-data` al endpoint de Cloudmersive, con `fetch`/`FormData`/`Blob` nativos de Node — **sin el SDK oficial** (`cloudmersive-virus-api-client`) para no añadir una dependencia más por una sola llamada. `CLOUDMERSIVE_API_KEY` nueva en `env.ts` (validada, sin `NEXT_PUBLIC_`: el escaneo es 100% servidor) y en `env.local.example`.
+- Se engancha en `uploadHtmlPackage.ts` (aplicación) **después** de `validateHtmlPackageZip` y **antes** de subir nada a Storage — si el paquete ni siquiera tiene la estructura correcta, no tiene sentido gastar una llamada al escáner en él.
+- Se escanea el **ZIP completo en crudo**, no las entradas ya descomprimidas — es literalmente lo que pide §12.5 ("Escaneo del ZIP antes de publicar").
+- **Qué caza esto y qué no, para que quede explícito**: un escáner de firmas detecta malware "de catálogo" (un binario troyanizado, un exploit conocido) colado dentro del ZIP. No detecta que el propio admin escriba JavaScript malicioso a propósito — eso no es "virus" para un antivirus, es código que se ejecutará tal cual en el navegador de quien visite la tool, y ya está cubierto por otra capa (CSP por ruta, §17.1, y que solo 3 dominios de confianza pueden llegar a subir algo — `is_admin()` repetido en la función SQL, el server action, y el middleware). El escaneo cubre el escenario "una cuenta de alguno de esos 3 dominios se ve comprometida y sube algo infectado", no "el admin es la amenaza".
+- `packageActions.ts` distingue el mensaje de error de `VirusScanError` del de `PackageValidationError` — al admin le interesa saber si el problema es "el ZIP está mal formado" o "el ZIP está infectado", son cosas distintas de arreglar.
+
+**10 tests nuevos**: `cloudmersiveVirusScan.test.ts` (8 — limpio, infectado con nombre de virus, infectado sin detalle, HTTP no-ok, fallo de red, JSON inválido, `CleanResult` ausente tratado como no-limpio, y que la llamada lleva la Apikey y el multipart correctos), más uno en `applicationLayer.test.ts` (el escaneo bloquea antes de llegar al repositorio) y uno en `packageActions.test.ts` (mensaje específico de `VirusScanError`). **271/271 tests, `format:check`/`lint`/`tsc`/`build` limpios.**
+
+---
+
+### 2.20 Subida de pines (alta individual) — 9 sep
+
+Cierra el último ítem abierto de la Fase 2 (§4.3, §15.4). Alcance: **alta individual completa** (crear, editar, borrar, subir su medio); **carga masiva por CSV queda fuera de esta tanda**, tal como el propio brief la secuencia ("alta individual primero, CSV después, sin que esto bloquee el resto", §21.1) — no es un descarte, es seguir el orden que ya estaba escrito.
+
+- **`supabase/migrations/20260909090000_admin_pin_crud.sql`**: `create_pin`/`update_pin`/`delete_pin`. El tipo (`fixed`/`animated`/`carousel`) se bloquea tras crear — mismo criterio que `content` y `content_block`: el tipo determina qué medios admite el pin, cambiarlo a mitad de camino dejaría medios de un tipo que ya no aplica.
+- **`supabase/migrations/20260909091500_admin_pin_media.sql`**: `attach_pin_image`, `attach_pin_video`, `detach_pin_media`. `detach_pin_media` reutiliza el mismo mecanismo que `unlink_and_delete_media_asset` (§2.16): la FK de `pin_media.media_id` sin `ON DELETE CASCADE` hace fallar el borrado si el medio sigue en uso en otro sitio, sin tener que comprobarlo a mano.
+- **Decisión de diseño — pin animado, un solo vídeo**: §9.1 pide "MP4 + WebM, máximo 5 s... y poster" para un pin animado. En vez de exigir tres archivos por pin, se sube **un único vídeo** y se deja que Cloudinary resuelva el formato de entrega (`f_auto`) y el poster por transformación de URL — el mismo patrón ya usado para el vídeo de un bloque de contenido (§2.13) y coherente con el principio que se repite en toda la arquitectura ("Cloudinary resuelve por URL", §9.2). Es una lectura razonable del brief, no una desviación arbitraria, pero queda anotada aquí por si alguien esperaba ver dos archivos subidos.
+- **Límite de animación: 5 segundos, no 180.** Nuevo `PIN_ANIMATION_LIMITS` en `mediaLimits.ts` (junto a `IMAGE_LIMITS`/`VIDEO_LIMITS`, misma fuente única) y `validatePinAnimationUpload()` — un pin animado es un loop corto tipo GIF, no el vídeo de un caso; reutilizar el límite de 180 s habría sido un error real, no una simplificación razonable.
+- **Carrusel: hasta 8 imágenes** (`slideOrder` 0-7, `attachPinImageSchema` lo valida en el propio schema además de en SQL).
+- **Reutilización total de la infraestructura de Cloudinary que ya existía**: las rutas de firma (`/api/admin/media/sign`, `/api/admin/media/sign-video`) y el cliente de subida (`cloudinaryUpload.ts`) son genéricos — no hizo falta tocar ni una línea ahí para que sirvieran también para pines.
+- **`src/modules/pin/`**: domain (`pinSchema.ts`, `pinMediaSchema.ts`, interfaces `PinRepository`/`PinMediaRepository`), infrastructure (`supabasePinRepository.ts` — incluye el `select` anidado `pin → pin_media → media_asset` para listar con sus medios en una sola consulta —, `supabasePinMediaRepository.ts`), application (7 funciones finas, mismo patrón de siempre).
+- **ABM**: `pinActions.ts` (CRUD + adjuntar/quitar medios) + `NewPinForm.tsx` + `PinList.tsx` (listado, edición inline, borrado con confirmación) + `PinMediaManager.tsx` (imagen fija / vídeo animado / hasta 8 slides de carrusel, con el mismo criterio de borrar-antes-de-sustituir y warning no bloqueante en Cloudinary que ya se usa en bloques de contenido, §2.16). Sección nueva en el editor de contenido, visible para **todos** los tipos de contenido — los pines no son exclusivos de `case`/`page`, cualquier contenido puede tener los suyos (brief §2: "convertir cualquier pin en una posible puerta de entrada a Greener").
+
+**55 tests nuevos**: `pinSchema.test.ts` (15), `pinMediaSchema.test.ts` (11), `mediaLimits.test.ts` ampliado con `validatePinAnimationUpload` (5 más), capa de aplicación del módulo pin (11), y `pinActions.test.ts` (13). **326/326 tests, `format:check`/`lint`/`tsc`/`build` limpios.**
+
+**Pendiente en ese momento, cerrado a continuación (§2.21)**: carga masiva por CSV (§15.4 — alta, asociar a contenido, campos comunes, excepciones, errores por archivo, ~500 pines iniciales).
+
+---
+
+### 2.21 Carga masiva de pines por CSV — 9 sep, cierra la Fase 2
+
+Último ítem abierto de la Fase 2 (§4.3). Reutiliza al máximo lo ya construido: la subida a Cloudinary es la misma del alta individual (firma + subida directa desde el navegador), y el único código de servidor nuevo es una función que junta `create_pin` + `attach_pin_image` en una sola llamada.
+
+- **`src/modules/pin/domain/pinCsv.ts`**: parser de CSV propio, sin dependencia nueva (`papaparse` u otra) — el formato que hace falta soportar (cabecera + filas, comillas para escapar comas) no lo justifica. Alias de cabecera tolerantes (`queue_order`, `queueorder`, `queueOrder` → la misma clave); columnas desconocidas se ignoran en vez de romper la carga. **Bug real encontrado al escribir el test, no al usarlo**: la primera versión pasaba toda la cabecera a minúsculas (`queueOrder` → `queueorder`), perdiendo el campo en tiempo de ejecución porque el tipo `PinCsvRow` lo declaraba en camelCase — se corrigió con un mapeo explícito de alias antes de que llegara a ningún sitio que lo pudiera usar mal.
+- **Columnas del CSV**: `filename,label,cta,ratio,language,alt,queueOrder` — exactamente las que pide §15.4 ("rótulo, CTA, ratio, idioma, alt y queue_order"). El tipo no está en la lista del brief a propósito: la carga masiva es de imágenes (`fixed`), no de carruseles ni animaciones.
+- **`pinActions.ts` → `createPinWithImageAction`**: crea el pin y adjunta la imagen en una sola llamada de servidor, dado que el archivo ya se subió a Cloudinary desde el navegador. Si crear el pin falla, no se intenta nada más. Si el pin se crea pero adjuntar la imagen falla, **el pin no se pierde**: se devuelve su id igualmente para que el admin pueda localizarlo en el listado normal y subirle la imagen a mano, en vez de tener que repetir todo el lote.
+- **`BulkPinUpload.tsx`**: selección de varios archivos + CSV opcional → tabla editable (una fila por archivo, valores resueltos del CSV si hay match por nombre de archivo, si no de los "campos comunes" del formulario — ratio/idioma/orden de cola por defecto) → subida secuencial, no en paralelo (a propósito: un lote de cientos de archivos en paralelo satura la conexión del admin sin necesidad, y la carga masiva no es una ruta de latencia crítica) → estado por fila (pendiente/subiendo/hecho/error) sin que el fallo de un archivo detenga el resto del lote, tal como pide §15.4 explícitamente.
+- **Validación de fila antes de subir nada**: si a alguna fila le falta rótulo o alt, se avisa y no se empieza el lote — mejor que descubrirlo a mitad de 50 subidas.
+
+**16 tests nuevos**: `pinCsv.test.ts` (11 — parseo, comillas, comillas escapadas, filas sin filename descartadas, alias de cabecera, columnas desconocidas ignoradas) y 4 nuevos en `pinActions.test.ts` para `createPinWithImageAction` (éxito, datos de pin inválidos, fallo de `createPin`, y el caso del pin creado sin imagen). **341/341 tests, `format:check`/`lint`/`tsc`/`build` limpios.**
+
+**Con esto, la Fase 2 del checklist (§4.3) queda completa del todo** — sin ítems abiertos, incluida la carga masiva que había quedado pendiente.
 
 ---
 
@@ -251,7 +330,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier — nuevo desde el 7 sep, antes no se verificaba
 npx next build              # build de producción — genera también los tipos de ruta (.next/types)
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 229 tests (unit + property-based + smoke con jsdom)
+npm test                     # 341 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista)
 ```
 
@@ -292,8 +371,8 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 - [x] Autenticación Google OAuth vía Supabase Auth — **confirmada y testeada el 7 sep** (§2.9), 20 tests nuevos. Middleware endurecido para cubrir también `/api/admin/*`.
 - [x] CRUD de `content` y extensiones vía Server Actions + zod — **hecho (20-28 ago) y auditado con 95 tests el 7 sep** (§2.13, §2.14): borrador, edición, traducciones, bloques, case detail, e imagen/vídeo vía Cloudinary. El carrusel queda explícitamente para después.
-- [ ] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales) — sigue sin empezar; distinto de la subida de imagen/vídeo de bloques, que sí está hecha.
-- [ ] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/`.
+- [x] Subida de pines: alta individual, luego carga masiva por CSV (§15.4, ~500 pines iniciales) — **alta individual el 9 sep** (§2.20): crear/editar/borrar, imagen fija, vídeo animado (5 s), carrusel (hasta 8 slides). **Carga masiva por CSV cerrada el mismo día** (§2.21): varios archivos + CSV opcional, tabla editable, subida secuencial con error por archivo sin tumbar el lote.
+- [x] Subida de paquetes HTML (ZIP) con validaciones §12.5, sirviendo desde Supabase Storage real en vez de `fixtures/` — **hecho y testeado el 8 sep** (§2.18), completado del todo el 9 sep con el escaneo antivirus (§2.19): validación de estructura/zip-slip/symlinks/manifest, escaneo con Cloudmersive, versionado con publicación y rollback, `/insights/[slug]` construida de la nada junto con `/tools/[slug]`. Límite de 20 MB confirmado por Greener.
 - [~] Estados `draft`/`scheduled`/`published`/`preview` + preview firmado — **`draft`/`scheduled`/`published` hechos y testeados el 7 sep** (§2.15): publicar ahora, programar, despublicar. **`preview` aplazado a la Fase 3 a propósito** (decisión del 7 sep): no hay plantilla pública sobre la que montarlo todavía. Pendiente aparte, sin resolver hoy: no existe mecanismo de publicación automática cuando llega la fecha programada (`publish_at`) — hace falta decidir cron externo vs. `pg_cron` en Supabase antes de que el primer contenido programado se quede esperando sin publicarse solo.
 - [x] Cliente de Supabase browser/server extendido a `content`/`feed`/`media` — hecho como parte del CRUD (§2.13).
 - [x] `/api/feed/sessions` real (§16.1): sustituye a `/api/feed/demo` — **hecho y verificado E2E contra Supabase real el 20 ago** (§2.12).
@@ -307,7 +386,7 @@ Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arqu
 
 ### 4.5 Fase 4 (hasta el 22 de septiembre)
 
-- [ ] Insights y Tools en producción sobre Supabase Storage real.
+- [x] Insights y Tools en producción sobre Supabase Storage real — **hecho el 8-9 sep** (§2.18, §2.19), adelantado respecto al calendario original de esta fase.
 - [ ] Channel, con afinidad de episodios (§13.1).
 - [ ] Contacto y Mailchimp con doble opt-in.
 - [ ] Páginas legales.
@@ -337,6 +416,8 @@ Ninguna depende de escribir código — bloquean trabajo posterior si no se cier
 | Traducción asistida por IA en el ABM (opcional)                                         | Si se incluye en V1 o se deja fuera                     | Abierto, no bloqueante                                                                                                                                        |
 | Mecanismo de publicación automática al llegar `publish_at` (cron externo vs. `pg_cron`) | Que el contenido programado se publique solo            | Abierto — no bloquea usar el ABM hoy (publicar/programar/despublicar manual funciona), pero bloquea que "programar" cumpla su promesa sin intervención humana |
 
+Cerrada el 9 de septiembre: escaneo antivirus de los ZIP subidos (§12.5) — Cloudmersive, bloqueante, ver §2.19. Y el límite de tamaño del ZIP (Anexo A.1) — confirmados los 20 MB puestos como valor de partida.
+
 Cerrada el 7 de septiembre: preview firmado (§15.3) — se aplaza a la Fase 3, cuando exista una plantilla pública real sobre la que montarlo (§2.15). No es una decisión de Greener, es una secuenciación técnica.
 
 Cerradas el 18 de agosto: reasignación 5% Shop → Channel (ADR-11, 70/15/5/5/5); permanencia de `'shop'` en `tag_section` como hueco reservado (§2.3); alcance del dominio permitido en el ABM — **son 3 dominios reales, no uno**: `itsgreener.com`, `ffforward.ai`, `villamagia.com` (§4.1) — no sub-allowlist de contratistas, los 3 tienen el mismo nivel de acceso.
@@ -346,6 +427,14 @@ Cerradas el 19 de agosto: pesos/bitrates máximos de imagen y vídeo, y plan de 
 ---
 
 ## 6. Historial de correcciones a este documento
+
+- **9 sep 2026 (bloque 3)**: cerrada la carga masiva de pines por CSV (§2.21) — último ítem abierto de la Fase 2. Parser de CSV propio sin dependencia nueva, con un bug real corregido antes de que llegara a ningún sitio (cabecera pasada a minúsculas perdía `queueOrder`). `createPinWithImageAction` junta crear pin + adjuntar imagen en una llamada. Subida secuencial con error por archivo sin tumbar el lote. 16 tests nuevos, 341/341 en total. **La Fase 2 del checklist (§4.3) queda completa.**
+
+- **9 sep 2026 (bloque 2)**: cerrada la subida de pines — alta individual (§2.20). CRUD completo + imagen fija/vídeo animado/carrusel, reutilizando toda la infraestructura de Cloudinary ya construida para bloques de contenido. Decisión de diseño documentada: un pin animado se resuelve con un solo vídeo (Cloudinary negocia formato y poster por URL), no con tres archivos. Límite de animación propio de 5 s, distinto del de 180 s de vídeo de bloque. 55 tests nuevos, 326/326 en total. Carga masiva por CSV queda fuera, explícitamente pospuesta.
+
+- **9 sep 2026**: cerrados los dos huecos abiertos ayer en la subida de paquetes HTML — ver §2.19. Escaneo antivirus con Cloudmersive (decisión de Greener: se descartó VirusTotal por límite de peticiones por minuto y licencia no apta para uso comercial), bloqueante por ser una comprobación de seguridad, no de limpieza. Límite de 20 MB del ZIP confirmado como definitivo. 10 tests nuevos, 271/271 en total.
+
+- **8 sep 2026**: subida real de paquetes HTML — ver §2.18. Sustituye `fixtures/` por Supabase Storage como fuente de tools/insights en producción: bucket privado, validación completa del ZIP (estructura, zip-slip, symlinks, manifest, allowlist de dominios externos — esta última y la comprobación de Service Worker son escaneo de texto best-effort, no análisis real de JS), versionado con publicación y rollback (misma función para ambas), y `/insights/[slug]` construida desde cero junto con sus assets — antes solo existía `/tools/[slug]`. Dos huecos reales quedan documentados y sin resolver: no hay escaneo antivirus (§12.5 lo exige) y el límite de 20 MB del ZIP es un valor de partida, no una cifra confirmada por Greener. 32 tests nuevos, 261/261 en total.
 
 - **7 sep 2026 (noche)**: segundo log de tests en local. Dos fallos reales confirmados y corregidos (§2.17): import estático de una ruta con `[id]` fallando en `datetimeLocal.test.ts` (pasado a import dinámico, igual que el resto), y un despiste propio — dos usos de una fecha ambigua sin `Z` que se me olvidaron actualizar en `publishActions.test.ts` al arreglar el bug de zona horaria de la tarde. El fallo de `updateSession` en `/api/admin/*` seguía igual pese al cambio anterior; investigado a fondo (código fuente real de `NextRequest`/`NextURL`), se descubrió que `request.url` tampoco es independiente de `NextURL` — de ahí que el primer "arreglo" no cambiara nada. Sigue sin reproducirse en el sandbox de la revisión; pedido borrar caché de Vite como diagnóstico antes de seguir adivinando a ciegas.
 
