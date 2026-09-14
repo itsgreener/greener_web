@@ -5,7 +5,7 @@ export const contentTypeSchema = z.enum([
   'insight',
   'tool',
   'episode',
-  'page',
+  'other',
 ])
 
 export const localeSchema = z.enum(['es', 'en', 'ca'])

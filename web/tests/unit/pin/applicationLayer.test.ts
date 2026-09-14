@@ -27,10 +27,9 @@ beforeEach(() => {
 
 const validCreateInput = {
   contentId: CONTENT_ID,
-  type: 'fixed' as const,
   ratio: '1:1' as const,
   label: 'Pin de ejemplo',
-  cta: null,
+  showAsCarousel: true,
   language: 'es' as const,
   autoplayMode: null,
   speedMs: null,
@@ -68,7 +67,7 @@ describe('updatePin', () => {
     id: PIN_ID,
     ratio: '4:5' as const,
     label: 'Actualizado',
-    cta: null,
+    showAsCarousel: false,
     language: 'es' as const,
     autoplayMode: null,
     speedMs: null,
@@ -186,6 +185,7 @@ describe('attachPinVideo', () => {
     height: 1080,
     durationSeconds: 3,
     bytes: 2 * 1024 * 1024,
+    slideOrder: 0,
   }
 
   it('valida y delega en supabasePinMediaRepository.attachVideo', async () => {

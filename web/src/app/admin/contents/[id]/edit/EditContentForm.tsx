@@ -29,8 +29,8 @@ function getContentTypeLabel(type: ContentDetail['type']) {
     case 'episode':
       return 'Episode'
 
-    case 'page':
-      return 'Page'
+    case 'other':
+      return 'Other'
   }
 }
 

@@ -41,6 +41,7 @@ function EditPinForm({
         required
       >
         <option value="1:1">1:1</option>
+        <option value="4:3">4:3</option>
         <option value="4:5">4:5</option>
         <option value="3:4">3:4</option>
         <option value="2:3">2:3</option>
@@ -48,22 +49,26 @@ function EditPinForm({
         <option value="16:9">16:9</option>
       </select>
 
-      <label htmlFor={`label-${pin.id}`}>Rótulo</label>
+      <label htmlFor={`label-${pin.id}`}>
+        Rótulo (obligatorio salvo en Case/Episode)
+      </label>
       <input
         id={`label-${pin.id}`}
         name="label"
         type="text"
-        defaultValue={pin.label}
-        required
+        defaultValue={pin.label ?? ''}
       />
 
-      <label htmlFor={`cta-${pin.id}`}>CTA</label>
-      <input
-        id={`cta-${pin.id}`}
-        name="cta"
-        type="text"
-        defaultValue={pin.cta ?? ''}
-      />
+      <label htmlFor={`carousel-${pin.id}`}>
+        <input
+          id={`carousel-${pin.id}`}
+          name="showAsCarousel"
+          type="checkbox"
+          value="true"
+          defaultChecked={pin.showAsCarousel}
+        />
+        Mostrar como carrusel en el feed
+      </label>
 
       <label htmlFor={`language-${pin.id}`}>Idioma</label>
       <select
@@ -139,7 +144,7 @@ function DeletePinButton({
   async function handleClick() {
     if (
       !window.confirm(
-        `¿Borrar el pin "${pin.label}"? Esta acción no se puede deshacer.`,
+        `¿Borrar el pin "${pin.label ?? pin.id}"? Esta acción no se puede deshacer.`,
       )
     ) {
       return
@@ -178,11 +183,10 @@ export default function PinList({ contentId, pins }: Props) {
       <table>
         <thead>
           <tr>
-            <th>Tipo</th>
             <th>Rótulo</th>
             <th>Ratio</th>
             <th>Orden</th>
-            <th>Medio</th>
+            <th>Medios</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -190,13 +194,12 @@ export default function PinList({ contentId, pins }: Props) {
         <tbody>
           {pins.map((pin) => (
             <tr key={pin.id}>
-              <td>{pin.type}</td>
-              <td>{pin.label}</td>
+              <td>{pin.label ?? '—'}</td>
               <td>{pin.ratio}</td>
               <td>{pin.queueOrder}</td>
               <td>
-                {pin.media.length}
-                {pin.type === 'carousel' ? ' / 8' : ' / 1'}
+                {pin.media.length} / 8
+                {pin.showAsCarousel ? ' (carrusel)' : ' (tarjetas separadas)'}
               </td>
               <td>
                 <button
@@ -215,7 +218,7 @@ export default function PinList({ contentId, pins }: Props) {
 
           {pins.length === 0 && (
             <tr>
-              <td colSpan={6}>Todavía no hay pines para este contenido.</td>
+              <td colSpan={5}>Todavía no hay pines para este contenido.</td>
             </tr>
           )}
         </tbody>
@@ -227,11 +230,7 @@ export default function PinList({ contentId, pins }: Props) {
           <div key={pin.id}>
             <EditPinForm pin={pin} contentId={contentId} />
 
-            <PinMediaManager
-              pinId={pin.id}
-              pinType={pin.type}
-              media={pin.media}
-            />
+            <PinMediaManager pinId={pin.id} media={pin.media} />
           </div>
         ))}
     </div>

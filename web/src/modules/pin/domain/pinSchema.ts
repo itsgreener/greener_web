@@ -1,9 +1,11 @@
 import { z } from 'zod'
 
-export const pinTypeSchema = z.enum(['fixed', 'animated', 'carousel'])
-
+// especificacion-final-formato-detalle.md §4: lista cerrada de 7 ratios
+// (antes 6 — faltaba 4:3, que agrupa junto a 1:1 en el modelo de
+// columnas del §2).
 export const pinRatioSchema = z.enum([
   '1:1',
+  '4:3',
   '4:5',
   '3:4',
   '2:3',
@@ -18,14 +20,23 @@ export const pinAutoplayModeSchema = z.enum(['viewport', 'hover'])
 const pinCommonFields = {
   ratio: pinRatioSchema,
 
-  label: z.string().trim().min(1, 'El rótulo es obligatorio'),
-
-  cta: z
+  // §3 "Pin (todos los tipos)": obligatorio en tool/insight/libre,
+  // opcional (no se muestra) en caso/episodio — esa condición depende
+  // del tipo de contenido, así que aquí solo se valida la forma (texto
+  // o null); la obligatoriedad según el tipo la aplica la función SQL
+  // (create_pin/update_pin), que sí conoce content.type.
+  label: z
     .string()
     .trim()
     .transform((value) => (value === '' ? null : value))
     .nullable()
     .optional(),
+
+  // pin_type (fixed/animated/carousel) desaparece: un pin admite de 1 a
+  // 8 medios mixtos y este flag decide cómo se muestra en el feed —
+  // agrupado como una tarjeta con carrusel (true) o como tarjetas
+  // independientes, una por medio (false).
+  showAsCarousel: z.boolean(),
 
   language: pinLocaleSchema,
 
@@ -44,8 +55,6 @@ const pinCommonFields = {
 export const createPinSchema = z.object({
   contentId: z.string().uuid('El identificador del contenido no es válido'),
 
-  type: pinTypeSchema,
-
   ...pinCommonFields,
 })
 
@@ -59,7 +68,6 @@ export const deletePinSchema = z.object({
   id: z.string().uuid('El identificador del pin no es válido'),
 })
 
-export type PinType = z.infer<typeof pinTypeSchema>
 export type CreatePinInput = z.infer<typeof createPinSchema>
 export type UpdatePinInput = z.infer<typeof updatePinSchema>
 export type DeletePinInput = z.infer<typeof deletePinSchema>

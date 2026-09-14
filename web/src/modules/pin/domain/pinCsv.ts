@@ -10,7 +10,6 @@
 export type PinCsvRow = {
   filename: string
   label?: string
-  cta?: string
   ratio?: string
   language?: string
   alt?: string
@@ -58,7 +57,6 @@ function parseCsvLine(line: string): string[] {
 const COLUMN_ALIASES: Record<string, keyof PinCsvRow> = {
   filename: 'filename',
   label: 'label',
-  cta: 'cta',
   ratio: 'ratio',
   language: 'language',
   lang: 'language',

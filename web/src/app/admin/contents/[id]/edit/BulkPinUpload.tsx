@@ -27,7 +27,6 @@ type Row = {
   key: string
   file: File
   label: string
-  cta: string
   ratio: string
   language: string
   alt: string
@@ -36,7 +35,7 @@ type Row = {
   error?: string
 }
 
-const RATIOS = ['1:1', '4:5', '3:4', '2:3', '9:16', '16:9']
+const RATIOS = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
 const LANGUAGES = ['es', 'en', 'ca']
 
 function labelFromFilename(filename: string): string {
@@ -53,7 +52,6 @@ function buildRow(
     key: `${file.name}-${index}`,
     file,
     label: csvRow?.label || labelFromFilename(file.name),
-    cta: csvRow?.cta ?? '',
     ratio: csvRow?.ratio || defaults.ratio,
     language: csvRow?.language || defaults.language,
     alt: csvRow?.alt || labelFromFilename(file.name),
@@ -165,10 +163,9 @@ export default function BulkPinUpload({ contentId }: Props) {
 
         const result = await createPinWithImageAction({
           contentId,
-          type: 'fixed',
           ratio: row.ratio,
           label: row.label,
-          cta: row.cta || null,
+          showAsCarousel: true,
           language: row.language,
           autoplayMode: null,
           speedMs: null,
@@ -215,8 +212,7 @@ export default function BulkPinUpload({ contentId }: Props) {
       />
 
       <label htmlFor="bulk-csv">
-        Plantilla CSV (opcional):
-        filename,label,cta,ratio,language,alt,queueOrder
+        Plantilla CSV (opcional): filename,label,ratio,language,alt,queueOrder
       </label>
       <input
         id="bulk-csv"
@@ -283,7 +279,6 @@ export default function BulkPinUpload({ contentId }: Props) {
             <tr>
               <th>Archivo</th>
               <th>Rótulo</th>
-              <th>CTA</th>
               <th>Ratio</th>
               <th>Idioma</th>
               <th>Alt</th>
@@ -303,16 +298,6 @@ export default function BulkPinUpload({ contentId }: Props) {
                     disabled={uploading}
                     onChange={(event) =>
                       updateRow(row.key, { label: event.target.value })
-                    }
-                  />
-                </td>
-
-                <td>
-                  <input
-                    value={row.cta}
-                    disabled={uploading}
-                    onChange={(event) =>
-                      updateRow(row.key, { cta: event.target.value })
                     }
                   />
                 </td>

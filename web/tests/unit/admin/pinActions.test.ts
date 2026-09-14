@@ -56,8 +56,8 @@ describe('createPinAction', () => {
       CONTENT_ID,
       {},
       formData({
-        type: 'fixed',
         ratio: '1:1',
+        showAsCarousel: 'true',
         label: 'Pin',
         language: 'es',
         queueOrder: '0',
@@ -79,8 +79,8 @@ describe('createPinAction', () => {
       CONTENT_ID,
       {},
       formData({
-        type: 'fixed',
         ratio: '1:1',
+        showAsCarousel: 'true',
         label: 'Pin',
         language: 'es',
         queueOrder: '0',
@@ -107,6 +107,7 @@ describe('updatePinAction', () => {
       {},
       formData({
         ratio: '4:5',
+        showAsCarousel: 'false',
         label: 'Actualizado',
         language: 'es',
         queueOrder: '1',
@@ -129,6 +130,7 @@ describe('updatePinAction', () => {
       {},
       formData({
         ratio: '4:5',
+        showAsCarousel: 'false',
         label: 'Actualizado',
         language: 'es',
         queueOrder: '-1',
@@ -159,10 +161,9 @@ describe('deletePinAction', () => {
 describe('createPinWithImageAction', () => {
   const validInput = {
     contentId: CONTENT_ID,
-    type: 'fixed' as const,
     ratio: '1:1',
+    showAsCarousel: true,
     label: 'Pin de lote',
-    cta: null,
     language: 'es',
     autoplayMode: null,
     speedMs: null,
@@ -263,21 +264,21 @@ describe('attachPinImageAction', () => {
     expect(result).toEqual({ ok: true, mediaId: MEDIA_ID })
   })
 
-  it('traduce el error "ya tiene una imagen" al mensaje del dominio', async () => {
+  it('traduce el error de límite de 8 medios al mensaje del dominio', async () => {
     const { attachPinImageAction } =
       await import('@/app/admin/contents/[id]/edit/pinActions')
     const { attachPinImage } =
       await import('@/modules/pin/application/attachPinImage')
 
     vi.mocked(attachPinImage).mockRejectedValue(
-      new Error('Este pin ya tiene una imagen; bórrala antes de subir otra'),
+      new Error('Un pin admite hasta 8 medios'),
     )
 
     const result = await attachPinImageAction(validInput)
 
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.error).toContain('ya tiene una imagen')
+      expect(result.error).toContain('admite hasta 8 medios')
     }
   })
 
@@ -303,6 +304,7 @@ describe('attachPinVideoAction', () => {
     height: 1080,
     durationSeconds: 3,
     bytes: 2 * 1024 * 1024,
+    slideOrder: 0,
   }
 
   it('con datos válidos, adjunta y devuelve ok', async () => {

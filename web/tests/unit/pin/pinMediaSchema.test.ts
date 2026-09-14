@@ -59,13 +59,23 @@ describe('attachPinVideoSchema', () => {
     height: 1080,
     durationSeconds: 3,
     bytes: 2 * 1024 * 1024,
+    slideOrder: 0,
   }
 
   it('acepta una animación válida', () => {
     expect(attachPinVideoSchema.safeParse(base).success).toBe(true)
   })
 
-  it('rechaza más de 5 segundos — límite propio de animación de pin, no los 180s de vídeo de bloque', () => {
+  it('rechaza slideOrder fuera de 0-7 — mismo rango que la imagen ahora que pin_type desaparece (especificacion-final-formato-detalle.md §3, §6)', () => {
+    expect(
+      attachPinVideoSchema.safeParse({ ...base, slideOrder: 8 }).success,
+    ).toBe(false)
+    expect(
+      attachPinVideoSchema.safeParse({ ...base, slideOrder: -1 }).success,
+    ).toBe(false)
+  })
+
+  it('rechaza más de 5 segundos — límite propio de la animación de pin, no los 180s de un vídeo de caso', () => {
     expect(
       attachPinVideoSchema.safeParse({ ...base, durationSeconds: 6 }).success,
     ).toBe(false)
@@ -77,7 +87,7 @@ describe('attachPinVideoSchema', () => {
     ).toBe(true)
   })
 
-  it('redondea la duración hacia arriba, igual que el vídeo de bloque', () => {
+  it('redondea la duración hacia arriba, igual que el vídeo del carrusel de caso', () => {
     const result = attachPinVideoSchema.safeParse({
       ...base,
       durationSeconds: 4.2,

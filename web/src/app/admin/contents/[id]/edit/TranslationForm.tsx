@@ -15,6 +15,7 @@ type Props = {
   contentId: string
   locale: Locale
   translation: ContentTranslation | null
+  showHighlightAndBody: boolean
 }
 
 const initialState: TranslationActionState = {}
@@ -36,6 +37,7 @@ export default function TranslationForm({
   contentId,
   locale,
   translation,
+  showHighlightAndBody,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     saveTranslationAction,
@@ -94,6 +96,34 @@ export default function TranslationForm({
           defaultValue={translation?.summary ?? ''}
         />
       </div>
+
+      {showHighlightAndBody && (
+        <>
+          <div>
+            <label htmlFor={`highlight-${locale}`}>
+              Highlight (subtítulo / cita destacada)
+            </label>
+
+            <input
+              id={`highlight-${locale}`}
+              name="highlight"
+              type="text"
+              defaultValue={translation?.highlight ?? ''}
+            />
+          </div>
+
+          <div>
+            <label htmlFor={`body-${locale}`}>Body</label>
+
+            <textarea
+              id={`body-${locale}`}
+              name="body"
+              rows={8}
+              defaultValue={translation?.body ?? ''}
+            />
+          </div>
+        </>
+      )}
 
       {state.formError && <p>{state.formError}</p>}
 

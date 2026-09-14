@@ -7,15 +7,25 @@ import type {
   FeedSnapshot,
 } from '../domain/types'
 
+export interface FeedItemMedia {
+  kind: 'image' | 'video'
+  cloudinaryPublicId: string
+}
+
 export interface PinDirectoryEntry {
   contentId: string
-  contentType: 'case' | 'insight' | 'tool' | 'episode' | 'page'
+  contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
   contentSlug: string
   ratio: string
-  label: string
-  cta: string | null
+  // §3 "Pin (todos los tipos)": obligatorio en tool/insight/libre,
+  // opcional (no se muestra) en caso/episodio.
+  label: string | null
   alt: string
-  cloudinaryPublicId: string
+  // 1 elemento en el caso normal; más de uno solo cuando el pin se
+  // agrupa como carrusel (show_as_carousel = true) — si está
+  // desactivado, cada medio ya llega aquí como su propia entrada de
+  // directorio (ver buildFeedUnitsForPin).
+  media: FeedItemMedia[]
 }
 
 export interface FeedDataset {
@@ -28,7 +38,7 @@ const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
   insight: 'insights',
   tool: 'tools',
   episode: 'channel',
-  page: 'other',
+  other: 'other',
 }
 
 interface ContentRow {
@@ -42,14 +52,91 @@ interface ContentRow {
 interface PinRow {
   id: string
   ratio: string
-  label: string
-  cta: string | null
+  label: string | null
   alt: string
   queue_order: number
+  show_as_carousel: boolean
   pin_media: {
+    media_id: string
     slide_order: number
-    media_asset: { cloudinary_public_id: string } | null
+    media_asset: {
+      kind: 'image' | 'video'
+      cloudinary_public_id: string
+    } | null
   }[]
+}
+
+const PIN_SELECT = `
+  id, ratio, label, alt, queue_order, show_as_carousel,
+  pin_media (
+    media_id,
+    slide_order,
+    media_asset ( kind, cloudinary_public_id )
+  )
+`
+
+/**
+ * Expande un pin en una o varias "unidades" seleccionables por el motor
+ * de feed (especificacion-final-formato-detalle.md §3, §6): un pin con
+ * show_as_carousel=true (o con un único medio) es una sola unidad —
+ * unitId = pin.id — que lleva todos sus medios para que el cliente
+ * pinte un carrusel real. Un pin con show_as_carousel=false y más de un
+ * medio se reparte en tantas unidades como medios tenga —
+ * unitId = `${pin.id}::${media_id}` — cada una con un único medio, para
+ * que el motor de feed (que ya trata cada unidad como un id de texto
+ * opaco, domain/types.ts) las seleccione y separe de forma independiente.
+ *
+ * Pines sin ningún medio listo no producen ninguna unidad (§8.2: "el pin
+ * necesita al menos un medio listo").
+ */
+export function buildFeedUnitsForPin(
+  pin: PinRow,
+  content: { id: string; type: string; slug: string },
+): { unitId: string; entry: PinDirectoryEntry }[] {
+  const media = [...pin.pin_media]
+    .sort((a, b) => a.slide_order - b.slide_order)
+    .filter((pm) => pm.media_asset !== null)
+    .map((pm) => ({
+      mediaId: pm.media_id,
+      kind: pm.media_asset!.kind,
+      cloudinaryPublicId: pm.media_asset!.cloudinary_public_id,
+    }))
+
+  if (media.length === 0) return []
+
+  const contentType = content.type as PinDirectoryEntry['contentType']
+
+  const base = {
+    contentId: content.id,
+    contentType,
+    contentSlug: content.slug,
+    ratio: pin.ratio,
+    label: pin.label,
+    alt: pin.alt,
+  }
+
+  if (pin.show_as_carousel || media.length === 1) {
+    return [
+      {
+        unitId: pin.id,
+        entry: {
+          ...base,
+          media: media.map((m) => ({
+            kind: m.kind,
+            cloudinaryPublicId: m.cloudinaryPublicId,
+          })),
+        },
+      },
+    ]
+  }
+
+  return media.map((m) => ({
+    unitId: `${pin.id}::${m.mediaId}`,
+    entry: {
+      ...base,
+      media: [{ kind: m.kind, cloudinaryPublicId: m.cloudinaryPublicId }],
+    },
+  }))
 }
 
 /**
@@ -77,17 +164,11 @@ export async function getFeedDataset(
       type,
       slug,
       case_detail ( force ),
-      pin (
-        id, ratio, label, cta, alt, queue_order,
-        pin_media (
-          slide_order,
-          media_asset ( cloudinary_public_id )
-        )
-      )
+      pin ( ${PIN_SELECT} )
     `,
     )
     .eq('status', 'published')
-    .in('type', ['case', 'insight', 'tool', 'episode', 'page'])
+    .in('type', ['case', 'insight', 'tool', 'episode', 'other'])
     .returns<ContentRow[]>()
 
   if (error) {
@@ -112,42 +193,26 @@ export async function getFeedDataset(
     const orderedPins = [...content.pin].sort(
       (a, b) => a.queue_order - b.queue_order,
     )
-    const pinIds: string[] = []
+    const unitIds: string[] = []
 
     for (const pin of orderedPins) {
-      // El pin necesita al menos un medio listo (slide_order 0 para el
-      // caso normal; para carruseles, el primero es el representativo en
-      // el feed — el resto de slides se sirven en el detalle, no aquí).
-      const primaryMedia = [...pin.pin_media].sort(
-        (a, b) => a.slide_order - b.slide_order,
-      )[0]
-      const cloudinaryPublicId = primaryMedia?.media_asset?.cloudinary_public_id
-      if (!cloudinaryPublicId) continue // pin sin medio listo: no se ofrece en el feed
-
-      pinIds.push(pin.id)
-      pinDirectory[pin.id] = {
-        contentId: content.id,
-        contentType: content.type as PinDirectoryEntry['contentType'],
-        contentSlug: content.slug,
-        ratio: pin.ratio,
-        label: pin.label,
-        cta: pin.cta,
-        alt: pin.alt,
-        cloudinaryPublicId,
+      for (const unit of buildFeedUnitsForPin(pin, content)) {
+        unitIds.push(unit.unitId)
+        pinDirectory[unit.unitId] = unit.entry
       }
     }
 
-    if (pinIds.length === 0) continue // sin pines servibles: no entra en el universo del feed
+    if (unitIds.length === 0) continue // sin unidades servibles: no entra en el universo del feed
 
     if (kind === 'cases') {
       const caseInput: CaseInput = {
         contentId: content.id,
-        pinIds,
+        pinIds: unitIds,
         force: content.case_detail?.force ?? 1,
       }
       snapshot.cases.push(caseInput)
     } else {
-      const queue: ContentPinQueue = { contentId: content.id, pinIds }
+      const queue: ContentPinQueue = { contentId: content.id, pinIds: unitIds }
       ;(snapshot[kind] as ContentPinQueue[]).push(queue)
     }
   }
@@ -155,38 +220,38 @@ export async function getFeedDataset(
   return { snapshot, pinDirectory }
 }
 
-interface PinLookupRow {
-  id: string
-  ratio: string
-  label: string
-  cta: string | null
-  alt: string
+interface PinLookupRow extends PinRow {
   content: { id: string; type: string; slug: string } | null
-  pin_media: {
-    slide_order: number
-    media_asset: { cloudinary_public_id: string } | null
-  }[]
 }
 
 /**
- * Enriquece una lista de pinIds ya decidida (por ejemplo, una ronda leída
- * de feed_round) sin releer todo el catálogo publicado — a diferencia de
- * getFeedDataset(), que sí necesita el universo completo para generar una
- * ronda nueva. Preserva el orden de `pinIds`, no el que devuelva Supabase.
+ * Enriquece una lista de unitIds ya decidida (por ejemplo, una ronda
+ * leída de feed_round) sin releer todo el catálogo publicado — a
+ * diferencia de getFeedDataset(), que sí necesita el universo completo
+ * para generar una ronda nueva. Preserva el orden de `unitIds`, no el
+ * que devuelva Supabase.
+ *
+ * Un unitId es o bien un pin.id (unidad = pin completo, posiblemente con
+ * varios medios agrupados en carrusel) o bien `${pin.id}::${media_id}`
+ * (unidad = un único medio de un pin con show_as_carousel=false) — el
+ * pin subyacente se extrae con el prefijo antes del "::" para poder
+ * consultarlo una sola vez por pin, aunque el mismo pin aporte varias
+ * unidades a la lista.
  */
 export async function getPinDirectoryByIds(
-  pinIds: string[],
+  unitIds: string[],
   client: SupabaseClient = createPublicReadClient(),
 ): Promise<Record<string, PinDirectoryEntry>> {
-  if (pinIds.length === 0) return {}
+  if (unitIds.length === 0) return {}
+
+  const pinIds = [...new Set(unitIds.map((id) => id.split('::')[0]))]
 
   const { data, error } = await client
     .from('pin')
     .select(
       `
-      id, ratio, label, cta, alt,
-      content ( id, type, slug ),
-      pin_media ( slide_order, media_asset ( cloudinary_public_id ) )
+      ${PIN_SELECT},
+      content ( id, type, slug )
     `,
     )
     .in('id', pinIds)
@@ -201,21 +266,8 @@ export async function getPinDirectoryByIds(
   const directory: Record<string, PinDirectoryEntry> = {}
   for (const pin of data ?? []) {
     if (!pin.content) continue
-    const primaryMedia = [...pin.pin_media].sort(
-      (a, b) => a.slide_order - b.slide_order,
-    )[0]
-    const cloudinaryPublicId = primaryMedia?.media_asset?.cloudinary_public_id
-    if (!cloudinaryPublicId) continue
-
-    directory[pin.id] = {
-      contentId: pin.content.id,
-      contentType: pin.content.type as PinDirectoryEntry['contentType'],
-      contentSlug: pin.content.slug,
-      ratio: pin.ratio,
-      label: pin.label,
-      cta: pin.cta,
-      alt: pin.alt,
-      cloudinaryPublicId,
+    for (const unit of buildFeedUnitsForPin(pin, pin.content)) {
+      directory[unit.unitId] = unit.entry
     }
   }
   return directory

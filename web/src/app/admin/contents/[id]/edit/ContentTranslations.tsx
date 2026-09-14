@@ -24,6 +24,12 @@ export default function ContentTranslations({
 }: Props) {
   const locales = contentType === 'episode' ? [defaultLocale] : allLocales
 
+  // especificacion-final-formato-detalle.md §3: highlight/body son
+  // campos propios del formato de detalle tipo B (caso/episodio) — el
+  // resto de tipos no los usa.
+  const showHighlightAndBody =
+    contentType === 'case' || contentType === 'episode'
+
   return (
     <div>
       {locales.map((locale) => {
@@ -36,6 +42,7 @@ export default function ContentTranslations({
             contentId={contentId}
             locale={locale}
             translation={translation}
+            showHighlightAndBody={showHighlightAndBody}
           />
         )
       })}

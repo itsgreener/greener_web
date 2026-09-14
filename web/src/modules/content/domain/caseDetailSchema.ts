@@ -1,11 +1,15 @@
 import { z } from 'zod'
 
-export const caseTemplateVariantSchema = z.enum(['A', 'B', 'C'])
-
+/**
+ * especificacion-final-formato-detalle.md §3, §6: template_variant,
+ * sector, services, year, credits y links desaparecen — "no tienen
+ * cabida en el nuevo diseño, no se arrastran como campos muertos". El
+ * formato de detalle se infiere siempre de content.type, nunca se
+ * elige. Solo quedan force (rotación de pines por tanda, brief §4.3) y
+ * client (texto libre no traducible).
+ */
 export const caseDetailSchema = z.object({
   contentId: z.string().uuid('El identificador del contenido no es válido'),
-
-  templateVariant: caseTemplateVariantSchema,
 
   force: z
     .number()
@@ -14,19 +18,7 @@ export const caseDetailSchema = z.object({
     .max(5, 'Force debe ser como máximo 5'),
 
   client: z.string().trim().nullable(),
-
-  sector: z.string().trim().nullable(),
-
-  services: z.string().trim().nullable(),
-
-  year: z.number().int().nullable(),
-
-  credits: z.array(z.unknown()),
-
-  links: z.array(z.unknown()),
 })
-
-export type CaseTemplateVariant = z.infer<typeof caseTemplateVariantSchema>
 
 export type CaseDetail = z.infer<typeof caseDetailSchema>
 

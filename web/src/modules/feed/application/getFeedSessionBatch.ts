@@ -9,6 +9,7 @@ import {
   getFeedDataset,
   getFeedConfig,
   getPinDirectoryByIds,
+  type FeedItemMedia,
   type PinDirectoryEntry,
 } from '../infrastructure/supabaseFeedSource'
 import { encodeCursor, decodeCursor } from '../infrastructure/cursor'
@@ -19,10 +20,10 @@ export interface FeedBatchItem {
   kind: string
   destination: string
   ratio: string
-  label: string
+  label: string | null
   cta: string | null
   alt: string
-  cloudinaryPublicId: string
+  media: FeedItemMedia[]
 }
 
 export interface FeedBatchResult {
@@ -47,54 +48,68 @@ export class InvalidFeedCursorError extends Error {
   }
 }
 
+// especificacion-final-formato-detalle.md §7: episode se unifica con
+// case bajo /work/[slug] (tipo B) — ya no tiene ruta propia /channel.
 function destinationFor(
   contentType: PinDirectoryEntry['contentType'],
   slug: string,
 ): string {
   switch (contentType) {
     case 'case':
-      return `/work/${slug}`
     case 'episode':
-      return `/channel/${slug}`
+      return `/work/${slug}`
     case 'tool':
       return `/tools/${slug}`
     case 'insight':
       return `/insights/${slug}`
-    case 'page':
-      // Mejor suposición: el Anexo B no fija una ruta /pages/[slug] propia
-      // para páginas sueltas — a confirmar cuando se construya esa ruta
-      // en la Fase 4 (arquitectura §14.3).
+    case 'other':
+      // Mejor suposición: la especificación no fija una ruta /other/[slug]
+      // propia — a confirmar cuando se construya esa ruta.
       return `/${slug}`
   }
 }
 
 function kindFor(contentType: PinDirectoryEntry['contentType']): string {
-  if (contentType === 'episode') return 'channel'
-  if (contentType === 'page') return 'other'
-  return contentType
+  return contentType === 'episode' ? 'channel' : contentType
+}
+
+// especificacion-final-formato-detalle.md §1: el CTA del pin en el feed
+// es fijo por tipo de contenido, no un texto libre por pin — pin.cta
+// desaparece del modelo (§3, "Pin (todos los tipos)" ya no lo lista).
+function ctaFor(contentType: PinDirectoryEntry['contentType']): string | null {
+  switch (contentType) {
+    case 'tool':
+      return 'Use'
+    case 'insight':
+      return 'Read'
+    case 'case':
+    case 'episode':
+    case 'other':
+      return 'Watch'
+  }
 }
 
 function enrich(
-  pinIds: string[],
+  unitIds: string[],
   directory: Record<string, PinDirectoryEntry>,
 ): FeedBatchItem[] {
-  return pinIds.map((pinId) => {
-    const meta = directory[pinId]
+  return unitIds.map((unitId) => {
+    const meta = directory[unitId]
     if (!meta) {
       throw new Error(
-        `Pin ${pinId} de la ronda no tiene entrada en el directorio — dataset inconsistente.`,
+        `Unidad ${unitId} de la ronda no tiene entrada en el directorio — dataset inconsistente.`,
       )
     }
     return {
-      pinId,
+      pinId: unitId,
       contentId: meta.contentId,
       kind: kindFor(meta.contentType),
       destination: destinationFor(meta.contentType, meta.contentSlug),
       ratio: meta.ratio,
       label: meta.label,
-      cta: meta.cta,
+      cta: ctaFor(meta.contentType),
       alt: meta.alt,
-      cloudinaryPublicId: meta.cloudinaryPublicId,
+      media: meta.media,
     }
   })
 }
@@ -153,12 +168,12 @@ export async function getFeedSessionBatch(
     roundIndex = payload.roundIndex
   }
 
-  let pinIds = await deps.getRound(sessionId, roundIndex)
+  let unitIds = await deps.getRound(sessionId, roundIndex)
   let directory: Record<string, PinDirectoryEntry>
 
-  if (pinIds) {
+  if (unitIds) {
     // Ronda ya calculada: solo hace falta enriquecer, no releer el catálogo entero.
-    directory = await deps.getDirectoryByIds(pinIds)
+    directory = await deps.getDirectoryByIds(unitIds)
   } else {
     // Ronda nueva: hace falta el universo completo para poder generarla.
     const [{ snapshot, pinDirectory }, { config }] = await Promise.all([
@@ -171,12 +186,12 @@ export async function getFeedSessionBatch(
       session.seed,
       roundIndex,
     )
-    pinIds = sequence.map((pin) => pin.pinId)
-    await deps.saveRound(sessionId, roundIndex, pinIds)
+    unitIds = sequence.map((pin) => pin.pinId)
+    await deps.saveRound(sessionId, roundIndex, unitIds)
     directory = pinDirectory
   }
 
-  const items = enrich(pinIds, directory)
+  const items = enrich(unitIds, directory)
   return {
     items,
     cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),

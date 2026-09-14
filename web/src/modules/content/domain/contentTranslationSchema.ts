@@ -14,6 +14,13 @@ export const contentTranslationSchema = z.object({
   seoDescription: z.string().trim().nullable(),
 
   summary: z.string().trim().nullable(),
+
+  // especificacion-final-formato-detalle.md §3: campos propios del
+  // formato de detalle tipo B (caso/episodio) — subtítulo/cita
+  // destacada y cuerpo de texto. Null para el resto de tipos.
+  highlight: z.string().trim().nullable(),
+
+  body: z.string().trim().nullable(),
 })
 
 export type ContentTranslation = z.infer<typeof contentTranslationSchema>

@@ -20,17 +20,10 @@ export default function NewPinForm({ contentId }: Props) {
     <form action={formAction}>
       <h3>Nuevo pin</h3>
 
-      <label htmlFor="pin-type">Tipo</label>
-      <select id="pin-type" name="type" required>
-        <option value="fixed">Imagen fija</option>
-        <option value="animated">Animación</option>
-        <option value="carousel">Carrusel</option>
-      </select>
-      {state.fieldErrors?.type?.[0] && <p>{state.fieldErrors.type[0]}</p>}
-
       <label htmlFor="pin-ratio">Ratio</label>
       <select id="pin-ratio" name="ratio" required>
         <option value="1:1">1:1</option>
+        <option value="4:3">4:3</option>
         <option value="4:5">4:5</option>
         <option value="3:4">3:4</option>
         <option value="2:3">2:3</option>
@@ -38,12 +31,23 @@ export default function NewPinForm({ contentId }: Props) {
         <option value="16:9">16:9</option>
       </select>
 
-      <label htmlFor="pin-label">Rótulo</label>
-      <input id="pin-label" name="label" type="text" required />
+      <label htmlFor="pin-label">
+        Rótulo (obligatorio salvo en Case/Episode)
+      </label>
+      <input id="pin-label" name="label" type="text" />
       {state.fieldErrors?.label?.[0] && <p>{state.fieldErrors.label[0]}</p>}
 
-      <label htmlFor="pin-cta">CTA (opcional)</label>
-      <input id="pin-cta" name="cta" type="text" />
+      <label htmlFor="pin-show-as-carousel">
+        <input
+          id="pin-show-as-carousel"
+          name="showAsCarousel"
+          type="checkbox"
+          value="true"
+          defaultChecked
+        />
+        Mostrar como carrusel en el feed (si no, cada medio se ofrece como
+        tarjeta independiente)
+      </label>
 
       <label htmlFor="pin-language">Idioma</label>
       <select id="pin-language" name="language" required>

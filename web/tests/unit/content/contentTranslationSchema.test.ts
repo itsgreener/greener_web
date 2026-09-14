@@ -11,6 +11,8 @@ describe('contentTranslationSchema', () => {
     seoTitle: null,
     seoDescription: null,
     summary: null,
+    highlight: null,
+    body: null,
   }
 
   it('acepta una traducción mínima con solo título', () => {
@@ -38,6 +40,20 @@ describe('contentTranslationSchema', () => {
     })
 
     expect(result.success).toBe(true)
+  })
+
+  it('acepta highlight/body explícitos — campos propios del formato tipo B (especificacion-final-formato-detalle.md §3)', () => {
+    const result = contentTranslationSchema.safeParse({
+      ...base,
+      highlight: 'Subtítulo destacado',
+      body: 'Cuerpo del caso o episodio',
+    })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.highlight).toBe('Subtítulo destacado')
+      expect(result.data.body).toBe('Cuerpo del caso o episodio')
+    }
   })
 
   it('rechaza un locale no soportado', () => {

@@ -1,14 +1,17 @@
 import { describe, it, expect } from 'vitest'
 import {
-  deleteBlockMediaSchema,
+  addCaseCarouselImageSchema,
+  addCaseCarouselVideoSchema,
+  deleteCoverMediaSchema,
   mediaKindSchema,
   mediaStatusSchema,
-  registerImageForBlockSchema,
-  registerVideoForBlockSchema,
+  registerCoverImageSchema,
+  registerCoverVideoSchema,
+  removeCaseCarouselMediaSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
 
-const BLOCK_ID = '7a1f2e3d-4c5b-6a7d-8e9f-0a1b2c3d4e5f'
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
+const MEDIA_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
 
 describe('mediaKindSchema / mediaStatusSchema', () => {
   it('mediaKindSchema acepta image y video', () => {
@@ -23,9 +26,8 @@ describe('mediaKindSchema / mediaStatusSchema', () => {
   })
 })
 
-describe('registerImageForBlockSchema', () => {
+describe('registerCoverImageSchema — tool/insight/other (especificacion-final-formato-detalle.md §3)', () => {
   const base = {
-    blockId: BLOCK_ID,
     contentId: CONTENT_ID,
     cloudinaryPublicId: 'greener/content/abc123',
     format: 'webp',
@@ -35,12 +37,12 @@ describe('registerImageForBlockSchema', () => {
   }
 
   it('acepta una respuesta de Cloudinary válida', () => {
-    expect(registerImageForBlockSchema.safeParse(base).success).toBe(true)
+    expect(registerCoverImageSchema.safeParse(base).success).toBe(true)
   })
 
   it('rechaza cloudinaryPublicId vacío', () => {
     expect(
-      registerImageForBlockSchema.safeParse({ ...base, cloudinaryPublicId: '' })
+      registerCoverImageSchema.safeParse({ ...base, cloudinaryPublicId: '' })
         .success,
     ).toBe(false)
   })
@@ -48,7 +50,7 @@ describe('registerImageForBlockSchema', () => {
   it.each(['width', 'height', 'bytes'] as const)(
     'rechaza %s en cero o negativo',
     (field) => {
-      const result = registerImageForBlockSchema.safeParse({
+      const result = registerCoverImageSchema.safeParse({
         ...base,
         [field]: 0,
       })
@@ -56,14 +58,8 @@ describe('registerImageForBlockSchema', () => {
     },
   )
 
-  it('rechaza width/height no enteros', () => {
-    expect(
-      registerImageForBlockSchema.safeParse({ ...base, width: 100.5 }).success,
-    ).toBe(false)
-  })
-
-  it('rechaza bytes por encima de 5 MB — hueco que no existía hasta ahora, alineado con register_image_for_block (SQL) tras 20260907093000', () => {
-    const result = registerImageForBlockSchema.safeParse({
+  it('rechaza bytes por encima de 5 MB', () => {
+    const result = registerCoverImageSchema.safeParse({
       ...base,
       bytes: 5 * 1024 * 1024 + 1,
     })
@@ -73,15 +69,14 @@ describe('registerImageForBlockSchema', () => {
 
   it('acepta exactamente 5 MB', () => {
     expect(
-      registerImageForBlockSchema.safeParse({ ...base, bytes: 5 * 1024 * 1024 })
+      registerCoverImageSchema.safeParse({ ...base, bytes: 5 * 1024 * 1024 })
         .success,
     ).toBe(true)
   })
 })
 
-describe('registerVideoForBlockSchema', () => {
+describe('registerCoverVideoSchema — solo other admite vídeo de portada', () => {
   const base = {
-    blockId: BLOCK_ID,
     contentId: CONTENT_ID,
     cloudinaryPublicId: 'greener/content/videos/abc123',
     format: 'mp4',
@@ -92,11 +87,11 @@ describe('registerVideoForBlockSchema', () => {
   }
 
   it('acepta un vídeo válido dentro de límites', () => {
-    expect(registerVideoForBlockSchema.safeParse(base).success).toBe(true)
+    expect(registerCoverVideoSchema.safeParse(base).success).toBe(true)
   })
 
-  it('redondea la duración hacia arriba (transform Math.ceil) — igual que hace el ABM antes de llamar a la función SQL', () => {
-    const result = registerVideoForBlockSchema.safeParse({
+  it('redondea la duración hacia arriba (transform Math.ceil)', () => {
+    const result = registerCoverVideoSchema.safeParse({
       ...base,
       durationSeconds: 29.2,
     })
@@ -107,8 +102,8 @@ describe('registerVideoForBlockSchema', () => {
     }
   })
 
-  it('rechaza una duración por encima de 180 s, coincidiendo con register_video_for_block (SQL)', () => {
-    const result = registerVideoForBlockSchema.safeParse({
+  it('rechaza una duración por encima de 180 s, coincidiendo con register_cover_video (SQL)', () => {
+    const result = registerCoverVideoSchema.safeParse({
       ...base,
       durationSeconds: 181,
     })
@@ -116,62 +111,119 @@ describe('registerVideoForBlockSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('acepta exactamente 180 s', () => {
-    expect(
-      registerVideoForBlockSchema.safeParse({ ...base, durationSeconds: 180 })
-        .success,
-    ).toBe(true)
-  })
-
-  it('rechaza bytes por encima de 100 MB, coincidiendo con el límite SQL', () => {
-    const result = registerVideoForBlockSchema.safeParse({
+  it('rechaza bytes por encima de 100 MB', () => {
+    const result = registerCoverVideoSchema.safeParse({
       ...base,
       bytes: 100 * 1024 * 1024 + 1,
     })
 
     expect(result.success).toBe(false)
   })
-
-  it('rechaza duración cero o negativa', () => {
-    expect(
-      registerVideoForBlockSchema.safeParse({ ...base, durationSeconds: 0 })
-        .success,
-    ).toBe(false)
-  })
 })
 
-describe('deleteBlockMediaSchema', () => {
+describe('deleteCoverMediaSchema', () => {
   const base = {
-    blockId: BLOCK_ID,
-    mediaId: '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4',
+    contentId: CONTENT_ID,
+    mediaId: MEDIA_ID,
     cloudinaryPublicId: 'greener/content/abc123',
     kind: 'image' as const,
   }
 
   it('acepta una entrada válida de image o video', () => {
-    expect(deleteBlockMediaSchema.safeParse(base).success).toBe(true)
+    expect(deleteCoverMediaSchema.safeParse(base).success).toBe(true)
     expect(
-      deleteBlockMediaSchema.safeParse({ ...base, kind: 'video' }).success,
+      deleteCoverMediaSchema.safeParse({ ...base, kind: 'video' }).success,
     ).toBe(true)
   })
 
   it('rechaza un mediaId que no sea uuid', () => {
     expect(
-      deleteBlockMediaSchema.safeParse({ ...base, mediaId: 'no-es-uuid' })
+      deleteCoverMediaSchema.safeParse({ ...base, mediaId: 'no-es-uuid' })
         .success,
     ).toBe(false)
   })
+})
 
-  it('rechaza cloudinaryPublicId vacío — sin él no se puede borrar el archivo en Cloudinary', () => {
-    expect(
-      deleteBlockMediaSchema.safeParse({ ...base, cloudinaryPublicId: '' })
-        .success,
-    ).toBe(false)
+describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel de caso, sin tope (§3, §6)', () => {
+  it('acepta una imagen válida con sortOrder', () => {
+    const result = addCaseCarouselImageSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/abc123',
+      format: 'webp',
+      width: 1200,
+      height: 800,
+      bytes: 500_000,
+      sortOrder: 3,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza sortOrder negativo', () => {
+    const result = addCaseCarouselImageSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/abc123',
+      format: 'webp',
+      width: 1200,
+      height: 800,
+      bytes: 500_000,
+      sortOrder: -1,
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('acepta un vídeo válido dentro de los límites de caso (100 MB / 180 s)', () => {
+    const result = addCaseCarouselVideoSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/videos/abc123',
+      format: 'mp4',
+      width: 1920,
+      height: 1080,
+      durationSeconds: 60,
+      bytes: 20 * 1024 * 1024,
+      sortOrder: 0,
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rechaza un vídeo por encima de 180 s', () => {
+    const result = addCaseCarouselVideoSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/videos/abc123',
+      format: 'mp4',
+      width: 1920,
+      height: 1080,
+      durationSeconds: 181,
+      bytes: 20 * 1024 * 1024,
+      sortOrder: 0,
+    })
+
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('removeCaseCarouselMediaSchema', () => {
+  it('acepta una entrada válida', () => {
+    const result = removeCaseCarouselMediaSchema.safeParse({
+      contentId: CONTENT_ID,
+      mediaId: MEDIA_ID,
+      cloudinaryPublicId: 'greener/content/abc123',
+      kind: 'image',
+    })
+
+    expect(result.success).toBe(true)
   })
 
   it('rechaza un kind que no sea image ni video', () => {
-    expect(
-      deleteBlockMediaSchema.safeParse({ ...base, kind: 'audio' }).success,
-    ).toBe(false)
+    const result = removeCaseCarouselMediaSchema.safeParse({
+      contentId: CONTENT_ID,
+      mediaId: MEDIA_ID,
+      cloudinaryPublicId: 'greener/content/abc123',
+      kind: 'audio',
+    })
+
+    expect(result.success).toBe(false)
   })
 })

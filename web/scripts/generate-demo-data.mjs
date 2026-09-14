@@ -206,7 +206,6 @@ for (let i = 1; i <= CASE_COUNT; i++) {
   const suffix = pick(CLIENT_SUFFIXES)
   const client = suffix ? `${prefix} ${suffix}` : prefix
   const tag = pick(HOME_TAGS)
-  const templateVariant = pick(['A', 'B', 'C'])
   const force = pickWeighted([
     [1, 55],
     [2, 25],
@@ -216,6 +215,11 @@ for (let i = 1; i <= CASE_COUNT; i++) {
   ])
   const pinCount = intBetween(3, 6)
   const year = intBetween(2022, 2026)
+  // sector/services ya no se guardan en case_detail (especificacion-final-
+  // formato-detalle.md §3: campos eliminados) — se quedan solo como
+  // vocabulario para construir title/highlight/body, texto libre.
+  const sector = SECTOR_BY_TAG[tag]
+  const services = SERVICES_BY_TAG[tag]
 
   const contentId = uuid()
   const slug = slugify(client, i)
@@ -227,25 +231,31 @@ for (let i = 1; i <= CASE_COUNT; i++) {
       id: uuid(),
       ratio: pick(RATIOS),
       label: `${client} — pieza ${p + 1}`,
-      cta: pick(['Ver caso', 'Saber más', null, null]),
       queueOrder: p,
       alt: `Imagen del caso ${client}, pieza ${p + 1}`,
       mediaAssetId: asset.id,
     })
   }
 
+  // Carrusel de detalle (case_detail_media, §3/§6 — tabla independiente
+  // de pin_media, sin tope): reutiliza 2-4 de los mismos assets demo.
+  const carouselCount = intBetween(2, 4)
+  const carousel = Array.from({ length: carouselCount }, (_, idx) => ({
+    mediaAssetId: randomMediaAsset().id,
+    sortOrder: idx,
+  }))
+
   cases.push({
     contentId,
     slug,
-    title: `${client} — ${SECTOR_BY_TAG[tag]}`,
+    title: `${client} — ${sector}`,
+    highlight: `Cómo ayudamos a ${client} a destacar en ${sector.toLowerCase()}.`,
+    body: `Trabajamos con ${client} en ${services.toLowerCase()}, dentro del sector de ${sector.toLowerCase()}, durante ${year}.`,
     client,
-    sector: SECTOR_BY_TAG[tag],
-    services: SERVICES_BY_TAG[tag],
-    year,
-    templateVariant,
     force,
     tagName: tag,
     pins,
+    carousel,
   })
 }
 
@@ -264,6 +274,8 @@ for (const program of CHANNEL_PROGRAMS) {
       contentId,
       slug,
       title: `${program.label} · Episodio ${n}: conversación con ${guest}`,
+      highlight: `${guest}, ${role}, sobre ${program.label.toLowerCase()}.`,
+      body: `Episodio ${n} de ${program.label} con ${guest} (${role}), invitado en representación de ${pick(CLIENT_PREFIXES)}.`,
       program: program.key,
       programTag: program.tag,
       number: n,
@@ -276,7 +288,6 @@ for (const program of CHANNEL_PROGRAMS) {
         id: uuid(),
         ratio: '16:9',
         label: `${program.label} — Episodio ${n}`,
-        cta: 'Ver episodio',
         alt: `Miniatura del episodio ${n} de ${program.label}, con ${guest}`,
         mediaAssetId: asset.id,
       },
@@ -326,10 +337,10 @@ for (const c of cases) {
     `insert into content (id, type, status, default_locale, slug, publish_at) values (${sqlStr(c.contentId)}, 'case', 'published', 'es', ${sqlStr(c.slug)}, now()) on conflict (slug) do nothing;`,
   )
   sqlLines.push(
-    `insert into content_translation (content_id, locale, title) values (${sqlStr(c.contentId)}, 'es', ${sqlStr(c.title)}) on conflict (content_id, locale) do nothing;`,
+    `insert into content_translation (content_id, locale, title, highlight, body) values (${sqlStr(c.contentId)}, 'es', ${sqlStr(c.title)}, ${sqlStr(c.highlight)}, ${sqlStr(c.body)}) on conflict (content_id, locale) do nothing;`,
   )
   sqlLines.push(
-    `insert into case_detail (content_id, template_variant, force, client, sector, services, year, credits, links) values (${sqlStr(c.contentId)}, ${sqlStr(c.templateVariant)}, ${c.force}, ${sqlStr(c.client)}, ${sqlStr(c.sector)}, ${sqlStr(c.services)}, ${c.year}, '[]'::jsonb, '[]'::jsonb) on conflict (content_id) do nothing;`,
+    `insert into case_detail (content_id, force, client) values (${sqlStr(c.contentId)}, ${c.force}, ${sqlStr(c.client)}) on conflict (content_id) do nothing;`,
   )
 
   const tagRow = homeTagRows.find((t) => t.name === c.tagName)
@@ -339,10 +350,16 @@ for (const c of cases) {
 
   for (const pin of c.pins) {
     sqlLines.push(
-      `insert into pin (id, content_id, type, ratio, label, cta, language, queue_order, alt) values (${sqlStr(pin.id)}, ${sqlStr(c.contentId)}, 'fixed', ${sqlStr(pin.ratio)}, ${sqlStr(pin.label)}, ${sqlStr(pin.cta)}, 'es', ${pin.queueOrder}, ${sqlStr(pin.alt)});`,
+      `insert into pin (id, content_id, ratio, show_as_carousel, label, language, queue_order, alt) values (${sqlStr(pin.id)}, ${sqlStr(c.contentId)}, ${sqlStr(pin.ratio)}, true, ${sqlStr(pin.label)}, 'es', ${pin.queueOrder}, ${sqlStr(pin.alt)});`,
     )
     sqlLines.push(
       `insert into pin_media (pin_id, media_id, slide_order) values (${sqlStr(pin.id)}, ${sqlStr(pin.mediaAssetId)}, 0);`,
+    )
+  }
+
+  for (const item of c.carousel) {
+    sqlLines.push(
+      `insert into case_detail_media (content_id, media_id, sort_order) values (${sqlStr(c.contentId)}, ${sqlStr(item.mediaAssetId)}, ${item.sortOrder});`,
     )
   }
   sqlLines.push('')
@@ -358,10 +375,10 @@ for (const e of episodes) {
     `insert into content (id, type, status, default_locale, slug, publish_at) values (${sqlStr(e.contentId)}, 'episode', 'published', 'es', ${sqlStr(e.slug)}, now()) on conflict (slug) do nothing;`,
   )
   sqlLines.push(
-    `insert into content_translation (content_id, locale, title) values (${sqlStr(e.contentId)}, 'es', ${sqlStr(e.title)}) on conflict (content_id, locale) do nothing;`,
+    `insert into content_translation (content_id, locale, title, highlight, body) values (${sqlStr(e.contentId)}, 'es', ${sqlStr(e.title)}, ${sqlStr(e.highlight)}, ${sqlStr(e.body)}) on conflict (content_id, locale) do nothing;`,
   )
   sqlLines.push(
-    `insert into episode (content_id, program, number, guest, role, company, episode_date, duration_seconds, provider, embed_id, language) values (${sqlStr(e.contentId)}, ${sqlStr(e.program)}, ${e.number}, ${sqlStr(e.guest)}, ${sqlStr(e.role)}, ${sqlStr(e.company)}, current_date, ${e.durationSeconds}, 'youtube', ${sqlStr(e.embedId)}, 'es') on conflict (content_id) do nothing;`,
+    `insert into episode (content_id, program, number, guest, role, company, episode_date, duration_seconds, provider, embed_id, language, episode_kind) values (${sqlStr(e.contentId)}, ${sqlStr(e.program)}, ${e.number}, ${sqlStr(e.guest)}, ${sqlStr(e.role)}, ${sqlStr(e.company)}, current_date, ${e.durationSeconds}, 'youtube', ${sqlStr(e.embedId)}, 'es', 'podcast') on conflict (content_id) do nothing;`,
   )
 
   const tagRow = channelTagRows.find((t) => t.name === e.programTag)
@@ -370,7 +387,7 @@ for (const e of episodes) {
   )
 
   sqlLines.push(
-    `insert into pin (id, content_id, type, ratio, label, cta, language, queue_order, alt) values (${sqlStr(e.pin.id)}, ${sqlStr(e.contentId)}, 'fixed', ${sqlStr(e.pin.ratio)}, ${sqlStr(e.pin.label)}, ${sqlStr(e.pin.cta)}, 'es', 0, ${sqlStr(e.pin.alt)});`,
+    `insert into pin (id, content_id, ratio, show_as_carousel, label, language, queue_order, alt) values (${sqlStr(e.pin.id)}, ${sqlStr(e.contentId)}, ${sqlStr(e.pin.ratio)}, true, ${sqlStr(e.pin.label)}, 'es', 0, ${sqlStr(e.pin.alt)});`,
   )
   sqlLines.push(
     `insert into pin_media (pin_id, media_id, slide_order) values (${sqlStr(e.pin.id)}, ${sqlStr(e.pin.mediaAssetId)}, 0);`,
@@ -416,7 +433,11 @@ for (const c of cases) {
       contentSlug: c.slug,
       ratio: pin.ratio,
       label: pin.label,
-      cta: pin.cta,
+      // El pin ya no guarda cta (especificacion-final-formato-detalle.md
+      // §3, §6): este fixture JSON del demo route antiguo (/api/feed/demo)
+      // no se ha tocado en el resto de su forma, pero ya no hay valor real
+      // que poner aquí.
+      cta: null,
       alt: pin.alt,
       cloudinaryPublicId: asset.cloudinaryPublicId,
     }
@@ -431,7 +452,7 @@ for (const e of episodes) {
     contentSlug: e.slug,
     ratio: e.pin.ratio,
     label: e.pin.label,
-    cta: e.pin.cta,
+    cta: null,
     alt: e.pin.alt,
     cloudinaryPublicId: asset.cloudinaryPublicId,
   }

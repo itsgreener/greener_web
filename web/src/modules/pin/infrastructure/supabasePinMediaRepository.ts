@@ -49,6 +49,7 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       p_height: input.height,
       p_duration_seconds: input.durationSeconds,
       p_bytes: input.bytes,
+      p_slide_order: input.slideOrder,
     })
 
     if (error) {

@@ -26,7 +26,7 @@ export default function NewContentForm() {
 
           <option value="episode">Episode</option>
 
-          <option value="page">Page</option>
+          <option value="other">Other</option>
         </select>
 
         {state.fieldErrors?.type?.[0] && <p>{state.fieldErrors.type[0]}</p>}

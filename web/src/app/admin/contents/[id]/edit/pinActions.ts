@@ -56,10 +56,9 @@ export async function createPinAction(
 ): Promise<PinFormState> {
   const result = createPinSchema.safeParse({
     contentId,
-    type: formData.get('type'),
     ratio: formData.get('ratio'),
+    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
-    cta: formData.get('cta'),
     language: formData.get('language'),
     autoplayMode: formData.get('autoplayMode') || null,
     speedMs: parseOptionalNumber(formData.get('speedMs')),
@@ -75,6 +74,13 @@ export async function createPinAction(
     await createPin(result.data)
   } catch (error) {
     console.error(error)
+
+    if (
+      error instanceof Error &&
+      error.message.includes('rótulo del pin es obligatorio')
+    ) {
+      return { fieldErrors: { label: [error.message] } }
+    }
 
     return { formError: 'No se ha podido crear el pin.' }
   }
@@ -93,8 +99,8 @@ export async function updatePinAction(
   const result = updatePinSchema.safeParse({
     id: pinId,
     ratio: formData.get('ratio'),
+    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
-    cta: formData.get('cta'),
     language: formData.get('language'),
     autoplayMode: formData.get('autoplayMode') || null,
     speedMs: parseOptionalNumber(formData.get('speedMs')),
@@ -110,6 +116,13 @@ export async function updatePinAction(
     await updatePin(result.data)
   } catch (error) {
     console.error(error)
+
+    if (
+      error instanceof Error &&
+      error.message.includes('rótulo del pin es obligatorio')
+    ) {
+      return { fieldErrors: { label: [error.message] } }
+    }
 
     return { formError: 'No se ha podido actualizar el pin.' }
   }
@@ -255,14 +268,7 @@ export async function attachPinImageAction(
 
     if (
       error instanceof Error &&
-      error.message.includes('ya tiene una imagen')
-    ) {
-      return { ok: false, error: error.message }
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.includes('admite hasta 8 slides')
+      error.message.includes('admite hasta 8 medios')
     ) {
       return { ok: false, error: error.message }
     }
@@ -293,7 +299,7 @@ export async function attachPinVideoAction(
     ) {
       return {
         ok: false,
-        error: 'La animación no puede superar los 5 segundos.',
+        error: 'El vídeo no puede superar los 5 segundos.',
       }
     }
 
@@ -304,7 +310,10 @@ export async function attachPinVideoAction(
       return { ok: false, error: 'El vídeo supera los 100 MB.' }
     }
 
-    if (error instanceof Error && error.message.includes('ya tiene un vídeo')) {
+    if (
+      error instanceof Error &&
+      error.message.includes('admite hasta 8 medios')
+    ) {
       return { ok: false, error: error.message }
     }
 
@@ -313,7 +322,7 @@ export async function attachPinVideoAction(
 }
 
 /**
- * Igual que deleteBlockMediaAction (mediaActions.ts): primero Postgres,
+ * Igual que deleteCoverMediaAction (mediaActions.ts): primero Postgres,
  * y solo si eso tiene éxito se borra el archivo real en Cloudinary. Si
  * Cloudinary falla, no bloquea — se avisa con un warning, mismo criterio
  * ya explicado allí (aquí se arriesga cuota de Cloudinary, no seguridad).

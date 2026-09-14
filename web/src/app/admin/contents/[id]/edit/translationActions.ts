@@ -14,6 +14,8 @@ export type TranslationActionState = {
     seoTitle?: string[]
     seoDescription?: string[]
     summary?: string[]
+    highlight?: string[]
+    body?: string[]
   }
 
   formError?: string
@@ -46,6 +48,10 @@ export async function saveTranslationAction(
     seoDescription: nullableText(formData.get('seoDescription')),
 
     summary: nullableText(formData.get('summary')),
+
+    highlight: nullableText(formData.get('highlight')),
+
+    body: nullableText(formData.get('body')),
   })
 
   if (!result.success) {

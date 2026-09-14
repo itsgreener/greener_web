@@ -16,6 +16,8 @@ type SupabaseTranslationRow = {
   seo_title: string | null
   seo_description: string | null
   summary: string | null
+  highlight: string | null
+  body: string | null
 }
 
 function createRepositoryError(message: string, code?: string) {
@@ -41,6 +43,10 @@ function mapTranslation(row: SupabaseTranslationRow): ContentTranslation {
     seoDescription: row.seo_description,
 
     summary: row.summary,
+
+    highlight: row.highlight,
+
+    body: row.body,
   }
 }
 
@@ -58,7 +64,9 @@ export const supabaseContentTranslationRepository: ContentTranslationRepository 
         title,
         seo_title,
         seo_description,
-        summary
+        summary,
+        highlight,
+        body
       `,
         )
         .eq('content_id', contentId)
@@ -85,6 +93,10 @@ export const supabaseContentTranslationRepository: ContentTranslationRepository 
         p_seo_description: input.seoDescription,
 
         p_summary: input.summary,
+
+        p_highlight: input.highlight,
+
+        p_body: input.body,
       })
 
       if (error) {

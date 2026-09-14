@@ -1,17 +1,28 @@
 import {
   buildImageUrl,
   buildImageSrcSet,
+  buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 import styles from './PinCard.module.css'
+
+export interface PinCardMedia {
+  kind: 'image' | 'video'
+  cloudinaryPublicId: string
+}
 
 export interface PinCardData {
   pinId: string
   destination: string
   ratio: string
-  label: string
+  // §3 "Pin (todos los tipos)": opcional en caso/episodio, no se muestra.
+  label: string | null
   cta: string | null
   alt: string
-  cloudinaryPublicId: string
+  // Hasta 8 medios cuando el pin se agrupa como carrusel
+  // (show_as_carousel), pero la tarjeta de esta primera versión solo
+  // pinta el primero — el carrusel dentro de la tarjeta queda para más
+  // adelante, a propósito (no es una limitación del backend).
+  media: PinCardMedia[]
 }
 
 export interface PinCardStyle {
@@ -31,6 +42,11 @@ function aspectRatioCss(ratio: string): string {
  * Tarjeta de pin: imagen optimizada para feed (nunca el original — política
  * de medios §3), espacio reservado antes de la descarga (evita CLS, §9.2,
  * §10.1) y posicionada por transform, no por flujo normal del documento.
+ *
+ * Un pin de vídeo se muestra siempre como poster estático — sin autoplay
+ * ni reproducción en la propia tarjeta en esta primera versión (§9.3
+ * queda para cuando se aborde de verdad el presupuesto de vídeos
+ * simultáneos en el feed).
  */
 export function PinCard({
   pin,
@@ -39,6 +55,18 @@ export function PinCard({
   pin: PinCardData
   style: PinCardStyle
 }) {
+  const primaryMedia = pin.media[0]
+  if (!primaryMedia) return null
+
+  const imageUrl =
+    primaryMedia.kind === 'video'
+      ? buildVideoPosterUrl(primaryMedia.cloudinaryPublicId)
+      : buildImageUrl(
+          primaryMedia.cloudinaryPublicId,
+          'feed',
+          Math.round(style.width),
+        )
+
   return (
     <a
       href={pin.destination}
@@ -56,13 +84,17 @@ export function PinCard({
             transformada (q_auto/f_auto/ancho) por modules/media/infrastructure/cloudinaryUrl.ts;
             next/image la retransformaría de nuevo sin necesidad (arquitectura §9.2). */}
         <img
-          src={buildImageUrl(
-            pin.cloudinaryPublicId,
-            'feed',
-            Math.round(style.width),
-          )}
-          srcSet={buildImageSrcSet(pin.cloudinaryPublicId, 'feed')}
-          sizes={`${Math.round(style.width)}px`}
+          src={imageUrl}
+          srcSet={
+            primaryMedia.kind === 'image'
+              ? buildImageSrcSet(primaryMedia.cloudinaryPublicId, 'feed')
+              : undefined
+          }
+          sizes={
+            primaryMedia.kind === 'image'
+              ? `${Math.round(style.width)}px`
+              : undefined
+          }
           alt={pin.alt}
           loading="lazy"
           decoding="async"
@@ -70,7 +102,7 @@ export function PinCard({
         />
         {pin.cta && <span className={styles.cta}>{pin.cta}</span>}
       </div>
-      <p className={styles.label}>{pin.label}</p>
+      {pin.label && <p className={styles.label}>{pin.label}</p>}
     </a>
   )
 }

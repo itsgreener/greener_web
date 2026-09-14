@@ -54,9 +54,8 @@ function entry(
     contentSlug: `${contentId}-slug`,
     ratio: '1:1',
     label: 'Pin de prueba',
-    cta: null,
     alt: 'Alt de prueba',
-    cloudinaryPublicId: `${contentId}/img`,
+    media: [{ kind: 'image', cloudinaryPublicId: `${contentId}/img` }],
   }
 }
 
@@ -116,8 +115,14 @@ describe('getFeedSessionBatch', () => {
     expect(result.items.length).toBe(4) // force 2 + force 2, sin más tipos en el universo
     expect(result.hasMore).toBe(true)
     for (const item of result.items) {
+      // especificacion-final-formato-detalle.md §7: episode se unifica
+      // con case bajo /work/[slug] — aquí solo hay casos, pero la ruta es
+      // la misma para ambos.
       expect(item.destination).toMatch(/^\/work\//)
       expect(item.kind).toBe('case')
+      // §1: el CTA del pin es fijo por tipo — case/episode/other → Watch.
+      expect(item.cta).toBe('Watch')
+      expect(item.media).toEqual([expect.objectContaining({ kind: 'image' })])
     }
     expect(deps.rounds.get(`${SESSION.id}:0`)).toEqual(
       result.items.map((i) => i.pinId),
@@ -169,5 +174,41 @@ describe('getFeedSessionBatch', () => {
     const b = await getFeedSessionBatch(SESSION.id, null, deps2)
 
     expect(a.items.map((i) => i.pinId)).toEqual(b.items.map((i) => i.pinId))
+  })
+
+  it('un pin de tool usa CTA "Use" y un insight "Read" (§1)', async () => {
+    // El motor de cuotas ancla el tamaño de la tanda a los casos
+    // (T = ceil(N_cases / ratio_cases), arquitectura §8.2): un universo
+    // sin ningún caso produce una tanda vacía, así que hace falta al
+    // menos uno para que el resto de tipos tengan hueco en la ronda.
+    const toolDataset = {
+      snapshot: {
+        cases: [{ contentId: 'case-1', pinIds: ['pin-c'], force: 5 }],
+        insights: [{ contentId: 'insight-1', pinIds: ['pin-i'] }],
+        tools: [{ contentId: 'tool-1', pinIds: ['pin-t'] }],
+        channel: [],
+        other: [],
+      },
+      pinDirectory: {
+        'pin-c': entry('case-1', 'case'),
+        'pin-i': entry('insight-1', 'insight'),
+        'pin-t': entry('tool-1', 'tool'),
+      } as Record<string, PinDirectoryEntry>,
+    }
+
+    deps.getDataset = vi.fn(async () => toolDataset)
+    deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+      Object.fromEntries(ids.map((id) => [id, toolDataset.pinDirectory[id]])),
+    )
+
+    const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+    const toolItem = result.items.find((i) => i.pinId === 'pin-t')
+    const insightItem = result.items.find((i) => i.pinId === 'pin-i')
+
+    expect(toolItem?.cta).toBe('Use')
+    expect(toolItem?.destination).toBe('/tools/tool-1-slug')
+    expect(insightItem?.cta).toBe('Read')
+    expect(insightItem?.destination).toBe('/insights/insight-1-slug')
   })
 })

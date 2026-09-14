@@ -6,10 +6,11 @@
  * posicionar con `transform` en vez de dejar que el navegador reflowee.
  */
 
-export type PinRatio = '1:1' | '4:5' | '3:4' | '2:3' | '9:16' | '16:9'
+export type PinRatio = '1:1' | '4:3' | '4:5' | '3:4' | '2:3' | '9:16' | '16:9'
 
 const RATIO_HEIGHT_FACTOR: Record<PinRatio, number> = {
   '1:1': 1,
+  '4:3': 3 / 4,
   '4:5': 5 / 4,
   '3:4': 4 / 3,
   '2:3': 3 / 2,

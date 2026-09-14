@@ -6,9 +6,9 @@ import { getContent } from '@/modules/content/application/getContent'
 
 import { getCaseDetail } from '@/modules/content/application/getCaseDetail'
 
-import { getContentTranslations } from '@/modules/content/application/getContentTranslations'
+import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
 
-import { getContentBlocks } from '@/modules/content/application/getContentBlocks'
+import { getContentTranslations } from '@/modules/content/application/getContentTranslations'
 
 import { listHtmlPackageVersions } from '@/modules/packages/application/listHtmlPackageVersions'
 
@@ -20,7 +20,9 @@ import ContentTranslations from './ContentTranslations'
 
 import CaseDetailForm from './CaseDetailForm'
 
-import ContentBlocks from './ContentBlocks'
+import CaseCarouselManager from './CaseCarouselManager'
+
+import CoverMediaUpload from './CoverMediaUpload'
 
 import PackageUpload from './PackageUpload'
 
@@ -49,10 +51,17 @@ export default async function EditContentPage({ params }: Props) {
     notFound()
   }
 
-  const supportsBlocks = content.type === 'case' || content.type === 'page'
+  // especificacion-final-formato-detalle.md §1: tres formatos de
+  // detalle — tipo A (tool/insight, con paquete HTML + portada imagen),
+  // tipo B (case/episode), y contenido libre (other, portada imagen o
+  // vídeo). El editor de bloques genérico desaparece por completo (§6).
   const supportsPackage = content.type === 'tool' || content.type === 'insight'
+  const supportsCoverMedia =
+    content.type === 'tool' ||
+    content.type === 'insight' ||
+    content.type === 'other'
 
-  const [translations, caseDetail, blocks, packageVersions, pins] =
+  const [translations, caseDetail, caseCarousel, packageVersions, pins] =
     await Promise.all([
       getContentTranslations(content.id),
 
@@ -60,7 +69,9 @@ export default async function EditContentPage({ params }: Props) {
         ? getCaseDetail(content.id)
         : Promise.resolve(null),
 
-      supportsBlocks ? getContentBlocks(content.id) : Promise.resolve([]),
+      content.type === 'case'
+        ? getCaseCarousel(content.id)
+        : Promise.resolve([]),
 
       supportsPackage
         ? listHtmlPackageVersions(content.id)
@@ -107,19 +118,23 @@ export default async function EditContentPage({ params }: Props) {
           <h2>Datos del Case</h2>
 
           <CaseDetailForm contentId={content.id} caseDetail={caseDetail} />
+
+          <h2>Carrusel de detalle</h2>
+
+          <CaseCarouselManager contentId={content.id} items={caseCarousel} />
         </>
       )}
 
-      {supportsBlocks && (
+      {supportsCoverMedia && (
         <>
           <hr />
 
-          <h2>Contenido</h2>
+          <h2>Portada</h2>
 
-          <ContentBlocks
+          <CoverMediaUpload
             contentId={content.id}
-            blocks={blocks}
-            translations={translations}
+            allowVideo={content.type === 'other'}
+            coverMedia={content.coverMedia}
           />
         </>
       )}

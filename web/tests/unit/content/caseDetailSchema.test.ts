@@ -1,37 +1,16 @@
 import { describe, it, expect } from 'vitest'
-import {
-  caseTemplateVariantSchema,
-  caseDetailSchema,
-} from '@/modules/content/domain/caseDetailSchema'
+import { caseDetailSchema } from '@/modules/content/domain/caseDetailSchema'
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
-
-describe('caseTemplateVariantSchema', () => {
-  it('acepta las tres variantes de §11.2 (A, B, C)', () => {
-    for (const variant of ['A', 'B', 'C']) {
-      expect(caseTemplateVariantSchema.safeParse(variant).success).toBe(true)
-    }
-  })
-
-  it('rechaza una variante inventada', () => {
-    expect(caseTemplateVariantSchema.safeParse('D').success).toBe(false)
-  })
-})
 
 describe('caseDetailSchema', () => {
   const base = {
     contentId: CONTENT_ID,
-    templateVariant: 'A' as const,
     force: 1,
     client: null,
-    sector: null,
-    services: null,
-    year: null,
-    credits: [],
-    links: [],
   }
 
-  it('acepta force en el rango 1-5 (arquitectura §7.3, igual que upsert_case_detail)', () => {
+  it('acepta force en el rango 1-5 (especificacion-final-formato-detalle.md §3, igual que upsert_case_detail)', () => {
     for (const force of [1, 2, 3, 4, 5]) {
       expect(caseDetailSchema.safeParse({ ...base, force }).success).toBe(true)
     }
@@ -47,39 +26,40 @@ describe('caseDetailSchema', () => {
     )
   })
 
-  it('acepta client/sector/services como texto libre no traducible (§7.3)', () => {
+  it('acepta client como texto libre no traducible', () => {
     const result = caseDetailSchema.safeParse({
       ...base,
       client: 'Agróptimum',
-      sector: 'Agro',
-      services: 'Branding, Insights',
     })
 
     expect(result.success).toBe(true)
   })
 
-  it('acepta credits y links como arrays de contenido arbitrario', () => {
-    const result = caseDetailSchema.safeParse({
-      ...base,
-      credits: [{ role: 'Dirección creativa', name: 'Alguien' }],
-      links: [{ label: 'Sitio', url: 'https://example.com' }],
-    })
-
-    expect(result.success).toBe(true)
-  })
-
-  it('rechaza credits que no sea un array', () => {
-    const result = caseDetailSchema.safeParse({
-      ...base,
-      credits: { role: 'Dirección creativa' },
-    })
-
-    expect(result.success).toBe(false)
-  })
-
-  it('acepta year null (campo opcional)', () => {
-    expect(caseDetailSchema.safeParse({ ...base, year: null }).success).toBe(
+  it('acepta client null', () => {
+    expect(caseDetailSchema.safeParse({ ...base, client: null }).success).toBe(
       true,
     )
+  })
+
+  it('ya no acepta templateVariant/sector/services/year/credits/links — eliminados del formato (§3, §6)', () => {
+    const result = caseDetailSchema.safeParse({
+      ...base,
+      templateVariant: 'A',
+      sector: 'Agro',
+      services: 'Branding',
+      year: 2024,
+      credits: [],
+      links: [],
+    })
+
+    // zod ignora las claves no declaradas en el schema por defecto: el
+    // resultado sigue siendo válido, pero esos campos no llegan a la
+    // función SQL (upsert_case_detail ya no los acepta como parámetros).
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('templateVariant')
+      expect(result.data).not.toHaveProperty('sector')
+      expect(result.data).not.toHaveProperty('year')
+    }
   })
 })

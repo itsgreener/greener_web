@@ -12,7 +12,7 @@ import {
 
 describe('contentTypeSchema', () => {
   it('acepta los cinco tipos del supertipo content (§7.1)', () => {
-    for (const type of ['case', 'insight', 'tool', 'episode', 'page']) {
+    for (const type of ['case', 'insight', 'tool', 'episode', 'other']) {
       expect(contentTypeSchema.safeParse(type).success).toBe(true)
     }
   })

@@ -31,7 +31,6 @@ type PinMedia = {
 
 type Props = {
   pinId: string
-  pinType: 'fixed' | 'animated' | 'carousel'
   media: PinMedia[]
 }
 
@@ -82,20 +81,20 @@ function MediaThumb({
   )
 }
 
-export default function PinMediaManager({ pinId, pinType, media }: Props) {
+// especificacion-final-formato-detalle.md §3, §6: pin_type desaparece —
+// cualquier pin admite de 1 a 8 medios mixtos (imagen o vídeo ≤5 s), sin
+// distinción de tipo. show_as_carousel (gestionado en PinList/EditPinForm)
+// decide cómo se muestra en el feed, no qué se puede subir aquí.
+export default function PinMediaManager({ pinId, media }: Props) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [warning, setWarning] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
+  const [kind, setKind] = useState<'image' | 'video'>('image')
 
   const sortedMedia = [...media].sort((a, b) => a.slideOrder - b.slideOrder)
   const nextSlideOrder = sortedMedia.length
-
-  const canAddImage =
-    (pinType === 'fixed' && sortedMedia.length === 0) ||
-    (pinType === 'carousel' && sortedMedia.length < 8)
-
-  const canAddVideo = pinType === 'animated' && sortedMedia.length === 0
+  const canAddMore = sortedMedia.length < 8
 
   async function handleRemove(item: PinMedia) {
     setError(null)
@@ -187,7 +186,7 @@ export default function PinMediaManager({ pinId, pinType, media }: Props) {
 
       if (validation?.code === 'ANIMATION_TOO_LONG') {
         throw new Error(
-          `La animación no puede superar los ${validation.maxSeconds} segundos.`,
+          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
         )
       }
 
@@ -208,6 +207,7 @@ export default function PinMediaManager({ pinId, pinType, media }: Props) {
         height: uploaded.height,
         durationSeconds: uploaded.duration,
         bytes: uploaded.bytes,
+        slideOrder: nextSlideOrder,
       })
 
       if (!result.ok) {
@@ -229,7 +229,7 @@ export default function PinMediaManager({ pinId, pinType, media }: Props) {
 
   return (
     <div>
-      <h4>Medio del pin</h4>
+      <h4>Medios del pin ({sortedMedia.length}/8)</h4>
 
       <div>
         {sortedMedia.map((item) => (
@@ -241,37 +241,46 @@ export default function PinMediaManager({ pinId, pinType, media }: Props) {
         ))}
       </div>
 
-      {(canAddImage || canAddVideo) && (
+      {canAddMore && (
         <div>
+          <label htmlFor="pin-media-kind">Tipo de archivo</label>
+          <select
+            id="pin-media-kind"
+            value={kind}
+            disabled={uploading}
+            onChange={(event) => {
+              setKind(event.target.value as 'image' | 'video')
+              setFile(null)
+            }}
+          >
+            <option value="image">Imagen</option>
+            <option value="video">Vídeo (máx. 5 s)</option>
+          </select>
+
           <input
             type="file"
-            accept={pinType === 'animated' ? 'video/*' : 'image/*'}
+            accept={kind === 'video' ? 'video/*' : 'image/*'}
             disabled={uploading}
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
 
-          {pinType === 'animated' ? (
+          {kind === 'video' ? (
             <p>Vídeo, máximo 5 s.</p>
           ) : (
-            <p>
-              Imagen, máximo 5 MB.
-              {pinType === 'carousel' && ` (${sortedMedia.length}/8 slides)`}
-            </p>
+            <p>Imagen, máximo 5 MB.</p>
           )}
 
           <button
             type="button"
             disabled={uploading || !file}
-            onClick={canAddVideo ? handleVideoUpload : handleImageUpload}
+            onClick={kind === 'video' ? handleVideoUpload : handleImageUpload}
           >
             {uploading ? 'Subiendo...' : 'Subir'}
           </button>
         </div>
       )}
 
-      {!canAddImage && !canAddVideo && pinType !== 'carousel' && (
-        <p>Este pin ya tiene su medio. Quítalo para sustituirlo.</p>
-      )}
+      {!canAddMore && <p>Este pin ya tiene 8 medios, el máximo permitido.</p>}
 
       {error && <p>{error}</p>}
       {warning && <p>{warning}</p>}

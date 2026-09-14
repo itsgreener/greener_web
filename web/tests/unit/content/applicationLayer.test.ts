@@ -17,7 +17,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  */
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
-const BLOCK_ID = '7a1f2e3d-4c5b-6a7d-8e9f-0a1b2c3d4e5f'
 
 vi.mock('@/modules/content/infrastructure/supabaseContentRepository', () => ({
   supabaseContentRepository: {
@@ -31,19 +30,6 @@ vi.mock('@/modules/content/infrastructure/supabaseContentRepository', () => ({
     unpublish: vi.fn(),
   },
 }))
-
-vi.mock(
-  '@/modules/content/infrastructure/supabaseContentBlockRepository',
-  () => ({
-    supabaseContentBlockRepository: {
-      listByContentId: vi.fn(),
-      create: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      upsertTranslation: vi.fn(),
-    },
-  }),
-)
 
 vi.mock(
   '@/modules/content/infrastructure/supabaseCaseDetailRepository',
@@ -179,47 +165,8 @@ describe('deleteContent', () => {
   })
 })
 
-describe('createContentBlock', () => {
-  it('delega en supabaseContentBlockRepository.create', async () => {
-    const { createContentBlock } =
-      await import('@/modules/content/application/createContentBlock')
-    const { supabaseContentBlockRepository } =
-      await import('@/modules/content/infrastructure/supabaseContentBlockRepository')
-
-    vi.mocked(supabaseContentBlockRepository.create).mockResolvedValue(BLOCK_ID)
-
-    const result = await createContentBlock({
-      contentId: CONTENT_ID,
-      type: 'rich_text',
-      sortOrder: 0,
-      config: {},
-    })
-
-    expect(result).toBe(BLOCK_ID)
-    expect(supabaseContentBlockRepository.create).toHaveBeenCalledOnce()
-  })
-
-  it('rechaza sortOrder negativo sin llamar al repositorio', async () => {
-    const { createContentBlock } =
-      await import('@/modules/content/application/createContentBlock')
-    const { supabaseContentBlockRepository } =
-      await import('@/modules/content/infrastructure/supabaseContentBlockRepository')
-
-    await expect(
-      createContentBlock({
-        contentId: CONTENT_ID,
-        type: 'rich_text',
-        sortOrder: -1,
-        config: {},
-      }),
-    ).rejects.toThrow()
-
-    expect(supabaseContentBlockRepository.create).not.toHaveBeenCalled()
-  })
-})
-
 describe('upsertCaseDetail', () => {
-  it('delega en supabaseCaseDetailRepository.upsert con force dentro de rango', async () => {
+  it('delega en supabaseCaseDetailRepository.upsert con force dentro de rango — solo force + client (especificacion-final-formato-detalle.md §3, §6)', async () => {
     const { upsertCaseDetail } =
       await import('@/modules/content/application/upsertCaseDetail')
     const { supabaseCaseDetailRepository } =
@@ -229,14 +176,8 @@ describe('upsertCaseDetail', () => {
 
     await upsertCaseDetail({
       contentId: CONTENT_ID,
-      templateVariant: 'A',
       force: 3,
       client: null,
-      sector: null,
-      services: null,
-      year: null,
-      credits: [],
-      links: [],
     })
 
     expect(supabaseCaseDetailRepository.upsert).toHaveBeenCalledOnce()
@@ -251,14 +192,8 @@ describe('upsertCaseDetail', () => {
     await expect(
       upsertCaseDetail({
         contentId: CONTENT_ID,
-        templateVariant: 'A',
         force: 7,
         client: null,
-        sector: null,
-        services: null,
-        year: null,
-        credits: [],
-        links: [],
       }),
     ).rejects.toThrow()
 
@@ -281,35 +216,36 @@ describe('upsertContentTranslation', () => {
         seoTitle: null,
         seoDescription: null,
         summary: null,
+        highlight: null,
+        body: null,
       }),
     ).rejects.toThrow()
 
     expect(supabaseContentTranslationRepository.upsert).not.toHaveBeenCalled()
   })
-})
 
-describe('upsertContentBlockTranslation', () => {
-  it('delega en supabaseContentBlockRepository.upsertTranslation', async () => {
-    const { upsertContentBlockTranslation } =
-      await import('@/modules/content/application/upsertContentBlockTranslation')
-    const { supabaseContentBlockRepository } =
-      await import('@/modules/content/infrastructure/supabaseContentBlockRepository')
+  it('acepta highlight/body explícitos (§3: campos propios del formato tipo B) y delega en el repositorio', async () => {
+    const { upsertContentTranslation } =
+      await import('@/modules/content/application/upsertContentTranslation')
+    const { supabaseContentTranslationRepository } =
+      await import('@/modules/content/infrastructure/supabaseContentTranslationRepository')
 
-    vi.mocked(
-      supabaseContentBlockRepository.upsertTranslation,
-    ).mockResolvedValue(BLOCK_ID)
+    vi.mocked(supabaseContentTranslationRepository.upsert).mockResolvedValue(
+      CONTENT_ID,
+    )
 
-    await upsertContentBlockTranslation({
-      blockId: BLOCK_ID,
+    await upsertContentTranslation({
+      contentId: CONTENT_ID,
       locale: 'es',
-      bodyRichText: 'Cuerpo',
-      caption: null,
-      quoteText: null,
+      title: 'Título',
+      seoTitle: null,
+      seoDescription: null,
+      summary: null,
+      highlight: 'Subtítulo',
+      body: 'Cuerpo del caso',
     })
 
-    expect(
-      supabaseContentBlockRepository.upsertTranslation,
-    ).toHaveBeenCalledOnce()
+    expect(supabaseContentTranslationRepository.upsert).toHaveBeenCalledOnce()
   })
 })
 

@@ -1,17 +1,15 @@
 import type {
   CreatePinInput,
   DeletePinInput,
-  PinType,
   UpdatePinInput,
 } from './pinSchema'
 
 export type PinListItem = {
   id: string
   contentId: string
-  type: PinType
   ratio: string
-  label: string
-  cta: string | null
+  showAsCarousel: boolean
+  label: string | null
   language: string
   autoplayMode: 'viewport' | 'hover' | null
   speedMs: number | null

@@ -18,13 +18,14 @@ export const VIDEO_LIMITS = {
 } as const
 
 /**
- * Límite de duración específico del vídeo de un pin "animated" (§9.1: MP4
- * + WebM, máximo 5 s, loop). Es un límite de negocio distinto al de
- * VIDEO_LIMITS.maxDurationSeconds (180 s, vídeo de un bloque de
- * contenido) — un pin animado es un loop corto tipo GIF, no el vídeo de
- * un caso. El tamaño en bytes sí reutiliza VIDEO_LIMITS.maxSizeBytes: un
- * clip de 5 s nunca se acerca a 100 MB, así que un límite propio no
- * aporta nada.
+ * Límite de duración específico de un vídeo de pin (arquitectura §9.1:
+ * MP4 + WebM, máximo 5 s, loop). Sigue aplicando igual aunque pin_type
+ * haya desaparecido (especificacion-final-formato-detalle.md §6): es un
+ * límite de negocio distinto al de VIDEO_LIMITS.maxDurationSeconds
+ * (180 s, vídeo de un caso) — un vídeo de pin es un loop corto tipo GIF,
+ * nunca el vídeo de un caso o de una portada. El tamaño en bytes sí
+ * reutiliza VIDEO_LIMITS.maxSizeBytes: un clip de 5 s nunca se acerca a
+ * 100 MB, así que un límite propio no aporta nada.
  */
 export const PIN_ANIMATION_LIMITS = {
   maxDurationSeconds: 5,

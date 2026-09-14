@@ -3,16 +3,16 @@
 import { revalidatePath } from 'next/cache'
 
 import {
-  deleteBlockMediaSchema,
-  registerImageForBlockSchema,
-  registerVideoForBlockSchema,
+  deleteCoverMediaSchema,
+  registerCoverImageSchema,
+  registerCoverVideoSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
 
-import { registerImageForBlock } from '@/modules/media/application/registerImageForBlock'
+import { registerCoverImage } from '@/modules/media/application/registerCoverImage'
 
-import { registerVideoForBlock } from '@/modules/media/application/registerVideoForBlock'
+import { registerCoverVideo } from '@/modules/media/application/registerCoverVideo'
 
-import { deleteBlockMedia } from '@/modules/media/application/deleteBlockMedia'
+import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
 
 import { deleteCloudinaryAsset } from '@/modules/media/infrastructure/cloudinaryServer'
 
@@ -39,10 +39,10 @@ export type DeleteMediaActionResult =
       error: string
     }
 
-export async function registerImageForBlockAction(
+export async function registerCoverImageAction(
   input: unknown,
 ): Promise<RegisterMediaActionResult> {
-  const result = registerImageForBlockSchema.safeParse(input)
+  const result = registerCoverImageSchema.safeParse(input)
 
   if (!result.success) {
     return {
@@ -52,7 +52,7 @@ export async function registerImageForBlockAction(
   }
 
   try {
-    const mediaId = await registerImageForBlock(result.data)
+    const mediaId = await registerCoverImage(result.data)
 
     revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 
@@ -73,6 +73,16 @@ export async function registerImageForBlockAction(
       }
     }
 
+    if (
+      error instanceof Error &&
+      error.message.includes('does not support a cover image')
+    ) {
+      return {
+        ok: false,
+        error: 'Este tipo de contenido no admite imagen de portada.',
+      }
+    }
+
     return {
       ok: false,
       error: 'No se ha podido registrar la imagen.',
@@ -80,10 +90,10 @@ export async function registerImageForBlockAction(
   }
 }
 
-export async function registerVideoForBlockAction(
+export async function registerCoverVideoAction(
   input: unknown,
 ): Promise<RegisterMediaActionResult> {
-  const result = registerVideoForBlockSchema.safeParse(input)
+  const result = registerCoverVideoSchema.safeParse(input)
 
   if (!result.success) {
     return {
@@ -93,7 +103,7 @@ export async function registerVideoForBlockAction(
   }
 
   try {
-    const mediaId = await registerVideoForBlock(result.data)
+    const mediaId = await registerCoverVideo(result.data)
 
     revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 
@@ -106,11 +116,11 @@ export async function registerVideoForBlockAction(
 
     if (
       error instanceof Error &&
-      error.message.includes('Block is not a video block')
+      error.message.includes('Only free-form content supports a cover video')
     ) {
       return {
         ok: false,
-        error: 'Este bloque no es de tipo Video.',
+        error: 'Solo el contenido libre (Other) admite vídeo de portada.',
       }
     }
 
@@ -139,38 +149,39 @@ export async function registerVideoForBlockAction(
 }
 
 /**
- * Desvincula y borra el medio actual de un bloque ANTES de subir el que lo
- * sustituye: primero Postgres (unlink_and_delete_media_asset — atómico, y
- * si el medio sigue en uso en otro sitio, aborta sin tocar nada más), y
- * solo si eso tiene éxito se borra el archivo real en Cloudinary.
+ * Desvincula y borra la portada actual de un contenido ANTES de subir la
+ * que la sustituye: primero Postgres (unlink_and_delete_cover_media —
+ * atómico, y si el medio sigue en uso en otro sitio, aborta sin tocar
+ * nada más), y solo si eso tiene éxito se borra el archivo real en
+ * Cloudinary.
  *
  * Si falla el paso de Postgres (p.ej. el medio ya no coincide con el
- * bloque, o sigue referenciado en otro lugar), se devuelve error y el
+ * contenido, o sigue referenciado en otro lugar), se devuelve error y el
  * ABM no debe continuar con la subida del nuevo archivo. Si Postgres
  * tiene éxito pero Cloudinary falla, se devuelve ok con un warning: no
  * bloquea al admin, pero dice claramente que ha quedado un archivo suelto
  * en Cloudinary que alguien tendrá que borrar a mano.
  */
-export async function deleteBlockMediaAction(
+export async function deleteCoverMediaAction(
   input: unknown,
 ): Promise<DeleteMediaActionResult> {
-  const result = deleteBlockMediaSchema.safeParse(input)
+  const result = deleteCoverMediaSchema.safeParse(input)
 
   if (!result.success) {
     return {
       ok: false,
-      error: 'Los datos del medio a sustituir no son válidos.',
+      error: 'Los datos de la portada a sustituir no son válidos.',
     }
   }
 
   try {
-    await deleteBlockMedia(result.data)
+    await deleteCoverMedia(result.data)
   } catch (error) {
     console.error(error)
 
     if (
       error instanceof Error &&
-      error.message.includes('El bloque ya no apunta a este medio')
+      error.message.includes('ya no apunta a este medio')
     ) {
       return {
         ok: false,
@@ -192,7 +203,7 @@ export async function deleteBlockMediaAction(
 
     return {
       ok: false,
-      error: 'No se ha podido desvincular el medio anterior.',
+      error: 'No se ha podido desvincular la portada anterior.',
     }
   }
 
@@ -207,7 +218,7 @@ export async function deleteBlockMediaAction(
     return {
       ok: true,
       warning:
-        'Se ha desvinculado el medio anterior, pero no se ha podido borrar el archivo en Cloudinary. Revísalo manualmente si el consumo del plan gratuito te preocupa.',
+        'Se ha desvinculado la portada anterior, pero no se ha podido borrar el archivo en Cloudinary. Revísalo manualmente si el consumo del plan gratuito te preocupa.',
     }
   }
 

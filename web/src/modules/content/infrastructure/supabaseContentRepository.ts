@@ -24,11 +24,17 @@ type SupabaseContentRow = {
   default_locale: Locale
   created_at: string
   publish_at: string | null
+  cover_media_id: string | null
 
   translations: Array<{
     locale: Locale
     title: string
   }>
+
+  cover_media: {
+    kind: 'image' | 'video'
+    cloudinary_public_id: string
+  } | null
 }
 
 function mapContent(row: SupabaseContentRow): ContentDetail {
@@ -45,6 +51,14 @@ function mapContent(row: SupabaseContentRow): ContentDetail {
     title: translation?.title ?? '',
     createdAt: row.created_at,
     publishAt: row.publish_at,
+    coverMedia:
+      row.cover_media_id && row.cover_media
+        ? {
+            id: row.cover_media_id,
+            kind: row.cover_media.kind,
+            cloudinaryPublicId: row.cover_media.cloudinary_public_id,
+          }
+        : null,
   }
 }
 
@@ -73,9 +87,14 @@ export const supabaseContentRepository: ContentRepository = {
         default_locale,
         created_at,
         publish_at,
+        cover_media_id,
         translations:content_translation (
           locale,
           title
+        ),
+        cover_media:media_asset!cover_media_id (
+          kind,
+          cloudinary_public_id
         )
       `,
       )
@@ -87,7 +106,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    const rows = (data ?? []) as SupabaseContentRow[]
+    const rows = (data ?? []) as unknown as SupabaseContentRow[]
 
     return rows.map(mapContent)
   },
@@ -106,9 +125,14 @@ export const supabaseContentRepository: ContentRepository = {
         default_locale,
         created_at,
         publish_at,
+        cover_media_id,
         translations:content_translation (
           locale,
           title
+        ),
+        cover_media:media_asset!cover_media_id (
+          kind,
+          cloudinary_public_id
         )
       `,
       )
@@ -123,7 +147,7 @@ export const supabaseContentRepository: ContentRepository = {
       return null
     }
 
-    return mapContent(data as SupabaseContentRow)
+    return mapContent(data as unknown as SupabaseContentRow)
   },
 
   async createDraft(input: CreateContentInput) {

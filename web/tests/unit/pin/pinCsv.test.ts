@@ -5,9 +5,9 @@ import { parsePinCsv, findCsvRowForFile } from '@/modules/pin/domain/pinCsv'
 describe('parsePinCsv', () => {
   it('parsea una cabecera y varias filas', () => {
     const csv = [
-      'filename,label,cta,ratio,language,alt,queueOrder',
-      'foto1.jpg,Pistachos de temporada,Ver más,1:1,es,Cosecha de pistachos,0',
-      'foto2.jpg,Cosecha,,4:5,es,Trabajadores en el campo,1',
+      'filename,label,ratio,language,alt,queueOrder',
+      'foto1.jpg,Pistachos de temporada,1:1,es,Cosecha de pistachos,0',
+      'foto2.jpg,Cosecha,4:5,es,Trabajadores en el campo,1',
     ].join('\n')
 
     const rows = parsePinCsv(csv)
@@ -16,7 +16,6 @@ describe('parsePinCsv', () => {
     expect(rows[0]).toEqual({
       filename: 'foto1.jpg',
       label: 'Pistachos de temporada',
-      cta: 'Ver más',
       ratio: '1:1',
       language: 'es',
       alt: 'Cosecha de pistachos',

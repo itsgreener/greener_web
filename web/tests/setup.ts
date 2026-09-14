@@ -9,8 +9,7 @@
  * valor es fijo aquí, así que la firma es estable entre ejecuciones.
  */
 process.env.NEXT_PUBLIC_SUPABASE_URL ??= 'https://test-project.supabase.co'
-process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??=
-  'sb_publishable_test_00000000000000000000'
+process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??= 'sb_publishable_test_00000000000000000000'
 process.env.SUPABASE_SECRET_KEY ??= 'sb_secret_test_000000000000000000000000'
 process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ??= 'test-cloud'
 process.env.CLOUDINARY_API_KEY ??= 'test-cloudinary-key'

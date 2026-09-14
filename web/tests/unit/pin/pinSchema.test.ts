@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  pinTypeSchema,
   pinRatioSchema,
   createPinSchema,
   updatePinSchema,
@@ -11,15 +10,9 @@ import {
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const PIN_ID = '7a1f2e3d-4c5b-6a7d-8e9f-0a1b2c3d4e5f'
 
-describe('pinTypeSchema / pinRatioSchema', () => {
-  it('acepta los tres tipos de pin (§9.1)', () => {
-    for (const type of ['fixed', 'animated', 'carousel']) {
-      expect(pinTypeSchema.safeParse(type).success).toBe(true)
-    }
-  })
-
-  it('acepta los seis ratios cerrados (§9.1)', () => {
-    for (const ratio of ['1:1', '4:5', '3:4', '2:3', '9:16', '16:9']) {
+describe('pinRatioSchema', () => {
+  it('acepta los siete ratios cerrados (especificacion-final-formato-detalle.md §4)', () => {
+    for (const ratio of ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']) {
       expect(pinRatioSchema.safeParse(ratio).success).toBe(true)
     }
   })
@@ -32,10 +25,9 @@ describe('pinTypeSchema / pinRatioSchema', () => {
 describe('createPinSchema', () => {
   const base = {
     contentId: CONTENT_ID,
-    type: 'fixed' as const,
     ratio: '1:1' as const,
     label: 'Pin de ejemplo',
-    cta: null,
+    showAsCarousel: true,
     language: 'es' as const,
     autoplayMode: null,
     speedMs: null,
@@ -43,17 +35,26 @@ describe('createPinSchema', () => {
     alt: 'Texto alternativo',
   }
 
-  it('acepta un pin fijo mínimo válido', () => {
+  it('acepta un pin mínimo válido', () => {
     expect(createPinSchema.safeParse(base).success).toBe(true)
   })
 
-  it('rechaza label vacío', () => {
-    expect(createPinSchema.safeParse({ ...base, label: '  ' }).success).toBe(
-      false,
-    )
+  it('convierte un label vacío a null en vez de rechazarlo — la obligatoriedad depende del tipo de contenido y la aplica la función SQL, no este schema (§3, §6)', () => {
+    const result = createPinSchema.safeParse({ ...base, label: '  ' })
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.label).toBeNull()
+    }
   })
 
-  it('rechaza alt vacío — "alt not null" en el esquema (§7.4)', () => {
+  it('acepta label ausente (case/episode, donde no se muestra)', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { label: _label, ...withoutLabel } = base
+    expect(createPinSchema.safeParse(withoutLabel).success).toBe(true)
+  })
+
+  it('rechaza alt vacío — "alt not null" en el esquema (§7.4 de la arquitectura)', () => {
     expect(createPinSchema.safeParse({ ...base, alt: '' }).success).toBe(false)
   })
 
@@ -63,20 +64,25 @@ describe('createPinSchema', () => {
     )
   })
 
-  it('acepta cta vacío y lo convierte a null', () => {
-    const result = createPinSchema.safeParse({ ...base, cta: '' })
-
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.cta).toBeNull()
-    }
+  it('acepta showAsCarousel en ambos valores', () => {
+    expect(
+      createPinSchema.safeParse({ ...base, showAsCarousel: true }).success,
+    ).toBe(true)
+    expect(
+      createPinSchema.safeParse({ ...base, showAsCarousel: false }).success,
+    ).toBe(true)
   })
 
-  it('acepta autoplayMode viewport/hover para carrusel', () => {
+  it('rechaza showAsCarousel ausente — ya no hay pin_type con un valor por defecto implícito', () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { showAsCarousel: _flag, ...withoutFlag } = base
+    expect(createPinSchema.safeParse(withoutFlag).success).toBe(false)
+  })
+
+  it('acepta autoplayMode viewport/hover', () => {
     expect(
       createPinSchema.safeParse({
         ...base,
-        type: 'carousel',
         autoplayMode: 'viewport',
         speedMs: 3000,
       }).success,
@@ -89,20 +95,24 @@ describe('createPinSchema', () => {
     ).toBe(false)
   })
 
-  it('rechaza un tipo de pin inventado', () => {
-    expect(createPinSchema.safeParse({ ...base, type: 'gif' }).success).toBe(
-      false,
-    )
+  it("ya no acepta 'type' como campo — pin_type desaparece (§3, §6)", () => {
+    // zod ignora claves no declaradas: el resultado es válido, pero
+    // 'type' nunca llega a create_pin (que ya no lo acepta).
+    const result = createPinSchema.safeParse({ ...base, type: 'fixed' })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('type')
+    }
   })
 })
 
 describe('updatePinSchema', () => {
-  it('no lleva contentId ni type — ninguno de los dos se puede cambiar tras crear el pin', () => {
+  it('no lleva contentId — no se puede cambiar tras crear el pin', () => {
     const result = updatePinSchema.safeParse({
       id: PIN_ID,
       ratio: '4:5',
       label: 'Actualizado',
-      cta: null,
+      showAsCarousel: false,
       language: 'es',
       autoplayMode: null,
       speedMs: null,
@@ -113,7 +123,6 @@ describe('updatePinSchema', () => {
     expect(result.success).toBe(true)
     if (result.success) {
       expect(result.data).not.toHaveProperty('contentId')
-      expect(result.data).not.toHaveProperty('type')
     }
   })
 
@@ -123,7 +132,7 @@ describe('updatePinSchema', () => {
         id: 'no-es-uuid',
         ratio: '1:1',
         label: 'x',
-        cta: null,
+        showAsCarousel: true,
         language: 'es',
         autoplayMode: null,
         speedMs: null,

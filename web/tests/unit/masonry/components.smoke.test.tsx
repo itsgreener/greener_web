@@ -36,7 +36,7 @@ describe('PinCard — prueba de humo', () => {
           label: 'Mi caso',
           cta: 'Ver caso',
           alt: 'Texto alternativo',
-          cloudinaryPublicId: 'sample',
+          media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
         }}
         style={{ x: 0, y: 0, width: 300, height: 375 }}
       />,
@@ -47,6 +47,47 @@ describe('PinCard — prueba de humo', () => {
     expect(screen.getByAltText('Texto alternativo')).toBeInTheDocument()
     expect(screen.getByText('Mi caso')).toBeInTheDocument()
     expect(screen.getByText('Ver caso')).toBeInTheDocument()
+  })
+
+  it('sin label (caso/episodio, especificacion-final-formato-detalle.md §3), no renderiza el párrafo de rótulo', () => {
+    const { container } = render(
+      <PinCard
+        pin={{
+          pinId: 'p2',
+          destination: '/work/otro-caso',
+          ratio: '1:1',
+          label: null,
+          cta: 'Watch',
+          alt: 'Alt sin rótulo',
+          media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    expect(screen.queryByText('Watch')).toBeInTheDocument()
+    expect(container.querySelector('p')).not.toBeInTheDocument()
+  })
+
+  it('un medio de vídeo usa el poster, no el vídeo completo — sin autoplay en esta primera versión', () => {
+    render(
+      <PinCard
+        pin={{
+          pinId: 'p3',
+          destination: '/work/caso-video',
+          ratio: '9:16',
+          label: 'Con vídeo',
+          cta: null,
+          alt: 'Alt de vídeo',
+          media: [{ kind: 'video', cloudinaryPublicId: 'sample-video' }],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 533 }}
+      />,
+    )
+
+    const img = screen.getByAltText('Alt de vídeo')
+    expect(img).toHaveAttribute('src', expect.stringContaining('.jpg'))
+    expect(document.querySelector('video')).not.toBeInTheDocument()
   })
 })
 
