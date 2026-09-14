@@ -40,7 +40,7 @@ describe('HomeFeed — prueba de humo', () => {
       constructor(callback: ResizeObserverCallback) {
         this.callback = callback
       }
-      observe(target: Element) {
+      observe() {
         this.callback(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
           this as unknown as ResizeObserver,

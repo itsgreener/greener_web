@@ -45,5 +45,9 @@
     "prettier": "^3.9.6",
     "typescript": "^5",
     "vitest": "^4.1.10"
+  },
+  "allowScripts": {
+    "unrs-resolver@1.12.2": true,
+    "fsevents": false
   }
 }
