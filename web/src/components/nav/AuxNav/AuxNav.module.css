@@ -1,0 +1,37 @@
+.nav {
+  width: 100%;
+}
+
+.list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-lg);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  display: inline-block;
+  padding: var(--space-xs) 0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  text-decoration: none;
+  opacity: 0.7;
+  transition:
+    opacity 0.15s ease,
+    color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    color: var(--color-cta);
+  }
+
+  &[aria-current='page'] {
+    opacity: 1;
+    font-weight: 600;
+  }
+}

@@ -5,14 +5,19 @@
  * los casos son el 70% de la home y no necesitan sección propia (brief
  * §6) — el icono "works" apunta a la home por el mismo motivo.
  *
+ * Labels en inglés (arquitectura §2.4: "interfaz global en inglés") —
+ * alineados el 15 sep con los del menú auxiliar de la home
+ * (components/nav/AuxNav), que fue el primer sitio donde se confirmaron
+ * los nombres reales de cada sección.
+ *
  * "shop" viene en el set de iconos porque así será el diseño final, pero
  * Shop está fuera de alcance de V1 (arquitectura §2.2, §2.3: "el menú V1
  * no mostrará Shop") — por eso `visible: false` en vez de no declararlo:
  * cuando haya funcionalidad real detrás, activarlo es una sola línea.
  */
 const NAV_ITEMS = [
-  { href: '/', label: 'Casos', icon: 'works', visible: true },
-  { href: '/channel', label: 'Channel', icon: 'episodes', visible: true },
+  { href: '/', label: 'We did it', icon: 'works', visible: true },
+  { href: '/channel', label: 'Podcasts', icon: 'episodes', visible: true },
   { href: '/insights', label: 'Insights', icon: 'insights', visible: true },
   { href: '/tools', label: 'Tools', icon: 'tools', visible: true },
   { href: '/shop', label: 'Shop', icon: 'shop', visible: false },
@@ -20,19 +25,33 @@ const NAV_ITEMS = [
 
 /**
  * "contact" no es un enlace externo: es el hueco reservado a Contacto
- * (brief §5.6, arquitectura §14.1), todavía sin construir — por eso
- * apunta a una ruta interna, no a un mailto: ni una URL externa.
+ * (brief §5.6, arquitectura §14.1), todavía sin construir del todo —
+ * hoy sirve un placeholder en /contact.
  *
- * instagram/youtube/linkedin: pendiente de que Greener confirme las
- * URLs reales — de momento enlazan a '#' para no publicar cuentas
- * incorrectas o inventadas. tiktok y whatsapp no se incluyen: Greener
- * confirmó el 14 sep que no se van a usar esos enlaces.
+ * instagram/youtube/linkedin: URLs reales confirmadas el 15 sep.
+ * tiktok y whatsapp no se incluyen: Greener confirmó que no se van a
+ * usar esos enlaces.
  */
 const SOCIAL_ITEMS = [
-  { href: '/contacto', label: 'Contacto', icon: 'contact', external: false },
-  { href: '#', label: 'Instagram', icon: 'instagram', external: true },
-  { href: '#', label: 'YouTube', icon: 'youtube', external: true },
-  { href: '#', label: 'LinkedIn', icon: 'linkedin', external: true },
+  { href: '/contact', label: 'Contact', icon: 'contact', external: false },
+  {
+    href: 'https://www.instagram.com/itsgreenerhere/',
+    label: 'Instagram',
+    icon: 'instagram',
+    external: true,
+  },
+  {
+    href: 'https://www.youtube.com/@Itsgreenernow',
+    label: 'YouTube',
+    icon: 'youtube',
+    external: true,
+  },
+  {
+    href: 'https://www.linkedin.com/company/greener/posts/',
+    label: 'LinkedIn',
+    icon: 'linkedin',
+    external: true,
+  },
 ] as const
 
 export function useShell() {

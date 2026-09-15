@@ -15,17 +15,17 @@ describe('Shell — prueba de humo', () => {
     )
 
     expect(screen.getByLabelText('Greener')).toBeInTheDocument()
-    expect(screen.getByLabelText('Casos')).toHaveAttribute('href', '/')
-    expect(screen.getByLabelText('Channel')).toHaveAttribute('href', '/channel')
+    expect(screen.getByLabelText('We did it')).toHaveAttribute('href', '/')
+    expect(screen.getByLabelText('Podcasts')).toHaveAttribute(
+      'href',
+      '/channel',
+    )
     expect(screen.getByLabelText('Insights')).toHaveAttribute(
       'href',
       '/insights',
     )
     expect(screen.getByLabelText('Tools')).toHaveAttribute('href', '/tools')
-    expect(screen.getByLabelText('Contacto')).toHaveAttribute(
-      'href',
-      '/contacto',
-    )
+    expect(screen.getByLabelText('Contact')).toHaveAttribute('href', '/contact')
     expect(screen.getByText('Contenido')).toBeInTheDocument()
   })
 
