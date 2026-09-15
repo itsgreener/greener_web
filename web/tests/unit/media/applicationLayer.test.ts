@@ -174,6 +174,7 @@ describe('addCaseCarouselImage / addCaseCarouselVideo / removeCaseCarouselMedia 
       height: 800,
       bytes: 500_000,
       sortOrder: 0,
+      alt: 'Equipo de Agróptimum en el campo',
     }
 
     const result = await addCaseCarouselImage(input)
@@ -200,6 +201,7 @@ describe('addCaseCarouselImage / addCaseCarouselVideo / removeCaseCarouselMedia 
         durationSeconds: 200,
         bytes: 20 * 1024 * 1024,
         sortOrder: 0,
+        alt: 'Vídeo del equipo de Agróptimum',
       }),
     ).rejects.toThrow()
 

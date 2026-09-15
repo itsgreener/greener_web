@@ -112,6 +112,8 @@ export const addCaseCarouselImageSchema = z.object({
     ),
 
   sortOrder: z.number().int().min(0),
+
+  alt: z.string().trim().min(1, 'El alt es obligatorio'),
 })
 
 export const addCaseCarouselVideoSchema = z.object({
@@ -147,6 +149,8 @@ export const addCaseCarouselVideoSchema = z.object({
     ),
 
   sortOrder: z.number().int().min(0),
+
+  alt: z.string().trim().min(1, 'El alt es obligatorio'),
 })
 
 export const removeCaseCarouselMediaSchema = z.object({

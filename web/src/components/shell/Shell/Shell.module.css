@@ -5,32 +5,63 @@
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
   border-right: 1px solid var(--color-border);
   padding: var(--space-md) 0;
+}
 
-  & ul {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-sm);
-    list-style: none;
-    margin: 0;
-    padding: 0;
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  & img {
+    width: 20px;
+    height: auto;
+  }
+}
+
+.navGroup,
+.socialGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* El bloque de redes se ancla abajo del todo, dejando el hueco vacío del
+   medio de la captura de referencia (14 sep) — no es un espaciado fijo. */
+.socialGroup {
+  margin-top: auto;
+}
+
+.navGroup a,
+.socialGroup a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: var(--color-text);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--color-surface-hover);
   }
 
-  & a {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 8px;
-    color: var(--color-text);
-    text-decoration: none;
-
-    &:hover {
-      background: var(--color-surface-hover);
-    }
+  & img {
+    width: 20px;
+    height: 20px;
+    /* Los SVG vienen con stroke="black" fijo, no currentColor — el hover
+       se resuelve con el fondo de arriba, no recoloreando el icono. */
+    object-fit: contain;
   }
 }
 

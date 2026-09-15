@@ -3,6 +3,7 @@ export type CaseCarouselItem = {
   kind: 'image' | 'video'
   cloudinaryPublicId: string
   sortOrder: number
+  alt: string
 }
 
 export interface CaseCarouselRepository {

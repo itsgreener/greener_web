@@ -18,6 +18,7 @@ function createRepositoryError(message: string, code?: string) {
 type SupabaseCaseCarouselRow = {
   media_id: string
   sort_order: number
+  alt: string
   media_asset: {
     kind: 'image' | 'video'
     cloudinary_public_id: string
@@ -34,6 +35,7 @@ export const supabaseCaseCarouselRepository: CaseCarouselRepository = {
         `
         media_id,
         sort_order,
+        alt,
         media_asset ( kind, cloudinary_public_id )
       `,
       )
@@ -51,6 +53,7 @@ export const supabaseCaseCarouselRepository: CaseCarouselRepository = {
         kind: row.media_asset!.kind,
         cloudinaryPublicId: row.media_asset!.cloudinary_public_id,
         sortOrder: row.sort_order,
+        alt: row.alt,
       }))
   },
 }

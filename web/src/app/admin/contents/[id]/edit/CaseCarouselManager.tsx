@@ -27,6 +27,7 @@ type CarouselItem = {
   kind: 'image' | 'video'
   cloudinaryPublicId: string
   sortOrder: number
+  alt: string
 }
 
 type Props = {
@@ -62,6 +63,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
   const [warning, setWarning] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [kind, setKind] = useState<'image' | 'video'>('image')
+  const [alt, setAlt] = useState('')
 
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
   const nextSortOrder = sorted.length
@@ -95,6 +97,11 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       return
     }
 
+    if (!alt.trim()) {
+      setError('El alt es obligatorio antes de subir la imagen.')
+      return
+    }
+
     const validation = validateImageUpload(file.size)
 
     if (validation && validation.code === 'IMAGE_TOO_LARGE') {
@@ -120,6 +127,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
         height: uploaded.height,
         bytes: uploaded.bytes,
         sortOrder: nextSortOrder,
+        alt: alt.trim(),
       })
 
       if (!result.ok) {
@@ -127,6 +135,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       }
 
       setFile(null)
+      setAlt('')
       window.location.reload()
     } catch (uploadError) {
       setError(
@@ -142,6 +151,11 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
   async function handleVideoUpload() {
     if (!file) {
       setError('Selecciona un vídeo.')
+      return
+    }
+
+    if (!alt.trim()) {
+      setError('El alt es obligatorio antes de subir el vídeo.')
       return
     }
 
@@ -177,6 +191,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
         durationSeconds: uploaded.duration,
         bytes: uploaded.bytes,
         sortOrder: nextSortOrder,
+        alt: alt.trim(),
       })
 
       if (!result.ok) {
@@ -184,6 +199,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       }
 
       setFile(null)
+      setAlt('')
       window.location.reload()
     } catch (uploadError) {
       setError(
@@ -207,13 +223,15 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={buildImageUrl(item.cloudinaryPublicId, 'feed', 200)}
-                alt=""
+                alt={item.alt}
                 width={100}
                 height={100}
               />
             ) : (
               <p>{item.cloudinaryPublicId} (vídeo)</p>
             )}
+
+            <p>{item.alt}</p>
 
             <button type="button" onClick={() => handleRemove(item)}>
               Quitar
@@ -223,6 +241,15 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
         {sorted.length === 0 && <p>Todavía no hay carrusel para este caso.</p>}
       </div>
+
+      <label htmlFor="carousel-alt">Alt (obligatorio)</label>
+      <input
+        id="carousel-alt"
+        type="text"
+        value={alt}
+        disabled={uploading}
+        onChange={(event) => setAlt(event.target.value)}
+      />
 
       <label htmlFor="carousel-kind">Tipo de archivo</label>
       <select

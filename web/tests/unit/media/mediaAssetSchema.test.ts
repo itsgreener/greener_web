@@ -145,7 +145,7 @@ describe('deleteCoverMediaSchema', () => {
 })
 
 describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel de caso, sin tope (§3, §6)', () => {
-  it('acepta una imagen válida con sortOrder', () => {
+  it('acepta una imagen válida con sortOrder y alt', () => {
     const result = addCaseCarouselImageSchema.safeParse({
       contentId: CONTENT_ID,
       cloudinaryPublicId: 'greener/content/abc123',
@@ -154,6 +154,7 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
       height: 800,
       bytes: 500_000,
       sortOrder: 3,
+      alt: 'Equipo de Agróptimum en el campo',
     })
 
     expect(result.success).toBe(true)
@@ -168,6 +169,22 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
       height: 800,
       bytes: 500_000,
       sortOrder: -1,
+      alt: 'Equipo de Agróptimum en el campo',
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza alt vacío — hueco de accesibilidad cerrado el 14 sep (case_detail_media no lo tenía)', () => {
+    const result = addCaseCarouselImageSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/abc123',
+      format: 'webp',
+      width: 1200,
+      height: 800,
+      bytes: 500_000,
+      sortOrder: 0,
+      alt: '   ',
     })
 
     expect(result.success).toBe(false)
@@ -183,6 +200,7 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
       durationSeconds: 60,
       bytes: 20 * 1024 * 1024,
       sortOrder: 0,
+      alt: 'Vídeo del equipo de Agróptimum',
     })
 
     expect(result.success).toBe(true)
@@ -198,6 +216,23 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
       durationSeconds: 181,
       bytes: 20 * 1024 * 1024,
       sortOrder: 0,
+      alt: 'Vídeo del equipo de Agróptimum',
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('rechaza un vídeo sin alt', () => {
+    const result = addCaseCarouselVideoSchema.safeParse({
+      contentId: CONTENT_ID,
+      cloudinaryPublicId: 'greener/content/videos/abc123',
+      format: 'mp4',
+      width: 1920,
+      height: 1080,
+      durationSeconds: 60,
+      bytes: 20 * 1024 * 1024,
+      sortOrder: 0,
+      alt: '',
     })
 
     expect(result.success).toBe(false)

@@ -1,0 +1,47 @@
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  width: 100%;
+}
+
+.embedWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+.embed {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 72ch;
+  align-self: center;
+}
+
+.kind {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.title {
+  font-size: 1.75rem;
+}
+
+.highlight {
+  font-size: 1.1rem;
+  opacity: 0.85;
+}
+
+.body {
+  white-space: pre-wrap;
+}

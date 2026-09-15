@@ -4,7 +4,13 @@
   --color-text: #111111;
   --color-border: #e5e5e5;
   --color-surface-hover: #f4f4f4;
-  --color-accent: #1f4d3a;
+
+  /* CTA — confirmado por diseño el 14 sep (azul #1941F5, radio 11px sobre
+     una base de 16px = 0.6875rem). A diferencia del resto de esta hoja,
+     esto NO es provisional. */
+  --color-cta: #1941f5;
+  --color-cta-text: #ffffff;
+  --radius-cta: 0.6875rem;
 
   /* Layout */
   --sidebar-width: 64px;

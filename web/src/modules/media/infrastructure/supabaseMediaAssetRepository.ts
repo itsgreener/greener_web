@@ -108,6 +108,8 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       p_bytes: input.bytes,
 
       p_sort_order: input.sortOrder,
+
+      p_alt: input.alt,
     })
 
     if (error) {
@@ -136,6 +138,8 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       p_bytes: input.bytes,
 
       p_sort_order: input.sortOrder,
+
+      p_alt: input.alt,
     })
 
     if (error) {
