@@ -4,6 +4,10 @@
   min-height: 100dvh;
 }
 
+/* sticky + height fijo (no solo min-height): sin esto, el grid estira
+   .sidebar a la altura de .content (el feed, mucho más alto que la
+   pantalla), lo que además rompe el margin-top: auto de .socialGroup —
+   se iría al final de todos los pines en vez de al final del viewport. */
 .sidebar {
   position: sticky;
   top: 0;
