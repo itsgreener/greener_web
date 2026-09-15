@@ -30,9 +30,9 @@ const NAV_ITEMS = [
  */
 const SOCIAL_ITEMS = [
   { href: '/contacto', label: 'Contacto', icon: 'contact', external: false },
-  { href: '#', label: 'Instagram', icon: 'instagram', external: true },
-  { href: '#', label: 'YouTube', icon: 'youtube', external: true },
-  { href: '#', label: 'LinkedIn', icon: 'linkedin', external: true },
+  { href: 'https://www.instagram.com/itsgreenerhere/', label: 'Instagram', icon: 'instagram', external: true },
+  { href: 'https://www.youtube.com/@Itsgreenernow', label: 'YouTube', icon: 'youtube', external: true },
+  { href: 'https://www.linkedin.com/company/greener/posts/', label: 'LinkedIn', icon: 'linkedin', external: true },
 ] as const
 
 export function useShell() {
