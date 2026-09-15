@@ -52,4 +52,20 @@ describe('Shell — prueba de humo', () => {
       expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
     }
   })
+
+  it('cada icono lleva su pastilla con el nombre (ej. "LinkedIn") y la máscara del SVG correspondiente — confirmado por diseño el 15 sep', () => {
+    render(
+      <Shell>
+        <p>Contenido</p>
+      </Shell>,
+    )
+
+    const linkedin = screen.getByLabelText('LinkedIn')
+    expect(linkedin).toHaveTextContent('LinkedIn')
+
+    const icon = linkedin.querySelector('span')
+    expect(icon?.style.getPropertyValue('--icon-url')).toBe(
+      'url(/icons/linkedin.svg)',
+    )
+  })
 })

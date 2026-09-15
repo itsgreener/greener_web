@@ -13,6 +13,7 @@
   top: 0;
   height: 100dvh;
   display: flex;
+  z-index: 10;
   flex-direction: column;
   align-items: center;
   gap: var(--space-xl);
@@ -48,8 +49,8 @@
   margin-top: auto;
 }
 
-.navGroup a,
-.socialGroup a {
+.iconLink {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,17 +60,63 @@
   color: var(--color-text);
   text-decoration: none;
 
-  &:hover {
+  &:hover,
+  &:focus-visible {
     background: var(--color-surface-hover);
   }
+}
 
-  & img {
-    width: 20px;
-    height: 20px;
-    /* Los SVG vienen con stroke="black" fijo, no currentColor — el hover
-       se resuelve con el fondo de arriba, no recoloreando el icono. */
-    object-fit: contain;
-  }
+/* Los SVG traen stroke="black" fijo, no currentColor — se pintan como
+   máscara (background-color recortado por la forma del icono) en vez de
+   <img>, que es lo único que permite cambiar el color por CSS sin tocar
+   los 10 ficheros. --icon-url la fija cada IconLink por icono. */
+.icon {
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+  mask-image: var(--icon-url);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-image: var(--icon-url);
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+
+.iconLink:hover .icon,
+.iconLink:focus-visible .icon {
+  transform: scale(1.15);
+  color: var(--color-cta);
+}
+
+/* Pastilla con el nombre del icono (ej. "LinkedIn"), confirmado el 15
+   sep — a la derecha del icono, oculta hasta hover/foco. */
+.tooltip {
+  position: absolute;
+  left: calc(100% + var(--space-sm));
+  top: 50%;
+  transform: translateY(-50%) translateX(-4px);
+  white-space: nowrap;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: 0.75rem;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
+}
+
+.iconLink:hover .tooltip,
+.iconLink:focus-visible .tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
 }
 
 .content {
