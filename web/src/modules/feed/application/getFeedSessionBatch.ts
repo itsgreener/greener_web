@@ -23,6 +23,7 @@ export interface FeedBatchItem {
   label: string | null
   cta: string | null
   alt: string
+  autoplayMode: 'viewport' | 'hover' | null
   media: FeedItemMedia[]
 }
 
@@ -109,6 +110,7 @@ function enrich(
       label: meta.label,
       cta: ctaFor(meta.contentType),
       alt: meta.alt,
+      autoplayMode: meta.autoplayMode,
       media: meta.media,
     }
   })

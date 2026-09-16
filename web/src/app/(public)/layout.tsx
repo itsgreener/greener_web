@@ -1,5 +1,5 @@
 import { Shell } from '@/components/shell/Shell'
-import { HomeFeedProvider } from '@/components/masonry/HomeFeed/HomeFeedProvider'
+import { FeedProvider } from '@/components/masonry/FeedProvider'
 
 export default function PublicLayout({
   children,
@@ -7,8 +7,8 @@ export default function PublicLayout({
   children: React.ReactNode
 }) {
   return (
-    <HomeFeedProvider>
+    <FeedProvider>
       <Shell>{children}</Shell>
-    </HomeFeedProvider>
+    </FeedProvider>
   )
 }

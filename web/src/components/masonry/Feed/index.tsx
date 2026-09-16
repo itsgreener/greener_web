@@ -1,19 +1,26 @@
 'use client'
 
 import { PinCard } from '@/components/pin/PinCard'
-import { useHomeFeed } from './useHomeFeed'
-import styles from './HomeFeed.module.css'
+import { useFeed } from './useFeed'
+import styles from './Feed.module.css'
 
 /**
- * Retícula masonry de la home sobre el feed real (§6-§10 de la
- * arquitectura). A diferencia de MasonryFeed (el prototipo de demo,
+ * Retícula masonry sobre el feed real (§6-§10 de la arquitectura), para
+ * la home (scope="home") y cada subhome (scope="work"/"insights"/
+ * "tools"/"channel"). A diferencia de MasonryFeed (el prototipo de demo,
  * /preview/masonry), habla con /api/feed/sessions + /api/feed/[sessionId]
- * de verdad — mismo posicionamiento y virtualización, vía
- * useMasonryPositions, que es lo único que comparten los dos.
+ * de verdad.
  */
-export function HomeFeed() {
-  const { containerRef, positioned, totalHeight, isLoading, itemCount, error } =
-    useHomeFeed()
+export function Feed({ scope }: { scope: string }) {
+  const {
+    containerRef,
+    positioned,
+    totalHeight,
+    isLoading,
+    itemCount,
+    error,
+    sentinelId,
+  } = useFeed(scope)
 
   if (error) {
     return (
@@ -52,7 +59,7 @@ export function HomeFeed() {
           ),
         )}
       </div>
-      <div id="greener-home-feed-sentinel" className={styles.sentinel} />
+      <div id={sentinelId} className={styles.sentinel} />
       {isLoading && itemCount === 0 && (
         <p className={styles.status}>Cargando…</p>
       )}

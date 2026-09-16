@@ -56,6 +56,7 @@ function entry(
     ratio: '1:1',
     label: 'Pin de prueba',
     alt: 'Alt de prueba',
+    autoplayMode: null,
     media: [{ kind: 'image', cloudinaryPublicId: `${contentId}/img` }],
   }
 }

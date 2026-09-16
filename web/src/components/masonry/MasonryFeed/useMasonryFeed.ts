@@ -27,6 +27,10 @@ function toPinCardData(item: DemoFeedBatchItem): PinCardData {
     label: item.label,
     cta: item.cta,
     alt: item.alt,
+    // El demo route no modela autoplay_mode (es de antes de que existiera
+    // en el feed real) — null: mismo comportamiento que tenía hasta ahora,
+    // siempre poster estático para este prototipo.
+    autoplayMode: null,
     media: [{ kind: 'image', cloudinaryPublicId: item.cloudinaryPublicId }],
   }
 }

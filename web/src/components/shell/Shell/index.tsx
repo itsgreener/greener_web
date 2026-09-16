@@ -62,7 +62,7 @@ function IconLink({ href, label, icon, external }: IconLinkItem) {
  * §6), en tres bloques (logo / navegación / redes, confirmado por diseño
  * el 14 sep) + área de contenido. Vive en app/(public)/layout.tsx para no
  * remontarse al navegar entre home, casos, tools e insights (arquitectura
- * §24.3) — es también donde vive HomeFeedProvider, así que este
+ * §24.3) — es también donde vive FeedProvider, así que este
  * componente es parte de por qué el feed sobrevive a esa navegación.
  */
 export function Shell({ children }: ShellProps) {

@@ -9,27 +9,32 @@ import {
   cleanup,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { HomeFeed } from '@/components/masonry/HomeFeed'
-import { HomeFeedProvider } from '@/components/masonry/HomeFeed/HomeFeedProvider'
+import { Feed } from '@/components/masonry/Feed'
+import { FeedProvider } from '@/components/masonry/FeedProvider'
 import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
 
-const SESSION_ID = 'session-abc'
+const SESSION_IDS: Record<string, string> = {
+  home: 'session-home',
+  tools: 'session-tools',
+}
 
 function fakeBatch(
   count: number,
   cursor: string,
   hasMore: boolean,
+  prefix: string,
 ): FeedBatchResult {
   return {
     items: Array.from({ length: count }, (_, i) => ({
-      pinId: `pin-${i}`,
-      contentId: `case-${i}`,
+      pinId: `${prefix}-pin-${i}`,
+      contentId: `${prefix}-case-${i}`,
       kind: 'case',
-      destination: `/work/case-${i}`,
+      destination: `/work/${prefix}-case-${i}`,
       ratio: '1:1',
       label: `Pin ${i}`,
       cta: 'Watch',
       alt: `Alt del pin ${i}`,
+      autoplayMode: null,
       media: [{ kind: 'image' as const, cloudinaryPublicId: 'sample' }],
     })),
     cursor,
@@ -37,39 +42,31 @@ function fakeBatch(
   }
 }
 
-/**
- * Home real: HomeFeed vive bajo HomeFeedProvider (app/(public)/layout.tsx
- * en producción) — sin el Provider, useHomeFeedContext() lanza.
- */
-function renderHome() {
+function renderFeed(scope: string) {
   return render(
-    <HomeFeedProvider>
-      <HomeFeed />
-    </HomeFeedProvider>,
+    <FeedProvider>
+      <Feed scope={scope} />
+    </FeedProvider>,
   )
 }
 
 /**
  * Simula "navegar a /work/[slug] y volver" sin desmontar el Provider —
  * justo lo que hace Next.js con (public)/layout.tsx (arquitectura §6.2):
- * solo se desmonta page.tsx (aquí, HomeFeed), el Provider persiste.
+ * solo se desmonta page.tsx (aquí, Feed), el Provider persiste.
  */
-function Wrapper() {
+function Wrapper({ scope }: { scope: string }) {
   const [show, setShow] = useState(true)
   return (
-    <HomeFeedProvider>
+    <FeedProvider>
       <button onClick={() => setShow((s) => !s)}>toggle</button>
-      {show && <HomeFeed />}
-    </HomeFeedProvider>
+      {show && <Feed scope={scope} />}
+    </FeedProvider>
   )
 }
 
-describe('HomeFeed — prueba de humo', () => {
+describe('Feed — prueba de humo', () => {
   beforeEach(() => {
-    // Cada test debe partir de cero: HomeFeedProvider hidrata desde
-    // sessionStorage si encuentra un pageLoadId igual al de este módulo
-    // (estable durante toda la ejecución de este fichero de test) — sin
-    // esto, lo que deja un test contaminaría el siguiente.
     window.sessionStorage.clear()
 
     // ResizeObserver e IntersectionObserver no existen en jsdom. El stub
@@ -98,15 +95,19 @@ describe('HomeFeed — prueba de humo', () => {
 
     global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === '/api/feed/sessions' && init?.method === 'POST') {
+        const { scope } = JSON.parse(init.body as string) as { scope: string }
         return {
           ok: true,
-          json: async () => ({ sessionId: SESSION_ID }),
+          json: async () => ({ sessionId: SESSION_IDS[scope] ?? scope }),
         } as Response
       }
-      if (url.startsWith(`/api/feed/${SESSION_ID}`)) {
+      const matchedScope = Object.entries(SESSION_IDS).find(([, id]) =>
+        url.startsWith(`/api/feed/${id}`),
+      )
+      if (matchedScope) {
         return {
           ok: true,
-          json: async () => fakeBatch(12, 'cursor-1', true),
+          json: async () => fakeBatch(12, 'cursor-1', true, matchedScope[0]),
         } as Response
       }
       throw new Error(`URL inesperada en el test: ${url}`)
@@ -119,8 +120,8 @@ describe('HomeFeed — prueba de humo', () => {
     cleanup()
   })
 
-  it('abre una sesión real y pinta el primer lote', async () => {
-    renderHome()
+  it('abre una sesión real con el scope indicado y pinta el primer lote', async () => {
+    renderFeed('home')
 
     await waitFor(() => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
@@ -128,9 +129,11 @@ describe('HomeFeed — prueba de humo', () => {
 
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/feed/sessions',
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ scope: 'home' }),
+      }),
     )
-    expect(global.fetch).toHaveBeenCalledWith(`/api/feed/${SESSION_ID}`)
   })
 
   it('si abrir la sesión falla, muestra un mensaje en vez de romper', async () => {
@@ -139,7 +142,7 @@ describe('HomeFeed — prueba de humo', () => {
       status: 500,
     })) as unknown as typeof fetch
 
-    renderHome()
+    renderFeed('tools')
 
     await waitFor(() => {
       expect(
@@ -148,8 +151,8 @@ describe('HomeFeed — prueba de humo', () => {
     })
   })
 
-  it('al volver de un detalle (desmontar y remontar bajo el mismo Provider) no vuelve a pedir sesión ni lote — arquitectura §6.2, criterio de aceptación §20.1', async () => {
-    render(<Wrapper />)
+  it('al volver de un detalle (desmontar y remontar bajo el mismo Provider) no vuelve a pedir sesión ni lote', async () => {
+    render(<Wrapper scope="home" />)
 
     await waitFor(() => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
@@ -157,21 +160,46 @@ describe('HomeFeed — prueba de humo', () => {
 
     const fetchCallsAfterFirstLoad = vi.mocked(global.fetch).mock.calls.length
 
-    // "Navegar a /work/[slug]": desmonta HomeFeed, el Provider sigue vivo.
-    fireEvent.click(screen.getByText('toggle'))
+    fireEvent.click(screen.getByText('toggle')) // "navega" fuera
     expect(screen.queryAllByRole('link')).toHaveLength(0)
 
-    // "Volver a /": remonta HomeFeed bajo el mismo Provider.
-    fireEvent.click(screen.getByText('toggle'))
+    fireEvent.click(screen.getByText('toggle')) // "vuelve"
 
     await waitFor(() => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
     })
 
-    // Ni una llamada de red más: los 12 pines ya estaban en el contexto.
     expect(vi.mocked(global.fetch).mock.calls.length).toBe(
       fetchCallsAfterFirstLoad,
     )
+  })
+
+  it('dos scopes distintos en el mismo Provider mantienen sesiones y pines independientes', async () => {
+    function TwoScopes() {
+      return (
+        <FeedProvider>
+          <Feed scope="home" />
+          <Feed scope="tools" />
+        </FeedProvider>
+      )
+    }
+
+    render(<TwoScopes />)
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('link')).toHaveLength(24) // 12 + 12
+    })
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/feed/sessions',
+      expect.objectContaining({ body: JSON.stringify({ scope: 'home' }) }),
+    )
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/feed/sessions',
+      expect.objectContaining({ body: JSON.stringify({ scope: 'tools' }) }),
+    )
+    expect(global.fetch).toHaveBeenCalledWith(`/api/feed/${SESSION_IDS.home}`)
+    expect(global.fetch).toHaveBeenCalledWith(`/api/feed/${SESSION_IDS.tools}`)
   })
 
   it('restaura la posición de scroll guardada al volver de un detalle', async () => {
@@ -179,13 +207,12 @@ describe('HomeFeed — prueba de humo', () => {
       .spyOn(window, 'scrollTo')
       .mockImplementation(() => {})
 
-    render(<Wrapper />)
+    render(<Wrapper scope="home" />)
 
     await waitFor(() => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
     })
 
-    // Simula que el usuario había bajado hasta y=456 antes de navegar.
     Object.defineProperty(window, 'scrollY', {
       value: 456,
       configurable: true,

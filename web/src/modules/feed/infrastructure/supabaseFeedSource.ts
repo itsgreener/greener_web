@@ -21,6 +21,15 @@ export interface PinDirectoryEntry {
   // opcional (no se muestra) en caso/episodio.
   label: string | null
   alt: string
+  // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
+  // 'viewport' lo reproduce vía IntersectionObserver (compite por el
+  // hueco global del feed, videoPlaybackCoordinator.ts), 'hover' solo
+  // mientras el puntero está encima (no compite por el hueco — es una
+  // acción explícita del usuario, no reproducción ambiental), null no
+  // reproduce nunca. El slide activo de un carrusel siempre reproduce
+  // si tiene hueco, sin mirar este campo — es un comportamiento distinto
+  // ya decidido (ver PinCard/index.tsx).
+  autoplayMode: 'viewport' | 'hover' | null
   // 1 elemento en el caso normal; más de uno solo cuando el pin se
   // agrupa como carrusel (show_as_carousel = true) — si está
   // desactivado, cada medio ya llega aquí como su propia entrada de
@@ -72,6 +81,7 @@ interface PinRow {
   alt: string
   queue_order: number
   show_as_carousel: boolean
+  autoplay_mode: 'viewport' | 'hover' | null
   pin_media: {
     media_id: string
     slide_order: number
@@ -83,7 +93,7 @@ interface PinRow {
 }
 
 const PIN_SELECT = `
-  id, ratio, label, alt, queue_order, show_as_carousel,
+  id, ratio, label, alt, queue_order, show_as_carousel, autoplay_mode,
   pin_media (
     media_id,
     slide_order,
@@ -129,6 +139,7 @@ export function buildFeedUnitsForPin(
     ratio: pin.ratio,
     label: pin.label,
     alt: pin.alt,
+    autoplayMode: pin.autoplay_mode,
   }
 
   if (pin.show_as_carousel || media.length === 1) {

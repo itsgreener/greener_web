@@ -1,6 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import {
+  render,
+  screen,
+  waitFor,
+  fireEvent,
+  act,
+  cleanup,
+} from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MasonryFeed } from '@/components/masonry/MasonryFeed'
 import { PinCard } from '@/components/pin/PinCard'
@@ -26,6 +33,8 @@ function fakeBatch(offset: number, count: number): FeedBatchResult {
 }
 
 describe('PinCard — prueba de humo', () => {
+  afterEach(cleanup)
+
   it('renderiza sin lanzar, con la imagen, el alt y el enlace correctos', () => {
     render(
       <PinCard
@@ -36,6 +45,7 @@ describe('PinCard — prueba de humo', () => {
           label: 'Mi caso',
           cta: 'Ver caso',
           alt: 'Texto alternativo',
+          autoplayMode: null,
           media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
         }}
         style={{ x: 0, y: 0, width: 300, height: 375 }}
@@ -59,6 +69,7 @@ describe('PinCard — prueba de humo', () => {
           label: null,
           cta: 'Watch',
           alt: 'Alt sin rótulo',
+          autoplayMode: null,
           media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
         }}
         style={{ x: 0, y: 0, width: 300, height: 300 }}
@@ -79,6 +90,7 @@ describe('PinCard — prueba de humo', () => {
           label: 'Con vídeo',
           cta: null,
           alt: 'Alt de vídeo',
+          autoplayMode: null,
           media: [{ kind: 'video', cloudinaryPublicId: 'sample-video' }],
         }}
         style={{ x: 0, y: 0, width: 300, height: 533 }}
@@ -87,6 +99,209 @@ describe('PinCard — prueba de humo', () => {
 
     const img = screen.getByAltText('Alt de vídeo')
     expect(img).toHaveAttribute('src', expect.stringContaining('.jpg'))
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Confirmado el 15 sep: con más de un medio (show_as_carousel), la
+ * tarjeta sí recorre el carrusel de verdad — 5 s por slide de imagen, un
+ * slide de vídeo avanza al terminar (evento 'ended'), sin flechas ni
+ * puntos manuales. En hover: imagen fija, vídeo en loop. Al salir, se
+ * reinicia el temporizador desde cero.
+ */
+describe('PinCard — carrusel (más de un medio)', () => {
+  const CAROUSEL_PIN = {
+    pinId: 'carousel-1',
+    destination: '/work/caso-carrusel',
+    ratio: '1:1',
+    label: 'Carrusel',
+    cta: null,
+    alt: 'Alt del carrusel',
+    autoplayMode: null,
+  }
+
+  beforeEach(() => {
+    vi.useFakeTimers()
+
+    // useVideoSlot (videoPlaybackCoordinator) necesita un
+    // IntersectionObserver que sí llame al callback — a diferencia del
+    // stub no-op de más abajo (MasonryFeed), aquí hace falta un ratio de
+    // visibilidad real para que el slot se conceda.
+    // @ts-expect-error -- stub mínimo suficiente para el smoke test
+    global.IntersectionObserver = class {
+      callback: IntersectionObserverCallback
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback
+      }
+      observe(target: Element) {
+        this.callback(
+          [
+            {
+              intersectionRatio: 1,
+              boundingClientRect: { top: 0, bottom: 100 },
+              target,
+            } as IntersectionObserverEntry,
+          ],
+          this as unknown as IntersectionObserver,
+        )
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+    cleanup()
+  })
+
+  it('con dos imágenes, avanza a la siguiente a los 5000ms', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [
+            { kind: 'image', cloudinaryPublicId: 'img-1' },
+            { kind: 'image', cloudinaryPublicId: 'img-2' },
+          ],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-1'),
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-2'),
+    )
+  })
+
+  it('en hover, no avanza aunque pase el tiempo — al salir, se reinicia desde cero', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [
+            { kind: 'image', cloudinaryPublicId: 'img-1' },
+            { kind: 'image', cloudinaryPublicId: 'img-2' },
+          ],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    const link = screen.getByRole('link')
+    fireEvent.mouseEnter(link)
+
+    act(() => {
+      vi.advanceTimersByTime(10_000)
+    })
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-1'),
+    )
+
+    fireEvent.mouseLeave(link)
+
+    // Recién salido del hover, todavía no han pasado los 5000ms nuevos.
+    act(() => {
+      vi.advanceTimersByTime(4999)
+    })
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-1'),
+    )
+
+    act(() => {
+      vi.advanceTimersByTime(1)
+    })
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-2'),
+    )
+  })
+
+  it('un slide de vídeo avanza cuando el vídeo termina (evento "ended"), no por el timer de 5000ms', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [
+            { kind: 'video', cloudinaryPublicId: 'clip-1' },
+            { kind: 'image', cloudinaryPublicId: 'img-2' },
+          ],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    const video = document.querySelector('video')
+    expect(video).toBeInTheDocument()
+
+    // El timer de 5000ms no debe hacer avanzar un slide de vídeo.
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+    expect(document.querySelector('video')).toBeInTheDocument()
+
+    fireEvent(video as HTMLVideoElement, new Event('ended'))
+
+    expect(document.querySelector('video')).not.toBeInTheDocument()
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-2'),
+    )
+  })
+
+  it('en hover sobre un slide de vídeo, entra en loop y el evento "ended" no avanza', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [
+            { kind: 'video', cloudinaryPublicId: 'clip-1' },
+            { kind: 'image', cloudinaryPublicId: 'img-2' },
+          ],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    const link = screen.getByRole('link')
+    const video = document.querySelector('video') as HTMLVideoElement
+
+    fireEvent.mouseEnter(link)
+    expect(video.loop).toBe(true)
+
+    fireEvent(video, new Event('ended'))
+
+    // Sigue en el mismo slide de vídeo — el hover impide el avance.
+    expect(document.querySelector('video')).toBeInTheDocument()
+
+    fireEvent.mouseLeave(link)
+    expect(video.loop).toBe(false)
+  })
+
+  it('con un único medio (sin carrusel), no monta ningún <video> aunque sea de tipo vídeo — ver el test de arriba, "un medio de vídeo usa el poster"', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [{ kind: 'video', cloudinaryPublicId: 'clip-1' }],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
     expect(document.querySelector('video')).not.toBeInTheDocument()
   })
 })

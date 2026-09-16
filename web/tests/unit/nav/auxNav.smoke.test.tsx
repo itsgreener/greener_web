@@ -55,4 +55,18 @@ describe('AuxNav — prueba de humo', () => {
       'aria-current',
     )
   })
+
+  it('marca "Tools" como página actual en la subhome /tools', () => {
+    mockUsePathname.mockReturnValue('/tools')
+
+    render(<AuxNav />)
+
+    expect(screen.getByRole('link', { name: 'Tools' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('link', { name: 'All' })).not.toHaveAttribute(
+      'aria-current',
+    )
+  })
 })
