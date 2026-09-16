@@ -19,6 +19,7 @@ const CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
   mixWindow: 20,
   distanceWindow: 10,
+  batchSize: 40,
 }
 
 describe('dataset de demostración — integración con el motor de feed real', () => {

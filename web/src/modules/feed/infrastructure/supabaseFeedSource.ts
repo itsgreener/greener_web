@@ -41,6 +41,22 @@ const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
   other: 'other',
 }
 
+/**
+ * Qué tipos de contenido entran en el universo según el scope de la
+ * feedSession (arquitectura §6.1, §8.2). 'home' es el feed mixto de
+ * siempre; cada subhome filtra a un único tipo — "el 100% de los
+ * contenidos del scope forma el universo", no una mezcla con cuotas.
+ * 'other' no tiene subhome propia (no hay ruta /other en el brief), así
+ * que no aparece como scope aquí — solo se sirve dentro de 'home'.
+ */
+const SCOPE_TO_TYPES: Record<string, string[]> = {
+  home: ['case', 'insight', 'tool', 'episode', 'other'],
+  work: ['case'],
+  insights: ['insight'],
+  tools: ['tool'],
+  channel: ['episode'],
+}
+
 interface ContentRow {
   id: string
   type: string
@@ -149,13 +165,17 @@ export function buildFeedUnitsForPin(
  * §15.2/§17.1) — no hace falta la service role key para esto, a
  * diferencia de feed_session/feed_round (ver serviceClient.ts).
  *
- * MVP: solo cubre scope "home" (todo el catálogo publicado, sin filtro
- * de etiquetas). Subhomes y scope=related-cases quedan para la Fase 3
- * (arquitectura Anexo E.4), cuando haga falta filtrar por tag.
+ * `scope` filtra qué tipos de contenido entran en el universo (ver
+ * SCOPE_TO_TYPES) — 'home' por defecto, el feed mixto de siempre. Un
+ * scope no reconocido cae también en 'home': createFeedSession.ts ya
+ * valida el scope antes de llegar aquí, así que esto es solo defensivo.
  */
 export async function getFeedDataset(
+  scope: string = 'home',
   client: SupabaseClient = createPublicReadClient(),
 ): Promise<FeedDataset> {
+  const types = SCOPE_TO_TYPES[scope] ?? SCOPE_TO_TYPES.home
+
   const { data, error } = await client
     .from('content')
     .select(
@@ -168,7 +188,7 @@ export async function getFeedDataset(
     `,
     )
     .eq('status', 'published')
-    .in('type', ['case', 'insight', 'tool', 'episode', 'other'])
+    .in('type', types)
     .returns<ContentRow[]>()
 
   if (error) {
@@ -289,7 +309,7 @@ interface FeedConfigRow {
 /** Lee la fila única de feed_config (§7.5, §8.1) y la traduce a FeedConfig. */
 export async function getFeedConfig(
   client: SupabaseClient = createPublicReadClient(),
-): Promise<{ config: FeedConfig; batchSize: number }> {
+): Promise<FeedConfig> {
   const { data, error } = await client
     .from('feed_config')
     .select('ratios, batch_size, mix_window, distance_window')
@@ -302,11 +322,9 @@ export async function getFeedConfig(
   }
 
   return {
-    config: {
-      ratios: data.ratios,
-      mixWindow: data.mix_window,
-      distanceWindow: data.distance_window,
-    },
+    ratios: data.ratios,
+    mixWindow: data.mix_window,
+    distanceWindow: data.distance_window,
     batchSize: data.batch_size,
   }
 }

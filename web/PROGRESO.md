@@ -26,7 +26,7 @@ De las decisiones de negocio pendientes con Greener, ya están cerradas: ADR-11 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **354 tests automáticos, todos en verde** (`npm test`).
+- **367 tests automáticos, todos en verde** (`npm test`).
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio** (verificado con `npx next build` contra variables de entorno de prueba, ya que este repositorio no trae `.env.local` con credenciales reales).
 - **34 migraciones SQL** de Supabase (25 + 9: 8 del 10 sep + 1 del 14 sep, el arreglo del `alt` de `case_detail_media`). Aplicadas contra el proyecto Supabase real por Greener a mediados de septiembre (`supabase db push`).
 - **50 casos + 9 episodios** de datos de demostración — cargados por Greener contra Supabase real vía SQL Editor, con un par de idas y vueltas (ver §7, entradas del 15 sep): primero un `NOT NULL` en `alt` por estar usando una copia vieja del fichero, después confirmado que el editor de Supabase revierte todo el bloque si falla algo a medias.
@@ -101,7 +101,7 @@ Esto es la lista completa. Cuando se retome, empezar por aquí:
 
 - Carrusel dentro de la tarjeta del feed: un pin con `show_as_carousel=true` y varios medios solo pinta el primero en `PinCard` — no hay swipe real en la tarjeta.
 - Autoplay de vídeo en el feed: siempre poster estático, sin `IntersectionObserver` ni límite simultáneo (2 escritorio/1 móvil, arquitectura §9.3).
-- Scope del feed: solo `scope=home` (todo el catálogo publicado) — no hay subhomes ni filtro por etiqueta todavía, aunque el motor lo soporta a nivel de dominio.
+- ~~Scope del feed: solo `scope=home`~~ — **cerrado el 15 sep**: `createFeedSession` acepta `work`/`insights`/`tools`/`channel`, `getFeedDataset` filtra por tipo según el scope, y `generateRound` ya no colapsa a una tanda de 0 pines cuando el universo no tiene ningún caso (bug real que solo se manifestaba en universos sin casos — ver §7). Sigue faltando la pieza de encima: las páginas subhome en sí (`/work`, `/insights`, `/tools`, `/channel` como índice) todavía no existen, así que esto no se puede probar de extremo a extremo todavía.
 
 **`/work/[slug]`:**
 
@@ -138,7 +138,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 354 tests (unit + property-based + smoke con jsdom)
+npm test                     # 367 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -252,4 +252,4 @@ Archivado junto con el resto del detalle de las Fases 0-2 — ver `historial-fas
 - **9 sep 2026 (noche)**: aligerado este documento — el relato detallado de las Fases 0-2 se movió a `historial-fases-0-2.md`.
 - **10 sep 2026**: implementado el rediseño de formato de detalle — 9 migraciones SQL nuevas (8 de esta fecha + 1 del 14 sep), capa domain/application/infrastructure de `content`/`pin`/`media`/`feed` actualizada, editor de bloques borrado, ABM adaptado, rutas de tools/insights movidas a `/app`. Corregidos de paso `admin_allowed_domain` (migración que faltaba) y `.prettierrc.json` (se había perdido solo en el zip de la sesión).
 - **14 sep 2026**: cerrado el hueco de accesibilidad de `case_detail_media.alt` (§3.1); construida la persistencia del feed en la home (§3.2); recibidos y aplicados los iconos y el CTA finales del `Shell` (§3.5), con un fix de CSS al día siguiente (sticky + `height: 100dvh`, sin el cual el `margin-top: auto` del bloque de redes se iba al final de todos los pines en vez de al final del viewport).
-- **15 sep 2026**: construidas `/work/[slug]` (§3.3) y `/tools|insights/[slug]` (§3.4) — las cuatro rutas públicas principales del sitio ya sirven datos reales. Detectado y corregido un despiste al cargar el dataset de demo contra Supabase real: el fichero pegado en el SQL Editor era una copia de antes del arreglo del `alt` (14 sep) — no un fallo de los datos en sí. Este documento se reorganizó (nueva §3, renumeración del resto) para que el recap de simplificaciones deliberadas quede como punto de partida explícito de la siguiente sesión (§3.6).
+- **15 sep 2026**: construidas `/work/[slug]` (§3.3) y `/tools|insights/[slug]` (§3.4) — las cuatro rutas públicas principales del sitio ya sirven datos reales. Detectado y corregido un despiste al cargar el dataset de demo contra Supabase real: el fichero pegado en el SQL Editor era una copia de antes del arreglo del `alt` (14 sep) — no un fallo de los datos en sí. Este documento se reorganizó (nueva §3, renumeración del resto) para que el recap de simplificaciones deliberadas quede como punto de partida explícito de la siguiente sesión (§3.6). Más tarde el mismo día: hover nuevo de los iconos del `Shell` (color + tamaño + pastilla con el nombre, sobre `mask-image` porque los SVG traen `stroke="black"` fijo) y placeholder de Contacto; labels del `Shell` traducidos al inglés (arquitectura §2.4) y ruta renombrada `/contacto` → `/contact`; `AuxNav` nuevo (menú auxiliar de texto de la home, confirmado por captura de referencia). Detectado y corregido `kitten_fighting`: resultó ser un GIF animado de la cuenta demo de Cloudinary (no una imagen estática), así que se reproducía solo en el feed — no era ningún autoplay del código, era el propio formato del archivo; sacado del dataset de demo. Por último, cerrado el filtro por etiqueta/scope del motor de feed (`createFeedSession` acepta `work`/`insights`/`tools`/`channel`; `getFeedDataset` filtra por tipo; `generateRound` ya no colapsa a 0 pines en un universo sin casos) — era el prerrequisito real antes de repartir el resto del trabajo entre dos personas.

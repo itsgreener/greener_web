@@ -25,6 +25,18 @@ describe('createFeedSession', () => {
     expect(createRow).toHaveBeenCalledWith({ scope: 'home', filterHash: null })
   })
 
+  it.each(['work', 'insights', 'tools', 'channel'])(
+    "acepta el scope de subhome '%s' (arquitectura §8.2, ya no solo 'home')",
+    async (scope) => {
+      const createRow = vi.fn().mockResolvedValue(fakeRow({ scope }))
+
+      const result = await createFeedSession({ scope }, createRow)
+
+      expect(result.sessionId).toBe('session-1')
+      expect(createRow).toHaveBeenCalledWith({ scope, filterHash: null })
+    },
+  )
+
   it('rechaza un scope todavía no soportado sin llegar a Supabase', async () => {
     const createRow = vi.fn()
 

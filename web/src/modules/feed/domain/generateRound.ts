@@ -38,11 +38,27 @@ export function generateRound(
 
   const totalCasePins = casePool.length
 
-  // 2. Tamaño total de la tanda: lo fijan los casos (brief §4.4).
+  // 2. Tamaño total de la tanda. Normalmente lo fijan los casos (brief
+  // §4.4). Cuando el universo no tiene NINGÚN caso — típicamente una
+  // subhome de insight/tool/channel, arquitectura §8.2: "en subhomes, el
+  // 100% de los contenidos del scope forma el universo" — no hay de dónde
+  // derivarlo así, así que se usa batchSize como tamaño objetivo de tanda;
+  // el reparto de abajo (quotas) ya se encarga de que, al no haber más
+  // tipos con contenido, esa cantidad completa vaya al único tipo presente.
+  // Si tampoco hay ningún otro contenido, el universo está vacío de
+  // verdad y la tanda es 0, como antes.
+  const hasNonCaseContent =
+    snapshot.insights.length > 0 ||
+    snapshot.tools.length > 0 ||
+    snapshot.channel.length > 0 ||
+    snapshot.other.length > 0
+
   const total =
     totalCasePins > 0 && config.ratios.cases > 0
       ? Math.ceil(totalCasePins / (config.ratios.cases / 100))
-      : totalCasePins
+      : hasNonCaseContent
+        ? config.batchSize
+        : totalCasePins
 
   // 3. Cuotas del resto de tipos por restos mayores, sobre el hueco que
   // dejan los casos en la tanda (total - totalCasePins), no sobre el total.

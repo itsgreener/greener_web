@@ -21,6 +21,7 @@ const CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
   mixWindow: 20,
   distanceWindow: 10,
+  batchSize: 40,
 }
 
 // Universo mínimo pero suficiente para que generateRound produzca una
@@ -79,7 +80,7 @@ function inMemoryDeps(): GetFeedSessionBatchDeps & {
       },
     ),
     getDataset: vi.fn(async () => DATASET),
-    getConfig: vi.fn(async () => ({ config: CONFIG, batchSize: 40 })),
+    getConfig: vi.fn(async () => CONFIG),
     getDirectoryByIds: vi.fn(async (pinIds: string[]) =>
       Object.fromEntries(pinIds.map((id) => [id, DATASET.pinDirectory[id]])),
     ),
@@ -210,5 +211,14 @@ describe('getFeedSessionBatch', () => {
     expect(toolItem?.destination).toBe('/tools/tool-1-slug')
     expect(insightItem?.cta).toBe('Read')
     expect(insightItem?.destination).toBe('/insights/insight-1-slug')
+  })
+
+  it('para una ronda nueva, pide el dataset con el scope de la sesión, no siempre "home"', async () => {
+    const insightsSession: FeedSessionRow = { ...SESSION, scope: 'insights' }
+    deps.getSession = vi.fn(async () => insightsSession)
+
+    await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(deps.getDataset).toHaveBeenCalledWith('insights')
   })
 })

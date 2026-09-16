@@ -37,6 +37,13 @@ export interface FeedConfig {
   ratios: FeedRatios
   mixWindow: number // arquitectura §8.4/§4.5 — ventana de proporción (20)
   distanceWindow: number // separación mínima por contenido (10)
+  // Tamaño de tanda objetivo (feed_config.batch_size, §7.5/§8.1). Antes no
+  // se usaba en generateRound (los casos fijaban el total solos, brief
+  // §4.4) — hace falta como red de seguridad para universos sin casos
+  // (subhomes de insight/tool/channel, arquitectura §8.2: "en subhomes, el
+  // 100% de los contenidos del scope forma el universo"), donde ya no hay
+  // ningún caso del que derivar el tamaño de la tanda.
+  batchSize: number
 }
 
 export interface GeneratedPin {

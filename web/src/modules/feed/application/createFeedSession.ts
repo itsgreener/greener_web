@@ -13,9 +13,18 @@ export interface CreateFeedSessionResult {
   sessionId: string
 }
 
-// MVP: solo "home" (arquitectura Anexo E.4 — subhomes y scope=related-cases
-// llegan en la Fase 3, cuando haga falta filtrar el universo por etiqueta).
-const SUPPORTED_SCOPES = new Set(['home'])
+// Arquitectura Anexo E.4 / §8.2: 'home' es el feed mixto; cada subhome
+// filtra a un único tipo de contenido ("el 100% de los contenidos del
+// scope forma el universo"). scope=related-cases (relacionados dentro de
+// una página de caso) sigue sin implementarse — no hace falta todavía,
+// no hay ninguna pantalla que lo pida.
+const SUPPORTED_SCOPES = new Set([
+  'home',
+  'work',
+  'insights',
+  'tools',
+  'channel',
+])
 
 export class UnsupportedScopeError extends Error {
   constructor(scope: string) {

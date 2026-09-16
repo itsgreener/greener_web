@@ -175,9 +175,10 @@ export async function getFeedSessionBatch(
     // Ronda ya calculada: solo hace falta enriquecer, no releer el catálogo entero.
     directory = await deps.getDirectoryByIds(unitIds)
   } else {
-    // Ronda nueva: hace falta el universo completo para poder generarla.
-    const [{ snapshot, pinDirectory }, { config }] = await Promise.all([
-      deps.getDataset(),
+    // Ronda nueva: hace falta el universo completo para poder generarla,
+    // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
+    const [{ snapshot, pinDirectory }, config] = await Promise.all([
+      deps.getDataset(session.scope),
       deps.getConfig(),
     ])
     const { sequence } = generateRound(
