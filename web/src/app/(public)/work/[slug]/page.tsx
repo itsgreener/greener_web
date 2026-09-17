@@ -1,12 +1,11 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getContentBySlug } from '@/modules/content/application/getContentBySlug'
 import { getPublicCaseDetail } from '@/modules/content/application/getPublicCaseDetail'
 import { getPublicCaseCarousel } from '@/modules/content/application/getPublicCaseCarousel'
 import { getPublicEpisode } from '@/modules/content/application/getPublicEpisode'
-import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 import { CaseDetail } from './CaseDetail'
 import { EpisodeDetail } from './EpisodeDetail'
+import { getWorkContent, buildWorkMetadata } from './workContent'
 import styles from './page.module.css'
 
 type Props = {
@@ -16,48 +15,15 @@ type Props = {
 /**
  * Detalle tipo B (especificacion-final-formato-detalle.md §1, §7): caso y
  * episodio comparten ruta /work/[slug] — antes el episodio vivía en
- * /channel/[slug], arquitectura previa a este rediseño. Sin variantes de
- * idioma (/work/{slug}/{locale}) en esta primera versión — a propósito,
- * ver PROGRESO.md.
+ * /channel/[slug], arquitectura previa a este rediseño. Ruta canónica —
+ * siempre renderiza default_locale. Las variantes de idioma de un caso
+ * viven en ./[locale]/page.tsx (§7.7); un episodio no las tiene nunca.
  */
-async function getWorkContent(slug: string) {
-  const content = await getContentBySlug(slug)
-  if (!content || (content.type !== 'case' && content.type !== 'episode')) {
-    return null
-  }
-  return content
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const content = await getWorkContent(slug)
   if (!content) return {}
-
-  const title = content.seoTitle ?? content.title
-  const description = content.seoDescription ?? content.summary ?? undefined
-
-  // og_media_id es cover_media_id, que caso/episodio no rellenan (§3: es
-  // exclusivo de tool/insight/other) — para un caso se usa la primera
-  // imagen de su carrusel; un episodio, sin thumbnail propio, se queda
-  // sin imagen de compartición por ahora.
-  let ogImage: string | undefined
-  if (content.type === 'case') {
-    const carousel = await getPublicCaseCarousel(content.id)
-    const firstImage = carousel.find((item) => item.kind === 'image')
-    if (firstImage) {
-      ogImage = buildImageUrl(firstImage.cloudinaryPublicId, 'detail', 1200)
-    }
-  }
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      images: ogImage ? [ogImage] : undefined,
-    },
-  }
+  return buildWorkMetadata(content)
 }
 
 export default async function WorkPage({ params }: Props) {

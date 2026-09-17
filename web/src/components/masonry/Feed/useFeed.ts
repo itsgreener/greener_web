@@ -159,6 +159,7 @@ export function useFeed(scope: string) {
     totalHeight,
     isLoading,
     itemCount: state.items.length,
+    hasMore: state.hasMore,
     error,
     sentinelId: `greener-feed-sentinel-${scope}`,
   }

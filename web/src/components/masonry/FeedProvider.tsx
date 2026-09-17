@@ -141,7 +141,15 @@ export function FeedProvider({ children }: { children: ReactNode }) {
             items: [...current.items, ...batch.items],
             batchSizes: [...current.batchSizes, batch.items.length],
             cursor: batch.cursor,
-            hasMore: batch.hasMore,
+            // El servidor devuelve hasMore=true siempre (arquitectura
+            // §8.5, "el feed no termina") — pero una ronda vacía es una
+            // señal real y definitiva de que este scope no tiene
+            // contenido publicado (generateRound es determinista: si el
+            // pool de ese tipo tiene 0 elementos, todas las rondas
+            // futuras también vendrán vacías). Sin este corte, el
+            // sentinel de prefetch pide ronda tras ronda sin parar nunca
+            // en una subhome sin contenido todavía (insights/tools).
+            hasMore: batch.items.length > 0 ? batch.hasMore : false,
           },
         }
       })

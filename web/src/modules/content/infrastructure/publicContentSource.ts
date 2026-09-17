@@ -4,15 +4,15 @@ import type { ContentType, Locale } from '../domain/contentSchema'
 
 /**
  * Lectura pública de un contenido por slug — para las plantillas de
- * detalle (/work/[slug] hoy, /tools|insights/[slug] cuando existan). A
- * propósito NO reutiliza supabaseContentRepository.ts: ese repositorio
- * está pensado para el ABM (createClient(), sigue la sesión del admin) y
- * siempre necesita las traducciones de los tres locales para los
- * formularios; aquí solo hace falta el locale por defecto (sin selector
- * de idioma en el detalle todavía) y ninguna operación de escritura.
- * Mismo patrón que modules/feed/infrastructure/supabaseFeedSource.ts:
- * funciones sueltas sobre createPublicReadClient(), que ya respeta RLS
- * ("solo contenido publicado") sin necesitar sesión de usuario.
+ * detalle (/work/[slug], /tools|insights/[slug]). A propósito NO
+ * reutiliza supabaseContentRepository.ts: ese repositorio está pensado
+ * para el ABM (createClient(), sigue la sesión del admin) y siempre
+ * necesita las traducciones de los tres locales para los formularios;
+ * aquí solo hace falta UNA traducción por petición y ninguna operación
+ * de escritura. Mismo patrón que
+ * modules/feed/infrastructure/supabaseFeedSource.ts: funciones sueltas
+ * sobre createPublicReadClient(), que ya respeta RLS ("solo contenido
+ * publicado") sin necesitar sesión de usuario.
  */
 
 export interface PublicContentMedia {
@@ -25,6 +25,17 @@ export interface PublicContent {
   type: ContentType
   slug: string
   defaultLocale: Locale
+  // El locale de la traducción devuelta — normalmente igual a
+  // defaultLocale (ruta canónica /work/[slug]), o el pedido
+  // explícitamente en /work/[slug]/[locale] (arquitectura §7.7).
+  locale: Locale
+  // Todos los locales con content_translation publicada para este
+  // contenido — "el selector de idioma... solo muestra los locales con
+  // content_translation publicada, nunca los tres por defecto" (§7.7).
+  // Para tool/insight/other/episode esto es siempre un único elemento
+  // (default_locale): son de un solo idioma (§7.4, episode) o
+  // simplemente no tienen selector construido todavía.
+  availableLocales: Locale[]
   title: string
   seoTitle: string | null
   seoDescription: string | null
@@ -55,14 +66,19 @@ interface ContentBySlugRow {
 }
 
 /**
- * Devuelve null si no existe ningún contenido publicado con ese slug —
- * ni distingue entre "no existe" y "existe pero no está publicado" (RLS
- * ya filtra por status=published antes de que este código vea la fila),
- * que es justo el comportamiento que queremos: ambos casos son un 404
- * público, no hay nada más que decir en cualquiera de los dos.
+ * Devuelve null si no existe ningún contenido publicado con ese slug, o
+ * si se pide un `requestedLocale` concreto que no tiene traducción
+ * publicada (nunca cae en silencio al locale por defecto — una URL
+ * /work/{slug}/en sin traducción al inglés es un 404 real, no una
+ * versión en español servida bajo una URL que dice "en"). Sin
+ * `requestedLocale`, usa default_locale (ruta canónica). Tampoco
+ * distingue "no existe" de "existe pero no está publicado" (RLS ya
+ * filtra por status=published antes de que este código vea la fila) —
+ * ambos casos son un 404 público, no hay nada más que decir.
  */
 export async function getContentBySlug(
   slug: string,
+  requestedLocale?: Locale,
   client: SupabaseClient = createPublicReadClient(),
 ): Promise<PublicContent | null> {
   const { data, error } = await client
@@ -95,8 +111,9 @@ export async function getContentBySlug(
   if (!data) return null
 
   const row = data as unknown as ContentBySlugRow
+  const targetLocale = requestedLocale ?? row.default_locale
   const translation = row.translations.find(
-    (item) => item.locale === row.default_locale,
+    (item) => item.locale === targetLocale,
   )
 
   if (!translation) return null
@@ -106,6 +123,8 @@ export async function getContentBySlug(
     type: row.type,
     slug: row.slug,
     defaultLocale: row.default_locale,
+    locale: targetLocale,
+    availableLocales: row.translations.map((item) => item.locale),
     title: translation.title,
     seoTitle: translation.seo_title,
     seoDescription: translation.seo_description,

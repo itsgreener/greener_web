@@ -10,6 +10,8 @@ const CONTENT: PublicContent = {
   type: 'case',
   slug: 'mi-caso',
   defaultLocale: 'es',
+  locale: 'es',
+  availableLocales: ['es'],
   title: 'Mi caso',
   seoTitle: null,
   seoDescription: null,
@@ -77,12 +79,60 @@ describe('CaseDetail — prueba de humo', () => {
     expect(video?.getAttribute('poster')).toContain('vid1')
   })
 
-  it('sin carrusel (array vacío), no pinta ningún contenedor de carrusel', () => {
-    const { container } = render(
-      <CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />,
+  it('con una sola traducción disponible, no pinta el selector de idioma', () => {
+    render(<CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />)
+
+    expect(
+      screen.queryByRole('navigation', { name: 'Idioma' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('con varias traducciones, pinta el selector — el default va a /work/{slug}, el resto a /work/{slug}/{locale} (arquitectura §7.7)', () => {
+    render(
+      <CaseDetail
+        content={{
+          ...CONTENT,
+          locale: 'en',
+          availableLocales: ['es', 'en', 'ca'],
+        }}
+        caseDetail={null}
+        carousel={[]}
+      />,
     )
 
-    expect(container.querySelector('img')).not.toBeInTheDocument()
-    expect(container.querySelector('video')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'ES' })).toHaveAttribute(
+      'href',
+      '/work/mi-caso',
+    )
+    expect(screen.getByRole('link', { name: 'EN' })).toHaveAttribute(
+      'href',
+      '/work/mi-caso/en',
+    )
+    expect(screen.getByRole('link', { name: 'CA' })).toHaveAttribute(
+      'href',
+      '/work/mi-caso/ca',
+    )
+  })
+
+  it('marca como página actual el locale que se está viendo, no el default', () => {
+    render(
+      <CaseDetail
+        content={{
+          ...CONTENT,
+          locale: 'en',
+          availableLocales: ['es', 'en'],
+        }}
+        caseDetail={null}
+        carousel={[]}
+      />,
+    )
+
+    expect(screen.getByRole('link', { name: 'EN' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('link', { name: 'ES' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 })

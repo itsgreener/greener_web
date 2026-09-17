@@ -10,6 +10,8 @@ const BASE_CONTENT: PublicContent = {
   type: 'tool',
   slug: 'mi-tool',
   defaultLocale: 'es',
+  locale: 'es',
+  availableLocales: ['es'],
   title: 'Mi tool',
   seoTitle: null,
   seoDescription: null,

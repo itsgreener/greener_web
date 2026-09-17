@@ -41,6 +41,29 @@
   opacity: 0.7;
 }
 
+.localeSelector {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.localeLink {
+  font-size: 0.8rem;
+  color: var(--color-text);
+  text-decoration: none;
+  opacity: 0.6;
+
+  &:hover,
+  &:focus-visible {
+    opacity: 1;
+    color: var(--color-cta);
+  }
+
+  &[aria-current='page'] {
+    opacity: 1;
+    font-weight: 600;
+  }
+}
+
 .title {
   font-size: 1.75rem;
 }

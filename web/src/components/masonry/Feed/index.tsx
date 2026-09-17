@@ -18,6 +18,7 @@ export function Feed({ scope }: { scope: string }) {
     totalHeight,
     isLoading,
     itemCount,
+    hasMore,
     error,
     sentinelId,
   } = useFeed(scope)
@@ -62,6 +63,11 @@ export function Feed({ scope }: { scope: string }) {
       <div id={sentinelId} className={styles.sentinel} />
       {isLoading && itemCount === 0 && (
         <p className={styles.status}>Cargando…</p>
+      )}
+      {!isLoading && itemCount === 0 && !hasMore && (
+        <p className={styles.status}>
+          Todavía no hay contenido publicado en esta sección.
+        </p>
       )}
     </div>
   )

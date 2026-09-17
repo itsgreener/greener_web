@@ -11,6 +11,8 @@ const CONTENT: PublicContent = {
   type: 'episode',
   slug: 'mi-episodio',
   defaultLocale: 'es',
+  locale: 'es',
+  availableLocales: ['es'],
   title: 'Mi episodio',
   seoTitle: null,
   seoDescription: null,

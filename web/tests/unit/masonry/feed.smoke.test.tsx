@@ -231,4 +231,70 @@ describe('Feed — prueba de humo', () => {
       expect(scrollToSpy).toHaveBeenCalledWith(0, 456)
     })
   })
+
+  it('con una ronda vacía (subhome sin contenido todavía), no entra en bucle de peticiones aunque el servidor diga hasMore=true', async () => {
+    // A diferencia del stub no-op del beforeEach: aquí el sentinel tiene
+    // que reportarse "visible" de verdad al observarlo, igual que pasaría
+    // en un navegador real con una página casi vacía — si no, este test
+    // no reproduce el bucle real (loadMore cambia de identidad en cada
+    // actualización de estado, lo que reconecta el observer una y otra
+    // vez; sin este stub, nunca se llega a disparar una segunda vez).
+    // @ts-expect-error -- stub mínimo suficiente para el smoke test
+    global.IntersectionObserver = class {
+      callback: IntersectionObserverCallback
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback
+      }
+      observe(target: Element) {
+        this.callback(
+          [
+            {
+              isIntersecting: true,
+              intersectionRatio: 1,
+              target,
+            } as IntersectionObserverEntry,
+          ],
+          this as unknown as IntersectionObserver,
+        )
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+
+    global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/feed/sessions' && init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({ sessionId: 'session-insights' }),
+        } as Response
+      }
+      if (url.startsWith('/api/feed/session-insights')) {
+        // El servidor devuelve hasMore=true siempre (arquitectura §8.5)
+        // — el corte real tiene que salir del cliente al ver 0 items.
+        return {
+          ok: true,
+          json: async () => fakeBatch(0, 'cursor-1', true, 'insights'),
+        } as Response
+      }
+      throw new Error(`URL inesperada en el test: ${url}`)
+    }) as typeof fetch
+
+    renderFeed('insights')
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Todavía no hay contenido publicado en esta sección.'),
+      ).toBeInTheDocument()
+    })
+
+    const fetchCallsAfterEmptyRound = vi.mocked(global.fetch).mock.calls.length
+
+    // Deja correr un poco más: sin el fix, aquí seguiría acumulando
+    // llamadas sin parar.
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    expect(vi.mocked(global.fetch).mock.calls.length).toBe(
+      fetchCallsAfterEmptyRound,
+    )
+  })
 })

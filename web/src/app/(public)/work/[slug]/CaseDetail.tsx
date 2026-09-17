@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   buildImageUrl,
   buildImageSrcSet,
@@ -58,6 +59,28 @@ export function CaseDetail({
       )}
 
       <div className={styles.text}>
+        {/* Selector de idioma (arquitectura §7.7): solo se muestra si hay
+            más de una traducción publicada — nunca los tres locales por
+            defecto. Un único elemento (el caso normal) no pinta nada. */}
+        {content.availableLocales.length > 1 && (
+          <nav className={styles.localeSelector} aria-label="Idioma">
+            {content.availableLocales.map((loc) => (
+              <Link
+                key={loc}
+                href={
+                  loc === content.defaultLocale
+                    ? `/work/${content.slug}`
+                    : `/work/${content.slug}/${loc}`
+                }
+                aria-current={loc === content.locale ? 'page' : undefined}
+                className={styles.localeLink}
+              >
+                {loc.toUpperCase()}
+              </Link>
+            ))}
+          </nav>
+        )}
+
         {caseDetail?.client && (
           <p className={styles.client}>{caseDetail.client}</p>
         )}
