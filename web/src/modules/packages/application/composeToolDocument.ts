@@ -2,8 +2,8 @@ import * as cheerio from 'cheerio'
 import type { ResolvedPackage } from '../domain/manifest'
 
 export interface Viewport {
-  width: number
-  height: number
+  width: number | string
+  height: number | string
   sidebarWidth: number
 }
 
@@ -20,17 +20,65 @@ function renderSidebar(): string {
     (item) =>
       `<li><a href="${item.href}" title="${item.label}" aria-label="${item.label}">${item.label[0]}</a></li>`,
   ).join('')
+
   return `<nav class="greener-sidebar" aria-label="Navegación principal"><ul>${items}</ul></nav>`
 }
 
+function toCssLength(value: number | string): string {
+  return typeof value === 'number' ? `${value}px` : value
+}
+
 const SHELL_STYLES = `
-  html, body { margin: 0; padding: 0; }
-  .greener-shell { display: grid; grid-template-columns: var(--greener-sidebar-width) 1fr; min-height: 100dvh; }
-  .greener-sidebar { border-right: 1px solid #e5e5e5; padding: 16px 0; }
-  .greener-sidebar ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .greener-sidebar a { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 8px; color: #111; text-decoration: none; font-family: system-ui, sans-serif; }
-  .greener-sidebar a:hover { background: #f4f4f4; }
-  .greener-package-content { min-width: 0; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+  }
+
+  .greener-shell {
+    display: grid;
+    grid-template-columns: var(--greener-sidebar-width) minmax(0, 1fr);
+    width: 100%;
+    min-height: 100dvh;
+  }
+
+  .greener-sidebar {
+    border-right: 1px solid #e5e5e5;
+    padding: 16px 0;
+  }
+
+  .greener-sidebar ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .greener-sidebar a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    color: #111;
+    text-decoration: none;
+    font-family: system-ui, sans-serif;
+  }
+
+  .greener-sidebar a:hover {
+    background: #f4f4f4;
+  }
+
+  .greener-package-content {
+    min-width: 0;
+    width: var(--greener-available-width);
+    min-height: var(--greener-available-height);
+  }
 `
 
 /**
@@ -39,10 +87,13 @@ const SHELL_STYLES = `
  * extraído de su propio <head>/<body> y reinsertado tal cual — sin iframe,
  * sin re-anidar <html> (arquitectura §12.1, §12.4).
  *
- * Al ser la respuesta HTML inicial de la ruta (no una inyección vía
- * innerHTML en el cliente), los <script> del paquete se ejecutan de forma
- * nativa al parsear el documento, evitando el problema clásico de scripts
- * que no se ejecutan al inyectarse dinámicamente.
+ * El espacio disponible se comunica mediante variables CSS:
+ * --greener-available-width
+ * --greener-available-height
+ * --greener-sidebar-width
+ *
+ * width y height pueden ser números (útil para tests) o expresiones CSS
+ * dinámicas como calc(100dvw - 64px) y 100dvh.
  */
 export function composeToolDocument(
   pkg: ResolvedPackage,
@@ -54,7 +105,11 @@ export function composeToolDocument(
   const headChildren = $('head').html() ?? ''
   const bodyChildren = $('body').html() ?? ''
 
-  const cssVars = `--greener-available-width: ${viewport.width}px; --greener-available-height: ${viewport.height}px; --greener-sidebar-width: ${viewport.sidebarWidth}px;`
+  const cssVars = [
+    `--greener-available-width: ${toCssLength(viewport.width)}`,
+    `--greener-available-height: ${toCssLength(viewport.height)}`,
+    `--greener-sidebar-width: ${viewport.sidebarWidth}px`,
+  ].join('; ')
 
   return `<!doctype html>
 <html lang="es">
@@ -64,10 +119,9 @@ export function composeToolDocument(
     <title>${pkg.slug} · Greener</title>
     <!-- Fuerza que TODAS las rutas relativas del paquete (CSS, JS, y el
          Worker() invocado desde dentro de main.js, que resuelve contra
-         document.baseURI) apunten a su propia carpeta, sin depender de si
-         la URL visitada lleva barra final (arquitectura §12.2). -->
+         document.baseURI) apunten a su propia carpeta. -->
     <base href="${basePath}" />
-    <style>:root { ${cssVars} } ${SHELL_STYLES}</style>
+    <style>:root { ${cssVars}; } ${SHELL_STYLES}</style>
     ${headChildren}
   </head>
   <body>

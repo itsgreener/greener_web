@@ -3,14 +3,14 @@ import { getStoragePackage } from '@/modules/packages/infrastructure/supabaseSto
 import { composeToolDocument } from '@/modules/packages/application/composeToolDocument'
 import { PackageNotFoundError } from '@/modules/packages/domain/manifest'
 
+const SIDEBAR_WIDTH = 64
+
 /**
- * Sirve el HTML real de un insight bajo /insights/[slug]/app — misma
- * lógica que /tools/[slug]/app/route.ts (ver su comentario para el porqué
- * del /app). El brief considera insights y tools técnicamente
- * equivalentes — la diferencia es de negocio (insights de pago en el
- * futuro, §12.6), no de aislamiento técnico — así que esta ruta es una
- * copia deliberada de esa, con 'insight' en vez de 'tool', no una
- * implementación distinta.
+ * Sirve el HTML real de un insight bajo /insights/[slug]/app.
+ *
+ * Tools e Insights comparten el mismo contrato técnico.
+ * El viewport disponible se comunica mediante variables CSS dinámicas,
+ * resueltas por el navegador.
  */
 export async function GET(
   _request: NextRequest,
@@ -21,10 +21,13 @@ export async function GET(
   try {
     const pkg = await getStoragePackage('insight', slug)
 
-    const sidebarWidth = 64
     const html = composeToolDocument(
       pkg,
-      { width: 1200 - sidebarWidth, height: 800, sidebarWidth },
+      {
+        width: `calc(100dvw - ${SIDEBAR_WIDTH}px)`,
+        height: '100dvh',
+        sidebarWidth: SIDEBAR_WIDTH,
+      },
       `/insights/${slug}/app/`,
     )
 
@@ -32,15 +35,20 @@ export async function GET(
       status: 200,
       headers: {
         'Content-Type': 'text/html; charset=utf-8',
+
         'Content-Security-Policy':
           "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;",
+
         'X-Content-Type-Options': 'nosniff',
       },
     })
   } catch (error) {
     if (error instanceof PackageNotFoundError) {
-      return new NextResponse('Insight no encontrado', { status: 404 })
+      return new NextResponse('Insight no encontrado', {
+        status: 404,
+      })
     }
+
     throw error
   }
 }
