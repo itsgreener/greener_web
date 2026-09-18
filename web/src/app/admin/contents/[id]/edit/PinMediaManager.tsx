@@ -1,13 +1,21 @@
 'use client'
 
-import { useState } from 'react'
-
-import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
+import {
+  useState,
+} from 'react'
 
 import {
-  validateImageUpload,
+  buildImageUrl,
+} from '@/modules/media/infrastructure/cloudinaryUrl'
+
+import {
   validatePinAnimationUpload,
 } from '@/modules/media/domain/mediaLimits'
+
+import {
+  IMAGE_FILE_ACCEPT,
+  validateImageSelection,
+} from '@/modules/media/application/validateImageSelection'
 
 import {
   getSignedImageUpload,
@@ -34,23 +42,56 @@ type Props = {
   media: PinMedia[]
 }
 
-function readVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-    video.preload = 'metadata'
+function readVideoDuration(
+  file: File
+): Promise<number> {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      const video =
+        document
+          .createElement(
+            'video'
+          )
 
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-      resolve(video.duration)
+      video.preload =
+        'metadata'
+
+      video.onloadedmetadata =
+        () => {
+          URL
+            .revokeObjectURL(
+              video.src
+            )
+
+          resolve(
+            video.duration
+          )
+        }
+
+      video.onerror =
+        () => {
+          URL
+            .revokeObjectURL(
+              video.src
+            )
+
+          reject(
+            new Error(
+              'No se ha podido leer la duración del vídeo.'
+            )
+          )
+        }
+
+      video.src =
+        URL
+          .createObjectURL(
+            file
+          )
     }
-
-    video.onerror = () => {
-      URL.revokeObjectURL(video.src)
-      reject(new Error('No se ha podido leer la duración del vídeo.'))
-    }
-
-    video.src = URL.createObjectURL(file)
-  })
+  )
 }
 
 function MediaThumb({
@@ -62,58 +103,139 @@ function MediaThumb({
 }) {
   return (
     <div>
-      {item.kind === 'image' ? (
+
+      {item.kind ===
+      'image' ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={buildImageUrl(item.cloudinaryPublicId, 'feed', 200)}
+          src={
+            buildImageUrl(
+              item
+                .cloudinaryPublicId,
+              'feed',
+              200
+            )
+          }
           alt=""
           width={100}
           height={100}
         />
       ) : (
-        <p>{item.cloudinaryPublicId} (vídeo)</p>
+        <p>
+          {
+            item
+              .cloudinaryPublicId
+          }
+          {' '}
+          (vídeo)
+        </p>
       )}
 
-      <button type="button" onClick={onRemove}>
+      <button
+        type="button"
+        onClick={
+          onRemove
+        }
+      >
         Quitar
       </button>
+
     </div>
   )
 }
 
-// especificacion-final-formato-detalle.md §3, §6: pin_type desaparece —
-// cualquier pin admite de 1 a 8 medios mixtos (imagen o vídeo ≤5 s), sin
-// distinción de tipo. show_as_carousel (gestionado en PinList/EditPinForm)
-// decide cómo se muestra en el feed, no qué se puede subir aquí.
-export default function PinMediaManager({ pinId, media }: Props) {
-  const [uploading, setUploading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [warning, setWarning] = useState<string | null>(null)
-  const [file, setFile] = useState<File | null>(null)
-  const [kind, setKind] = useState<'image' | 'video'>('image')
+export default function PinMediaManager({
+  pinId,
+  media,
+}: Props) {
+  const [
+    uploading,
+    setUploading,
+  ] =
+    useState(false)
 
-  const sortedMedia = [...media].sort((a, b) => a.slideOrder - b.slideOrder)
-  const nextSlideOrder = sortedMedia.length
-  const canAddMore = sortedMedia.length < 8
+  const [
+    error,
+    setError,
+  ] =
+    useState<
+      string | null
+    >(null)
 
-  async function handleRemove(item: PinMedia) {
+  const [
+    warning,
+    setWarning,
+  ] =
+    useState<
+      string | null
+    >(null)
+
+  const [
+    file,
+    setFile,
+  ] =
+    useState<
+      File | null
+    >(null)
+
+  const [
+    kind,
+    setKind,
+  ] =
+    useState<
+      'image' | 'video'
+    >('image')
+
+  const sortedMedia =
+    [...media]
+      .sort(
+        (a, b) =>
+          a.slideOrder -
+          b.slideOrder
+      )
+
+  const nextSlideOrder =
+    sortedMedia.length
+
+  const canAddMore =
+    sortedMedia.length <
+    8
+
+  async function handleRemove(
+    item: PinMedia
+  ) {
     setError(null)
     setWarning(null)
 
-    const result = await detachPinMediaAction({
-      pinId,
-      mediaId: item.id,
-      cloudinaryPublicId: item.cloudinaryPublicId,
-      kind: item.kind,
-    })
+    const result =
+      await detachPinMediaAction({
+        pinId,
+
+        mediaId:
+          item.id,
+
+        cloudinaryPublicId:
+          item
+            .cloudinaryPublicId,
+
+        kind:
+          item.kind,
+      })
 
     if (!result.ok) {
-      setError(result.error)
+      setError(
+        result.error
+      )
+
       return
     }
 
-    if (result.warning) {
-      setWarning(result.warning)
+    if (
+      result.warning
+    ) {
+      setWarning(
+        result.warning
+      )
     }
 
     window.location.reload()
@@ -121,16 +243,25 @@ export default function PinMediaManager({ pinId, media }: Props) {
 
   async function handleImageUpload() {
     if (!file) {
-      setError('Selecciona una imagen.')
+      setError(
+        'Selecciona una imagen.'
+      )
+
       return
     }
 
-    const validation = validateImageUpload(file.size)
-
-    if (validation && validation.code === 'IMAGE_TOO_LARGE') {
-      setError(
-        `La imagen supera el límite de ${validation.maxBytes / 1024 / 1024} MB.`,
+    const validationError =
+      await validateImageSelection(
+        file
       )
+
+    if (
+      validationError
+    ) {
+      setError(
+        validationError
+      )
+
       return
     }
 
@@ -139,31 +270,60 @@ export default function PinMediaManager({ pinId, media }: Props) {
     setWarning(null)
 
     try {
-      const signed = await getSignedImageUpload()
-      const uploaded = await uploadImageToCloudinary(file, signed)
+      const signed =
+        await getSignedImageUpload()
 
-      const result = await attachPinImageAction({
-        pinId,
-        cloudinaryPublicId: uploaded.public_id,
-        format: uploaded.format,
-        width: uploaded.width,
-        height: uploaded.height,
-        bytes: uploaded.bytes,
-        slideOrder: nextSlideOrder,
-      })
+      const uploaded =
+        await uploadImageToCloudinary(
+          file,
+          signed
+        )
+
+      const result =
+        await attachPinImageAction({
+          pinId,
+
+          cloudinaryPublicId:
+            uploaded.public_id,
+
+          format:
+            uploaded.format,
+
+          width:
+            uploaded.width,
+
+          height:
+            uploaded.height,
+
+          bytes:
+            uploaded.bytes,
+
+          slideOrder:
+            nextSlideOrder,
+        })
 
       if (!result.ok) {
-        throw new Error(result.error)
+        throw new Error(
+          result.error
+        )
       }
 
       setFile(null)
-      window.location.reload()
-    } catch (uploadError) {
+
+      window
+        .location
+        .reload()
+
+    } catch (
+      uploadError
+    ) {
       setError(
-        uploadError instanceof Error
+        uploadError
+          instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir la imagen.',
+          : 'No se ha podido subir la imagen.'
       )
+
     } finally {
       setUploading(false)
     }
@@ -171,7 +331,10 @@ export default function PinMediaManager({ pinId, media }: Props) {
 
   async function handleVideoUpload() {
     if (!file) {
-      setError('Selecciona un vídeo.')
+      setError(
+        'Selecciona un vídeo.'
+      )
+
       return
     }
 
@@ -180,48 +343,96 @@ export default function PinMediaManager({ pinId, media }: Props) {
     setWarning(null)
 
     try {
-      const duration = await readVideoDuration(file)
+      const duration =
+        await readVideoDuration(
+          file
+        )
 
-      const validation = validatePinAnimationUpload(file.size, duration)
+      const validation =
+        validatePinAnimationUpload(
+          file.size,
+          duration
+        )
 
-      if (validation?.code === 'ANIMATION_TOO_LONG') {
+      if (
+        validation?.code ===
+        'ANIMATION_TOO_LONG'
+      ) {
         throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`
         )
       }
 
-      if (validation?.code === 'VIDEO_TOO_LARGE') {
+      if (
+        validation?.code ===
+        'VIDEO_TOO_LARGE'
+      ) {
         throw new Error(
-          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          `El vídeo supera los ${
+            validation.maxBytes /
+            1024 /
+            1024
+          } MB.`
         )
       }
 
-      const signed = await getSignedVideoUpload()
-      const uploaded = await uploadVideoToCloudinary(file, signed)
+      const signed =
+        await getSignedVideoUpload()
 
-      const result = await attachPinVideoAction({
-        pinId,
-        cloudinaryPublicId: uploaded.public_id,
-        format: uploaded.format,
-        width: uploaded.width,
-        height: uploaded.height,
-        durationSeconds: uploaded.duration,
-        bytes: uploaded.bytes,
-        slideOrder: nextSlideOrder,
-      })
+      const uploaded =
+        await uploadVideoToCloudinary(
+          file,
+          signed
+        )
+
+      const result =
+        await attachPinVideoAction({
+          pinId,
+
+          cloudinaryPublicId:
+            uploaded.public_id,
+
+          format:
+            uploaded.format,
+
+          width:
+            uploaded.width,
+
+          height:
+            uploaded.height,
+
+          durationSeconds:
+            uploaded.duration,
+
+          bytes:
+            uploaded.bytes,
+
+          slideOrder:
+            nextSlideOrder,
+        })
 
       if (!result.ok) {
-        throw new Error(result.error)
+        throw new Error(
+          result.error
+        )
       }
 
       setFile(null)
-      window.location.reload()
-    } catch (uploadError) {
+
+      window
+        .location
+        .reload()
+
+    } catch (
+      uploadError
+    ) {
       setError(
-        uploadError instanceof Error
+        uploadError
+          instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir el vídeo.',
+          : 'No se ha podido subir el vídeo.'
       )
+
     } finally {
       setUploading(false)
     }
@@ -229,61 +440,159 @@ export default function PinMediaManager({ pinId, media }: Props) {
 
   return (
     <div>
-      <h4>Medios del pin ({sortedMedia.length}/8)</h4>
+
+      <h4>
+        Medios del pin
+        {' '}
+        ({sortedMedia.length}/8)
+      </h4>
 
       <div>
-        {sortedMedia.map((item) => (
-          <MediaThumb
-            key={item.id}
-            item={item}
-            onRemove={() => handleRemove(item)}
-          />
-        ))}
+        {sortedMedia.map(
+          (item) => (
+            <MediaThumb
+              key={
+                item.id
+              }
+              item={
+                item
+              }
+              onRemove={
+                () =>
+                  handleRemove(
+                    item
+                  )
+              }
+            />
+          )
+        )}
       </div>
 
       {canAddMore && (
         <div>
-          <label htmlFor="pin-media-kind">Tipo de archivo</label>
+
+          <label
+            htmlFor="pin-media-kind"
+          >
+            Tipo de archivo
+          </label>
+
           <select
             id="pin-media-kind"
             value={kind}
-            disabled={uploading}
-            onChange={(event) => {
-              setKind(event.target.value as 'image' | 'video')
-              setFile(null)
-            }}
+            disabled={
+              uploading
+            }
+            onChange={
+              (event) => {
+                setKind(
+                  event
+                    .target
+                    .value as
+                    'image' |
+                    'video'
+                )
+
+                setFile(null)
+                setError(null)
+              }
+            }
           >
-            <option value="image">Imagen</option>
-            <option value="video">Vídeo (máx. 5 s)</option>
+            <option
+              value="image"
+            >
+              Imagen
+            </option>
+
+            <option
+              value="video"
+            >
+              Vídeo (máx. 5 s)
+            </option>
           </select>
 
           <input
             type="file"
-            accept={kind === 'video' ? 'video/*' : 'image/*'}
-            disabled={uploading}
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            accept={
+              kind ===
+              'video'
+                ? 'video/*'
+                : IMAGE_FILE_ACCEPT
+            }
+            disabled={
+              uploading
+            }
+            onChange={
+              (event) => {
+                setFile(
+                  event
+                    .target
+                    .files?.[0] ??
+                  null
+                )
+
+                setError(null)
+              }
+            }
           />
 
-          {kind === 'video' ? (
-            <p>Vídeo, máximo 5 s.</p>
+          {kind ===
+          'video' ? (
+            <p>
+              Vídeo, máximo
+              {' '}
+              5 s.
+            </p>
           ) : (
-            <p>Imagen, máximo 5 MB.</p>
+            <p>
+              JPG, PNG,
+              WebP o AVIF.
+              Máximo 5 MB.
+              Sin animaciones.
+            </p>
           )}
 
           <button
             type="button"
-            disabled={uploading || !file}
-            onClick={kind === 'video' ? handleVideoUpload : handleImageUpload}
+            disabled={
+              uploading ||
+              !file
+            }
+            onClick={
+              kind ===
+              'video'
+                ? handleVideoUpload
+                : handleImageUpload
+            }
           >
-            {uploading ? 'Subiendo...' : 'Subir'}
+            {uploading
+              ? 'Subiendo...'
+              : 'Subir'}
           </button>
+
         </div>
       )}
 
-      {!canAddMore && <p>Este pin ya tiene 8 medios, el máximo permitido.</p>}
+      {!canAddMore && (
+        <p>
+          Este pin ya tiene
+          8 medios, el máximo
+          permitido.
+        </p>
+      )}
 
-      {error && <p>{error}</p>}
-      {warning && <p>{warning}</p>}
+      {error && (
+        <p>
+          {error}
+        </p>
+      )}
+
+      {warning && (
+        <p>
+          {warning}
+        </p>
+      )}
+
     </div>
   )
 }
