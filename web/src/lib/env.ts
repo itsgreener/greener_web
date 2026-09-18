@@ -22,6 +22,27 @@ const envSchema = z.object({
   // Escaneo antivirus de paquetes ZIP subidos (arquitectura §12.5)
   CLOUDMERSIVE_API_KEY: z.string().min(1),
 
+  // Formulario de contacto (brief §5.6, arquitectura §14.1) — envío por
+  // SMTP vía nodemailer a una dirección de Greener. Mailchimp (doble
+  // opt-in de newsletter) queda fuera a propósito por ahora, es un
+  // formulario/flujo aparte.
+  CONTACT_SMTP_HOST: z.string().min(1),
+  CONTACT_SMTP_PORT: z.coerce.number().int().positive(),
+  CONTACT_SMTP_SECURE: z
+    .string()
+    .default('true')
+    .transform((value) => value === 'true'),
+  CONTACT_SMTP_USER: z.string().min(1),
+  CONTACT_SMTP_PASSWORD: z.string().min(1),
+  CONTACT_EMAIL_TO: z.string().email(),
+  CONTACT_EMAIL_FROM: z.string().email(),
+  // Sal para el hash de la IP al aplicar el límite de envíos (§14.1) —
+  // sin ella, el hash seguiría siendo determinista pero más fácil de
+  // revertir por fuerza bruta contra un listado de IPs candidatas. Con
+  // un valor por defecto para que dev/test funcionen sin configurarla,
+  // pero se recomienda fijar una propia en producción.
+  CONTACT_IP_HASH_SALT: z.string().min(1).default('greener-dev-salt'),
+
   // Site
   NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
 })
