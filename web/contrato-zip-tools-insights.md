@@ -106,18 +106,18 @@ Tres variables CSS, disponibles en `:root` desde el primer render, sin nada que 
 
 5. **`minViewport` del manifest es solo documentación — hoy nada lo comprueba automáticamente.** Declararlo no reserva ni garantiza ese espacio, ni bloquea la subida si el número declarado es mayor que el espacio real disponible. Si la tool de verdad necesita un mínimo, ese aviso o fallback tiene que estar programado dentro del propio HTML, no basta con escribirlo en el manifest.
 
-### El número real contra el que construir hoy — y por qué puede cambiar
+### El número real contra el que construir hoy — y por qué ya no es un número fijo
 
-**Corrección respecto a lo que se dijo antes: estas variables NO se recalculan según la pantalla real del visitante — hoy no.** El servidor manda siempre el mismo valor fijo, sea cual sea la ventana real del usuario:
+**Actualización del 21 de septiembre: esto ya está resuelto.** Las variables SÍ reflejan la pantalla real de cada visitante, y se recalculan solas al redimensionar la ventana:
 
-- `--greener-available-width: 1136px`
-- `--greener-available-height: 800px`
+- `--greener-available-width: calc(100dvw - 64px)`
+- `--greener-available-height: 100dvh`
 
-Esto es así porque la detección del tamaño real de pantalla del visitante todavía no está construida — está anotado como pendiente en `PROGRESO.md`, no es una decisión de diseño, es una pieza técnica sin terminar.
+(`64px` es el ancho real del menú lateral de iconos.) No hay ningún cálculo de tamaño de pantalla hecho en el servidor ni ningún `postMessage`: son expresiones CSS dinámicas de toda la vida, que el propio navegador resuelve y mantiene actualizadas.
 
-**Por eso es imprescindible construir contra las variables CSS, no contra estos números escritos a mano.** El día que el sistema empiece a mandar el tamaño real de cada visitante, cualquier tool construida así seguirá funcionando sin tocarla — una tool que asuma `1136×800` a fuego habrá que rehacerla ese día.
+**Por eso sigue siendo imprescindible construir contra las variables CSS, nunca contra un número en píxeles escrito a mano** — ahora con más motivo que antes: cada visitante recibe un valor distinto según su propia ventana, así que una tool que asuma un tamaño fijo (`1136×800` o cualquier otro) se verá mal en la mayoría de pantallas reales, no solo el día en que esto cambiara.
 
-**Mientras tanto, para comprobar visualmente que algo se ve bien, pruébese a 1136×800** — es exactamente lo que recibe cualquier tool publicada hoy, en cualquier pantalla del visitante.
+**Para comprobar visualmente que algo se ve bien, pruébese redimensionando la ventana del navegador** en varios tamaños — ya no existe un único número que represente "lo que recibe cualquier tool publicada hoy", cada visitante recibe el suyo.
 
 ## 7. Qué pasa después de subir el ZIP
 
@@ -137,5 +137,5 @@ Esto es así porque la detección del tamaño real de pantalla del visitante tod
 - [ ] ZIP completo por debajo de 10 MB
 - [ ] Sin rutas `..` ni symlinks (si se ha construido el ZIP con herramientas estándar, esto no suele dar problema — es una comprobación de seguridad, no algo que haya que montar a mano)
 - [ ] Nada de `100vw`/`100vh`/`window.innerWidth`/`window.innerHeight` en el código — solo `100%` o las variables `--greener-available-*`
-- [ ] Probado visualmente a 1136×800 (§6) — es lo que recibe cualquier tool hoy, sea cual sea la pantalla real del visitante
+- [ ] Probado visualmente redimensionando la ventana del navegador (§6) — el viewport es real y dinámico por visitante desde el 21 de septiembre, ya no hay un único tamaño fijo contra el que probar
 - [ ] Si hay `<canvas>`: `canvas.width`/`canvas.height` fijados en JS, no solo el tamaño CSS
