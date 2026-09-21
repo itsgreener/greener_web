@@ -28,11 +28,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  const { scope, filter } = body as { scope: unknown; filter?: unknown }
+  const { scope, filter, excludeContentId } = body as {
+    scope: unknown
+    filter?: unknown
+    excludeContentId?: unknown
+  }
 
   if (typeof scope !== 'string') {
     return NextResponse.json(
       { error: "'scope' debe ser una cadena." },
+      { status: 400 },
+    )
+  }
+
+  if (excludeContentId !== undefined && typeof excludeContentId !== 'string') {
+    return NextResponse.json(
+      { error: "'excludeContentId', si se manda, debe ser una cadena." },
       { status: 400 },
     )
   }
@@ -43,7 +54,11 @@ export async function POST(request: NextRequest) {
       : undefined
 
   try {
-    const result = await createFeedSession({ scope, filter: parsedFilter })
+    const result = await createFeedSession({
+      scope,
+      filter: parsedFilter,
+      excludeContentId,
+    })
     return NextResponse.json(result, {
       status: 201,
       headers: { 'Cache-Control': 'no-store' },

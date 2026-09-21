@@ -13,6 +13,14 @@ import {
 } from '@/modules/media/domain/mediaLimits'
 
 import {
+  closestClosedRatio,
+} from '@/modules/media/domain/closestRatio'
+
+import {
+  pinRatioSchema,
+} from '@/modules/pin/domain/pinSchema'
+
+import {
   IMAGE_FILE_ACCEPT,
   validateImageSelection,
 } from '@/modules/media/application/validateImageSelection'
@@ -96,6 +104,120 @@ function readVideoDuration(
   )
 }
 
+type Dimensions = {
+  width: number
+  height: number
+}
+
+// Sugerencia automática del ratio (especificacion-final-formato-detalle.md
+// §2, §4): lee las dimensiones reales del archivo elegido, en el propio
+// navegador, antes de subir nada — el admin ve el <select> ya precargado
+// con la opción más parecida y puede cambiarla a mano sin problema, esto
+// nunca decide ni se guarda por su cuenta.
+function readImageDimensions(
+  file: File
+): Promise<Dimensions> {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      const image =
+        new Image()
+
+      image.onload =
+        () => {
+          URL
+            .revokeObjectURL(
+              image.src
+            )
+
+          resolve({
+            width:
+              image.naturalWidth,
+            height:
+              image.naturalHeight,
+          })
+        }
+
+      image.onerror =
+        () => {
+          URL
+            .revokeObjectURL(
+              image.src
+            )
+
+          reject(
+            new Error(
+              'No se ha podido leer las dimensiones de la imagen.'
+            )
+          )
+        }
+
+      image.src =
+        URL
+          .createObjectURL(
+            file
+          )
+    }
+  )
+}
+
+function readVideoDimensions(
+  file: File
+): Promise<Dimensions> {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      const video =
+        document
+          .createElement(
+            'video'
+          )
+
+      video.preload =
+        'metadata'
+
+      video.onloadedmetadata =
+        () => {
+          URL
+            .revokeObjectURL(
+              video.src
+            )
+
+          resolve({
+            width:
+              video.videoWidth,
+            height:
+              video.videoHeight,
+          })
+        }
+
+      video.onerror =
+        () => {
+          URL
+            .revokeObjectURL(
+              video.src
+            )
+
+          reject(
+            new Error(
+              'No se ha podido leer las dimensiones del vídeo.'
+            )
+          )
+        }
+
+      video.src =
+        URL
+          .createObjectURL(
+            file
+          )
+    }
+  )
+}
+
 export default function CoverMediaUpload({
   contentId,
   allowVideo,
@@ -138,6 +260,14 @@ export default function CoverMediaUpload({
     useState<
       'image' | 'video'
     >('image')
+
+  const [
+    ratio,
+    setRatio,
+  ] =
+    useState<
+      (typeof pinRatioSchema.options)[number] | ''
+    >('')
 
   async function replaceExistingIfAny() {
     if (!coverMedia) {
@@ -202,6 +332,14 @@ export default function CoverMediaUpload({
       return
     }
 
+    if (!ratio) {
+      setError(
+        'Selecciona un ratio antes de subir la portada.'
+      )
+
+      return
+    }
+
     setUploading(true)
     setError(null)
     setWarning(null)
@@ -241,6 +379,8 @@ export default function CoverMediaUpload({
 
           bytes:
             uploaded.bytes,
+
+          ratio,
         })
 
       if (!result.ok) {
@@ -250,6 +390,7 @@ export default function CoverMediaUpload({
       }
 
       setFile(null)
+      setRatio('')
 
       window
         .location
@@ -274,6 +415,14 @@ export default function CoverMediaUpload({
     if (!file) {
       setError(
         'Selecciona un vídeo.'
+      )
+
+      return
+    }
+
+    if (!ratio) {
+      setError(
+        'Selecciona un ratio antes de subir la portada.'
       )
 
       return
@@ -354,6 +503,8 @@ export default function CoverMediaUpload({
 
           bytes:
             uploaded.bytes,
+
+          ratio,
         })
 
       if (!result.ok) {
@@ -363,6 +514,7 @@ export default function CoverMediaUpload({
       }
 
       setFile(null)
+      setRatio('')
 
       window
         .location
@@ -450,6 +602,7 @@ export default function CoverMediaUpload({
 
                 setFile(null)
                 setError(null)
+                setRatio('')
               }
             }
           >
@@ -481,17 +634,93 @@ export default function CoverMediaUpload({
         }
         onChange={
           (event) => {
-            setFile(
+            const selected =
               event
                 .target
                 .files?.[0] ??
               null
+
+            setFile(
+              selected
             )
 
             setError(null)
+            setRatio('')
+
+            if (!selected) {
+              return
+            }
+
+            const readDimensions =
+              kind ===
+              'video'
+                ? readVideoDimensions
+                : readImageDimensions
+
+            readDimensions(
+              selected
+            )
+              .then(
+                (
+                  dimensions
+                ) => {
+                  setRatio(
+                    closestClosedRatio(
+                      dimensions.width,
+                      dimensions.height
+                    )
+                  )
+                }
+              )
+              .catch(
+                () => {
+                  // Sin sugerencia disponible: el admin sigue pudiendo
+                  // elegir el ratio a mano en el <select> de abajo, no
+                  // bloquea la subida.
+                }
+              )
           }
         }
       />
+
+      <label
+        htmlFor="cover-ratio"
+      >
+        Ratio (sugerido a partir del archivo — puedes cambiarlo)
+      </label>
+
+      <select
+        id="cover-ratio"
+        value={ratio}
+        disabled={
+          uploading
+        }
+        onChange={
+          (event) => {
+            setRatio(
+              event
+                .target
+                .value as
+                (typeof pinRatioSchema.options)[number]
+            )
+          }
+        }
+      >
+        <option value="">
+          — Selecciona un ratio —
+        </option>
+
+        {pinRatioSchema.options.map(
+          (option) => (
+            <option
+              key={option}
+              value={option}
+            >
+              {option}
+            </option>
+          )
+        )}
+      </select>
 
       <p>
         {kind ===
@@ -504,7 +733,8 @@ export default function CoverMediaUpload({
         type="button"
         disabled={
           uploading ||
-          !file
+          !file ||
+          !ratio
         }
         onClick={
           kind ===

@@ -34,10 +34,26 @@ describe('registerCoverImageSchema — tool/insight/other (especificacion-final-
     width: 1200,
     height: 800,
     bytes: 500_000,
+    ratio: '4:3' as const,
   }
 
   it('acepta una respuesta de Cloudinary válida', () => {
     expect(registerCoverImageSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rechaza sin ratio (especificacion-final-formato-detalle.md §2: obligatorio para el panel de recomendaciones)', () => {
+    const withoutRatio = Object.fromEntries(
+      Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
+    )
+    expect(registerCoverImageSchema.safeParse(withoutRatio).success).toBe(
+      false,
+    )
+  })
+
+  it('rechaza un ratio fuera de la lista cerrada de 7 valores', () => {
+    expect(
+      registerCoverImageSchema.safeParse({ ...base, ratio: '21:9' }).success,
+    ).toBe(false)
   })
 
   it('rechaza cloudinaryPublicId vacío', () => {
@@ -84,10 +100,20 @@ describe('registerCoverVideoSchema — solo other admite vídeo de portada', () 
     height: 1080,
     durationSeconds: 30,
     bytes: 20 * 1024 * 1024,
+    ratio: '16:9' as const,
   }
 
   it('acepta un vídeo válido dentro de límites', () => {
     expect(registerCoverVideoSchema.safeParse(base).success).toBe(true)
+  })
+
+  it('rechaza sin ratio, igual que la portada de imagen', () => {
+    const withoutRatio = Object.fromEntries(
+      Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
+    )
+    expect(registerCoverVideoSchema.safeParse(withoutRatio).success).toBe(
+      false,
+    )
   })
 
   it('redondea la duración hacia arriba (transform Math.ceil)', () => {

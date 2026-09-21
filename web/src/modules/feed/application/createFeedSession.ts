@@ -7,6 +7,13 @@ import {
 export interface CreateFeedSessionInput {
   scope: string
   filter?: Record<string, string>
+  /**
+   * Panel de recomendaciones de una página de detalle
+   * (especificacion-final-formato-detalle.md §1, §6): el contenido que se
+   * está viendo no debe poder recomendarse a sí mismo. Opcional — toda
+   * sesión de home/subhome de verdad no lo usa.
+   */
+  excludeContentId?: string
 }
 
 export interface CreateFeedSessionResult {
@@ -54,6 +61,7 @@ export async function createFeedSession(
   createRow: (params: {
     scope: string
     filterHash: string | null
+    excludeContentId?: string | null
   }) => Promise<FeedSessionRow> = createFeedSessionRow,
 ): Promise<CreateFeedSessionResult> {
   if (!SUPPORTED_SCOPES.has(input.scope)) {
@@ -63,6 +71,7 @@ export async function createFeedSession(
   const row = await createRow({
     scope: input.scope,
     filterHash: hashFilter(input.filter),
+    excludeContentId: input.excludeContentId,
   })
   return { sessionId: row.id }
 }

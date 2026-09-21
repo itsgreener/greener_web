@@ -11,6 +11,7 @@ function fakeRow(overrides: Partial<FeedSessionRow> = {}): FeedSessionRow {
     seed: 'seed-1',
     scope: 'home',
     expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+    excludeContentId: null,
     ...overrides,
   }
 }
@@ -72,5 +73,34 @@ describe('createFeedSession', () => {
     await createFeedSession({ scope: 'home' }, createRow)
 
     expect(createRow).toHaveBeenCalledWith({ scope: 'home', filterHash: null })
+  })
+
+  it('panel de recomendaciones (especificacion-final-formato-detalle.md §1, §6): pasa excludeContentId al repositorio', async () => {
+    const createRow = vi.fn().mockResolvedValue(
+      fakeRow({ excludeContentId: 'content-123' }),
+    )
+
+    await createFeedSession(
+      { scope: 'home', excludeContentId: 'content-123' },
+      createRow,
+    )
+
+    expect(createRow).toHaveBeenCalledWith({
+      scope: 'home',
+      filterHash: null,
+      excludeContentId: 'content-123',
+    })
+  })
+
+  it('sin excludeContentId, no se manda (sesión normal de home/subhome, sin exclusión)', async () => {
+    const createRow = vi.fn().mockResolvedValue(fakeRow())
+
+    await createFeedSession({ scope: 'home' }, createRow)
+
+    expect(createRow).toHaveBeenCalledWith({
+      scope: 'home',
+      filterHash: null,
+      excludeContentId: undefined,
+    })
   })
 })

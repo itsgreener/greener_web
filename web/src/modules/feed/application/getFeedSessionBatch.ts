@@ -180,7 +180,7 @@ export async function getFeedSessionBatch(
     // Ronda nueva: hace falta el universo completo para poder generarla,
     // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
     const [{ snapshot, pinDirectory }, config] = await Promise.all([
-      deps.getDataset(session.scope),
+      deps.getDataset(session.scope, session.excludeContentId),
       deps.getConfig(),
     ])
     const { sequence } = generateRound(

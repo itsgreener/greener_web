@@ -18,13 +18,21 @@
 .slide {
   flex: 0 0 100%;
   scroll-snap-align: start;
-  aspect-ratio: 16 / 9;
+  /* aspect-ratio ya no se fija aquí: lo calcula CaseDetail.tsx una sola
+     vez a partir del medio más ancho del carrusel (decisión del 21 sep,
+     especificacion-final-formato-detalle.md §2) y se aplica inline, igual
+     para las N diapositivas — así no hace falta un valor por defecto que
+     luego desentone con el real. */
+  background: #000;
 }
 
 .media {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  /* contain, no cover: las diapositivas más estrechas que el ratio del
+     carrusel (el del medio más ancho) se ven completas, con barras
+     negras a los lados en vez de recortadas. */
+  object-fit: contain;
 }
 
 .text {

@@ -13,10 +13,20 @@ export interface FeedSessionRow {
   seed: string
   scope: string
   expiresAt: string
+  /**
+   * Contenido a excluir del universo de esta sesión (panel de
+   * recomendaciones de una página de detalle — no debe recomendarse a sí
+   * misma). `null` en toda sesión de home/subhome normal.
+   */
+  excludeContentId: string | null
 }
 
 export async function createFeedSessionRow(
-  params: { scope: string; filterHash: string | null },
+  params: {
+    scope: string
+    filterHash: string | null
+    excludeContentId?: string | null
+  },
   client: SupabaseClient = createServiceClient(),
 ): Promise<FeedSessionRow> {
   // Seed criptográficamente aleatoria por carga de documento (arquitectura
@@ -25,8 +35,13 @@ export async function createFeedSessionRow(
 
   const { data, error } = await client
     .from('feed_session')
-    .insert({ seed, scope: params.scope, filter_hash: params.filterHash })
-    .select('id, seed, scope, expires_at')
+    .insert({
+      seed,
+      scope: params.scope,
+      filter_hash: params.filterHash,
+      exclude_content_id: params.excludeContentId ?? null,
+    })
+    .select('id, seed, scope, expires_at, exclude_content_id')
     .single()
 
   if (error || !data) {
@@ -40,6 +55,7 @@ export async function createFeedSessionRow(
     seed: data.seed,
     scope: data.scope,
     expiresAt: data.expires_at,
+    excludeContentId: data.exclude_content_id,
   }
 }
 
@@ -49,7 +65,7 @@ export async function getFeedSessionRow(
 ): Promise<FeedSessionRow | null> {
   const { data, error } = await client
     .from('feed_session')
-    .select('id, seed, scope, expires_at')
+    .select('id, seed, scope, expires_at, exclude_content_id')
     .eq('id', sessionId)
     .maybeSingle()
 
@@ -63,6 +79,7 @@ export async function getFeedSessionRow(
     seed: data.seed,
     scope: data.scope,
     expiresAt: data.expires_at,
+    excludeContentId: data.exclude_content_id,
   }
 }
 

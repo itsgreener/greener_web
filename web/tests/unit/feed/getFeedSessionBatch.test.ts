@@ -15,6 +15,7 @@ const SESSION: FeedSessionRow = {
   seed: 'test-seed',
   scope: 'home',
   expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+  excludeContentId: null,
 }
 
 const CONFIG: FeedConfig = {
@@ -220,6 +221,56 @@ describe('getFeedSessionBatch', () => {
 
     await getFeedSessionBatch(SESSION.id, null, deps)
 
-    expect(deps.getDataset).toHaveBeenCalledWith('insights')
+    expect(deps.getDataset).toHaveBeenCalledWith('insights', null)
+  })
+
+  it('panel de recomendaciones (especificacion-final-formato-detalle.md §1, §6): pasa excludeContentId de la sesión al dataset', async () => {
+    const sessionExcluyendoContenido: FeedSessionRow = {
+      ...SESSION,
+      excludeContentId: 'case-2',
+    }
+    deps.getSession = vi.fn(async () => sessionExcluyendoContenido)
+
+    await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(deps.getDataset).toHaveBeenCalledWith('home', 'case-2')
+  })
+
+  it('panel de recomendaciones: el contenido excluido nunca aparece en la ronda generada', async () => {
+    // Simula lo que hace de verdad getFeedDataset con excludeContentId: si
+    // se pide excluir 'case-2', ese caso ni siquiera entra en el universo
+    // que ve generateRound — no es un filtro sobre la tanda ya generada.
+    const datasetSinCase2 = {
+      snapshot: {
+        cases: [{ contentId: 'case-1', pinIds: ['pin-1', 'pin-2'], force: 4 }],
+        insights: [],
+        tools: [],
+        channel: [],
+        other: [],
+      },
+      pinDirectory: {
+        'pin-1': entry('case-1', 'case'),
+        'pin-2': entry('case-1', 'case'),
+      } as Record<string, PinDirectoryEntry>,
+    }
+
+    const sessionExcluyendoContenido: FeedSessionRow = {
+      ...SESSION,
+      excludeContentId: 'case-2',
+    }
+    deps.getSession = vi.fn(async () => sessionExcluyendoContenido)
+    deps.getDataset = vi.fn(async (_scope?: string, exclude?: string | null) =>
+      exclude === 'case-2' ? datasetSinCase2 : DATASET,
+    )
+    deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+      Object.fromEntries(
+        ids.map((id) => [id, datasetSinCase2.pinDirectory[id]]),
+      ),
+    )
+
+    const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(result.items.length).toBeGreaterThan(0)
+    expect(result.items.every((i) => i.contentId !== 'case-2')).toBe(true)
   })
 })

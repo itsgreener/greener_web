@@ -5,12 +5,27 @@ import {
   buildVideoFullUrl,
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { widestCarouselRatio } from '@/modules/media/domain/closestRatio'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
 import type {
   PublicCaseDetail,
   PublicCaseCarouselItem,
 } from '@/modules/content/infrastructure/publicCaseSource'
 import styles from './CaseDetail.module.css'
+
+// especificacion-final-formato-detalle.md §2 — decisión del 21 de
+// septiembre: css `aspect-ratio` usa la sintaxis "ancho / alto", el
+// enum del proyecto usa "ancho:alto" — esta tabla es la única
+// traducción entre los dos formatos, no una lista de ratios nueva.
+const CSS_ASPECT_RATIO: Record<string, string> = {
+  '1:1': '1 / 1',
+  '4:3': '4 / 3',
+  '4:5': '4 / 5',
+  '3:4': '3 / 4',
+  '2:3': '2 / 3',
+  '9:16': '9 / 16',
+  '16:9': '16 / 9',
+}
 
 /**
  * Plantilla de detalle tipo B para un caso (especificacion-final-formato-
@@ -26,12 +41,31 @@ export function CaseDetail({
   caseDetail: PublicCaseDetail | null
   carousel: PublicCaseCarouselItem[]
 }) {
+  // Decisión del 21 sep: el carrusel entero usa el ratio del medio MÁS
+  // ANCHO (p.ej. 16:9) para todas las diapositivas por igual — el resto
+  // se encaja con barras negras (object-fit: contain, §.slide más abajo)
+  // en vez de recortarse (cover). Se calcula UNA sola vez aquí, a partir
+  // de los datos ya cargados por el servidor — nunca cambia al pasar de
+  // diapositiva, que es justo lo que se quería evitar (mover la caja de
+  // texto en tiempo real según el ratio de cada imagen no tiene sentido
+  // visual).
+  const carouselRatio =
+    carousel.length > 0 ? widestCarouselRatio(carousel) : null
+
   return (
     <article className={styles.article}>
       {carousel.length > 0 && (
         <div className={styles.carousel}>
           {carousel.map((item, index) => (
-            <div key={item.mediaId} className={styles.slide}>
+            <div
+              key={item.mediaId}
+              className={styles.slide}
+              style={{
+                aspectRatio: carouselRatio
+                  ? CSS_ASPECT_RATIO[carouselRatio]
+                  : undefined,
+              }}
+            >
               {item.kind === 'image' ? (
                 // URL ya transformada por
                 // modules/media/infrastructure/cloudinaryUrl.ts

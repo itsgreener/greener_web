@@ -1,6 +1,11 @@
 import { z } from 'zod'
 
 import { IMAGE_LIMITS, VIDEO_LIMITS } from './mediaLimits'
+// especificacion-final-formato-detalle.md §4: lista cerrada de 7 ratios —
+// un único concepto, no uno por contexto. Se reutiliza el enum de zod que
+// ya valida pin.ratio en vez de declarar aquí una copia que se puede
+// desincronizar (ver también el tipo pin_ratio de Postgres, mismo motivo).
+import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
 
 export const mediaKindSchema = z.enum(['image', 'video'])
 
@@ -32,6 +37,13 @@ export const registerCoverImageSchema = z.object({
       IMAGE_LIMITS.maxSizeBytes,
       `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
     ),
+
+  // especificacion-final-formato-detalle.md §2: gobierna el grupo de
+  // columnas del panel de recomendaciones (16:9 / 1:1,4:3 / verticales).
+  // El ABM lo sugiere a partir de width/height reales, pero el admin
+  // elige siempre uno de los 7 valores cerrados — nunca se deriva ni se
+  // guarda en servidor sin confirmación explícita.
+  ratio: pinRatioSchema,
 })
 
 export const registerCoverVideoSchema = z.object({
@@ -65,6 +77,8 @@ export const registerCoverVideoSchema = z.object({
       VIDEO_LIMITS.maxSizeBytes,
       `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
     ),
+
+  ratio: pinRatioSchema,
 })
 
 /**

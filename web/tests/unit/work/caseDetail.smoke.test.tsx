@@ -57,6 +57,8 @@ describe('CaseDetail — prueba de humo', () => {
             cloudinaryPublicId: 'img1',
             sortOrder: 0,
             alt: 'Equipo trabajando en el campo',
+            width: 1600,
+            height: 900,
           },
           {
             mediaId: 'm2',
@@ -64,6 +66,8 @@ describe('CaseDetail — prueba de humo', () => {
             cloudinaryPublicId: 'vid1',
             sortOrder: 1,
             alt: 'Vídeo de la cosecha',
+            width: 1920,
+            height: 1080,
           },
         ]}
       />,
@@ -77,6 +81,64 @@ describe('CaseDetail — prueba de humo', () => {
     expect(video).toHaveAttribute('controls')
     expect(video).toHaveAttribute('aria-label', 'Vídeo de la cosecha')
     expect(video?.getAttribute('poster')).toContain('vid1')
+  })
+
+  it('el ratio fijo del carrusel es el del medio más ancho, aplicado por igual a todas las diapositivas (decisión del 21 sep)', () => {
+    const { container } = render(
+      <CaseDetail
+        content={CONTENT}
+        caseDetail={null}
+        carousel={[
+          {
+            mediaId: 'm1',
+            kind: 'image',
+            cloudinaryPublicId: 'vertical',
+            sortOrder: 0,
+            alt: 'Vertical',
+            width: 900,
+            height: 1600, // 9:16
+          },
+          {
+            mediaId: 'm2',
+            kind: 'image',
+            cloudinaryPublicId: 'panoramica',
+            sortOrder: 1,
+            alt: 'Panorámica',
+            width: 1600,
+            height: 900, // 16:9 — la más ancha, gana
+          },
+        ]}
+      />,
+    )
+
+    const slides = container.querySelectorAll('[class*="slide"]')
+    expect(slides.length).toBe(2)
+    for (const slide of slides) {
+      expect((slide as HTMLElement).style.aspectRatio).toBe('16 / 9')
+    }
+  })
+
+  it('con un único medio, el carrusel no revienta calculando el ratio', () => {
+    const { container } = render(
+      <CaseDetail
+        content={CONTENT}
+        caseDetail={null}
+        carousel={[
+          {
+            mediaId: 'm1',
+            kind: 'image',
+            cloudinaryPublicId: 'unico',
+            sortOrder: 0,
+            alt: 'Único',
+            width: 1000,
+            height: 1000,
+          },
+        ]}
+      />,
+    )
+
+    const slide = container.querySelector('[class*="slide"]') as HTMLElement
+    expect(slide.style.aspectRatio).toBe('1 / 1')
   })
 
   it('con una sola traducción disponible, no pinta el selector de idioma', () => {

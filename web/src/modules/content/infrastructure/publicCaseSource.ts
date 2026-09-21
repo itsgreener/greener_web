@@ -40,6 +40,8 @@ export interface PublicCaseCarouselItem {
   cloudinaryPublicId: string
   sortOrder: number
   alt: string
+  width: number
+  height: number
 }
 
 interface CaseCarouselRow {
@@ -49,6 +51,8 @@ interface CaseCarouselRow {
   media_asset: {
     kind: 'image' | 'video'
     cloudinary_public_id: string
+    width: number | null
+    height: number | null
   } | null
 }
 
@@ -63,7 +67,7 @@ export async function getPublicCaseCarousel(
       media_id,
       sort_order,
       alt,
-      media_asset ( kind, cloudinary_public_id )
+      media_asset ( kind, cloudinary_public_id, width, height )
     `,
     )
     .eq('content_id', contentId)
@@ -83,5 +87,12 @@ export async function getPublicCaseCarousel(
       cloudinaryPublicId: row.media_asset!.cloudinary_public_id,
       sortOrder: row.sort_order,
       alt: row.alt,
+      // width/height siempre deberían venir rellenos (media_asset los
+      // exige al registrarse — §9.2), pero el tipo de columna en Postgres
+      // los permite NULL; 0 aquí es un valor centinela imposible en la
+      // práctica, no una medida real, y widestCarouselRatio ya rechaza
+      // width/height <= 0.
+      width: row.media_asset!.width ?? 0,
+      height: row.media_asset!.height ?? 0,
     }))
 }

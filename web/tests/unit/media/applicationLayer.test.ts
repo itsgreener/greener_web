@@ -26,6 +26,7 @@ describe('registerCoverImage', () => {
     width: 1200,
     height: 800,
     bytes: 500_000,
+    ratio: '4:3' as const,
   }
 
   it('valida con zod y delega en supabaseMediaAssetRepository.registerCoverImage', async () => {
@@ -71,6 +72,7 @@ describe('registerCoverVideo — solo other (especificacion-final-formato-detall
     height: 1080,
     durationSeconds: 45,
     bytes: 20 * 1024 * 1024,
+    ratio: '16:9' as const,
   }
 
   it('valida con zod (incluida la transformación de duración) y delega en el repositorio', async () => {

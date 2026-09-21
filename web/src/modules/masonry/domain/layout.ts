@@ -63,22 +63,45 @@ export interface LayoutResult {
 }
 
 const DEFAULT_LABEL_HEIGHT = 28
-const GAP = 12
+export const GAP = 12
 
 /**
  * Asigna cada item a la columna con menor altura acumulada (shortest-column-
  * first). Determinista: mismo input, mismo output — no depende de medición
  * de DOM ni de orden de llegada asíncrono.
+ *
+ * `initialColumnHeights` (opcional, especificacion-final-formato-detalle.md
+ * §2): permite sembrar cada columna con una altura de partida distinta de 0,
+ * en vez de arrancar todas a la vez. Es el mecanismo que hace posible el
+ * panel de recomendaciones de tipo A/B sin ningún caso especial: las
+ * columnas que reserva el bloque de contenido (imagen+texto) se siembran a
+ * su altura real, las columnas de recomendación a 0 — el propio algoritmo
+ * shortest-column-first rellena primero las columnas más cortas (las de
+ * recomendación, "a la derecha") y, en cuanto su altura acumulada alcanza
+ * la del bloque de contenido, empieza a usar también esas columnas
+ * "liberadas" — que es exactamente el comportamiento de "recomendaciones a
+ * la derecha + debajo" sin necesidad de dos retículas independientes ni de
+ * detectar a mano cuándo termina el bloque de contenido.
+ *
+ * Si se pasa, debe traer una entrada por columna (`columnCount`); una
+ * columna sin entrada se siembra a 0. Quien siembre debe sumar `GAP` a la
+ * altura real del bloque de contenido si quiere el mismo margen visual que
+ * el algoritmo deja entre el resto de tarjetas — esta función no lo añade
+ * por su cuenta, para no asumir que todo el que siembra alturas quiere
+ * necesariamente ese hueco.
  */
 export function computeMasonryLayout(
   items: LayoutInputItem[],
   containerWidth: number,
   columnCount: number,
+  initialColumnHeights?: number[],
 ): LayoutResult {
   const safeColumnCount = Math.max(1, columnCount)
   const columnWidth =
     (containerWidth - GAP * (safeColumnCount - 1)) / safeColumnCount
-  const columnHeights = new Array(safeColumnCount).fill(0)
+  const columnHeights = new Array(safeColumnCount)
+    .fill(0)
+    .map((_, c) => initialColumnHeights?.[c] ?? 0)
   const positions: LayoutPosition[] = []
 
   for (const item of items) {

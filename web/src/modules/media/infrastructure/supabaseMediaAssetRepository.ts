@@ -37,6 +37,8 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       p_height: input.height,
 
       p_bytes: input.bytes,
+
+      p_ratio: input.ratio,
     })
 
     if (error) {

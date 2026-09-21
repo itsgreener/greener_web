@@ -49,6 +49,54 @@ describe('computeMasonryLayout — determinismo y ausencia de solapes', () => {
     )
   })
 
+  it('con todas las columnas sembradas a 0, initialColumnHeights es un no-op', () => {
+    fc.assert(
+      fc.property(
+        fc.array(itemArb, { minLength: 0, maxLength: 60 }),
+        fc.integer({ min: 320, max: 2000 }),
+        fc.integer({ min: 1, max: 6 }),
+        (items, width, columns) => {
+          const withoutParam = computeMasonryLayout(items, width, columns)
+          const withZeros = computeMasonryLayout(
+            items,
+            width,
+            columns,
+            new Array(columns).fill(0),
+          )
+          expect(withoutParam).toEqual(withZeros)
+        },
+      ),
+      { numRuns: 200 },
+    )
+  })
+
+  it('con initialColumnHeights, ninguna posición cae por debajo de la altura sembrada de su columna', () => {
+    fc.assert(
+      fc.property(
+        fc.array(itemArb, { minLength: 0, maxLength: 60 }),
+        fc.integer({ min: 320, max: 2000 }),
+        fc.integer({ min: 1, max: 6 }),
+        fc.array(fc.integer({ min: 0, max: 3000 }), {
+          minLength: 1,
+          maxLength: 6,
+        }),
+        (items, width, columns, seeds) => {
+          const { positions } = computeMasonryLayout(
+            items,
+            width,
+            columns,
+            seeds,
+          )
+          for (const p of positions) {
+            const seeded = seeds[p.column] ?? 0
+            expect(p.y).toBeGreaterThanOrEqual(seeded)
+          }
+        },
+      ),
+      { numRuns: 500 },
+    )
+  })
+
   it('ningún pin se asigna a una columna fuera de rango', () => {
     fc.assert(
       fc.property(

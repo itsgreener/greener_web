@@ -183,11 +183,12 @@ export function buildFeedUnitsForPin(
  */
 export async function getFeedDataset(
   scope: string = 'home',
+  excludeContentId?: string | null,
   client: SupabaseClient = createPublicReadClient(),
 ): Promise<FeedDataset> {
   const types = SCOPE_TO_TYPES[scope] ?? SCOPE_TO_TYPES.home
 
-  const { data, error } = await client
+  let query = client
     .from('content')
     .select(
       `
@@ -200,7 +201,17 @@ export async function getFeedDataset(
     )
     .eq('status', 'published')
     .in('type', types)
-    .returns<ContentRow[]>()
+
+  // Panel de recomendaciones de una página de detalle
+  // (especificacion-final-formato-detalle.md §1, §6): el contenido que se
+  // está viendo se excluye del universo ANTES de que generateRound lo vea
+  // — no filtrando la tanda ya generada, que rompería el tamaño real que
+  // espera la virtualización (§10.2).
+  if (excludeContentId) {
+    query = query.neq('id', excludeContentId)
+  }
+
+  const { data, error } = await query.returns<ContentRow[]>()
 
   if (error) {
     throw new Error(
