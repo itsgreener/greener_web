@@ -18,9 +18,9 @@ import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
  * parezcan nada.
  */
 
-type PinRatioValue = (typeof pinRatioSchema.options)[number]
+export type PinRatioValue = (typeof pinRatioSchema.options)[number]
 
-const RATIO_DECIMAL_VALUE: Record<PinRatioValue, number> = {
+export const RATIO_DECIMAL_VALUE: Record<PinRatioValue, number> = {
   '1:1': 1 / 1,
   '4:3': 4 / 3,
   '4:5': 4 / 5,

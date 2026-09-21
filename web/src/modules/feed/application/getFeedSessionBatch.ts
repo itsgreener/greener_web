@@ -64,9 +64,11 @@ function destinationFor(
     case 'insight':
       return `/insights/${slug}`
     case 'other':
-      // Mejor suposición: la especificación no fija una ruta /other/[slug]
-      // propia — a confirmar cuando se construya esa ruta.
-      return `/${slug}`
+      // especificacion-final-formato-detalle.md §7 (ampliado el 21 sep):
+      // prefijo propio en vez de raíz, para no arriesgar colisión con
+      // /work, /tools, /insights, /channel, /contact, /admin, /preview
+      // — decisión cerrada, ya no es una suposición.
+      return `/variety/${slug}`
   }
 }
 

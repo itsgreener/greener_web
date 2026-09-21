@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, waitFor, cleanup } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
 
 const BASE_CONTENT: PublicContent = {
   id: 'content-1',
@@ -19,12 +20,81 @@ const BASE_CONTENT: PublicContent = {
   highlight: null,
   body: null,
   coverMedia: null,
+  coverRatio: null,
+}
+
+function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
+  return {
+    items: Array.from({ length: count }, (_, i) => ({
+      pinId: `rec-pin-${i}`,
+      contentId: `rec-content-${i}`,
+      kind: 'case',
+      destination: `/work/rec-${i}`,
+      ratio: '1:1',
+      label: `Recomendación ${i}`,
+      cta: 'Watch',
+      alt: `Alt ${i}`,
+      autoplayMode: null,
+      media: [{ kind: 'image' as const, cloudinaryPublicId: 'sample' }],
+    })),
+    cursor: 'cursor-1',
+    hasMore,
+  }
 }
 
 describe('ToolInsightDetail — prueba de humo', () => {
-  afterEach(cleanup)
+  beforeEach(() => {
+    // Mismo stub que Feed.smoke.test.tsx: ResizeObserver no existe en
+    // jsdom, y sin un ancho real containerWidth se queda en 0 para siempre.
+    global.ResizeObserver = class {
+      callback: ResizeObserverCallback
+      constructor(callback: ResizeObserverCallback) {
+        this.callback = callback
+      }
+      observe() {
+        this.callback(
+          [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
+          this as unknown as ResizeObserver,
+        )
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    // @ts-expect-error -- stub mínimo suficiente para el smoke test
+    global.IntersectionObserver = class {
+      observe() {}
+      disconnect() {}
+    }
 
-  it('pinta título, summary y el CTA "Use" apuntando a /app', () => {
+    global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
+      if (url === '/api/feed/sessions' && init?.method === 'POST') {
+        const body = JSON.parse(init.body as string) as {
+          scope: string
+          excludeContentId?: string
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            sessionId: `session-${body.excludeContentId ?? 'none'}`,
+          }),
+        } as Response
+      }
+      if (url.startsWith('/api/feed/session-')) {
+        return {
+          ok: true,
+          json: async () => fakeBatch(6, false),
+        } as Response
+      }
+      throw new Error(`URL inesperada en el test: ${url}`)
+    }) as typeof fetch
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanup()
+  })
+
+  it('pinta título, summary y el CTA "Use" apuntando a /app, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {
     render(
       <ToolInsightDetail
         content={BASE_CONTENT}
@@ -38,9 +108,20 @@ describe('ToolInsightDetail — prueba de humo', () => {
 
     const cta = screen.getByRole('link', { name: 'Use' })
     expect(cta).toHaveAttribute('href', '/tools/mi-tool/app')
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/feed/sessions',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          scope: 'home',
+          excludeContentId: 'content-1',
+        }),
+      }),
+    )
   })
 
-  it('con un insight, el CTA es "Read" en vez de "Use"', () => {
+  it('con un insight, el CTA es "Read" en vez de "Use"', async () => {
     render(
       <ToolInsightDetail
         content={{ ...BASE_CONTENT, type: 'insight' }}
@@ -73,6 +154,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
         content={{
           ...BASE_CONTENT,
           coverMedia: { kind: 'image', cloudinaryPublicId: 'cover1' },
+          coverRatio: '16:9',
         }}
         ctaLabel="Use"
         appHref="/tools/mi-tool/app"
@@ -92,5 +174,61 @@ describe('ToolInsightDetail — prueba de humo', () => {
     )
 
     expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+  })
+
+  it('sin ctaLabel/appHref (contenido libre, /variety/[slug]), no pinta ningún CTA', () => {
+    render(<ToolInsightDetail content={BASE_CONTENT} />)
+
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+  })
+
+  it('con cover_media_id de vídeo (contenido libre admite vídeo, especificacion-final-formato-detalle.md §3), lo pinta como <video>', () => {
+    const { container } = render(
+      <ToolInsightDetail
+        content={{
+          ...BASE_CONTENT,
+          coverMedia: { kind: 'video', cloudinaryPublicId: 'cover-video' },
+          coverRatio: '16:9',
+        }}
+      />,
+    )
+
+    const video = container.querySelector('video')
+    expect(video).toBeInTheDocument()
+    expect(video).toHaveAttribute('aria-label', 'Mi tool')
+    expect(container.querySelector('img')).not.toBeInTheDocument()
+  })
+
+  it('carga y pinta las recomendaciones del panel (excluido el propio contenido del universo)', async () => {
+    render(
+      <ToolInsightDetail
+        content={BASE_CONTENT}
+        ctaLabel="Use"
+        appHref="/tools/mi-tool/app"
+      />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Recomendación 0')).toBeInTheDocument()
+    })
+
+    expect(screen.getAllByText(/^Recomendación/)).toHaveLength(6)
+  })
+
+  it('sin ratio de portada (contenido sin portada todavía), usa un ratio de reserva en vez de romper', async () => {
+    render(
+      <ToolInsightDetail
+        content={BASE_CONTENT}
+        ctaLabel="Use"
+        appHref="/tools/mi-tool/app"
+      />,
+    )
+
+    // No revienta al montar ni al calcular el layout — sigue mostrando
+    // el título y, con el tiempo, las recomendaciones.
+    expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getAllByText(/^Recomendación/).length).toBeGreaterThan(0)
+    })
   })
 })

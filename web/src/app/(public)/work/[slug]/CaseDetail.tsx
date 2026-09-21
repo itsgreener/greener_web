@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import {
   buildImageUrl,
@@ -6,6 +8,8 @@ import {
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 import { widestCarouselRatio } from '@/modules/media/domain/closestRatio'
+import { PinCard } from '@/components/pin/PinCard'
+import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
 import type {
   PublicCaseDetail,
@@ -27,10 +31,16 @@ const CSS_ASPECT_RATIO: Record<string, string> = {
   '16:9': '16 / 9',
 }
 
+// Fuera de la lista cerrada solo cuando no hay carrusel todavía — un caso
+// siempre trae 1-N medios en la práctica (§3), pero la página no debe
+// romper si un caso se publica sin carrusel por error de carga.
+const FALLBACK_RATIO = '16:9' as const
+
 /**
  * Plantilla de detalle tipo B para un caso (especificacion-final-formato-
- * detalle.md §1, §3): siempre a ancho completo, sin panel de
- * recomendaciones (eso es solo tipo A/other).
+ * detalle.md §1, §2, §3): contenido siempre a 6/6 (fullWidthContent),
+ * sin panel lateral — las recomendaciones (aleatorias, scope='home',
+ * excluyéndose a sí mismo) solo pueden aparecer debajo.
  */
 export function CaseDetail({
   content,
@@ -42,88 +52,138 @@ export function CaseDetail({
   carousel: PublicCaseCarouselItem[]
 }) {
   // Decisión del 21 sep: el carrusel entero usa el ratio del medio MÁS
-  // ANCHO (p.ej. 16:9) para todas las diapositivas por igual — el resto
-  // se encaja con barras negras (object-fit: contain, §.slide más abajo)
-  // en vez de recortarse (cover). Se calcula UNA sola vez aquí, a partir
-  // de los datos ya cargados por el servidor — nunca cambia al pasar de
-  // diapositiva, que es justo lo que se quería evitar (mover la caja de
-  // texto en tiempo real según el ratio de cada imagen no tiene sentido
-  // visual).
+  // ANCHO para todas las diapositivas por igual — el resto se encaja con
+  // barras negras (object-fit: contain) en vez de recortarse. Se calcula
+  // UNA sola vez a partir de los datos ya cargados por el servidor.
   const carouselRatio =
-    carousel.length > 0 ? widestCarouselRatio(carousel) : null
+    carousel.length > 0 ? widestCarouselRatio(carousel) : FALLBACK_RATIO
+
+  const {
+    containerRef,
+    contentBlockImageWidth,
+    contentBlockImageHeight,
+    contentBlockReservedWidth,
+    totalHeight,
+    positioned,
+    isLoading,
+    itemCount,
+    hasMore,
+    error,
+    sentinelId,
+  } = useRecommendationMasonry(content.id, carouselRatio, {
+    fullWidthContent: true,
+  })
 
   return (
     <article className={styles.article}>
-      {carousel.length > 0 && (
-        <div className={styles.carousel}>
-          {carousel.map((item, index) => (
+      <div
+        ref={containerRef}
+        className={styles.canvas}
+        style={{ height: totalHeight || undefined }}
+      >
+        <div
+          className={styles.contentBlock}
+          style={{ width: contentBlockReservedWidth || '100%' }}
+        >
+          {carousel.length > 0 && (
             <div
-              key={item.mediaId}
-              className={styles.slide}
+              className={styles.carousel}
               style={{
-                aspectRatio: carouselRatio
-                  ? CSS_ASPECT_RATIO[carouselRatio]
-                  : undefined,
+                width: contentBlockImageWidth || '100%',
+                height: contentBlockImageHeight || undefined,
               }}
             >
-              {item.kind === 'image' ? (
-                // URL ya transformada por
-                // modules/media/infrastructure/cloudinaryUrl.ts
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={buildImageUrl(item.cloudinaryPublicId, 'detail')}
-                  srcSet={buildImageSrcSet(item.cloudinaryPublicId, 'detail')}
-                  sizes="100vw"
-                  alt={item.alt}
-                  loading={index === 0 ? 'eager' : 'lazy'}
-                  className={styles.media}
-                />
-              ) : (
-                <video
-                  src={buildVideoFullUrl(item.cloudinaryPublicId)}
-                  poster={buildVideoPosterUrl(item.cloudinaryPublicId)}
-                  controls
-                  aria-label={item.alt}
-                  className={styles.media}
-                />
-              )}
+              {carousel.map((item, index) => (
+                <div
+                  key={item.mediaId}
+                  className={styles.slide}
+                  style={{
+                    aspectRatio: CSS_ASPECT_RATIO[carouselRatio],
+                  }}
+                >
+                  {item.kind === 'image' ? (
+                    // URL ya transformada por
+                    // modules/media/infrastructure/cloudinaryUrl.ts
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={buildImageUrl(item.cloudinaryPublicId, 'detail')}
+                      srcSet={buildImageSrcSet(
+                        item.cloudinaryPublicId,
+                        'detail',
+                      )}
+                      sizes="83vw"
+                      alt={item.alt}
+                      loading={index === 0 ? 'eager' : 'lazy'}
+                      className={styles.media}
+                    />
+                  ) : (
+                    <video
+                      src={buildVideoFullUrl(item.cloudinaryPublicId)}
+                      poster={buildVideoPosterUrl(item.cloudinaryPublicId)}
+                      controls
+                      aria-label={item.alt}
+                      className={styles.media}
+                    />
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          <div className={styles.text}>
+            {/* Selector de idioma (arquitectura §7.7): solo se muestra si hay
+                más de una traducción publicada — nunca los tres locales por
+                defecto. Un único elemento (el caso normal) no pinta nada. */}
+            {content.availableLocales.length > 1 && (
+              <nav className={styles.localeSelector} aria-label="Idioma">
+                {content.availableLocales.map((loc) => (
+                  <Link
+                    key={loc}
+                    href={
+                      loc === content.defaultLocale
+                        ? `/work/${content.slug}`
+                        : `/work/${content.slug}/${loc}`
+                    }
+                    aria-current={loc === content.locale ? 'page' : undefined}
+                    className={styles.localeLink}
+                  >
+                    {loc.toUpperCase()}
+                  </Link>
+                ))}
+              </nav>
+            )}
+
+            {caseDetail?.client && (
+              <p className={styles.client}>{caseDetail.client}</p>
+            )}
+            <h1 className={styles.title}>{content.title}</h1>
+            {content.highlight && (
+              <p className={styles.highlight}>{content.highlight}</p>
+            )}
+            {content.body && <p className={styles.body}>{content.body}</p>}
+          </div>
         </div>
-      )}
 
-      <div className={styles.text}>
-        {/* Selector de idioma (arquitectura §7.7): solo se muestra si hay
-            más de una traducción publicada — nunca los tres locales por
-            defecto. Un único elemento (el caso normal) no pinta nada. */}
-        {content.availableLocales.length > 1 && (
-          <nav className={styles.localeSelector} aria-label="Idioma">
-            {content.availableLocales.map((loc) => (
-              <Link
-                key={loc}
-                href={
-                  loc === content.defaultLocale
-                    ? `/work/${content.slug}`
-                    : `/work/${content.slug}/${loc}`
-                }
-                aria-current={loc === content.locale ? 'page' : undefined}
-                className={styles.localeLink}
-              >
-                {loc.toUpperCase()}
-              </Link>
-            ))}
-          </nav>
-        )}
-
-        {caseDetail?.client && (
-          <p className={styles.client}>{caseDetail.client}</p>
-        )}
-        <h1 className={styles.title}>{content.title}</h1>
-        {content.highlight && (
-          <p className={styles.highlight}>{content.highlight}</p>
-        )}
-        {content.body && <p className={styles.body}>{content.body}</p>}
+        {positioned.map((p) => (
+          <PinCard
+            key={p.item.pinId}
+            pin={p.item}
+            style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
+          />
+        ))}
       </div>
+
+      <div id={sentinelId} className={styles.sentinel} />
+
+      {error && <p className={styles.status}>{error}</p>}
+      {isLoading && itemCount === 0 && (
+        <p className={styles.status}>Cargando recomendaciones…</p>
+      )}
+      {!isLoading && itemCount === 0 && !hasMore && (
+        <p className={styles.status}>
+          Todavía no hay contenido publicado para recomendar.
+        </p>
+      )}
     </article>
   )
 }

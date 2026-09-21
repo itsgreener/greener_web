@@ -5,24 +5,40 @@
   width: 100%;
 }
 
+/* Mismo mecanismo que ToolInsightDetail.module.css .canvas: el bloque de
+   contenido y cada recomendación se posicionan en absoluto dentro de
+   este relative. Con fullWidthContent (tipo B) todas las columnas se
+   siembran igual, así que las recomendaciones solo pueden aparecer
+   después del bloque, nunca al lado. */
+.canvas {
+  position: relative;
+  width: 100%;
+}
+
+.contentBlock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
 .carousel {
+  flex-shrink: 0;
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  gap: var(--space-sm);
-  /* Sin controles propios en esta primera versión: scroll nativo con
-     snap, cero JS. Un carrusel con flechas/gestos queda para cuando se
-     retome el resto del pulido visual del detalle. */
+  border-radius: 12px;
 }
 
 .slide {
   flex: 0 0 100%;
   scroll-snap-align: start;
-  /* aspect-ratio ya no se fija aquí: lo calcula CaseDetail.tsx una sola
-     vez a partir del medio más ancho del carrusel (decisión del 21 sep,
-     especificacion-final-formato-detalle.md §2) y se aplica inline, igual
-     para las N diapositivas — así no hace falta un valor por defecto que
-     luego desentone con el real. */
+  /* aspect-ratio ya no es el único límite: el contenedor .carousel trae
+     su propio width/height reales (útil × ratio, §2), esto solo asegura
+     que cada diapositiva mantenga el mismo ratio dentro de ese hueco. */
   background: #000;
 }
 
@@ -30,46 +46,20 @@
   width: 100%;
   height: 100%;
   /* contain, no cover: las diapositivas más estrechas que el ratio del
-     carrusel (el del medio más ancho) se ven completas, con barras
-     negras a los lados en vez de recortadas. */
+     carrusel se ven completas, con barras negras en vez de recortadas. */
   object-fit: contain;
 }
 
 .text {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--space-sm);
-  width: 100%;
-  max-width: 72ch;
-  align-self: center;
-}
-
-.client {
-  font-size: 0.85rem;
-  opacity: 0.7;
-}
-
-.localeSelector {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.localeLink {
-  font-size: 0.8rem;
-  color: var(--color-text);
-  text-decoration: none;
-  opacity: 0.6;
-
-  &:hover,
-  &:focus-visible {
-    opacity: 1;
-    color: var(--color-cta);
-  }
-
-  &[aria-current='page'] {
-    opacity: 1;
-    font-weight: 600;
-  }
+  /* especificacion-final-formato-detalle.md §2, punto 4: "el texto
+     ocupa lo que sobra" del bloque reservado, una vez descontado el
+     ancho real del carrusel. */
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .title {
@@ -83,4 +73,34 @@
 
 .body {
   white-space: pre-wrap;
+}
+
+.client {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.localeSelector {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.localeLink {
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.localeLink[aria-current='page'] {
+  opacity: 1;
+  font-weight: 600;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.status {
+  text-align: center;
+  opacity: 0.7;
+  padding: var(--space-md) 0;
 }

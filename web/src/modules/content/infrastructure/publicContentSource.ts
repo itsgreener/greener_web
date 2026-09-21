@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import type { ContentType, Locale } from '../domain/contentSchema'
+import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 
 /**
  * Lectura pública de un contenido por slug — para las plantillas de
@@ -43,6 +44,12 @@ export interface PublicContent {
   highlight: string | null
   body: string | null
   coverMedia: PublicContentMedia | null
+  // especificacion-final-formato-detalle.md §2, §4: gobierna el grupo de
+  // columnas del bloque de contenido en tipo A/libre. null solo en
+  // contenido sin portada todavía, o que no admite cover_ratio (caso,
+  // episodio — ahí el ratio del bloque sale de otro sitio, §2 del 21
+  // sep: el medio más ancho del carrusel, no de este campo).
+  coverRatio: PinRatioValue | null
 }
 
 interface ContentBySlugRow {
@@ -63,6 +70,7 @@ interface ContentBySlugRow {
     kind: 'image' | 'video'
     cloudinary_public_id: string
   } | null
+  cover_ratio: PinRatioValue | null
 }
 
 /**
@@ -98,7 +106,8 @@ export async function getContentBySlug(
         highlight,
         body
       ),
-      cover_media:media_asset!cover_media_id ( kind, cloudinary_public_id )
+      cover_media:media_asset!cover_media_id ( kind, cloudinary_public_id ),
+      cover_ratio
     `,
     )
     .eq('slug', slug)
@@ -137,5 +146,6 @@ export async function getContentBySlug(
           cloudinaryPublicId: row.cover_media.cloudinary_public_id,
         }
       : null,
+    coverRatio: row.cover_ratio,
   }
 }

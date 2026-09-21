@@ -5,9 +5,27 @@
   width: 100%;
 }
 
-.cover {
+/* Contenedor del masonry asimétrico (useRecommendationMasonry): el
+   bloque de contenido y cada recomendación se posicionan en absoluto
+   dentro de este relative — igual mecanismo que Feed.module.css .container,
+   pero con el bloque de contenido "incrustado" arriba a la izquierda en
+   vez de ser un item más de la retícula. */
+.canvas {
+  position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
+}
+
+.contentBlock {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+}
+
+.cover {
+  flex-shrink: 0;
 }
 
 .coverImage {
@@ -22,9 +40,12 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-sm);
-  width: 100%;
-  max-width: 72ch;
-  align-self: center;
+  /* especificacion-final-formato-detalle.md §2, punto 4: "el texto
+     ocupa lo que sobra" del bloque reservado, una vez descontado el
+     ancho real de la imagen — min-width: 0 es necesario para que un
+     hijo flex pueda encogerse por debajo de su contenido intrínseco. */
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .title {
@@ -49,4 +70,14 @@
   font-size: 0.9rem;
   font-weight: 600;
   text-decoration: none;
+}
+
+.sentinel {
+  height: 1px;
+}
+
+.status {
+  text-align: center;
+  opacity: 0.7;
+  padding: var(--space-md) 0;
 }
