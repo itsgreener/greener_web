@@ -22,3 +22,26 @@ process.env.CONTACT_SMTP_USER ??= 'test-smtp-user'
 process.env.CONTACT_SMTP_PASSWORD ??= 'test-smtp-password'
 process.env.CONTACT_EMAIL_TO ??= 'contact-test@example.com'
 process.env.CONTACT_EMAIL_FROM ??= 'no-reply-test@example.com'
+
+/**
+ * cleanup() global (decisión del 22 sep): antes cada fichero con jsdom
+ * (`// @vitest-environment jsdom`) tenía que acordarse de llamarlo en su
+ * propio afterEach — uno se quedó sin ninguno (`privacy.smoke.test.tsx`)
+ * sin que nadie lo notara. Registrarlo aquí una sola vez cubre los 11
+ * ficheros por igual, sin depender de que cada uno se acuerde. En los
+ * ficheros sin DOM (la mayoría, entorno 'node' por defecto — ver
+ * vitest.config.ts) cleanup() no encuentra nada que desmontar y no hace
+ * nada, así que registrarlo aquí es inofensivo para todos ellos.
+ *
+ * Esto no es (ni pretende ser) el arreglo del "1 error" intermitente de
+ * `window is not defined` que a veces aparece en la suite completa — ese
+ * viene de una macrotask del propio scheduler de React que a veces
+ * dispara después de que Vitest ya haya desmontado el entorno jsdom del
+ * fichero, y cleanup() no cancela esa macrotask, solo desmonta el árbol
+ * de React de forma síncrona. Se deja documentado aquí para quien lo
+ * vuelva a ver y busque el porqué.
+ */
+import { afterEach } from 'vitest'
+import { cleanup } from '@testing-library/react'
+
+afterEach(cleanup)

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { CaseDetail } from '@/app/(public)/work/[slug]/CaseDetail'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
@@ -80,7 +80,6 @@ describe('CaseDetail — prueba de humo', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    cleanup()
   })
 
   it('pinta título, highlight, body y cliente, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {

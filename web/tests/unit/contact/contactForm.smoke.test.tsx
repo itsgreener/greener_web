@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { ContactForm } from '@/app/(public)/contact/ContactForm'
 
@@ -9,8 +9,6 @@ vi.mock('@/app/(public)/contact/contactActions', () => ({
 }))
 
 describe('ContactForm — prueba de humo', () => {
-  afterEach(cleanup)
-
   it('pinta los campos: name, phone, email, message y el consentimiento de privacidad', () => {
     render(<ContactForm />)
 

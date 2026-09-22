@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { EpisodeDetail } from '@/app/(public)/work/[slug]/EpisodeDetail'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
@@ -81,7 +81,6 @@ describe('EpisodeDetail — prueba de humo', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    cleanup()
   })
 
   it.each([

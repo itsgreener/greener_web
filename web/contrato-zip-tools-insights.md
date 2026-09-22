@@ -119,6 +119,17 @@ Tres variables CSS, disponibles en `:root` desde el primer render, sin nada que 
 
 **Para comprobar visualmente que algo se ve bien, pruébese redimensionando la ventana del navegador** en varios tamaños — ya no existe un único número que represente "lo que recibe cualquier tool publicada hoy", cada visitante recibe el suyo.
 
+### La CSP de esta ruta, y por qué sigue siendo la misma (nota del 22 de septiembre)
+
+El resto del sitio ganó esta sesión una política de seguridad global (`Content-Security-Policy` con nonce por petición, HSTS, `frame-ancestors`, etc. — arquitectura §17.1). **La ruta `/tools|insights/[slug]/app` queda fuera de ese cambio a propósito, sin tocar ni una coma**, porque el navegador combina dos cabeceras `Content-Security-Policy` en la misma respuesta en vez de sustituir una por la otra — mandar las dos habría podido romper `worker-src`/`canvas` sin ningún aviso visible. Lo que sigue rigiendo aquí es exactamente esto, sin cambios:
+
+```
+default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
+worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;
+```
+
+Si tu tool necesita cargar algo de un origen externo declarado en `externalDomains` (§3), esta CSP no lo permitirá todavía — sigue siendo una limitación real, no relacionada con el trabajo de esta sesión, pendiente de si algún día hiciera falta ampliar esta política concreta.
+
 ## 7. Qué pasa después de subir el ZIP
 
 1. El ZIP se valida contra todo lo anterior. Si falla algo, se informa el motivo exacto y no se sube nada.

@@ -23,12 +23,24 @@
  * propio Next.js documenta: el nonce se manda tanto en la petición
  * (para que el runtime de Next lo aplique a sus propios scripts de
  * hidratación/streaming) como en la respuesta (para que el navegador lo
- * exija) — ver cómo se usa en `src/proxy.ts`.
+ * exija) — ver cómo se usa en `src/proxy.ts`. En desarrollo (`isDev`)
+ * se añade además `'unsafe-eval'`, solo ahí: React usa `eval()` en modo
+ * desarrollo para reconstruir callstacks entre entornos y para Fast
+ * Refresh — nunca en producción (decisión del 22 sep, tras verse el
+ * aviso real de CSP en `npm run dev`).
  */
 
 export interface SecurityHeadersInput {
   nonce: string
   supabaseUrl: string
+  // React usa eval() en modo desarrollo para varias herramientas de
+  // depuración (reconstruir callstacks entre entornos, Fast Refresh) —
+  // "React will never use eval() in production mode", tal cual lo dice
+  // el propio aviso del navegador. Sin esto, `npm run dev` funciona
+  // pero llena la consola de avisos de CSP; en producción NUNCA se pasa
+  // `true` aquí, así que la política de producción se queda tan
+  // estricta como estaba.
+  isDev: boolean
 }
 
 const CLOUDINARY_DELIVERY_ORIGIN = 'https://res.cloudinary.com'
@@ -49,12 +61,13 @@ const EMBED_FRAME_ORIGINS = [
 export function buildContentSecurityPolicy({
   nonce,
   supabaseUrl,
+  isDev,
 }: SecurityHeadersInput): string {
   const supabaseOrigin = new URL(supabaseUrl).origin
 
   const directives = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? ` 'unsafe-eval'` : ''}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: ${CLOUDINARY_DELIVERY_ORIGIN}`,
     // <video src> del carrusel de caso, el pin con vídeo y la portada de

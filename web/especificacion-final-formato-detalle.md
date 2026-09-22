@@ -130,3 +130,16 @@ Contrato y validaciones detalladas en documento aparte: **`contrato-zip-tools-in
 - `/work/[slug]` → detalle tipo B (caso/episodio)
 - `/tools/[slug]`, `/insights/[slug]` → detalle tipo A
 - `/tools/[slug]/app`, `/insights/[slug]/app` → HTML real de la tool/insight
+- `/variety/[slug]` → contenido libre (`other`) — **decidido el 21 de septiembre**, no estaba en esta lista en la v2 original. Prefijo propio en vez de raíz (`/[slug]`), para no arriesgar colisión con el resto de rutas del sitio (`/work`, `/tools`, `/insights`, `/channel`, `/contact`, `/admin`, `/preview`) sin necesidad de mantener una lista de palabras reservadas que validar en el ABM.
+
+---
+
+## 8. Decisiones posteriores a esta v2 (21-22 de septiembre)
+
+Esta versión decía "no queda ninguna pregunta abierta sobre el formato en sí" — dos preguntas reales aparecieron igualmente al construirlo, más un ajuste de alcance. Se documentan aquí en vez de reescribir las secciones de arriba como si siempre hubieran estado, para no perder el rastro de cuándo y por qué se decidieron:
+
+- **El ratio del carrusel de un caso (tipo B) — no estaba resuelto en el punto 1 de §2.** El punto 1 dice "la imagen nunca se mide en columnas... altura fija × ratio, igual en tipo A, B y contenido libre" — pero un caso trae un carrusel de 1-N imágenes/vídeos mixtos (§3), no una única imagen: ¿qué ratio gobierna la reserva cuando cada diapositiva puede tener uno distinto? Resuelto el 21 de septiembre: se usa el ratio del medio **más ancho** de todo el carrusel para las N diapositivas por igual — el resto se encaja con barras negras (`object-fit: contain`) en vez de recortarse, y **sin recalcular nada al cambiar de diapositiva** (mover la caja de texto en tiempo real porque cada imagen tiene un ratio distinto no tiene sentido visual, se descartó a propósito).
+- **Móvil (<640px, fuera de la tabla del §2 a propósito) — placeholder acordado, no diseño final.** Mientras no exista el rediseño propio que menciona §2, el sitio no puede quedarse sin comportamiento por debajo de 640px: se acordó un interino el 21 de septiembre — sin panel lateral nunca (todo el ancho para el bloque de contenido), recomendaciones solo debajo, y la imagen a su ratio natural a ancho completo, **sin** la regla de 66,7vh del punto 1 (esa regla existe para coordinarse con un panel lateral que en móvil no existe). Construido y documentado como placeholder explícito, a sustituir cuando llegue el diseño real de móvil.
+- **Ruta de `other` — no estaba en la lista de §7 de esta v2.** Resuelto el 21 de septiembre, ver §7 arriba.
+
+---

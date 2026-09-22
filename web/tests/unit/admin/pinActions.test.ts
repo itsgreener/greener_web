@@ -312,12 +312,12 @@ describe(
 
       mockUpdatePin
         .mockResolvedValue(
-          undefined,
+          PIN_ID,
         )
 
       mockDeletePin
         .mockResolvedValue(
-          undefined,
+          PIN_ID,
         )
 
       mockAttachPinImage
@@ -332,7 +332,7 @@ describe(
 
       mockDetachPinMedia
         .mockResolvedValue(
-          undefined,
+          MEDIA_ID,
         )
 
       mockDeleteCloudinaryAsset

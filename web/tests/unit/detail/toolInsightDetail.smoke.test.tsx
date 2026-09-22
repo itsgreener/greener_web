@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
@@ -91,7 +91,6 @@ describe('ToolInsightDetail — prueba de humo', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    cleanup()
   })
 
   it('pinta título, summary y el CTA "Use" apuntando a /app, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {

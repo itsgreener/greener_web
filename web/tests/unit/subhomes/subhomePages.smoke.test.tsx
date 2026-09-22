@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, cleanup } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { FeedProvider } from '@/components/masonry/FeedProvider'
 import WorkPage from '@/app/(public)/work/page'
@@ -61,7 +61,6 @@ describe.each([
   afterEach(() => {
     vi.restoreAllMocks()
     window.sessionStorage.clear()
-    cleanup()
   })
 
   it(`pide la sesión de feed con scope="${scope}"`, async () => {

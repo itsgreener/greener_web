@@ -6,7 +6,6 @@ import {
   screen,
   waitFor,
   fireEvent,
-  cleanup,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Feed } from '@/components/masonry/Feed'
@@ -117,7 +116,6 @@ describe('Feed — prueba de humo', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     window.sessionStorage.clear()
-    cleanup()
   })
 
   it('abre una sesión real con el scope indicado y pinta el primer lote', async () => {

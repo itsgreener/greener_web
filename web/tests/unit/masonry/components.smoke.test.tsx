@@ -6,7 +6,6 @@ import {
   waitFor,
   fireEvent,
   act,
-  cleanup,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MasonryFeed } from '@/components/masonry/MasonryFeed'
@@ -33,8 +32,6 @@ function fakeBatch(offset: number, count: number): FeedBatchResult {
 }
 
 describe('PinCard — prueba de humo', () => {
-  afterEach(cleanup)
-
   it('renderiza sin lanzar, con la imagen, el alt y el enlace correctos', () => {
     render(
       <PinCard
@@ -153,7 +150,6 @@ describe('PinCard — carrusel (más de un medio)', () => {
 
   afterEach(() => {
     vi.useRealTimers()
-    cleanup()
   })
 
   it('con dos imágenes, avanza a la siguiente a los 5000ms', () => {

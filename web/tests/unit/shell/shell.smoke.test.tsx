@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Shell } from '@/components/shell/Shell'
 
 describe('Shell — prueba de humo', () => {
-  afterEach(cleanup)
-
   it('pinta el logo, el bloque de navegación y el de redes', () => {
     render(
       <Shell>

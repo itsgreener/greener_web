@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach, vi } from 'vitest'
-import { render, screen, cleanup } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { AuxNav } from '@/components/nav/AuxNav'
 
@@ -11,8 +11,6 @@ vi.mock('next/navigation', () => ({
 }))
 
 describe('AuxNav — prueba de humo', () => {
-  afterEach(cleanup)
-
   it('pinta los seis destinos en el orden y con los hrefs esperados (captura de referencia del 15 sep)', () => {
     mockUsePathname.mockReturnValue('/')
 

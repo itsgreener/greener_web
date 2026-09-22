@@ -8,6 +8,7 @@ import {
 const INPUT = {
   nonce: 'test-nonce-123',
   supabaseUrl: 'https://abcxyz.supabase.co',
+  isDev: false,
 }
 
 describe('buildContentSecurityPolicy', () => {
@@ -67,6 +68,22 @@ describe('buildContentSecurityPolicy', () => {
     expect(a).not.toBe(b)
     expect(a).toContain('nonce-nonce-a')
     expect(b).toContain('nonce-nonce-b')
+  })
+
+  it('isDev=false (producción): script-src nunca lleva unsafe-eval — "React will never use eval() en producción"', () => {
+    const csp = buildContentSecurityPolicy({ ...INPUT, isDev: false })
+
+    expect(csp).not.toMatch(/script-src[^;]*unsafe-eval/)
+  })
+
+  it('isDev=true (desarrollo): script-src sí lleva unsafe-eval, para que React pueda reconstruir callstacks y Fast Refresh funcione', () => {
+    const csp = buildContentSecurityPolicy({ ...INPUT, isDev: true })
+
+    expect(csp).toMatch(/script-src[^;]*unsafe-eval/)
+    // Sigue llevando el nonce y strict-dynamic también en dev — unsafe-eval
+    // se añade, no sustituye al resto de la directiva.
+    expect(csp).toContain(`'nonce-${INPUT.nonce}'`)
+    expect(csp).toContain(`'strict-dynamic'`)
   })
 })
 

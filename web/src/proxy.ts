@@ -39,6 +39,7 @@ export async function proxy(request: NextRequest) {
   const securityHeaders = buildSecurityHeaders({
     nonce,
     supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL!,
+    isDev: process.env.NODE_ENV === 'development',
   })
 
   // El propio Next.js busca el nonce en la cabecera Content-Security-
