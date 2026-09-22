@@ -6,6 +6,8 @@ import { getContent } from '@/modules/content/application/getContent'
 
 import { getCaseDetail } from '@/modules/content/application/getCaseDetail'
 
+import { getEpisode } from '@/modules/content/application/getEpisode'
+
 import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
 
 import { getContentTranslations } from '@/modules/content/application/getContentTranslations'
@@ -21,6 +23,8 @@ import ContentTranslations from './ContentTranslations'
 import CaseDetailForm from './CaseDetailForm'
 
 import CaseCarouselManager from './CaseCarouselManager'
+
+import EpisodeDetailForm from './EpisodeDetailForm'
 
 import CoverMediaUpload from './CoverMediaUpload'
 
@@ -61,7 +65,7 @@ export default async function EditContentPage({ params }: Props) {
     content.type === 'insight' ||
     content.type === 'other'
 
-  const [translations, caseDetail, caseCarousel, packageVersions, pins] =
+  const [translations, caseDetail, caseCarousel, episode, packageVersions, pins] =
     await Promise.all([
       getContentTranslations(content.id),
 
@@ -72,6 +76,10 @@ export default async function EditContentPage({ params }: Props) {
       content.type === 'case'
         ? getCaseCarousel(content.id)
         : Promise.resolve([]),
+
+      content.type === 'episode'
+        ? getEpisode(content.id)
+        : Promise.resolve(null),
 
       supportsPackage
         ? listHtmlPackageVersions(content.id)
@@ -122,6 +130,16 @@ export default async function EditContentPage({ params }: Props) {
           <h2>Carrusel de detalle</h2>
 
           <CaseCarouselManager contentId={content.id} items={caseCarousel} />
+        </>
+      )}
+
+      {content.type === 'episode' && (
+        <>
+          <hr />
+
+          <h2>Datos del episodio</h2>
+
+          <EpisodeDetailForm contentId={content.id} episode={episode} />
         </>
       )}
 

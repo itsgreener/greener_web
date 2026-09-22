@@ -71,6 +71,23 @@ describe('publishContentAction', () => {
 
     expect(result.error).toBeTruthy()
   })
+
+  it('decisión del 22 sep: sin html_package publicado, traduce el error del RPC a un mensaje específico, no el genérico', async () => {
+    const { publishContentAction } =
+      await import('@/app/admin/contents/[id]/edit/publishActions')
+    const { publishContent } =
+      await import('@/modules/content/application/publishContent')
+
+    vi.mocked(publishContent).mockRejectedValue(
+      new Error(
+        'Esta tool/insight no tiene un paquete HTML publicado — no se puede publicar sin él',
+      ),
+    )
+
+    const result = await publishContentAction({}, formData({ id: CONTENT_ID }))
+
+    expect(result.error).toContain('paquete HTML')
+  })
 })
 
 describe('scheduleContentAction', () => {
@@ -128,6 +145,28 @@ describe('scheduleContentAction', () => {
     )
 
     expect(result.fieldErrors?.publishAt?.[0]).toBeTruthy()
+  })
+
+  it('decisión del 22 sep: sin html_package publicado, traduce el error del RPC a formError específico', async () => {
+    const { scheduleContentAction } =
+      await import('@/app/admin/contents/[id]/edit/publishActions')
+    const { scheduleContent } =
+      await import('@/modules/content/application/scheduleContent')
+
+    vi.mocked(scheduleContent).mockRejectedValue(
+      new Error(
+        'Esta tool/insight no tiene un paquete HTML publicado — no se puede programar sin él',
+      ),
+    )
+
+    const future = new Date(Date.now() + 3_600_000).toISOString()
+
+    const result = await scheduleContentAction(
+      {},
+      formData({ id: CONTENT_ID, publishAt: future }),
+    )
+
+    expect(result.formError).toContain('paquete HTML')
   })
 })
 

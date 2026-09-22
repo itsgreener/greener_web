@@ -47,6 +47,16 @@ export async function publishContentAction(
   } catch (error) {
     console.error(error)
 
+    if (
+      error instanceof Error &&
+      error.message.includes('no tiene un paquete HTML publicado')
+    ) {
+      return {
+        error:
+          'Esta tool/insight no tiene un paquete HTML publicado todavía — sube y publica una versión antes de publicar el contenido.',
+      }
+    }
+
     return { error: 'No se ha podido publicar el contenido.' }
   }
 
@@ -80,6 +90,16 @@ export async function scheduleContentAction(
         fieldErrors: {
           publishAt: ['La fecha de publicación debe ser futura.'],
         },
+      }
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes('no tiene un paquete HTML publicado')
+    ) {
+      return {
+        formError:
+          'Esta tool/insight no tiene un paquete HTML publicado todavía — sube y publica una versión antes de programarla.',
       }
     }
 

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: '%s · Greener',
   },
   description:
-    'Greener - descubrimiento visual, casos, episodios, insights y herramientas.',
+    'Greener — descubrimiento visual, casos, insights y herramientas.',
 }
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {
