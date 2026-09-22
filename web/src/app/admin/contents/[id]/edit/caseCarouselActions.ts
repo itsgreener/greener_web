@@ -12,7 +12,11 @@ import { addCaseCarouselImage } from '@/modules/media/application/addCaseCarouse
 import { addCaseCarouselVideo } from '@/modules/media/application/addCaseCarouselVideo'
 import { removeCaseCarouselMedia } from '@/modules/media/application/removeCaseCarouselMedia'
 
-import { deleteCloudinaryAsset } from '@/modules/media/infrastructure/cloudinaryServer'
+import {
+  CloudinaryImageVerificationError,
+  deleteCloudinaryAsset,
+  verifyCloudinaryImageAsset,
+} from '@/modules/media/infrastructure/cloudinaryServer'
 
 export type CaseCarouselActionResult =
   { ok: true; mediaId: string } | { ok: false; error: string }
@@ -27,33 +31,73 @@ function revalidateContent(contentId: string) {
 export async function addCaseCarouselImageAction(
   input: unknown,
 ): Promise<CaseCarouselActionResult> {
-  const result = addCaseCarouselImageSchema.safeParse(input)
+  const result =
+    addCaseCarouselImageSchema.safeParse(input)
 
   if (!result.success) {
-    return { ok: false, error: 'Los datos de la imagen no son válidos.' }
+    return {
+      ok: false,
+      error: 'Los datos de la imagen no son válidos.',
+    }
   }
 
   try {
-    const mediaId = await addCaseCarouselImage(result.data)
+    const verified =
+      await verifyCloudinaryImageAsset(
+        result.data.cloudinaryPublicId,
+      )
 
-    revalidateContent(result.data.contentId)
+    const mediaId =
+      await addCaseCarouselImage({
+        ...result.data,
+        ...verified,
+      })
 
-    return { ok: true, mediaId }
+    revalidateContent(
+      result.data.contentId,
+    )
+
+    return {
+      ok: true,
+      mediaId,
+    }
   } catch (error) {
     console.error(error)
+
+    if (
+      error instanceof
+      CloudinaryImageVerificationError
+    ) {
+      return {
+        ok: false,
+        error: error.message,
+      }
+    }
 
     if (
       error instanceof Error &&
       error.message.includes('Image is too large')
     ) {
-      return { ok: false, error: 'La imagen supera los 5 MB.' }
+      return {
+        ok: false,
+        error: 'La imagen supera los 5 MB.',
+      }
     }
 
-    if (error instanceof Error && error.message.includes('is not a case')) {
-      return { ok: false, error: 'Este contenido no es de tipo Case.' }
+    if (
+      error instanceof Error &&
+      error.message.includes('is not a case')
+    ) {
+      return {
+        ok: false,
+        error: 'Este contenido no es de tipo Case.',
+      }
     }
 
-    return { ok: false, error: 'No se ha podido añadir la imagen.' }
+    return {
+      ok: false,
+      error: 'No se ha podido añadir la imagen.',
+    }
   }
 }
 

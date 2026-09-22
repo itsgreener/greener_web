@@ -14,7 +14,11 @@ import { registerCoverVideo } from '@/modules/media/application/registerCoverVid
 
 import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
 
-import { deleteCloudinaryAsset } from '@/modules/media/infrastructure/cloudinaryServer'
+import {
+  CloudinaryImageVerificationError,
+  deleteCloudinaryAsset,
+  verifyCloudinaryImageAsset,
+} from '@/modules/media/infrastructure/cloudinaryServer'
 
 export type RegisterMediaActionResult =
   | {
@@ -52,9 +56,19 @@ export async function registerCoverImageAction(
   }
 
   try {
-    const mediaId = await registerCoverImage(result.data)
+    const verified =
+      await verifyCloudinaryImageAsset(
+        result.data.cloudinaryPublicId,
+      )
 
-    revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
+    const mediaId = await registerCoverImage({
+      ...result.data,
+      ...verified,
+    })
+
+    revalidatePath(
+      `/admin/contents/${result.data.contentId}/edit`,
+    )
 
     return {
       ok: true,
@@ -62,6 +76,16 @@ export async function registerCoverImageAction(
     }
   } catch (error) {
     console.error(error)
+
+    if (
+      error instanceof
+      CloudinaryImageVerificationError
+    ) {
+      return {
+        ok: false,
+        error: error.message,
+      }
+    }
 
     if (
       error instanceof Error &&
@@ -75,11 +99,14 @@ export async function registerCoverImageAction(
 
     if (
       error instanceof Error &&
-      error.message.includes('does not support a cover image')
+      error.message.includes(
+        'does not support a cover image',
+      )
     ) {
       return {
         ok: false,
-        error: 'Este tipo de contenido no admite imagen de portada.',
+        error:
+          'Este tipo de contenido no admite imagen de portada.',
       }
     }
 
