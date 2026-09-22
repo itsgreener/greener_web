@@ -2,9 +2,22 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { env } from '@/lib/env'
 
-export async function updateSession(request: NextRequest) {
+/**
+ * `requestHeaders` (opcional, decisión del 22 sep): las cabeceras que
+ * verá el render downstream (páginas del ABM incluidas) en vez de las
+ * originales de `request` — así `src/proxy.ts` puede pasar aquí las
+ * mismas cabeceras con el nonce de CSP ya inyectado, y las páginas del
+ * ABM también hidratan bien bajo la CSP global. Por defecto, las
+ * cabeceras originales de `request` — mismo comportamiento que antes de
+ * este parámetro para quien llame a `updateSession` sin él (como sigue
+ * haciendo `updateSession.test.ts`).
+ */
+export async function updateSession(
+  request: NextRequest,
+  requestHeaders: Headers = request.headers,
+) {
   let response = NextResponse.next({
-    request,
+    request: { headers: requestHeaders },
   })
 
   const supabase = createServerClient(
@@ -22,7 +35,7 @@ export async function updateSession(request: NextRequest) {
           })
 
           response = NextResponse.next({
-            request,
+            request: { headers: requestHeaders },
           })
 
           cookiesToSet.forEach(({ name, value, options }) => {
