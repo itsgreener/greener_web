@@ -1,14 +1,7 @@
-import {
-  AnalyticsProvider,
-} from '@/modules/analytics/AnalyticsProvider'
-
-import {
-  FeedProvider,
-} from '@/components/masonry/FeedProvider'
-
-import {
-  Shell,
-} from '@/components/shell/Shell'
+import { Shell } from '@/components/shell/Shell'
+import { FeedProvider } from '@/components/masonry/FeedProvider'
+import { AnalyticsProvider } from '@/modules/analytics/AnalyticsProvider'
+import { env } from '@/lib/env'
 
 export default function PublicLayout({
   children,
@@ -16,16 +9,9 @@ export default function PublicLayout({
   children: React.ReactNode
 }) {
   return (
-    <AnalyticsProvider
-      domain={
-        process.env
-          .NEXT_PUBLIC_PLAUSIBLE_DOMAIN
-      }
-    >
+    <AnalyticsProvider domain={env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN}>
       <FeedProvider>
-        <Shell>
-          {children}
-        </Shell>
+        <Shell>{children}</Shell>
       </FeedProvider>
     </AnalyticsProvider>
   )

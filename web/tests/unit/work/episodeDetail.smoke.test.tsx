@@ -1,25 +1,10 @@
 // @vitest-environment jsdom
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
-
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
-
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 import { EpisodeDetail } from '@/app/(public)/work/[slug]/EpisodeDetail'
-
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
 import type { PublicEpisode } from '@/modules/content/infrastructure/publicEpisodeSource'
 import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
@@ -53,12 +38,7 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
       cta: 'Watch',
       alt: `Alt ${i}`,
       autoplayMode: null,
-      media: [
-        {
-          kind: 'image' as const,
-          cloudinaryPublicId: 'sample',
-        },
-      ],
+      media: [{ kind: 'image' as const, cloudinaryPublicId: 'sample' }],
     })),
     cursor: 'cursor-1',
     hasMore,
@@ -69,27 +49,22 @@ describe('EpisodeDetail — prueba de humo', () => {
   beforeEach(() => {
     global.ResizeObserver = class {
       callback: ResizeObserverCallback
-
       constructor(callback: ResizeObserverCallback) {
         this.callback = callback
       }
-
       observe() {
         this.callback(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
           this as unknown as ResizeObserver,
         )
       }
-
       disconnect() {}
-
       unobserve() {}
     }
 
     // @ts-expect-error -- stub mínimo suficiente para el smoke test
     global.IntersectionObserver = class {
       observe() {}
-
       disconnect() {}
     }
 
@@ -97,17 +72,12 @@ describe('EpisodeDetail — prueba de humo', () => {
       if (url === '/api/feed/sessions' && init?.method === 'POST') {
         return {
           ok: true,
-          json: async () => ({
-            sessionId: 'session-episode',
-          }),
+          json: async () => ({ sessionId: 'session-episode' }),
         } as Response
       }
 
       if (url.startsWith('/api/feed/session-episode')) {
-        return {
-          ok: true,
-          json: async () => fakeBatch(3, false),
-        } as Response
+        return { ok: true, json: async () => fakeBatch(3, false) } as Response
       }
 
       throw new Error(`URL inesperada en el test: ${url}`)
@@ -118,19 +88,14 @@ describe('EpisodeDetail — prueba de humo', () => {
     vi.restoreAllMocks()
   })
 
-  it('embebe YouTube directamente con youtube-nocookie', () => {
+  it('embebe YouTube directamente con youtube-nocookie, sin gate de consentimiento', () => {
     const episode: PublicEpisode = {
       provider: 'youtube',
       embedId: 'abc123',
       episodeKind: 'podcast',
     }
 
-    render(
-      <EpisodeDetail
-        content={CONTENT}
-        episode={episode}
-      />,
-    )
+    render(<EpisodeDetail content={CONTENT} episode={episode} />)
 
     const iframe = screen.getByTitle('Mi episodio')
 
@@ -140,9 +105,7 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     expect(
-      screen.queryByRole('button', {
-        name: /cargar contenido/i,
-      }),
+      screen.queryByRole('button', { name: /cargar contenido/i }),
     ).not.toBeInTheDocument()
   })
 
@@ -153,16 +116,9 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    render(
-      <EpisodeDetail
-        content={CONTENT}
-        episode={episode}
-      />,
-    )
+    render(<EpisodeDetail content={CONTENT} episode={episode} />)
 
-    expect(
-      screen.queryByTitle('Mi episodio'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     const button = screen.getByRole('button', {
       name: 'Cargar contenido de Vimeo',
@@ -172,9 +128,7 @@ describe('EpisodeDetail — prueba de humo', () => {
 
     fireEvent.click(button)
 
-    expect(
-      screen.getByTitle('Mi episodio'),
-    ).toHaveAttribute(
+    expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
       'https://player.vimeo.com/video/xyz789?dnt=1',
     )
@@ -187,16 +141,9 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    render(
-      <EpisodeDetail
-        content={CONTENT}
-        episode={episode}
-      />,
-    )
+    render(<EpisodeDetail content={CONTENT} episode={episode} />)
 
-    expect(
-      screen.queryByTitle('Mi episodio'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     const button = screen.getByRole('button', {
       name: 'Cargar contenido de Spotify',
@@ -206,9 +153,7 @@ describe('EpisodeDetail — prueba de humo', () => {
 
     fireEvent.click(button)
 
-    expect(
-      screen.getByTitle('Mi episodio'),
-    ).toHaveAttribute(
+    expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
       'https://open.spotify.com/embed/episode/ep456',
     )
@@ -227,14 +172,10 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Cargar contenido de Vimeo',
-      }),
+      screen.getByRole('button', { name: 'Cargar contenido de Vimeo' }),
     )
 
-    expect(
-      screen.getByTitle('Mi episodio'),
-    ).toHaveAttribute(
+    expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
       'https://player.vimeo.com/video/video-1?dnt=1',
     )
@@ -250,14 +191,10 @@ describe('EpisodeDetail — prueba de humo', () => {
       />,
     )
 
-    expect(
-      screen.queryByTitle('Mi episodio'),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     expect(
-      screen.getByRole('button', {
-        name: 'Cargar contenido de Spotify',
-      }),
+      screen.getByRole('button', { name: 'Cargar contenido de Spotify' }),
     ).toBeInTheDocument()
   })
 
@@ -274,14 +211,9 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     expect(
-      screen.getByRole('heading', {
-        name: 'Mi episodio',
-      }),
+      screen.getByRole('heading', { name: 'Mi episodio' }),
     ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('Podcast'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Podcast')).toBeInTheDocument()
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -309,13 +241,9 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Recomendación 0'),
-      ).toBeInTheDocument()
+      expect(screen.getByText('Recomendación 0')).toBeInTheDocument()
     })
 
-    expect(
-      screen.getAllByText(/^Recomendación/),
-    ).toHaveLength(3)
+    expect(screen.getAllByText(/^Recomendación/)).toHaveLength(3)
   })
 })

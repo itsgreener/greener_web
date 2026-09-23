@@ -45,6 +45,12 @@ const envSchema = z.object({
 
   // Site
   NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
+
+  // Analítica (arquitectura §18.2) — Plausible vía @plausible-analytics/
+  // tracker. Opcional: sin ella, initAnalytics() no hace nada (ver
+  // modules/analytics/analytics.ts) — el sitio sigue funcionando igual,
+  // solo no se envían eventos. Solo tiene efecto en producción.
+  NEXT_PUBLIC_PLAUSIBLE_DOMAIN: z.string().min(1).optional(),
 })
 
 export type Env = z.infer<typeof envSchema>

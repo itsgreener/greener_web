@@ -1,13 +1,8 @@
 'use client'
 
-import {
-  useEffect,
-  type ReactNode,
-} from 'react'
+import { useEffect, type ReactNode } from 'react'
 
-import {
-  initAnalytics,
-} from './analytics'
+import { initAnalytics } from './analytics'
 
 type Props = {
   domain?: string
@@ -21,14 +16,9 @@ type Props = {
  * de modo que no necesitamos importar configuración server-side en el
  * navegador.
  */
-export function AnalyticsProvider({
-  domain,
-  children,
-}: Props) {
+export function AnalyticsProvider({ domain, children }: Props) {
   useEffect(() => {
-    initAnalytics(
-      domain,
-    )
+    initAnalytics(domain)
   }, [domain])
 
   return children

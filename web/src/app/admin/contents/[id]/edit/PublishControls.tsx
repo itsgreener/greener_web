@@ -14,6 +14,11 @@ import {
   type ScheduleActionState,
 } from './publishActions'
 
+import {
+  generatePreviewLinkAction,
+  type PreviewLinkActionState,
+} from './previewActions'
+
 type Props = {
   contentId: string
   status: ContentStatus
@@ -22,6 +27,7 @@ type Props = {
 
 const publishInitialState: PublishActionState = {}
 const scheduleInitialState: ScheduleActionState = {}
+const previewInitialState: PreviewLinkActionState = {}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('es-ES', {
@@ -50,6 +56,11 @@ export default function PublishControls({
     publishInitialState,
   )
 
+  const [previewState, previewAction, generatingPreview] = useActionState(
+    generatePreviewLinkAction,
+    previewInitialState,
+  )
+
   const [rawPublishAt, setRawPublishAt] = useState('')
   const isoPublishAt = localDateTimeToIsoUtc(rawPublishAt)
 
@@ -64,6 +75,37 @@ export default function PublishControls({
           <> — publicado el {formatDateTime(publishAt)}</>
         )}
       </p>
+
+      {status !== 'published' && (
+        <div>
+          <form action={previewAction}>
+            <input type="hidden" name="id" value={contentId} />
+
+            <button type="submit" disabled={generatingPreview}>
+              {generatingPreview ? 'Generando...' : 'Generar link de preview'}
+            </button>
+          </form>
+
+          {previewState.url && (
+            <p>
+              <label htmlFor="preview-url">
+                Link de preview (caduca en 7 días) — cópialo y compártelo con
+                quien deba revisarlo:
+              </label>
+
+              <input
+                id="preview-url"
+                type="text"
+                readOnly
+                value={previewState.url}
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </p>
+          )}
+
+          {previewState.error && <p>{previewState.error}</p>}
+        </div>
+      )}
 
       {status !== 'published' && (
         <form action={publishAction}>

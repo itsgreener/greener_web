@@ -9,7 +9,10 @@ import type { PublicContent } from '@/modules/content/infrastructure/publicConte
  * portada (case/episode no rellenan cover_media_id, especificacion-
  * final-formato-detalle.md §3).
  */
-export function buildContentMetadata(content: PublicContent): Metadata {
+export function buildContentMetadata(
+  content: PublicContent,
+  options?: { noindex?: boolean },
+): Metadata {
   const title = content.seoTitle ?? content.title
   const description = content.seoDescription ?? content.summary ?? undefined
 
@@ -21,6 +24,9 @@ export function buildContentMetadata(content: PublicContent): Metadata {
   return {
     title,
     description,
+    // Preview (arquitectura §15.3): "noindex" — un borrador no debe
+    // aparecer nunca en buscadores, aunque el link llegue a filtrarse.
+    robots: options?.noindex ? { index: false, follow: false } : undefined,
     openGraph: {
       title,
       description,

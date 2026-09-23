@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getContentBySlug } from '@/modules/content/application/getContentBySlug'
+import { resolvePreviewContext } from '@/modules/content/application/resolvePreviewContext'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import styles from './page.module.css'
 
 type Props = {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ preview?: string }>
 }
 
 /**
@@ -20,31 +21,42 @@ type Props = {
  * /work, /tools, /insights, /channel, /contact, /admin, /preview, sin
  * necesidad de mantener una lista de palabras reservadas que validar en
  * el ABM cada vez que se añade una ruta nueva al sitio.
+ *
+ * `?preview=<token>` (arquitectura §15.3): ver comentario equivalente en
+ * /work/[slug]/page.tsx.
  */
-async function getOtherContent(slug: string) {
-  const content = await getContentBySlug(slug)
+async function getOtherPreview(slug: string, previewToken: string | undefined) {
+  const { content, client, isPreview } = await resolvePreviewContext(
+    slug,
+    previewToken,
+  )
   if (!content || content.type !== 'other') return null
-  return content
+  return { content, client, isPreview }
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+  searchParams,
+}: Props): Promise<Metadata> {
   const { slug } = await params
-  const content = await getOtherContent(slug)
-  if (!content) return {}
-  return buildContentMetadata(content)
+  const { preview } = await searchParams
+  const resolved = await getOtherPreview(slug, preview)
+  if (!resolved) return {}
+  return buildContentMetadata(resolved.content, { noindex: resolved.isPreview })
 }
 
-export default async function VarietyPage({ params }: Props) {
+export default async function VarietyPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const content = await getOtherContent(slug)
+  const { preview } = await searchParams
+  const resolved = await getOtherPreview(slug, preview)
 
-  if (!content) {
+  if (!resolved) {
     notFound()
   }
 
   return (
     <div className={styles.page}>
-      <ToolInsightDetail content={content} />
+      <ToolInsightDetail content={resolved.content} />
     </div>
   )
 }

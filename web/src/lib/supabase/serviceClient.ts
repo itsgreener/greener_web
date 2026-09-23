@@ -7,7 +7,11 @@ import { env } from '@/lib/env'
  * solo para las tablas que arquitectónicamente no tienen política
  * pública — hoy, feed_session/feed_round (§8.5: "el cliente no puede
  * alterar cuotas ni seed", ver comentario de la migración
- * 20260806090700_rls_policies.sql).
+ * 20260806090700_rls_policies.sql), y `content`/`case_detail`/`episode`
+ * exclusivamente desde `resolvePreviewContext.ts` (§15.3: preview con
+ * token firmado) — ahí la RLS bloquea por completo cualquier lectura de
+ * contenido no publicado, así que un token válido es la única forma de
+ * ver un borrador sin sesión de admin.
  *
  * NUNCA importar este módulo desde un componente cliente ('use client')
  * ni exponer su resultado, directa o indirectamente, en una respuesta al

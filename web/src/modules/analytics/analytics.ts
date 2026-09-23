@@ -82,38 +82,24 @@ let pendingEvents: QueuedEvent[] = []
 
 const MAX_PENDING_EVENTS = 50
 
-function stringifyProps(
-  props: object,
-): Record<string, string> {
+function stringifyProps(props: object): Record<string, string> {
   return Object.fromEntries(
     Object.entries(props)
       .filter(
         (
           entry,
-        ): entry is [
-          string,
-          Exclude<(typeof entry)[1], null | undefined>,
-        ] =>
-          entry[1] !== null &&
-          entry[1] !== undefined,
+        ): entry is [string, Exclude<(typeof entry)[1], null | undefined>] =>
+          entry[1] !== null && entry[1] !== undefined,
       )
-      .map(([key, value]) => [
-        key,
-        String(value),
-      ]),
+      .map(([key, value]) => [key, String(value)]),
   )
 }
 
-function shouldIgnorePage(
-  payload: PlausibleRequestPayload,
-): boolean {
+function shouldIgnorePage(payload: PlausibleRequestPayload): boolean {
   try {
     const url = new URL(payload.u)
 
-    return (
-      url.pathname.startsWith('/admin') ||
-      url.pathname.startsWith('/auth')
-    )
+    return url.pathname.startsWith('/admin') || url.pathname.startsWith('/auth')
   } catch {
     return false
   }
@@ -143,9 +129,7 @@ function sendEvent<K extends AnalyticsEventName>(
  * - localhost tampoco se captura.
  * - /admin y /auth quedan excluidos.
  */
-export function initAnalytics(
-  domain: string | undefined,
-): void {
+export function initAnalytics(domain: string | undefined): void {
   if (configured) {
     return
   }
@@ -154,10 +138,7 @@ export function initAnalytics(
 
   const normalizedDomain = domain?.trim()
 
-  if (
-    process.env.NODE_ENV !== 'production' ||
-    !normalizedDomain
-  ) {
+  if (process.env.NODE_ENV !== 'production' || !normalizedDomain) {
     pendingEvents = []
     return
   }
@@ -184,20 +165,14 @@ export function initAnalytics(
   pendingEvents = []
 
   for (const event of queued) {
-    sendEvent(
-      event.name,
-      event.props as never,
-      event.interactive,
-    )
+    sendEvent(event.name, event.props as never, event.interactive)
   }
 }
 
 /**
  * Punto único desde el que el resto de la aplicación envía eventos.
  */
-export function trackAnalyticsEvent<
-  K extends AnalyticsEventName,
->(
+export function trackAnalyticsEvent<K extends AnalyticsEventName>(
   name: K,
   props: AnalyticsEventMap[K],
   options?: {
@@ -205,25 +180,17 @@ export function trackAnalyticsEvent<
   },
 ): void {
   if (initialized) {
-    sendEvent(
-      name,
-      props,
-      options?.interactive,
-    )
+    sendEvent(name, props, options?.interactive)
 
     return
   }
 
   if (!configured) {
-    if (
-      pendingEvents.length <
-      MAX_PENDING_EVENTS
-    ) {
+    if (pendingEvents.length < MAX_PENDING_EVENTS) {
       pendingEvents.push({
         name,
         props,
-        interactive:
-          options?.interactive,
+        interactive: options?.interactive,
       } as QueuedEvent)
     }
   }

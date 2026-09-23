@@ -35,6 +35,11 @@
   border: 0;
 }
 
+/* Gate de click-to-load (auditoría de cookies, arquitectura §17.2) —
+   Vimeo y Spotify no tienen mitigación de dominio "sin cookies"
+   equivalente a youtube-nocookie, así que su iframe no se monta hasta
+   que el usuario pulsa este botón (ver requiresClickToLoad en
+   EpisodeDetail.tsx). */
 .embedConsent {
   position: absolute;
   inset: 0;
