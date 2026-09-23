@@ -2,7 +2,10 @@ import { v2 as cloudinary } from 'cloudinary'
 
 import { env } from '@/lib/env'
 
-import { validateImageFile } from '@/modules/media/domain/mediaLimits'
+import {
+  validateImageFile,
+  validateVideoUpload,
+} from '@/modules/media/domain/mediaLimits'
 
 cloudinary.config({
   cloud_name: env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -29,10 +32,26 @@ export type VerifiedCloudinaryImageAsset = {
   bytes: number
 }
 
+export type VerifiedCloudinaryVideoAsset = {
+  cloudinaryPublicId: string
+  format: string
+  width: number
+  height: number
+  durationSeconds: number
+  bytes: number
+}
+
 export class CloudinaryImageVerificationError extends Error {
   constructor(message: string) {
     super(message)
     this.name = 'CloudinaryImageVerificationError'
+  }
+}
+
+export class CloudinaryVideoVerificationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'CloudinaryVideoVerificationError'
   }
 }
 
@@ -44,6 +63,16 @@ type CloudinaryImageResource = {
   height?: unknown
   bytes?: unknown
   secure_url?: unknown
+}
+
+type CloudinaryVideoResource = {
+  public_id?: unknown
+  resource_type?: unknown
+  format?: unknown
+  width?: unknown
+  height?: unknown
+  duration?: unknown
+  bytes?: unknown
 }
 
 function createSignedUpload(folder: string): SignedMediaUpload {
@@ -78,6 +107,14 @@ function isPositiveInteger(value: unknown): value is number {
   return (
     typeof value === 'number' &&
     Number.isInteger(value) &&
+    value > 0
+  )
+}
+
+function isPositiveNumber(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isFinite(value) &&
     value > 0
   )
 }
@@ -140,6 +177,27 @@ function validationErrorMessage(
 
     default:
       return 'La imagen subida no es válida.'
+  }
+}
+
+function videoValidationErrorMessage(
+  validation: ReturnType<typeof validateVideoUpload>,
+): string | null {
+  if (!validation) {
+    return null
+  }
+
+  switch (validation.code) {
+    case 'VIDEO_TOO_LARGE':
+      return `El vídeo supera el límite de ${
+        validation.maxBytes / 1024 / 1024
+      } MB.`
+
+    case 'VIDEO_TOO_LONG':
+      return `El vídeo supera el límite de ${validation.maxSeconds} segundos.`
+
+    default:
+      return 'El vídeo subido no es válido.'
   }
 }
 
@@ -250,7 +308,6 @@ export async function verifyCloudinaryImageAsset(
   const validation = await validateImageFile({
     name: `cloudinary.${format}`,
     type: imageMimeFromFormat(format),
-
     size: Math.max(
       resource.bytes,
       buffer.byteLength,
@@ -275,6 +332,94 @@ export async function verifyCloudinaryImageAsset(
     format,
     width: resource.width,
     height: resource.height,
+    bytes: resource.bytes,
+  }
+}
+
+/**
+ * Verifica en servidor que un publicId corresponde realmente a un vídeo
+ * subido al directorio específico de vídeos de Greener en Cloudinary.
+ *
+ * No confía en format/width/height/duration/bytes enviados por el
+ * navegador. Los metadatos se obtienen directamente de la Admin API de
+ * Cloudinary.
+ *
+ * A diferencia de las imágenes, no se descarga el original completo:
+ * un vídeo puede pesar hasta 100 MB y Cloudinary ya ha procesado el asset
+ * y expone sus metadatos reales mediante la Admin API.
+ */
+export async function verifyCloudinaryVideoAsset(
+  publicId: string,
+): Promise<VerifiedCloudinaryVideoAsset> {
+  if (!publicId.startsWith(`${VIDEO_FOLDER}/`)) {
+    throw new CloudinaryVideoVerificationError(
+      'El vídeo no pertenece al directorio permitido de Cloudinary.',
+    )
+  }
+
+  let rawResource: unknown
+
+  try {
+    rawResource = await cloudinary.api.resource(publicId, {
+      resource_type: 'video',
+      type: 'upload',
+    })
+  } catch (error) {
+    console.error(error)
+
+    throw new CloudinaryVideoVerificationError(
+      'No se ha podido verificar el vídeo en Cloudinary.',
+    )
+  }
+
+  const resource = rawResource as CloudinaryVideoResource
+
+  if (
+    typeof resource.public_id !== 'string' ||
+    resource.public_id !== publicId ||
+    typeof resource.format !== 'string' ||
+    resource.format.trim().length === 0 ||
+    !isPositiveInteger(resource.width) ||
+    !isPositiveInteger(resource.height) ||
+    !isPositiveNumber(resource.duration) ||
+    !isPositiveInteger(resource.bytes)
+  ) {
+    throw new CloudinaryVideoVerificationError(
+      'Cloudinary ha devuelto datos incompletos para el vídeo.',
+    )
+  }
+
+  if (
+    resource.resource_type !== undefined &&
+    resource.resource_type !== 'video'
+  ) {
+    throw new CloudinaryVideoVerificationError(
+      'El recurso de Cloudinary no es un vídeo.',
+    )
+  }
+
+  const format = resource.format.toLowerCase()
+
+  const validation = validateVideoUpload(
+    resource.bytes,
+    resource.duration,
+  )
+
+  const validationMessage =
+    videoValidationErrorMessage(validation)
+
+  if (validationMessage) {
+    throw new CloudinaryVideoVerificationError(
+      validationMessage,
+    )
+  }
+
+  return {
+    cloudinaryPublicId: resource.public_id,
+    format,
+    width: resource.width,
+    height: resource.height,
+    durationSeconds: resource.duration,
     bytes: resource.bytes,
   }
 }

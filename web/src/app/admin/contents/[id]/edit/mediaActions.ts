@@ -16,8 +16,10 @@ import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
 
 import {
   CloudinaryImageVerificationError,
+  CloudinaryVideoVerificationError,
   deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
+  verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
 export type RegisterMediaActionResult =
@@ -130,9 +132,19 @@ export async function registerCoverVideoAction(
   }
 
   try {
-    const mediaId = await registerCoverVideo(result.data)
+    const verified =
+      await verifyCloudinaryVideoAsset(
+        result.data.cloudinaryPublicId,
+      )
 
-    revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
+    const mediaId = await registerCoverVideo({
+      ...result.data,
+      ...verified,
+    })
+
+    revalidatePath(
+      `/admin/contents/${result.data.contentId}/edit`,
+    )
 
     return {
       ok: true,
@@ -142,16 +154,32 @@ export async function registerCoverVideoAction(
     console.error(error)
 
     if (
-      error instanceof Error &&
-      error.message.includes('Only free-form content supports a cover video')
+      error instanceof
+      CloudinaryVideoVerificationError
     ) {
       return {
         ok: false,
-        error: 'Solo el contenido libre (Other) admite vídeo de portada.',
+        error: error.message,
       }
     }
 
-    if (error instanceof Error && error.message.includes('Video is too long')) {
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        'Only free-form content supports a cover video',
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          'Solo el contenido libre (Other) admite vídeo de portada.',
+      }
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Video is too long')
+    ) {
       return {
         ok: false,
         error: 'El vídeo supera los 180 segundos.',
@@ -224,13 +252,15 @@ export async function deleteCoverMediaAction(
     ) {
       return {
         ok: false,
-        error: 'Este medio se sigue usando en otro sitio y no se puede borrar.',
+        error:
+          'Este medio se sigue usando en otro sitio y no se puede borrar.',
       }
     }
 
     return {
       ok: false,
-      error: 'No se ha podido desvincular la portada anterior.',
+      error:
+        'No se ha podido desvincular la portada anterior.',
     }
   }
 

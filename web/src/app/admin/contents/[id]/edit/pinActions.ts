@@ -25,8 +25,10 @@ import { detachPinMedia } from '@/modules/pin/application/detachPinMedia'
 
 import {
   CloudinaryImageVerificationError,
+  CloudinaryVideoVerificationError,
   deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
+  verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
 export type PinFormState = {
@@ -467,10 +469,16 @@ export async function attachPinVideoAction(
   }
 
   try {
-    const mediaId =
-      await attachPinVideo(
-        result.data,
+    const verified =
+      await verifyCloudinaryVideoAsset(
+        result.data.cloudinaryPublicId,
       )
+
+    const mediaId =
+      await attachPinVideo({
+        ...result.data,
+        ...verified,
+      })
 
     return {
       ok: true,
@@ -478,6 +486,16 @@ export async function attachPinVideoAction(
     }
   } catch (error) {
     console.error(error)
+
+    if (
+      error instanceof
+      CloudinaryVideoVerificationError
+    ) {
+      return {
+        ok: false,
+        error: error.message,
+      }
+    }
 
     if (
       error instanceof Error &&

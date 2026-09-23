@@ -14,15 +14,19 @@ import { removeCaseCarouselMedia } from '@/modules/media/application/removeCaseC
 
 import {
   CloudinaryImageVerificationError,
+  CloudinaryVideoVerificationError,
   deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
+  verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
 export type CaseCarouselActionResult =
-  { ok: true; mediaId: string } | { ok: false; error: string }
+  | { ok: true; mediaId: string }
+  | { ok: false; error: string }
 
 export type RemoveCaseCarouselMediaActionResult =
-  { ok: true; warning?: string } | { ok: false; error: string }
+  | { ok: true; warning?: string }
+  | { ok: false; error: string }
 
 function revalidateContent(contentId: string) {
   revalidatePath(`/admin/contents/${contentId}/edit`)
@@ -104,47 +108,97 @@ export async function addCaseCarouselImageAction(
 export async function addCaseCarouselVideoAction(
   input: unknown,
 ): Promise<CaseCarouselActionResult> {
-  const result = addCaseCarouselVideoSchema.safeParse(input)
+  const result =
+    addCaseCarouselVideoSchema.safeParse(input)
 
   if (!result.success) {
-    return { ok: false, error: 'Los datos del vídeo no son válidos.' }
+    return {
+      ok: false,
+      error: 'Los datos del vídeo no son válidos.',
+    }
   }
 
   try {
-    const mediaId = await addCaseCarouselVideo(result.data)
+    const verified =
+      await verifyCloudinaryVideoAsset(
+        result.data.cloudinaryPublicId,
+      )
 
-    revalidateContent(result.data.contentId)
+    const mediaId =
+      await addCaseCarouselVideo({
+        ...result.data,
+        ...verified,
+      })
 
-    return { ok: true, mediaId }
+    revalidateContent(
+      result.data.contentId,
+    )
+
+    return {
+      ok: true,
+      mediaId,
+    }
   } catch (error) {
     console.error(error)
 
-    if (error instanceof Error && error.message.includes('Video is too long')) {
-      return { ok: false, error: 'El vídeo supera los 180 segundos.' }
+    if (
+      error instanceof
+      CloudinaryVideoVerificationError
+    ) {
+      return {
+        ok: false,
+        error: error.message,
+      }
+    }
+
+    if (
+      error instanceof Error &&
+      error.message.includes('Video is too long')
+    ) {
+      return {
+        ok: false,
+        error: 'El vídeo supera los 180 segundos.',
+      }
     }
 
     if (
       error instanceof Error &&
       error.message.includes('Video is too large')
     ) {
-      return { ok: false, error: 'El vídeo supera los 100 MB.' }
+      return {
+        ok: false,
+        error: 'El vídeo supera los 100 MB.',
+      }
     }
 
-    if (error instanceof Error && error.message.includes('is not a case')) {
-      return { ok: false, error: 'Este contenido no es de tipo Case.' }
+    if (
+      error instanceof Error &&
+      error.message.includes('is not a case')
+    ) {
+      return {
+        ok: false,
+        error: 'Este contenido no es de tipo Case.',
+      }
     }
 
-    return { ok: false, error: 'No se ha podido añadir el vídeo.' }
+    return {
+      ok: false,
+      error: 'No se ha podido añadir el vídeo.',
+    }
   }
 }
 
 export async function removeCaseCarouselMediaAction(
   input: unknown,
 ): Promise<RemoveCaseCarouselMediaActionResult> {
-  const result = removeCaseCarouselMediaSchema.safeParse(input)
+  const result =
+    removeCaseCarouselMediaSchema.safeParse(input)
 
   if (!result.success) {
-    return { ok: false, error: 'Los datos del medio no son válidos.' }
+    return {
+      ok: false,
+      error: 'Los datos del medio no son válidos.',
+    }
   }
 
   try {
@@ -156,21 +210,30 @@ export async function removeCaseCarouselMediaAction(
       error instanceof Error &&
       error.message.includes('no pertenece a este caso')
     ) {
-      return { ok: false, error: error.message }
+      return {
+        ok: false,
+        error: error.message,
+      }
     }
 
     if (
       error instanceof Error &&
-      (error.message.includes('foreign key') ||
-        ('code' in error && error.code === '23503'))
+      (
+        error.message.includes('foreign key') ||
+        ('code' in error && error.code === '23503')
+      )
     ) {
       return {
         ok: false,
-        error: 'Este medio se sigue usando en otro sitio y no se puede borrar.',
+        error:
+          'Este medio se sigue usando en otro sitio y no se puede borrar.',
       }
     }
 
-    return { ok: false, error: 'No se ha podido quitar el medio.' }
+    return {
+      ok: false,
+      error: 'No se ha podido quitar el medio.',
+    }
   }
 
   revalidateContent(result.data.contentId)
@@ -190,5 +253,7 @@ export async function removeCaseCarouselMediaAction(
     }
   }
 
-  return { ok: true }
+  return {
+    ok: true,
+  }
 }
