@@ -7,39 +7,42 @@ import {
 } from 'vitest'
 
 const CONTENT_ID =
-  '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
+  '11111111-1111-4111-8111-111111111111'
 
 const MEDIA_ID =
-  '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
+  '22222222-2222-4222-8222-222222222222'
 
 const IMAGE_PUBLIC_ID =
-  'greener/content/test-image'
+  'greener/content/case-image'
 
 const VIDEO_PUBLIC_ID =
-  'greener/content/videos/test-video'
+  'greener/content/videos/case-video'
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
 
 vi.mock(
-  '@/modules/media/application/registerCoverImage',
+  '@/modules/media/application/addCaseCarouselImage',
   () => ({
-    registerCoverImage: vi.fn(),
+    addCaseCarouselImage:
+      vi.fn(),
   }),
 )
 
 vi.mock(
-  '@/modules/media/application/registerCoverVideo',
+  '@/modules/media/application/addCaseCarouselVideo',
   () => ({
-    registerCoverVideo: vi.fn(),
+    addCaseCarouselVideo:
+      vi.fn(),
   }),
 )
 
 vi.mock(
-  '@/modules/media/application/deleteCoverMedia',
+  '@/modules/media/application/removeCaseCarouselMedia',
   () => ({
-    deleteCoverMedia: vi.fn(),
+    removeCaseCarouselMedia:
+      vi.fn(),
   }),
 )
 
@@ -49,6 +52,7 @@ vi.mock(
     class MockCloudinaryImageVerificationError extends Error {
       constructor(message: string) {
         super(message)
+
         this.name =
           'CloudinaryImageVerificationError'
       }
@@ -57,6 +61,7 @@ vi.mock(
     class MockCloudinaryVideoVerificationError extends Error {
       constructor(message: string) {
         super(message)
+
         this.name =
           'CloudinaryVideoVerificationError'
       }
@@ -82,22 +87,22 @@ vi.mock(
 )
 
 import {
-  registerCoverImageAction,
-  registerCoverVideoAction,
-  deleteCoverMediaAction,
-} from '@/app/admin/contents/[id]/edit/mediaActions'
+  addCaseCarouselImageAction,
+  addCaseCarouselVideoAction,
+  removeCaseCarouselMediaAction,
+} from '@/app/admin/contents/[id]/edit/caseCarouselActions'
 
 import {
-  registerCoverImage,
-} from '@/modules/media/application/registerCoverImage'
+  addCaseCarouselImage,
+} from '@/modules/media/application/addCaseCarouselImage'
 
 import {
-  registerCoverVideo,
-} from '@/modules/media/application/registerCoverVideo'
+  addCaseCarouselVideo,
+} from '@/modules/media/application/addCaseCarouselVideo'
 
 import {
-  deleteCoverMedia,
-} from '@/modules/media/application/deleteCoverMedia'
+  removeCaseCarouselMedia,
+} from '@/modules/media/application/removeCaseCarouselMedia'
 
 import {
   CloudinaryImageVerificationError,
@@ -107,19 +112,19 @@ import {
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
-const mockRegisterCoverImage =
+const mockAddCaseCarouselImage =
   vi.mocked(
-    registerCoverImage,
+    addCaseCarouselImage,
   )
 
-const mockRegisterCoverVideo =
+const mockAddCaseCarouselVideo =
   vi.mocked(
-    registerCoverVideo,
+    addCaseCarouselVideo,
   )
 
-const mockDeleteCoverMedia =
+const mockRemoveCaseCarouselMedia =
   vi.mocked(
-    deleteCoverMedia,
+    removeCaseCarouselMedia,
   )
 
 const mockDeleteCloudinaryAsset =
@@ -145,7 +150,7 @@ const VALID_IMAGE_INPUT = {
     IMAGE_PUBLIC_ID,
 
   format:
-    'png',
+    'jpg',
 
   width:
     10,
@@ -156,8 +161,11 @@ const VALID_IMAGE_INPUT = {
   bytes:
     10,
 
-  ratio:
-    '1:1',
+  sortOrder:
+    0,
+
+  alt:
+    'Imagen del caso',
 }
 
 const VALID_VIDEO_INPUT = {
@@ -182,11 +190,14 @@ const VALID_VIDEO_INPUT = {
   bytes:
     10,
 
-  ratio:
-    '1:1',
+  sortOrder:
+    1,
+
+  alt:
+    'Vídeo del caso',
 }
 
-const VALID_DELETE_INPUT = {
+const VALID_REMOVE_INPUT = {
   contentId:
     CONTENT_ID,
 
@@ -194,24 +205,24 @@ const VALID_DELETE_INPUT = {
     MEDIA_ID,
 
   cloudinaryPublicId:
-    IMAGE_PUBLIC_ID,
+    VIDEO_PUBLIC_ID,
 
   kind:
-    'image' as const,
+    'video' as const,
 }
 
 describe(
-  'mediaActions',
+  'caseCarouselActions',
   () => {
     beforeEach(() => {
       vi.clearAllMocks()
 
-      mockRegisterCoverImage
+      mockAddCaseCarouselImage
         .mockResolvedValue(
           MEDIA_ID,
         )
 
-      mockRegisterCoverVideo
+      mockAddCaseCarouselVideo
         .mockResolvedValue(
           MEDIA_ID,
         )
@@ -256,7 +267,7 @@ describe(
               1080,
 
             durationSeconds:
-              12,
+              24,
 
             bytes:
               8192,
@@ -265,13 +276,13 @@ describe(
     })
 
     describe(
-      'registerCoverImageAction',
+      'addCaseCarouselImageAction',
       () => {
         it(
-          'verifica Cloudinary y registra la imagen con los metadatos reales',
+          'verifica la imagen en Cloudinary antes de registrarla',
           async () => {
             const result =
-              await registerCoverImageAction(
+              await addCaseCarouselImageAction(
                 VALID_IMAGE_INPUT,
               )
 
@@ -292,7 +303,7 @@ describe(
             )
 
             expect(
-              mockRegisterCoverImage,
+              mockAddCaseCarouselImage,
             ).toHaveBeenCalledWith({
               contentId:
                 CONTENT_ID,
@@ -312,60 +323,17 @@ describe(
               bytes:
                 4096,
 
-              ratio:
-                '1:1',
+              sortOrder:
+                0,
+
+              alt:
+                'Imagen del caso',
             })
           },
         )
 
         it(
-          'no confía en los metadatos enviados por el navegador',
-          async () => {
-            await registerCoverImageAction({
-              ...VALID_IMAGE_INPUT,
-
-              format:
-                'png',
-
-              width:
-                1,
-
-              height:
-                1,
-
-              bytes:
-                1,
-            })
-
-            expect(
-              mockRegisterCoverImage,
-            ).toHaveBeenCalledWith({
-              contentId:
-                CONTENT_ID,
-
-              cloudinaryPublicId:
-                IMAGE_PUBLIC_ID,
-
-              format:
-                'webp',
-
-              width:
-                2000,
-
-              height:
-                1000,
-
-              bytes:
-                4096,
-
-              ratio:
-                '1:1',
-            })
-          },
-        )
-
-        it(
-          'si Cloudinary rechaza la imagen, no la registra en Postgres',
+          'si Cloudinary rechaza la imagen, no la registra',
           async () => {
             mockVerifyCloudinaryImageAsset
               .mockRejectedValueOnce(
@@ -375,7 +343,7 @@ describe(
               )
 
             const result =
-              await registerCoverImageAction(
+              await addCaseCarouselImageAction(
                 VALID_IMAGE_INPUT,
               )
 
@@ -390,7 +358,7 @@ describe(
             })
 
             expect(
-              mockRegisterCoverImage,
+              mockAddCaseCarouselImage,
             ).not
               .toHaveBeenCalled()
           },
@@ -399,13 +367,13 @@ describe(
     )
 
     describe(
-      'registerCoverVideoAction',
+      'addCaseCarouselVideoAction',
       () => {
         it(
-          'verifica Cloudinary y registra el vídeo con los metadatos reales',
+          'verifica el vídeo en Cloudinary y usa los metadatos reales',
           async () => {
             const result =
-              await registerCoverVideoAction(
+              await addCaseCarouselVideoAction(
                 VALID_VIDEO_INPUT,
               )
 
@@ -426,7 +394,7 @@ describe(
             )
 
             expect(
-              mockRegisterCoverVideo,
+              mockAddCaseCarouselVideo,
             ).toHaveBeenCalledWith({
               contentId:
                 CONTENT_ID,
@@ -444,38 +412,67 @@ describe(
                 1080,
 
               durationSeconds:
-                12,
+                24,
 
               bytes:
                 8192,
 
-              ratio:
-                '1:1',
+              sortOrder:
+                1,
+
+              alt:
+                'Vídeo del caso',
             })
           },
         )
 
         it(
-          'no confía en duration, tamaño ni dimensiones enviados por el navegador',
+          'no confía en duración, tamaño ni dimensiones enviadas por el navegador',
           async () => {
-            await registerCoverVideoAction({
-              ...VALID_VIDEO_INPUT,
+            mockVerifyCloudinaryVideoAsset
+              .mockResolvedValueOnce({
+                cloudinaryPublicId:
+                  VIDEO_PUBLIC_ID,
 
-              width:
-                1,
+                format:
+                  'mp4',
 
-              height:
-                1,
+                width:
+                  2560,
 
-              durationSeconds:
-                1,
+                height:
+                  1440,
 
-              bytes:
-                1,
-            })
+                durationSeconds:
+                  75,
+
+                bytes:
+                  16384,
+              })
+
+            const result =
+              await addCaseCarouselVideoAction({
+                ...VALID_VIDEO_INPUT,
+
+                width:
+                  1,
+
+                height:
+                  1,
+
+                durationSeconds:
+                  1,
+
+                bytes:
+                  1,
+              })
 
             expect(
-              mockRegisterCoverVideo,
+              result.ok,
+            ).toBe(true)
+
+            expect(
+              mockAddCaseCarouselVideo,
             ).toHaveBeenCalledWith({
               contentId:
                 CONTENT_ID,
@@ -487,19 +484,22 @@ describe(
                 'mp4',
 
               width:
-                1920,
+                2560,
 
               height:
-                1080,
+                1440,
 
               durationSeconds:
-                12,
+                75,
 
               bytes:
-                8192,
+                16384,
 
-              ratio:
-                '1:1',
+              sortOrder:
+                1,
+
+              alt:
+                'Vídeo del caso',
             })
           },
         )
@@ -515,7 +515,7 @@ describe(
               )
 
             const result =
-              await registerCoverVideoAction(
+              await addCaseCarouselVideoAction(
                 VALID_VIDEO_INPUT,
               )
 
@@ -530,7 +530,7 @@ describe(
             })
 
             expect(
-              mockRegisterCoverVideo,
+              mockAddCaseCarouselVideo,
             ).not
               .toHaveBeenCalled()
           },
@@ -540,7 +540,7 @@ describe(
           'con datos inválidos no llega a verificar Cloudinary',
           async () => {
             const result =
-              await registerCoverVideoAction({
+              await addCaseCarouselVideoAction({
                 ...VALID_VIDEO_INPUT,
 
                 contentId:
@@ -557,7 +557,7 @@ describe(
               .toHaveBeenCalled()
 
             expect(
-              mockRegisterCoverVideo,
+              mockAddCaseCarouselVideo,
             ).not
               .toHaveBeenCalled()
           },
@@ -566,39 +566,14 @@ describe(
     )
 
     describe(
-      'deleteCoverMediaAction',
+      'removeCaseCarouselMediaAction',
       () => {
         it(
-          'con datos inválidos, no llega a llamar ni a Postgres ni a Cloudinary',
+          'si Postgres y Cloudinary funcionan, elimina el medio',
           async () => {
             const result =
-              await deleteCoverMediaAction({
-                contentId:
-                  'no-es-uuid',
-              })
-
-            expect(
-              result.ok,
-            ).toBe(false)
-
-            expect(
-              mockDeleteCoverMedia,
-            ).not
-              .toHaveBeenCalled()
-
-            expect(
-              mockDeleteCloudinaryAsset,
-            ).not
-              .toHaveBeenCalled()
-          },
-        )
-
-        it(
-          'si Postgres tiene éxito y Cloudinary también, devuelve ok sin warning',
-          async () => {
-            const result =
-              await deleteCoverMediaAction(
-                VALID_DELETE_INPUT,
+              await removeCaseCarouselMediaAction(
+                VALID_REMOVE_INPUT,
               )
 
             expect(
@@ -609,48 +584,44 @@ describe(
             })
 
             expect(
-              mockDeleteCoverMedia,
+              mockRemoveCaseCarouselMedia,
             ).toHaveBeenCalledWith(
-              VALID_DELETE_INPUT,
+              VALID_REMOVE_INPUT,
             )
 
             expect(
               mockDeleteCloudinaryAsset,
             ).toHaveBeenCalledWith(
-              IMAGE_PUBLIC_ID,
-              'image',
+              VIDEO_PUBLIC_ID,
+              'video',
             )
           },
         )
 
         it(
-          'si Postgres falla porque el medio ya no coincide con el contenido, aborta sin llamar a Cloudinary',
+          'si Postgres falla, aborta antes de borrar en Cloudinary',
           async () => {
-            mockDeleteCoverMedia
+            mockRemoveCaseCarouselMedia
               .mockRejectedValueOnce(
                 new Error(
-                  'El contenido ya no apunta a este medio (posible carrera con otra pestaña)',
+                  'Este medio no pertenece a este caso',
                 ),
               )
 
             const result =
-              await deleteCoverMediaAction(
-                VALID_DELETE_INPUT,
+              await removeCaseCarouselMediaAction(
+                VALID_REMOVE_INPUT,
               )
 
             expect(
-              result.ok,
-            ).toBe(false)
+              result,
+            ).toEqual({
+              ok:
+                false,
 
-            if (
-              !result.ok
-            ) {
-              expect(
-                result.error,
-              ).toContain(
-                'otra pestaña',
-              )
-            }
+              error:
+                'Este medio no pertenece a este caso',
+            })
 
             expect(
               mockDeleteCloudinaryAsset,
@@ -660,63 +631,18 @@ describe(
         )
 
         it(
-          'si Postgres falla por violación de FK, aborta y no borra en Cloudinary',
-          async () => {
-            const fkError =
-              Object.assign(
-                new Error(
-                  'update or delete violates foreign key constraint',
-                ),
-                {
-                  code:
-                    '23503',
-                },
-              )
-
-            mockDeleteCoverMedia
-              .mockRejectedValueOnce(
-                fkError,
-              )
-
-            const result =
-              await deleteCoverMediaAction(
-                VALID_DELETE_INPUT,
-              )
-
-            expect(
-              result.ok,
-            ).toBe(false)
-
-            if (
-              !result.ok
-            ) {
-              expect(
-                result.error,
-              ).toContain(
-                'se sigue usando en otro sitio',
-              )
-            }
-
-            expect(
-              mockDeleteCloudinaryAsset,
-            ).not
-              .toHaveBeenCalled()
-          },
-        )
-
-        it(
-          'si Postgres tiene éxito pero Cloudinary falla, devuelve ok con warning',
+          'si Cloudinary falla después de borrar en Postgres, devuelve warning',
           async () => {
             mockDeleteCloudinaryAsset
               .mockRejectedValueOnce(
                 new Error(
-                  'Cloudinary no ha podido borrar el recurso.',
+                  'fallo Cloudinary',
                 ),
               )
 
             const result =
-              await deleteCoverMediaAction(
-                VALID_DELETE_INPUT,
+              await removeCaseCarouselMediaAction(
+                VALID_REMOVE_INPUT,
               )
 
             expect(

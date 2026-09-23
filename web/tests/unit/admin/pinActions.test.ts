@@ -64,11 +64,26 @@ vi.mock(
       }
     }
 
+    class MockCloudinaryVideoVerificationError extends Error {
+      constructor(message: string) {
+        super(message)
+
+        this.name =
+          'CloudinaryVideoVerificationError'
+      }
+    }
+
     return {
       CloudinaryImageVerificationError:
         MockCloudinaryImageVerificationError,
 
+      CloudinaryVideoVerificationError:
+        MockCloudinaryVideoVerificationError,
+
       verifyCloudinaryImageAsset:
+        vi.fn(),
+
+      verifyCloudinaryVideoAsset:
         vi.fn(),
 
       deleteCloudinaryAsset:
@@ -113,8 +128,10 @@ import {
 
 import {
   CloudinaryImageVerificationError,
+  CloudinaryVideoVerificationError,
   deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
+  verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
 const CONTENT_ID =
@@ -128,6 +145,9 @@ const MEDIA_ID =
 
 const CLOUDINARY_PUBLIC_ID =
   'greener/content/test-image'
+
+const VIDEO_CLOUDINARY_PUBLIC_ID =
+  'greener/content/videos/test-video'
 
 const mockCreatePin =
   vi.mocked(createPin)
@@ -153,6 +173,11 @@ const mockDeleteCloudinaryAsset =
 const mockVerifyCloudinaryImageAsset =
   vi.mocked(
     verifyCloudinaryImageAsset,
+  )
+
+const mockVerifyCloudinaryVideoAsset =
+  vi.mocked(
+    verifyCloudinaryVideoAsset,
   )
 
 function createValidFormData() {
@@ -259,7 +284,7 @@ const VALID_VIDEO_INPUT = {
     PIN_ID,
 
   cloudinaryPublicId:
-    'greener/content/videos/test-video',
+    VIDEO_CLOUDINARY_PUBLIC_ID,
 
   format:
     'mp4',
@@ -359,6 +384,31 @@ describe(
 
             bytes:
               1024,
+          }),
+        )
+
+      mockVerifyCloudinaryVideoAsset
+        .mockImplementation(
+          async (
+            publicId,
+          ) => ({
+            cloudinaryPublicId:
+              publicId,
+
+            format:
+              'mp4',
+
+            width:
+              1920,
+
+            height:
+              1080,
+
+            durationSeconds:
+              3,
+
+            bytes:
+              4096,
           }),
         )
     })
@@ -920,7 +970,7 @@ describe(
       'attachPinVideoAction',
       () => {
         it(
-          'con datos válidos, adjunta y devuelve ok',
+          'con datos válidos, verifica Cloudinary, adjunta y devuelve ok',
           async () => {
             const result =
               await attachPinVideoAction(
@@ -938,10 +988,148 @@ describe(
             })
 
             expect(
-              mockAttachPinVideo,
-            ).toHaveBeenCalledTimes(
-              1,
+              mockVerifyCloudinaryVideoAsset,
+            ).toHaveBeenCalledWith(
+              VIDEO_CLOUDINARY_PUBLIC_ID,
             )
+
+            expect(
+              mockAttachPinVideo,
+            ).toHaveBeenCalledWith({
+              pinId:
+                PIN_ID,
+
+              cloudinaryPublicId:
+                VIDEO_CLOUDINARY_PUBLIC_ID,
+
+              format:
+                'mp4',
+
+              width:
+                1920,
+
+              height:
+                1080,
+
+              durationSeconds:
+                3,
+
+              bytes:
+                4096,
+
+              slideOrder:
+                0,
+            })
+          },
+        )
+
+        it(
+          'usa los metadatos verificados de Cloudinary en vez de confiar en los enviados por cliente',
+          async () => {
+            mockVerifyCloudinaryVideoAsset
+              .mockResolvedValueOnce({
+                cloudinaryPublicId:
+                  VIDEO_CLOUDINARY_PUBLIC_ID,
+
+                format:
+                  'webm',
+
+                width:
+                  2560,
+
+                height:
+                  1440,
+
+                durationSeconds:
+                  4,
+
+                bytes:
+                  8192,
+              })
+
+            const result =
+              await attachPinVideoAction({
+                ...VALID_VIDEO_INPUT,
+
+                format:
+                  'mp4',
+
+                width:
+                  10,
+
+                height:
+                  10,
+
+                durationSeconds:
+                  1,
+
+                bytes:
+                  10,
+              })
+
+            expect(
+              result.ok,
+            ).toBe(true)
+
+            expect(
+              mockAttachPinVideo,
+            ).toHaveBeenCalledWith({
+              pinId:
+                PIN_ID,
+
+              cloudinaryPublicId:
+                VIDEO_CLOUDINARY_PUBLIC_ID,
+
+              format:
+                'webm',
+
+              width:
+                2560,
+
+              height:
+                1440,
+
+              durationSeconds:
+                4,
+
+              bytes:
+                8192,
+
+              slideOrder:
+                0,
+            })
+          },
+        )
+
+        it(
+          'si la verificación de Cloudinary falla, devuelve el mensaje y no registra el vídeo',
+          async () => {
+            mockVerifyCloudinaryVideoAsset
+              .mockRejectedValueOnce(
+                new CloudinaryVideoVerificationError(
+                  'No se ha podido verificar el vídeo en Cloudinary.',
+                ),
+              )
+
+            const result =
+              await attachPinVideoAction(
+                VALID_VIDEO_INPUT,
+              )
+
+            expect(
+              result,
+            ).toEqual({
+              ok:
+                false,
+
+              error:
+                'No se ha podido verificar el vídeo en Cloudinary.',
+            })
+
+            expect(
+              mockAttachPinVideo,
+            ).not
+              .toHaveBeenCalled()
           },
         )
 
