@@ -56,15 +56,7 @@ describe('columnReservationForRatio — aproximación para 5/4/3 columnas totale
   })
 
   it('el contenido siempre es "lo que sobra": contentColumns + recommendationColumns === totalColumns', () => {
-    const ratios = [
-      '16:9',
-      '1:1',
-      '4:3',
-      '4:5',
-      '3:4',
-      '2:3',
-      '9:16',
-    ] as const
+    const ratios = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
     for (const ratio of ratios) {
       for (const total of [3, 4, 5, 6]) {
         const { contentColumns, recommendationColumns } =
@@ -97,20 +89,17 @@ describe('contentBlockImageDimensions — altura 66,7vh × ratio, tope 83% del a
   })
 
   it('el ratio nunca cambia: width / height es siempre el ratio pedido, se recorte o no la altura', () => {
-    const ratios = [
-      '16:9',
-      '1:1',
-      '4:3',
-      '4:5',
-      '3:4',
-      '2:3',
-      '9:16',
-    ] as const
+    const ratios = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
     for (const ratio of ratios) {
-      const decimal =
-        { '16:9': 16 / 9, '1:1': 1, '4:3': 4 / 3, '4:5': 4 / 5, '3:4': 3 / 4, '2:3': 2 / 3, '9:16': 9 / 16 }[
-          ratio
-        ]
+      const decimal = {
+        '16:9': 16 / 9,
+        '1:1': 1,
+        '4:3': 4 / 3,
+        '4:5': 4 / 5,
+        '3:4': 3 / 4,
+        '2:3': 2 / 3,
+        '9:16': 9 / 16,
+      }[ratio]
       const { width, height } = contentBlockImageDimensions(ratio, 300, 1200)
       expect(width / height).toBeCloseTo(decimal, 5)
     }

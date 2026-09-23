@@ -76,9 +76,9 @@ describe('createFeedSession', () => {
   })
 
   it('panel de recomendaciones (especificacion-final-formato-detalle.md §1, §6): pasa excludeContentId al repositorio', async () => {
-    const createRow = vi.fn().mockResolvedValue(
-      fakeRow({ excludeContentId: 'content-123' }),
-    )
+    const createRow = vi
+      .fn()
+      .mockResolvedValue(fakeRow({ excludeContentId: 'content-123' }))
 
     await createFeedSession(
       { scope: 'home', excludeContentId: 'content-123' },

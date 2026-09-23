@@ -1,16 +1,10 @@
 'use client'
 
-import {
-  useState,
-} from 'react'
+import { useState } from 'react'
 
-import {
-  buildImageUrl,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
-import {
-  validateVideoUpload,
-} from '@/modules/media/domain/mediaLimits'
+import { validateVideoUpload } from '@/modules/media/domain/mediaLimits'
 
 import {
   IMAGE_FILE_ACCEPT,
@@ -43,188 +37,89 @@ type Props = {
   items: CarouselItem[]
 }
 
-function readVideoDuration(
-  file: File
-): Promise<number> {
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-      const video =
-        document
-          .createElement(
-            'video'
-          )
+function readVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
 
-      video.preload =
-        'metadata'
+    video.preload = 'metadata'
 
-      video.onloadedmetadata =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
 
-          resolve(
-            video.duration
-          )
-        }
-
-      video.onerror =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
-
-          reject(
-            new Error(
-              'No se ha podido leer la duración del vídeo.'
-            )
-          )
-        }
-
-      video.src =
-        URL
-          .createObjectURL(
-            file
-          )
+      resolve(video.duration)
     }
-  )
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+
+      reject(new Error('No se ha podido leer la duración del vídeo.'))
+    }
+
+    video.src = URL.createObjectURL(file)
+  })
 }
 
-export default function CaseCarouselManager({
-  contentId,
-  items,
-}: Props) {
-  const [
-    uploading,
-    setUploading,
-  ] =
-    useState(false)
+export default function CaseCarouselManager({ contentId, items }: Props) {
+  const [uploading, setUploading] = useState(false)
 
-  const [
-    error,
-    setError,
-  ] =
-    useState<
-      string | null
-    >(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const [
-    warning,
-    setWarning,
-  ] =
-    useState<
-      string | null
-    >(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
-  const [
-    file,
-    setFile,
-  ] =
-    useState<
-      File | null
-    >(null)
+  const [file, setFile] = useState<File | null>(null)
 
-  const [
-    kind,
-    setKind,
-  ] =
-    useState<
-      'image' | 'video'
-    >('image')
+  const [kind, setKind] = useState<'image' | 'video'>('image')
 
-  const [
-    alt,
-    setAlt,
-  ] =
-    useState('')
+  const [alt, setAlt] = useState('')
 
-  const sorted =
-    [...items]
-      .sort(
-        (a, b) =>
-          a.sortOrder -
-          b.sortOrder
-      )
+  const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
 
-  const nextSortOrder =
-    sorted.length
+  const nextSortOrder = sorted.length
 
-  async function handleRemove(
-    item:
-      CarouselItem
-  ) {
+  async function handleRemove(item: CarouselItem) {
     setError(null)
     setWarning(null)
 
-    const result =
-      await removeCaseCarouselMediaAction({
-        contentId,
+    const result = await removeCaseCarouselMediaAction({
+      contentId,
 
-        mediaId:
-          item.mediaId,
+      mediaId: item.mediaId,
 
-        cloudinaryPublicId:
-          item
-            .cloudinaryPublicId,
+      cloudinaryPublicId: item.cloudinaryPublicId,
 
-        kind:
-          item.kind,
-      })
+      kind: item.kind,
+    })
 
     if (!result.ok) {
-      setError(
-        result.error
-      )
+      setError(result.error)
 
       return
     }
 
-    if (
-      result.warning
-    ) {
-      setWarning(
-        result.warning
-      )
+    if (result.warning) {
+      setWarning(result.warning)
     }
 
-    window
-      .location
-      .reload()
+    window.location.reload()
   }
 
   async function handleImageUpload() {
     if (!file) {
-      setError(
-        'Selecciona una imagen.'
-      )
+      setError('Selecciona una imagen.')
 
       return
     }
 
     if (!alt.trim()) {
-      setError(
-        'El alt es obligatorio antes de subir la imagen.'
-      )
+      setError('El alt es obligatorio antes de subir la imagen.')
 
       return
     }
 
-    const validationError =
-      await validateImageSelection(
-        file
-      )
+    const validationError = await validateImageSelection(file)
 
-    if (
-      validationError
-    ) {
-      setError(
-        validationError
-      )
+    if (validationError) {
+      setError(validationError)
 
       return
     }
@@ -234,64 +129,42 @@ export default function CaseCarouselManager({
     setWarning(null)
 
     try {
-      const signed =
-        await getSignedImageUpload()
+      const signed = await getSignedImageUpload()
 
-      const uploaded =
-        await uploadImageToCloudinary(
-          file,
-          signed
-        )
+      const uploaded = await uploadImageToCloudinary(file, signed)
 
-      const result =
-        await addCaseCarouselImageAction({
-          contentId,
+      const result = await addCaseCarouselImageAction({
+        contentId,
 
-          cloudinaryPublicId:
-            uploaded.public_id,
+        cloudinaryPublicId: uploaded.public_id,
 
-          format:
-            uploaded.format,
+        format: uploaded.format,
 
-          width:
-            uploaded.width,
+        width: uploaded.width,
 
-          height:
-            uploaded.height,
+        height: uploaded.height,
 
-          bytes:
-            uploaded.bytes,
+        bytes: uploaded.bytes,
 
-          sortOrder:
-            nextSortOrder,
+        sortOrder: nextSortOrder,
 
-          alt:
-            alt.trim(),
-        })
+        alt: alt.trim(),
+      })
 
       if (!result.ok) {
-        throw new Error(
-          result.error
-        )
+        throw new Error(result.error)
       }
 
       setFile(null)
       setAlt('')
 
-      window
-        .location
-        .reload()
-
-    } catch (
-      uploadError
-    ) {
+      window.location.reload()
+    } catch (uploadError) {
       setError(
-        uploadError
-          instanceof Error
+        uploadError instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir la imagen.'
+          : 'No se ha podido subir la imagen.',
       )
-
     } finally {
       setUploading(false)
     }
@@ -299,17 +172,13 @@ export default function CaseCarouselManager({
 
   async function handleVideoUpload() {
     if (!file) {
-      setError(
-        'Selecciona un vídeo.'
-      )
+      setError('Selecciona un vídeo.')
 
       return
     }
 
     if (!alt.trim()) {
-      setError(
-        'El alt es obligatorio antes de subir el vídeo.'
-      )
+      setError('El alt es obligatorio antes de subir el vídeo.')
 
       return
     }
@@ -319,100 +188,60 @@ export default function CaseCarouselManager({
     setWarning(null)
 
     try {
-      const duration =
-        await readVideoDuration(
-          file
-        )
+      const duration = await readVideoDuration(file)
 
-      const validation =
-        validateVideoUpload(
-          file.size,
-          duration
-        )
+      const validation = validateVideoUpload(file.size, duration)
 
-      if (
-        validation?.code ===
-        'VIDEO_TOO_LONG'
-      ) {
+      if (validation?.code === 'VIDEO_TOO_LONG') {
         throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`
+          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
         )
       }
 
-      if (
-        validation?.code ===
-        'VIDEO_TOO_LARGE'
-      ) {
+      if (validation?.code === 'VIDEO_TOO_LARGE') {
         throw new Error(
-          `El vídeo supera los ${
-            validation.maxBytes /
-            1024 /
-            1024
-          } MB.`
+          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
         )
       }
 
-      const signed =
-        await getSignedVideoUpload()
+      const signed = await getSignedVideoUpload()
 
-      const uploaded =
-        await uploadVideoToCloudinary(
-          file,
-          signed
-        )
+      const uploaded = await uploadVideoToCloudinary(file, signed)
 
-      const result =
-        await addCaseCarouselVideoAction({
-          contentId,
+      const result = await addCaseCarouselVideoAction({
+        contentId,
 
-          cloudinaryPublicId:
-            uploaded.public_id,
+        cloudinaryPublicId: uploaded.public_id,
 
-          format:
-            uploaded.format,
+        format: uploaded.format,
 
-          width:
-            uploaded.width,
+        width: uploaded.width,
 
-          height:
-            uploaded.height,
+        height: uploaded.height,
 
-          durationSeconds:
-            uploaded.duration,
+        durationSeconds: uploaded.duration,
 
-          bytes:
-            uploaded.bytes,
+        bytes: uploaded.bytes,
 
-          sortOrder:
-            nextSortOrder,
+        sortOrder: nextSortOrder,
 
-          alt:
-            alt.trim(),
-        })
+        alt: alt.trim(),
+      })
 
       if (!result.ok) {
-        throw new Error(
-          result.error
-        )
+        throw new Error(result.error)
       }
 
       setFile(null)
       setAlt('')
 
-      window
-        .location
-        .reload()
-
-    } catch (
-      uploadError
-    ) {
+      window.location.reload()
+    } catch (uploadError) {
       setError(
-        uploadError
-          instanceof Error
+        uploadError instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir el vídeo.'
+          : 'No se ha podido subir el vídeo.',
       )
-
     } finally {
       setUploading(false)
     }
@@ -420,206 +249,90 @@ export default function CaseCarouselManager({
 
   return (
     <div>
-
-      <h4>
-        Carrusel de detalle
-        {' '}
-        ({sorted.length})
-      </h4>
+      <h4>Carrusel de detalle ({sorted.length})</h4>
 
       <div>
-        {sorted.map(
-          (item) => (
-            <div
-              key={
-                item.mediaId
-              }
-            >
+        {sorted.map((item) => (
+          <div key={item.mediaId}>
+            {item.kind === 'image' ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={buildImageUrl(item.cloudinaryPublicId, 'feed', 200)}
+                alt={item.alt}
+                width={100}
+                height={100}
+              />
+            ) : (
+              <p>{item.cloudinaryPublicId} (vídeo)</p>
+            )}
 
-              {item.kind ===
-              'image' ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={
-                    buildImageUrl(
-                      item
-                        .cloudinaryPublicId,
-                      'feed',
-                      200
-                    )
-                  }
-                  alt={
-                    item.alt
-                  }
-                  width={100}
-                  height={100}
-                />
-              ) : (
-                <p>
-                  {
-                    item
-                      .cloudinaryPublicId
-                  }
-                  {' '}
-                  (vídeo)
-                </p>
-              )}
+            <p>{item.alt}</p>
 
-              <p>
-                {item.alt}
-              </p>
+            <button type="button" onClick={() => handleRemove(item)}>
+              Quitar
+            </button>
+          </div>
+        ))}
 
-              <button
-                type="button"
-                onClick={
-                  () =>
-                    handleRemove(
-                      item
-                    )
-                }
-              >
-                Quitar
-              </button>
-
-            </div>
-          )
-        )}
-
-        {sorted.length ===
-          0 && (
-          <p>
-            Todavía no hay
-            carrusel para
-            este caso.
-          </p>
-        )}
+        {sorted.length === 0 && <p>Todavía no hay carrusel para este caso.</p>}
       </div>
 
-      <label
-        htmlFor="carousel-alt"
-      >
-        Alt (obligatorio)
-      </label>
+      <label htmlFor="carousel-alt">Alt (obligatorio)</label>
 
       <input
         id="carousel-alt"
         type="text"
         value={alt}
-        disabled={
-          uploading
-        }
-        onChange={
-          (event) =>
-            setAlt(
-              event
-                .target
-                .value
-            )
-        }
+        disabled={uploading}
+        onChange={(event) => setAlt(event.target.value)}
       />
 
-      <label
-        htmlFor="carousel-kind"
-      >
-        Tipo de archivo
-      </label>
+      <label htmlFor="carousel-kind">Tipo de archivo</label>
 
       <select
         id="carousel-kind"
         value={kind}
-        disabled={
-          uploading
-        }
-        onChange={
-          (event) => {
-            setKind(
-              event
-                .target
-                .value as
-                'image' |
-                'video'
-            )
+        disabled={uploading}
+        onChange={(event) => {
+          setKind(event.target.value as 'image' | 'video')
 
-            setFile(null)
-            setError(null)
-          }
-        }
+          setFile(null)
+          setError(null)
+        }}
       >
-        <option
-          value="image"
-        >
-          Imagen
-        </option>
+        <option value="image">Imagen</option>
 
-        <option
-          value="video"
-        >
-          Vídeo
-        </option>
+        <option value="video">Vídeo</option>
       </select>
 
       <input
         type="file"
-        accept={
-          kind ===
-          'video'
-            ? 'video/*'
-            : IMAGE_FILE_ACCEPT
-        }
-        disabled={
-          uploading
-        }
-        onChange={
-          (event) => {
-            setFile(
-              event
-                .target
-                .files?.[0] ??
-              null
-            )
+        accept={kind === 'video' ? 'video/*' : IMAGE_FILE_ACCEPT}
+        disabled={uploading}
+        onChange={(event) => {
+          setFile(event.target.files?.[0] ?? null)
 
-            setError(null)
-          }
-        }
+          setError(null)
+        }}
       />
 
       <p>
-        {kind ===
-        'video'
+        {kind === 'video'
           ? 'Vídeo, máximo 100 MB / 180 s.'
           : 'JPG, PNG, WebP o AVIF. Máximo 5 MB. Sin animaciones.'}
       </p>
 
       <button
         type="button"
-        disabled={
-          uploading ||
-          !file
-        }
-        onClick={
-          kind ===
-          'video'
-            ? handleVideoUpload
-            : handleImageUpload
-        }
+        disabled={uploading || !file}
+        onClick={kind === 'video' ? handleVideoUpload : handleImageUpload}
       >
-        {uploading
-          ? 'Subiendo...'
-          : 'Añadir al carrusel'}
+        {uploading ? 'Subiendo...' : 'Añadir al carrusel'}
       </button>
 
-      {error && (
-        <p>
-          {error}
-        </p>
-      )}
+      {error && <p>{error}</p>}
 
-      {warning && (
-        <p>
-          {warning}
-        </p>
-      )}
-
+      {warning && <p>{warning}</p>}
     </div>
   )
 }

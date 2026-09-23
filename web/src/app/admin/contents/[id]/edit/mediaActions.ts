@@ -58,19 +58,16 @@ export async function registerCoverImageAction(
   }
 
   try {
-    const verified =
-      await verifyCloudinaryImageAsset(
-        result.data.cloudinaryPublicId,
-      )
+    const verified = await verifyCloudinaryImageAsset(
+      result.data.cloudinaryPublicId,
+    )
 
     const mediaId = await registerCoverImage({
       ...result.data,
       ...verified,
     })
 
-    revalidatePath(
-      `/admin/contents/${result.data.contentId}/edit`,
-    )
+    revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 
     return {
       ok: true,
@@ -79,10 +76,7 @@ export async function registerCoverImageAction(
   } catch (error) {
     console.error(error)
 
-    if (
-      error instanceof
-      CloudinaryImageVerificationError
-    ) {
+    if (error instanceof CloudinaryImageVerificationError) {
       return {
         ok: false,
         error: error.message,
@@ -101,14 +95,11 @@ export async function registerCoverImageAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'does not support a cover image',
-      )
+      error.message.includes('does not support a cover image')
     ) {
       return {
         ok: false,
-        error:
-          'Este tipo de contenido no admite imagen de portada.',
+        error: 'Este tipo de contenido no admite imagen de portada.',
       }
     }
 
@@ -132,19 +123,16 @@ export async function registerCoverVideoAction(
   }
 
   try {
-    const verified =
-      await verifyCloudinaryVideoAsset(
-        result.data.cloudinaryPublicId,
-      )
+    const verified = await verifyCloudinaryVideoAsset(
+      result.data.cloudinaryPublicId,
+    )
 
     const mediaId = await registerCoverVideo({
       ...result.data,
       ...verified,
     })
 
-    revalidatePath(
-      `/admin/contents/${result.data.contentId}/edit`,
-    )
+    revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 
     return {
       ok: true,
@@ -153,10 +141,7 @@ export async function registerCoverVideoAction(
   } catch (error) {
     console.error(error)
 
-    if (
-      error instanceof
-      CloudinaryVideoVerificationError
-    ) {
+    if (error instanceof CloudinaryVideoVerificationError) {
       return {
         ok: false,
         error: error.message,
@@ -165,21 +150,15 @@ export async function registerCoverVideoAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Only free-form content supports a cover video',
-      )
+      error.message.includes('Only free-form content supports a cover video')
     ) {
       return {
         ok: false,
-        error:
-          'Solo el contenido libre (Other) admite vídeo de portada.',
+        error: 'Solo el contenido libre (Other) admite vídeo de portada.',
       }
     }
 
-    if (
-      error instanceof Error &&
-      error.message.includes('Video is too long')
-    ) {
+    if (error instanceof Error && error.message.includes('Video is too long')) {
       return {
         ok: false,
         error: 'El vídeo supera los 180 segundos.',
@@ -252,15 +231,13 @@ export async function deleteCoverMediaAction(
     ) {
       return {
         ok: false,
-        error:
-          'Este medio se sigue usando en otro sitio y no se puede borrar.',
+        error: 'Este medio se sigue usando en otro sitio y no se puede borrar.',
       }
     }
 
     return {
       ok: false,
-      error:
-        'No se ha podido desvincular la portada anterior.',
+      error: 'No se ha podido desvincular la portada anterior.',
     }
   }
 

@@ -95,7 +95,10 @@ export function ToolInsightDetail({
                 // modules/media/infrastructure/cloudinaryUrl.ts
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={buildImageUrl(content.coverMedia.cloudinaryPublicId, 'detail')}
+                  src={buildImageUrl(
+                    content.coverMedia.cloudinaryPublicId,
+                    'detail',
+                  )}
                   srcSet={buildImageSrcSet(
                     content.coverMedia.cloudinaryPublicId,
                     'detail',

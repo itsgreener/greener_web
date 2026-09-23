@@ -80,9 +80,7 @@ describe('episodeSchema — campos opcionales', () => {
   it('acepta number/durationSeconds positivos y rechaza 0 o negativos', () => {
     expect(episodeSchema.safeParse({ ...base, number: 3 }).success).toBe(true)
     expect(episodeSchema.safeParse({ ...base, number: 0 }).success).toBe(false)
-    expect(episodeSchema.safeParse({ ...base, number: -1 }).success).toBe(
-      false,
-    )
+    expect(episodeSchema.safeParse({ ...base, number: -1 }).success).toBe(false)
     expect(
       episodeSchema.safeParse({ ...base, durationSeconds: 1800 }).success,
     ).toBe(true)

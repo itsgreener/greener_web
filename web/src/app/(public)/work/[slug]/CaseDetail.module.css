@@ -62,22 +62,50 @@
   min-width: 0;
 }
 
+/* Truncado con elipsis (área "límites de caracteres", textLimits.ts):
+   protege el layout de verdad, es independiente del contador blando
+   del ABM. max-width en `ch` en vez de px porque el ancho real
+   disponible varía mucho según el ratio del carrusel (§2 de la spec) —
+   ch garantiza la medida de línea sin depender de esa geometría, y
+   además escala con la tipografía final aunque hoy sea placeholder. */
 .title {
   font-size: 1.75rem;
+  max-width: 40ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .highlight {
   font-size: 1.1rem;
   opacity: 0.85;
+  max-width: 55ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .body {
   white-space: pre-wrap;
+  max-width: 70ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  overflow: hidden;
 }
 
 .client {
   font-size: 0.85rem;
   opacity: 0.7;
+  max-width: 60ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .localeSelector {

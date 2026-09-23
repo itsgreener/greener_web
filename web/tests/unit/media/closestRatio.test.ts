@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 
-import { closestClosedRatio, widestCarouselRatio } from '@/modules/media/domain/closestRatio'
+import {
+  closestClosedRatio,
+  widestCarouselRatio,
+} from '@/modules/media/domain/closestRatio'
 
 describe('closestClosedRatio — dimensiones exactas de cada uno de los 7 ratios', () => {
   it.each([
@@ -42,12 +45,8 @@ describe('closestClosedRatio — la comparación es en escala logarítmica, no l
     // vertical" en sentidos opuestos, así que un valor justo por debajo
     // de 16:9 no debería colarse hacia 1:1 antes que uno justo por
     // encima de 9:16 lo haría en el otro sentido.
-    const distanceFrom16by9 = Math.abs(
-      Math.log(1500 / 900) - Math.log(16 / 9),
-    )
-    const distanceFrom9by16 = Math.abs(
-      Math.log(900 / 1500) - Math.log(9 / 16),
-    )
+    const distanceFrom16by9 = Math.abs(Math.log(1500 / 900) - Math.log(16 / 9))
+    const distanceFrom9by16 = Math.abs(Math.log(900 / 1500) - Math.log(9 / 16))
     expect(distanceFrom16by9).toBeCloseTo(distanceFrom9by16, 10)
   })
 

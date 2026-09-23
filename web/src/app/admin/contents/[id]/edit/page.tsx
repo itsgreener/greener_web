@@ -65,28 +65,26 @@ export default async function EditContentPage({ params }: Props) {
     content.type === 'insight' ||
     content.type === 'other'
 
-  const [translations, caseDetail, caseCarousel, episode, packageVersions, pins] =
-    await Promise.all([
-      getContentTranslations(content.id),
+  const [
+    translations,
+    caseDetail,
+    caseCarousel,
+    episode,
+    packageVersions,
+    pins,
+  ] = await Promise.all([
+    getContentTranslations(content.id),
 
-      content.type === 'case'
-        ? getCaseDetail(content.id)
-        : Promise.resolve(null),
+    content.type === 'case' ? getCaseDetail(content.id) : Promise.resolve(null),
 
-      content.type === 'case'
-        ? getCaseCarousel(content.id)
-        : Promise.resolve([]),
+    content.type === 'case' ? getCaseCarousel(content.id) : Promise.resolve([]),
 
-      content.type === 'episode'
-        ? getEpisode(content.id)
-        : Promise.resolve(null),
+    content.type === 'episode' ? getEpisode(content.id) : Promise.resolve(null),
 
-      supportsPackage
-        ? listHtmlPackageVersions(content.id)
-        : Promise.resolve([]),
+    supportsPackage ? listHtmlPackageVersions(content.id) : Promise.resolve([]),
 
-      listPins(content.id),
-    ])
+    listPins(content.id),
+  ])
 
   return (
     <main>

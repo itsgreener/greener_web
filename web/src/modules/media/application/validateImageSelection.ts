@@ -1,30 +1,20 @@
-import {
-  validateImageFile,
-} from '../domain/mediaLimits'
+import { validateImageFile } from '../domain/mediaLimits'
 
-export const IMAGE_FILE_ACCEPT =
-  'image/jpeg,image/png,image/webp,image/avif'
+export const IMAGE_FILE_ACCEPT = 'image/jpeg,image/png,image/webp,image/avif'
 
 export async function validateImageSelection(
-  file: File
+  file: File,
 ): Promise<string | null> {
-  const validation =
-    await validateImageFile(
-      file
-    )
+  const validation = await validateImageFile(file)
 
   if (!validation) {
     return null
   }
 
-  switch (
-    validation.code
-  ) {
+  switch (validation.code) {
     case 'IMAGE_TOO_LARGE':
       return `La imagen supera el límite de ${
-        validation.maxBytes /
-        1024 /
-        1024
+        validation.maxBytes / 1024 / 1024
       } MB.`
 
     case 'GIF_NOT_ALLOWED':
@@ -41,13 +31,10 @@ export async function validateImageSelection(
 
     case 'IMAGE_FORMAT_NOT_ALLOWED':
       return (
-        'Formato de imagen no permitido. ' +
-        'Utiliza JPG, PNG, WebP o AVIF.'
+        'Formato de imagen no permitido. ' + 'Utiliza JPG, PNG, WebP o AVIF.'
       )
 
     default:
-      return (
-        'La imagen seleccionada no es válida.'
-      )
+      return 'La imagen seleccionada no es válida.'
   }
 }

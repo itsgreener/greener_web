@@ -21,8 +21,8 @@ export default function PrivacyPage() {
     <div className={styles.page}>
       <h1 className={styles.title}>Privacy &amp; Cookies</h1>
       <p className={styles.placeholder}>
-        This page is a placeholder. The final privacy and cookie policy text
-        is still pending from Greener.
+        This page is a placeholder. The final privacy and cookie policy text is
+        still pending from Greener.
       </p>
     </div>
   )

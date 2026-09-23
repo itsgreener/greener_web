@@ -6,6 +6,12 @@ import type { Locale } from '@/modules/content/domain/contentSchema'
 
 import type { ContentTranslation } from '@/modules/content/domain/contentTranslationSchema'
 
+import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
+
+import { CharCounter } from '@/components/admin/CharCounter'
+
+import { useCharCount } from '@/components/admin/useCharCount'
+
 import {
   saveTranslationAction,
   type TranslationActionState,
@@ -44,6 +50,13 @@ export default function TranslationForm({
     initialState,
   )
 
+  const title = useCharCount(translation?.title ?? '')
+  const seoTitle = useCharCount(translation?.seoTitle ?? '')
+  const seoDescription = useCharCount(translation?.seoDescription ?? '')
+  const summary = useCharCount(translation?.summary ?? '')
+  const highlight = useCharCount(translation?.highlight ?? '')
+  const body = useCharCount(translation?.body ?? '')
+
   return (
     <form action={formAction}>
       <input type="hidden" name="contentId" value={contentId} />
@@ -60,8 +73,11 @@ export default function TranslationForm({
           name="title"
           type="text"
           defaultValue={translation?.title ?? ''}
+          onChange={title.onChange}
           required
         />
+
+        <CharCounter length={title.length} max={TEXT_LIMITS.title} />
 
         {state.fieldErrors?.title?.[0] && <p>{state.fieldErrors.title[0]}</p>}
       </div>
@@ -74,7 +90,10 @@ export default function TranslationForm({
           name="seoTitle"
           type="text"
           defaultValue={translation?.seoTitle ?? ''}
+          onChange={seoTitle.onChange}
         />
+
+        <CharCounter length={seoTitle.length} max={TEXT_LIMITS.seoTitle} />
       </div>
 
       <div>
@@ -84,6 +103,12 @@ export default function TranslationForm({
           id={`seoDescription-${locale}`}
           name="seoDescription"
           defaultValue={translation?.seoDescription ?? ''}
+          onChange={seoDescription.onChange}
+        />
+
+        <CharCounter
+          length={seoDescription.length}
+          max={TEXT_LIMITS.seoDescription}
         />
       </div>
 
@@ -94,7 +119,10 @@ export default function TranslationForm({
           id={`summary-${locale}`}
           name="summary"
           defaultValue={translation?.summary ?? ''}
+          onChange={summary.onChange}
         />
+
+        <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
       </div>
 
       {showHighlightAndBody && (
@@ -109,6 +137,12 @@ export default function TranslationForm({
               name="highlight"
               type="text"
               defaultValue={translation?.highlight ?? ''}
+              onChange={highlight.onChange}
+            />
+
+            <CharCounter
+              length={highlight.length}
+              max={TEXT_LIMITS.highlight}
             />
           </div>
 
@@ -120,7 +154,10 @@ export default function TranslationForm({
               name="body"
               rows={8}
               defaultValue={translation?.body ?? ''}
+              onChange={body.onChange}
             />
+
+            <CharCounter length={body.length} max={TEXT_LIMITS.body} />
           </div>
         </>
       )}

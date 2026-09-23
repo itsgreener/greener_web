@@ -11,10 +11,7 @@ import {
 } from '@/modules/media/domain/mediaLimits'
 
 function ascii(value: string): number[] {
-  return Array.from(
-    value,
-    (character) => character.charCodeAt(0),
-  )
+  return Array.from(value, (character) => character.charCodeAt(0))
 }
 
 function fakeFile({
@@ -43,25 +40,15 @@ function fakeFile({
 
 describe('validateImageUpload', () => {
   it('acepta un tamaño por debajo del límite (5 MB)', () => {
-    expect(
-      validateImageUpload(
-        IMAGE_LIMITS.maxSizeBytes - 1,
-      ),
-    ).toBeNull()
+    expect(validateImageUpload(IMAGE_LIMITS.maxSizeBytes - 1)).toBeNull()
   })
 
   it('acepta exactamente el límite', () => {
-    expect(
-      validateImageUpload(
-        IMAGE_LIMITS.maxSizeBytes,
-      ),
-    ).toBeNull()
+    expect(validateImageUpload(IMAGE_LIMITS.maxSizeBytes)).toBeNull()
   })
 
   it('rechaza un tamaño por encima del límite con el código IMAGE_TOO_LARGE', () => {
-    const result = validateImageUpload(
-      IMAGE_LIMITS.maxSizeBytes + 1,
-    )
+    const result = validateImageUpload(IMAGE_LIMITS.maxSizeBytes + 1)
 
     expect(result).toEqual({
       code: 'IMAGE_TOO_LARGE',
@@ -198,25 +185,13 @@ describe('validateImageFile', () => {
   })
 
   it('rechaza un PNG animado (APNG)', async () => {
-    const pngHeader = [
-      0x89,
-      0x50,
-      0x4e,
-      0x47,
-      0x0d,
-      0x0a,
-      0x1a,
-      0x0a,
-    ]
+    const pngHeader = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
     const result = await validateImageFile(
       fakeFile({
         name: 'animation.png',
         type: 'image/png',
-        bytes: [
-          ...pngHeader,
-          ...ascii('acTL'),
-        ],
+        bytes: [...pngHeader, ...ascii('acTL')],
       }),
     )
 
@@ -253,10 +228,7 @@ describe('validateImageFile', () => {
       fakeFile({
         name: 'foto.bmp',
         type: 'image/bmp',
-        bytes: [
-          0x42,
-          0x4d,
-        ],
+        bytes: [0x42, 0x4d],
       }),
     )
 
@@ -270,11 +242,7 @@ describe('validateImageFile', () => {
       fakeFile({
         name: 'foto.tiff',
         type: 'image/jpeg',
-        bytes: [
-          0xff,
-          0xd8,
-          0xff,
-        ],
+        bytes: [0xff, 0xd8, 0xff],
       }),
     )
 
@@ -288,11 +256,7 @@ describe('validateImageFile', () => {
       fakeFile({
         name: 'foto.jpg',
         type: 'image/gif',
-        bytes: [
-          0xff,
-          0xd8,
-          0xff,
-        ],
+        bytes: [0xff, 0xd8, 0xff],
       }),
     )
 
@@ -320,12 +284,7 @@ describe('validateImageFile', () => {
 
 describe('validateVideoUpload', () => {
   it('acepta un vídeo dentro de tamaño y duración', () => {
-    expect(
-      validateVideoUpload(
-        10 * 1024 * 1024,
-        60,
-      ),
-    ).toBeNull()
+    expect(validateVideoUpload(10 * 1024 * 1024, 60)).toBeNull()
   })
 
   it('acepta exactamente los límites de tamaño y duración (100 MB / 180 s)', () => {
@@ -343,9 +302,7 @@ describe('validateVideoUpload', () => {
       VIDEO_LIMITS.maxDurationSeconds + 1,
     )
 
-    expect(result?.code).toBe(
-      'VIDEO_TOO_LARGE',
-    )
+    expect(result?.code).toBe('VIDEO_TOO_LARGE')
   })
 
   it('rechaza un vídeo demasiado largo pero de tamaño válido, con VIDEO_TOO_LONG', () => {
@@ -356,20 +313,14 @@ describe('validateVideoUpload', () => {
 
     expect(result).toEqual({
       code: 'VIDEO_TOO_LONG',
-      maxSeconds:
-        VIDEO_LIMITS.maxDurationSeconds,
+      maxSeconds: VIDEO_LIMITS.maxDurationSeconds,
     })
   })
 })
 
 describe('validatePinAnimationUpload', () => {
   it('acepta una animación corta y ligera', () => {
-    expect(
-      validatePinAnimationUpload(
-        2 * 1024 * 1024,
-        3,
-      ),
-    ).toBeNull()
+    expect(validatePinAnimationUpload(2 * 1024 * 1024, 3)).toBeNull()
   })
 
   it('acepta exactamente 5 segundos (PIN_ANIMATION_LIMITS.maxDurationSeconds)', () => {
@@ -382,42 +333,26 @@ describe('validatePinAnimationUpload', () => {
   })
 
   it('rechaza más de 5 segundos con ANIMATION_TOO_LONG, no VIDEO_TOO_LONG', () => {
-    const result =
-      validatePinAnimationUpload(
-        2 * 1024 * 1024,
-        6,
-      )
+    const result = validatePinAnimationUpload(2 * 1024 * 1024, 6)
 
     expect(result).toEqual({
       code: 'ANIMATION_TOO_LONG',
-      maxSeconds:
-        PIN_ANIMATION_LIMITS.maxDurationSeconds,
+      maxSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
     })
   })
 
   it('rechaza por tamaño usando el límite general de vídeo (100 MB), no uno propio', () => {
-    const result =
-      validatePinAnimationUpload(
-        VIDEO_LIMITS.maxSizeBytes + 1,
-        3,
-      )
+    const result = validatePinAnimationUpload(VIDEO_LIMITS.maxSizeBytes + 1, 3)
 
     expect(result).toEqual({
       code: 'VIDEO_TOO_LARGE',
-      maxBytes:
-        VIDEO_LIMITS.maxSizeBytes,
+      maxBytes: VIDEO_LIMITS.maxSizeBytes,
     })
   })
 
   it('el tamaño se comprueba antes que la duración cuando ambos fallan', () => {
-    const result =
-      validatePinAnimationUpload(
-        VIDEO_LIMITS.maxSizeBytes + 1,
-        10,
-      )
+    const result = validatePinAnimationUpload(VIDEO_LIMITS.maxSizeBytes + 1, 10)
 
-    expect(result?.code).toBe(
-      'VIDEO_TOO_LARGE',
-    )
+    expect(result?.code).toBe('VIDEO_TOO_LARGE')
   })
 })

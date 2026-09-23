@@ -48,12 +48,28 @@
   min-width: 0;
 }
 
+/* Ver comentario equivalente en CaseDetail.module.css — mismo
+   mecanismo. summary usa 3 líneas/70ch (área "límites de caracteres",
+   textLimits.ts): es una mini introducción, más corta que el body de
+   caso/episodio a propósito. */
 .title {
   font-size: 1.75rem;
+  max-width: 40ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .summary {
   opacity: 0.85;
+  max-width: 70ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  overflow: hidden;
 }
 
 .cta {

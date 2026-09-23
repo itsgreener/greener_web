@@ -62,23 +62,15 @@ describe('composeToolDocument', () => {
   })
 
   it('inyecta <base href> apuntando a la ruta propia del paquete', () => {
-    expect(doc).toContain(
-      '<base href="/tools/pixel-palette/" />',
-    )
+    expect(doc).toContain('<base href="/tools/pixel-palette/" />')
   })
 
   it('inyecta las variables CSS de viewport (§12.3)', () => {
-    expect(doc).toContain(
-      '--greener-available-width: 900px',
-    )
+    expect(doc).toContain('--greener-available-width: 900px')
 
-    expect(doc).toContain(
-      '--greener-available-height: 700px',
-    )
+    expect(doc).toContain('--greener-available-height: 700px')
 
-    expect(doc).toContain(
-      '--greener-sidebar-width: 64px',
-    )
+    expect(doc).toContain('--greener-sidebar-width: 64px')
   })
 
   it('acepta expresiones CSS dinámicas para el viewport', () => {
@@ -96,54 +88,30 @@ describe('composeToolDocument', () => {
       '--greener-available-width: calc(100dvw - 64px)',
     )
 
-    expect(dynamicDoc).toContain(
-      '--greener-available-height: 100dvh',
-    )
+    expect(dynamicDoc).toContain('--greener-available-height: 100dvh')
 
-    expect(dynamicDoc).toContain(
-      '--greener-sidebar-width: 64px',
-    )
+    expect(dynamicDoc).toContain('--greener-sidebar-width: 64px')
 
-    expect(dynamicDoc).not.toContain(
-      '--greener-available-width: 1136px',
-    )
+    expect(dynamicDoc).not.toContain('--greener-available-width: 1136px')
 
-    expect(dynamicDoc).not.toContain(
-      '--greener-available-height: 800px',
-    )
+    expect(dynamicDoc).not.toContain('--greener-available-height: 800px')
   })
 
   it('conserva el <link> y el <script> del paquete, con rutas relativas intactas', () => {
-    expect(doc).toContain(
-      'href="./assets/style.css"',
-    )
+    expect(doc).toContain('href="./assets/style.css"')
 
-    expect(doc).toContain(
-      'src="./assets/main.js"',
-    )
+    expect(doc).toContain('src="./assets/main.js"')
   })
 
   it('incluye el menú lateral con las cinco entradas del brief §6, sin entrada de Casos', () => {
-    for (const label of [
-      'Home',
-      'Insights',
-      'Tools',
-      'Channel',
-      'Contacto',
-    ]) {
-      expect(doc).toContain(
-        `title="${label}"`,
-      )
+    for (const label of ['Home', 'Insights', 'Tools', 'Channel', 'Contacto']) {
+      expect(doc).toContain(`title="${label}"`)
     }
 
-    expect(doc).not.toContain(
-      'title="Casos"',
-    )
+    expect(doc).not.toContain('title="Casos"')
   })
 
   it('conserva el contenido del body del paquete (el canvas)', () => {
-    expect(doc).toContain(
-      '<canvas id="canvas">',
-    )
+    expect(doc).toContain('<canvas id="canvas">')
   })
 })

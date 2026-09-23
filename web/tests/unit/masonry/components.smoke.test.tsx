@@ -1,12 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  screen,
-  waitFor,
-  fireEvent,
-  act,
-} from '@testing-library/react'
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MasonryFeed } from '@/components/masonry/MasonryFeed'
 import { PinCard } from '@/components/pin/PinCard'

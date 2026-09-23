@@ -45,9 +45,7 @@ describe('registerCoverImageSchema — tool/insight/other (especificacion-final-
     const withoutRatio = Object.fromEntries(
       Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
     )
-    expect(registerCoverImageSchema.safeParse(withoutRatio).success).toBe(
-      false,
-    )
+    expect(registerCoverImageSchema.safeParse(withoutRatio).success).toBe(false)
   })
 
   it('rechaza un ratio fuera de la lista cerrada de 7 valores', () => {
@@ -111,9 +109,7 @@ describe('registerCoverVideoSchema — solo other admite vídeo de portada', () 
     const withoutRatio = Object.fromEntries(
       Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
     )
-    expect(registerCoverVideoSchema.safeParse(withoutRatio).success).toBe(
-      false,
-    )
+    expect(registerCoverVideoSchema.safeParse(withoutRatio).success).toBe(false)
   })
 
   it('redondea la duración hacia arriba (transform Math.ceil)', () => {

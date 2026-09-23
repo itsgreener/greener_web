@@ -51,14 +51,17 @@ describe('proxy — rutas /app de tools/insights (contrato-zip-tools-insights.md
     '/tools/mi-tool/app/assets/main.js',
     '/insights/mi-insight/app',
     '/insights/mi-insight/app/assets/style.css',
-  ])('%s pasa sin ninguna cabecera de seguridad global añadida', async (pathname) => {
-    const { proxy } = await import('@/proxy')
+  ])(
+    '%s pasa sin ninguna cabecera de seguridad global añadida',
+    async (pathname) => {
+      const { proxy } = await import('@/proxy')
 
-    const response = await proxy(makeRequest(pathname))
+      const response = await proxy(makeRequest(pathname))
 
-    expect(response.headers.get('Content-Security-Policy')).toBeNull()
-    expect(response.headers.get('Strict-Transport-Security')).toBeNull()
-  })
+      expect(response.headers.get('Content-Security-Policy')).toBeNull()
+      expect(response.headers.get('Strict-Transport-Security')).toBeNull()
+    },
+  )
 
   it('una ruta de detalle real (sin /app) sí lleva las cabeceras — el patrón no es demasiado ancho', async () => {
     const { proxy } = await import('@/proxy')
@@ -70,23 +73,29 @@ describe('proxy — rutas /app de tools/insights (contrato-zip-tools-insights.md
 })
 
 describe('proxy — cabeceras globales en rutas públicas normales', () => {
-  it.each(['/', '/work', '/tools', '/insights', '/channel', '/contact', '/privacy', '/variety/algo'])(
-    '%s lleva las cuatro cabeceras de seguridad',
-    async (pathname) => {
-      const { proxy } = await import('@/proxy')
+  it.each([
+    '/',
+    '/work',
+    '/tools',
+    '/insights',
+    '/channel',
+    '/contact',
+    '/privacy',
+    '/variety/algo',
+  ])('%s lleva las cuatro cabeceras de seguridad', async (pathname) => {
+    const { proxy } = await import('@/proxy')
 
-      const response = await proxy(makeRequest(pathname))
+    const response = await proxy(makeRequest(pathname))
 
-      expect(response.headers.get('Content-Security-Policy')).toBeTruthy()
-      expect(response.headers.get('Strict-Transport-Security')).toBe(
-        'max-age=63072000; includeSubDomains; preload',
-      )
-      expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
-      expect(response.headers.get('Referrer-Policy')).toBe(
-        'strict-origin-when-cross-origin',
-      )
-    },
-  )
+    expect(response.headers.get('Content-Security-Policy')).toBeTruthy()
+    expect(response.headers.get('Strict-Transport-Security')).toBe(
+      'max-age=63072000; includeSubDomains; preload',
+    )
+    expect(response.headers.get('X-Content-Type-Options')).toBe('nosniff')
+    expect(response.headers.get('Referrer-Policy')).toBe(
+      'strict-origin-when-cross-origin',
+    )
+  })
 
   it('el nonce del script-src cambia en cada request', async () => {
     const { proxy } = await import('@/proxy')

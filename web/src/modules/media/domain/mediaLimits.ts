@@ -14,77 +14,51 @@ export const IMAGE_LIMITS = {
     'image/avif',
   ] as const,
 
-  allowedExtensions: [
-    'jpg',
-    'jpeg',
-    'png',
-    'webp',
-    'avif',
-  ] as const,
+  allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'avif'] as const,
 
-  recommendedFormats: [
-    'webp',
-    'avif',
-  ] as const,
+  recommendedFormats: ['webp', 'avif'] as const,
 } as const
 
 export const VIDEO_LIMITS = {
-  maxSizeBytes:
-    100 * 1024 * 1024,
+  maxSizeBytes: 100 * 1024 * 1024,
 
-  maxDurationSeconds:
-    180,
+  maxDurationSeconds: 180,
 
-  recommendedFormat:
-    'mp4',
+  recommendedFormat: 'mp4',
 
-  recommendedCodec:
-    'h264',
+  recommendedCodec: 'h264',
 } as const
 
 export const PIN_ANIMATION_LIMITS = {
-  maxDurationSeconds:
-    5,
+  maxDurationSeconds: 5,
 } as const
 
 export type MediaValidationError =
   | {
-      code:
-        'IMAGE_TOO_LARGE'
-      maxBytes:
-        number
+      code: 'IMAGE_TOO_LARGE'
+      maxBytes: number
     }
   | {
-      code:
-        'IMAGE_FORMAT_NOT_ALLOWED'
+      code: 'IMAGE_FORMAT_NOT_ALLOWED'
     }
   | {
-      code:
-        'GIF_NOT_ALLOWED'
+      code: 'GIF_NOT_ALLOWED'
     }
   | {
-      code:
-        'ANIMATED_IMAGE_NOT_ALLOWED'
-      format:
-        'webp' | 'png'
+      code: 'ANIMATED_IMAGE_NOT_ALLOWED'
+      format: 'webp' | 'png'
     }
   | {
-      code:
-        'VIDEO_TOO_LARGE'
-      maxBytes:
-        number
+      code: 'VIDEO_TOO_LARGE'
+      maxBytes: number
     }
   | {
-      code:
-        'VIDEO_TOO_LONG'
-      maxSeconds:
-        number
+      code: 'VIDEO_TOO_LONG'
+      maxSeconds: number
     }
   | {
-      code:
-        'ANIMATION_TOO_LONG'
-      maxSeconds:
-        number
+      code: 'ANIMATION_TOO_LONG'
+      maxSeconds: number
     }
 
 export interface ImageFileLike {
@@ -92,17 +66,11 @@ export interface ImageFileLike {
   type: string
   name: string
 
-  arrayBuffer():
-    Promise<ArrayBuffer>
+  arrayBuffer(): Promise<ArrayBuffer>
 }
 
-function getExtension(
-  fileName: string
-): string {
-  const parts =
-    fileName
-      .toLowerCase()
-      .split('.')
+function getExtension(fileName: string): string {
+  const parts = fileName.toLowerCase().split('.')
 
   if (parts.length < 2) {
     return ''
@@ -111,29 +79,13 @@ function getExtension(
   return parts.at(-1) ?? ''
 }
 
-function asciiAt(
-  bytes: Uint8Array,
-  offset: number,
-  value: string
-): boolean {
-  if (
-    offset + value.length >
-    bytes.length
-  ) {
+function asciiAt(bytes: Uint8Array, offset: number, value: string): boolean {
+  if (offset + value.length > bytes.length) {
     return false
   }
 
-  for (
-    let index = 0;
-    index < value.length;
-    index += 1
-  ) {
-    if (
-      bytes[
-        offset + index
-      ] !==
-      value.charCodeAt(index)
-    ) {
+  for (let index = 0; index < value.length; index += 1) {
+    if (bytes[offset + index] !== value.charCodeAt(index)) {
       return false
     }
   }
@@ -141,24 +93,9 @@ function asciiAt(
   return true
 }
 
-function containsAscii(
-  bytes: Uint8Array,
-  value: string
-): boolean {
-  for (
-    let index = 0;
-    index <=
-    bytes.length -
-      value.length;
-    index += 1
-  ) {
-    if (
-      asciiAt(
-        bytes,
-        index,
-        value
-      )
-    ) {
+function containsAscii(bytes: Uint8Array, value: string): boolean {
+  for (let index = 0; index <= bytes.length - value.length; index += 1) {
+    if (asciiAt(bytes, index, value)) {
       return true
     }
   }
@@ -166,53 +103,20 @@ function containsAscii(
   return false
 }
 
-function isGif(
-  bytes: Uint8Array
-): boolean {
-  return (
-    asciiAt(
-      bytes,
-      0,
-      'GIF87a'
-    ) ||
-    asciiAt(
-      bytes,
-      0,
-      'GIF89a'
-    )
-  )
+function isGif(bytes: Uint8Array): boolean {
+  return asciiAt(bytes, 0, 'GIF87a') || asciiAt(bytes, 0, 'GIF89a')
 }
 
-function isWebP(
-  bytes: Uint8Array
-): boolean {
-  return (
-    asciiAt(
-      bytes,
-      0,
-      'RIFF'
-    ) &&
-    asciiAt(
-      bytes,
-      8,
-      'WEBP'
-    )
-  )
+function isWebP(bytes: Uint8Array): boolean {
+  return asciiAt(bytes, 0, 'RIFF') && asciiAt(bytes, 8, 'WEBP')
 }
 
-function isAnimatedWebP(
-  bytes: Uint8Array
-): boolean {
+function isAnimatedWebP(bytes: Uint8Array): boolean {
   if (!isWebP(bytes)) {
     return false
   }
 
-  if (
-    containsAscii(
-      bytes,
-      'ANIM'
-    )
-  ) {
+  if (containsAscii(bytes, 'ANIM')) {
     return true
   }
 
@@ -222,59 +126,25 @@ function isAnimatedWebP(
    *
    * El bit 0x02 indica animación.
    */
-  if (
-    asciiAt(
-      bytes,
-      12,
-      'VP8X'
-    ) &&
-    bytes.length > 20
-  ) {
-    return (
-      bytes[20] & 0x02
-    ) !== 0
+  if (asciiAt(bytes, 12, 'VP8X') && bytes.length > 20) {
+    return (bytes[20] & 0x02) !== 0
   }
 
   return false
 }
 
-function isPng(
-  bytes: Uint8Array
-): boolean {
-  const signature = [
-    0x89,
-    0x50,
-    0x4e,
-    0x47,
-    0x0d,
-    0x0a,
-    0x1a,
-    0x0a,
-  ]
+function isPng(bytes: Uint8Array): boolean {
+  const signature = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
 
-  if (
-    bytes.length <
-    signature.length
-  ) {
+  if (bytes.length < signature.length) {
     return false
   }
 
-  return signature.every(
-    (value, index) =>
-      bytes[index] === value
-  )
+  return signature.every((value, index) => bytes[index] === value)
 }
 
-function isAnimatedPng(
-  bytes: Uint8Array
-): boolean {
-  return (
-    isPng(bytes) &&
-    containsAscii(
-      bytes,
-      'acTL'
-    )
-  )
+function isAnimatedPng(bytes: Uint8Array): boolean {
+  return isPng(bytes) && containsAscii(bytes, 'acTL')
 }
 
 /**
@@ -284,19 +154,13 @@ function isAnimatedPng(
  * Solo valida tamaño.
  */
 export function validateImageUpload(
-  sizeBytes: number
+  sizeBytes: number,
 ): MediaValidationError | null {
-  if (
-    sizeBytes >
-    IMAGE_LIMITS.maxSizeBytes
-  ) {
+  if (sizeBytes > IMAGE_LIMITS.maxSizeBytes) {
     return {
-      code:
-        'IMAGE_TOO_LARGE',
+      code: 'IMAGE_TOO_LARGE',
 
-      maxBytes:
-        IMAGE_LIMITS
-          .maxSizeBytes,
+      maxBytes: IMAGE_LIMITS.maxSizeBytes,
     }
   }
 
@@ -315,56 +179,31 @@ export function validateImageUpload(
  * - archivos > 5 MB
  */
 export async function validateImageFile(
-  file: ImageFileLike
-): Promise<
-  MediaValidationError | null
-> {
-  const sizeValidation =
-    validateImageUpload(
-      file.size
-    )
+  file: ImageFileLike,
+): Promise<MediaValidationError | null> {
+  const sizeValidation = validateImageUpload(file.size)
 
   if (sizeValidation) {
     return sizeValidation
   }
 
-  const mimeType =
-    file.type
-      .trim()
-      .toLowerCase()
+  const mimeType = file.type.trim().toLowerCase()
 
-  const extension =
-    getExtension(
-      file.name
-    )
+  const extension = getExtension(file.name)
 
-  if (
-    mimeType ===
-      'image/gif' ||
-    extension ===
-      'gif'
-  ) {
+  if (mimeType === 'image/gif' || extension === 'gif') {
     return {
-      code:
-        'GIF_NOT_ALLOWED',
+      code: 'GIF_NOT_ALLOWED',
     }
   }
 
-  const validMime =
-    IMAGE_LIMITS
-      .allowedMimeTypes
-      .includes(
-        mimeType as
-          (typeof IMAGE_LIMITS.allowedMimeTypes)[number]
-      )
+  const validMime = IMAGE_LIMITS.allowedMimeTypes.includes(
+    mimeType as (typeof IMAGE_LIMITS.allowedMimeTypes)[number],
+  )
 
-  const validExtension =
-    IMAGE_LIMITS
-      .allowedExtensions
-      .includes(
-        extension as
-          (typeof IMAGE_LIMITS.allowedExtensions)[number]
-      )
+  const validExtension = IMAGE_LIMITS.allowedExtensions.includes(
+    extension as (typeof IMAGE_LIMITS.allowedExtensions)[number],
+  )
 
   /*
    * Algunos navegadores pueden entregar
@@ -373,33 +212,21 @@ export async function validateImageFile(
    * En ese caso dejamos que la extensión
    * y posteriormente la firma real decidan.
    */
-  if (
-    mimeType !== '' &&
-    !validMime
-  ) {
+  if (mimeType !== '' && !validMime) {
     return {
-      code:
-        'IMAGE_FORMAT_NOT_ALLOWED',
+      code: 'IMAGE_FORMAT_NOT_ALLOWED',
     }
   }
 
-  if (
-    extension !== '' &&
-    !validExtension
-  ) {
+  if (extension !== '' && !validExtension) {
     return {
-      code:
-        'IMAGE_FORMAT_NOT_ALLOWED',
+      code: 'IMAGE_FORMAT_NOT_ALLOWED',
     }
   }
 
-  const buffer =
-    await file.arrayBuffer()
+  const buffer = await file.arrayBuffer()
 
-  const bytes =
-    new Uint8Array(
-      buffer
-    )
+  const bytes = new Uint8Array(buffer)
 
   /*
    * Comprobación por firma binaria.
@@ -409,36 +236,23 @@ export async function validateImageFile(
    */
   if (isGif(bytes)) {
     return {
-      code:
-        'GIF_NOT_ALLOWED',
+      code: 'GIF_NOT_ALLOWED',
     }
   }
 
-  if (
-    isAnimatedWebP(
-      bytes
-    )
-  ) {
+  if (isAnimatedWebP(bytes)) {
     return {
-      code:
-        'ANIMATED_IMAGE_NOT_ALLOWED',
+      code: 'ANIMATED_IMAGE_NOT_ALLOWED',
 
-      format:
-        'webp',
+      format: 'webp',
     }
   }
 
-  if (
-    isAnimatedPng(
-      bytes
-    )
-  ) {
+  if (isAnimatedPng(bytes)) {
     return {
-      code:
-        'ANIMATED_IMAGE_NOT_ALLOWED',
+      code: 'ANIMATED_IMAGE_NOT_ALLOWED',
 
-      format:
-        'png',
+      format: 'png',
     }
   }
 
@@ -447,34 +261,21 @@ export async function validateImageFile(
 
 export function validateVideoUpload(
   sizeBytes: number,
-  durationSeconds: number
+  durationSeconds: number,
 ): MediaValidationError | null {
-  if (
-    sizeBytes >
-    VIDEO_LIMITS.maxSizeBytes
-  ) {
+  if (sizeBytes > VIDEO_LIMITS.maxSizeBytes) {
     return {
-      code:
-        'VIDEO_TOO_LARGE',
+      code: 'VIDEO_TOO_LARGE',
 
-      maxBytes:
-        VIDEO_LIMITS
-          .maxSizeBytes,
+      maxBytes: VIDEO_LIMITS.maxSizeBytes,
     }
   }
 
-  if (
-    durationSeconds >
-    VIDEO_LIMITS
-      .maxDurationSeconds
-  ) {
+  if (durationSeconds > VIDEO_LIMITS.maxDurationSeconds) {
     return {
-      code:
-        'VIDEO_TOO_LONG',
+      code: 'VIDEO_TOO_LONG',
 
-      maxSeconds:
-        VIDEO_LIMITS
-          .maxDurationSeconds,
+      maxSeconds: VIDEO_LIMITS.maxDurationSeconds,
     }
   }
 
@@ -483,34 +284,21 @@ export function validateVideoUpload(
 
 export function validatePinAnimationUpload(
   sizeBytes: number,
-  durationSeconds: number
+  durationSeconds: number,
 ): MediaValidationError | null {
-  if (
-    sizeBytes >
-    VIDEO_LIMITS.maxSizeBytes
-  ) {
+  if (sizeBytes > VIDEO_LIMITS.maxSizeBytes) {
     return {
-      code:
-        'VIDEO_TOO_LARGE',
+      code: 'VIDEO_TOO_LARGE',
 
-      maxBytes:
-        VIDEO_LIMITS
-          .maxSizeBytes,
+      maxBytes: VIDEO_LIMITS.maxSizeBytes,
     }
   }
 
-  if (
-    durationSeconds >
-    PIN_ANIMATION_LIMITS
-      .maxDurationSeconds
-  ) {
+  if (durationSeconds > PIN_ANIMATION_LIMITS.maxDurationSeconds) {
     return {
-      code:
-        'ANIMATION_TOO_LONG',
+      code: 'ANIMATION_TOO_LONG',
 
-      maxSeconds:
-        PIN_ANIMATION_LIMITS
-          .maxDurationSeconds,
+      maxSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
     }
   }
 

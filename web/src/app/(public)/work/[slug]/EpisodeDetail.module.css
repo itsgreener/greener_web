@@ -46,17 +46,37 @@
   opacity: 0.7;
 }
 
+/* Ver comentario equivalente en CaseDetail.module.css — mismos límites
+   (área "límites de caracteres", textLimits.ts), mismo mecanismo. */
 .title {
   font-size: 1.75rem;
+  max-width: 40ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .highlight {
   font-size: 1.1rem;
   opacity: 0.85;
+  max-width: 55ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .body {
   white-space: pre-wrap;
+  max-width: 70ch;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
+  overflow: hidden;
 }
 
 .sentinel {

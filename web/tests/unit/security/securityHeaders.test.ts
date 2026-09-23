@@ -15,7 +15,9 @@ describe('buildContentSecurityPolicy', () => {
   it('script-src lleva el nonce exacto y strict-dynamic, nunca unsafe-inline', () => {
     const csp = buildContentSecurityPolicy(INPUT)
 
-    expect(csp).toContain(`script-src 'self' 'nonce-test-nonce-123' 'strict-dynamic'`)
+    expect(csp).toContain(
+      `script-src 'self' 'nonce-test-nonce-123' 'strict-dynamic'`,
+    )
     expect(csp).not.toMatch(/script-src[^;]*unsafe-inline/)
   })
 
@@ -39,7 +41,9 @@ describe('buildContentSecurityPolicy', () => {
       supabaseUrl: 'https://abcxyz.supabase.co/algo?token=1',
     })
 
-    expect(csp).toContain('connect-src \'self\' https://abcxyz.supabase.co https://api.cloudinary.com')
+    expect(csp).toContain(
+      "connect-src 'self' https://abcxyz.supabase.co https://api.cloudinary.com",
+    )
   })
 
   it('img-src y media-src incluyen res.cloudinary.com (portadas, carrusel, pines y vídeo — sin next/image de por medio)', () => {
@@ -58,7 +62,9 @@ describe('buildContentSecurityPolicy', () => {
   })
 
   it('frame-ancestors none — el sitio nunca se embebe a sí mismo en ningún sitio', () => {
-    expect(buildContentSecurityPolicy(INPUT)).toContain(`frame-ancestors 'none'`)
+    expect(buildContentSecurityPolicy(INPUT)).toContain(
+      `frame-ancestors 'none'`,
+    )
   })
 
   it('dos nonces distintos producen dos CSP distintas (no hay valor cacheado a fuego)', () => {

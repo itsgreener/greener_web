@@ -83,7 +83,13 @@ describe('CaseDetail — prueba de humo', () => {
   })
 
   it('pinta título, highlight, body y cliente, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {
-    render(<CaseDetail content={CONTENT} caseDetail={{ client: 'Agróptimum' }} carousel={[]} />)
+    render(
+      <CaseDetail
+        content={CONTENT}
+        caseDetail={{ client: 'Agróptimum' }}
+        carousel={[]}
+      />,
+    )
 
     expect(screen.getByRole('heading', { name: 'Mi caso' })).toBeInTheDocument()
     expect(screen.getByText('Un subtítulo destacado')).toBeInTheDocument()
@@ -244,9 +250,9 @@ describe('CaseDetail — prueba de humo', () => {
       'aria-current',
       'page',
     )
-    expect(
-      screen.getByRole('link', { name: 'ES' }),
-    ).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'ES' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
   it('el panel de recomendaciones solo aparece debajo, nunca al lado (fullWidthContent — especificacion-final-formato-detalle.md §1)', async () => {

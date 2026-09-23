@@ -1,12 +1,7 @@
 // @vitest-environment jsdom
 import { useState } from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import {
-  render,
-  screen,
-  waitFor,
-  fireEvent,
-} from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Feed } from '@/components/masonry/Feed'
 import { FeedProvider } from '@/components/masonry/FeedProvider'

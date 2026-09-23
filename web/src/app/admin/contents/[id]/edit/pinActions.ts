@@ -61,9 +61,7 @@ function revalidateContent(contentId: string) {
   revalidatePath(`/admin/contents/${contentId}/edit`)
 }
 
-function parseOptionalNumber(
-  value: FormDataEntryValue | null,
-) {
+function parseOptionalNumber(value: FormDataEntryValue | null) {
   if (value === null || value === '') {
     return null
   }
@@ -79,24 +77,18 @@ export async function createPinAction(
   const result = createPinSchema.safeParse({
     contentId,
     ratio: formData.get('ratio'),
-    showAsCarousel:
-      formData.get('showAsCarousel') === 'true',
+    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
     language: formData.get('language'),
-    autoplayMode:
-      formData.get('autoplayMode') || null,
-    speedMs: parseOptionalNumber(
-      formData.get('speedMs'),
-    ),
-    queueOrder:
-      formData.get('queueOrder') || 0,
+    autoplayMode: formData.get('autoplayMode') || null,
+    speedMs: parseOptionalNumber(formData.get('speedMs')),
+    queueOrder: formData.get('queueOrder') || 0,
     alt: formData.get('alt'),
   })
 
   if (!result.success) {
     return {
-      fieldErrors:
-        result.error.flatten().fieldErrors,
+      fieldErrors: result.error.flatten().fieldErrors,
     }
   }
 
@@ -107,9 +99,7 @@ export async function createPinAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'rótulo del pin es obligatorio',
-      )
+      error.message.includes('rótulo del pin es obligatorio')
     ) {
       return {
         fieldErrors: {
@@ -119,8 +109,7 @@ export async function createPinAction(
     }
 
     return {
-      formError:
-        'No se ha podido crear el pin.',
+      formError: 'No se ha podido crear el pin.',
     }
   }
 
@@ -140,24 +129,18 @@ export async function updatePinAction(
   const result = updatePinSchema.safeParse({
     id: pinId,
     ratio: formData.get('ratio'),
-    showAsCarousel:
-      formData.get('showAsCarousel') === 'true',
+    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
     language: formData.get('language'),
-    autoplayMode:
-      formData.get('autoplayMode') || null,
-    speedMs: parseOptionalNumber(
-      formData.get('speedMs'),
-    ),
-    queueOrder:
-      formData.get('queueOrder') || 0,
+    autoplayMode: formData.get('autoplayMode') || null,
+    speedMs: parseOptionalNumber(formData.get('speedMs')),
+    queueOrder: formData.get('queueOrder') || 0,
     alt: formData.get('alt'),
   })
 
   if (!result.success) {
     return {
-      fieldErrors:
-        result.error.flatten().fieldErrors,
+      fieldErrors: result.error.flatten().fieldErrors,
     }
   }
 
@@ -168,9 +151,7 @@ export async function updatePinAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'rótulo del pin es obligatorio',
-      )
+      error.message.includes('rótulo del pin es obligatorio')
     ) {
       return {
         fieldErrors: {
@@ -180,8 +161,7 @@ export async function updatePinAction(
     }
 
     return {
-      formError:
-        'No se ha podido actualizar el pin.',
+      formError: 'No se ha podido actualizar el pin.',
     }
   }
 
@@ -196,15 +176,13 @@ export async function deletePinAction(
   pinId: string,
   contentId: string,
 ): Promise<PinFormState> {
-  const result =
-    deletePinSchema.safeParse({
-      id: pinId,
-    })
+  const result = deletePinSchema.safeParse({
+    id: pinId,
+  })
 
   if (!result.success) {
     return {
-      formError:
-        'El identificador del pin no es válido.',
+      formError: 'El identificador del pin no es válido.',
     }
   }
 
@@ -214,8 +192,7 @@ export async function deletePinAction(
     console.error(error)
 
     return {
-      formError:
-        'No se ha podido borrar el pin.',
+      formError: 'No se ha podido borrar el pin.',
     }
   }
 
@@ -236,14 +213,13 @@ export async function deletePinAction(
  * Antes de registrar la imagen en Postgres se consulta el
  * asset real en Cloudinary y se valida en servidor.
  */
-export type CreatePinWithImageInput =
-  CreatePinInput & {
-    cloudinaryPublicId: string
-    format?: string
-    width: number
-    height: number
-    bytes: number
-  }
+export type CreatePinWithImageInput = CreatePinInput & {
+  cloudinaryPublicId: string
+  format?: string
+  width: number
+  height: number
+  bytes: number
+}
 
 export type CreatePinWithImageResult =
   | {
@@ -260,59 +236,46 @@ export type CreatePinWithImageResult =
 export async function createPinWithImageAction(
   input: unknown,
 ): Promise<CreatePinWithImageResult> {
-  const pinResult =
-    createPinSchema.safeParse(input)
+  const pinResult = createPinSchema.safeParse(input)
 
   if (!pinResult.success) {
-    const firstIssue =
-      pinResult.error.issues[0]?.message
+    const firstIssue = pinResult.error.issues[0]?.message
 
     return {
       ok: false,
-      error:
-        firstIssue ??
-        'Los datos del pin no son válidos.',
+      error: firstIssue ?? 'Los datos del pin no son válidos.',
     }
   }
 
   let pinId: string
 
   try {
-    pinId = await createPin(
-      pinResult.data,
-    )
+    pinId = await createPin(pinResult.data)
   } catch (error) {
     console.error(error)
 
     return {
       ok: false,
-      error:
-        'No se ha podido crear el pin.',
+      error: 'No se ha podido crear el pin.',
     }
   }
 
-  const imageInput =
-    input as Partial<CreatePinWithImageInput>
+  const imageInput = input as Partial<CreatePinWithImageInput>
 
-  if (
-    typeof imageInput.cloudinaryPublicId !==
-    'string'
-  ) {
+  if (typeof imageInput.cloudinaryPublicId !== 'string') {
     return {
       ok: false,
       pinId,
-      error:
-        'El pin se creó, pero la imagen no es válida.',
+      error: 'El pin se creó, pero la imagen no es válida.',
     }
   }
 
   let verifiedImage
 
   try {
-    verifiedImage =
-      await verifyCloudinaryImageAsset(
-        imageInput.cloudinaryPublicId,
-      )
+    verifiedImage = await verifyCloudinaryImageAsset(
+      imageInput.cloudinaryPublicId,
+    )
   } catch (error) {
     console.error(error)
 
@@ -320,40 +283,30 @@ export async function createPinWithImageAction(
       ok: false,
       pinId,
       error:
-        error instanceof
-        CloudinaryImageVerificationError
+        error instanceof CloudinaryImageVerificationError
           ? error.message
           : 'El pin se creó, pero no se ha podido verificar la imagen.',
     }
   }
 
-  const imageResult =
-    attachPinImageSchema.safeParse({
-      pinId,
-      ...verifiedImage,
-      slideOrder: 0,
-    })
+  const imageResult = attachPinImageSchema.safeParse({
+    pinId,
+    ...verifiedImage,
+    slideOrder: 0,
+  })
 
   if (!imageResult.success) {
     return {
       ok: false,
       pinId,
-      error:
-        imageResult.error.issues[0]
-          ?.message ??
-        'La imagen no es válida.',
+      error: imageResult.error.issues[0]?.message ?? 'La imagen no es válida.',
     }
   }
 
   try {
-    const mediaId =
-      await attachPinImage(
-        imageResult.data,
-      )
+    const mediaId = await attachPinImage(imageResult.data)
 
-    revalidateContent(
-      pinResult.data.contentId,
-    )
+    revalidateContent(pinResult.data.contentId)
 
     return {
       ok: true,
@@ -363,9 +316,7 @@ export async function createPinWithImageAction(
   } catch (error) {
     console.error(error)
 
-    revalidateContent(
-      pinResult.data.contentId,
-    )
+    revalidateContent(pinResult.data.contentId)
 
     return {
       ok: false,
@@ -381,28 +332,24 @@ export async function createPinWithImageAction(
 export async function attachPinImageAction(
   input: unknown,
 ): Promise<PinMediaActionResult> {
-  const result =
-    attachPinImageSchema.safeParse(input)
+  const result = attachPinImageSchema.safeParse(input)
 
   if (!result.success) {
     return {
       ok: false,
-      error:
-        'Los datos de la imagen no son válidos.',
+      error: 'Los datos de la imagen no son válidos.',
     }
   }
 
   try {
-    const verified =
-      await verifyCloudinaryImageAsset(
-        result.data.cloudinaryPublicId,
-      )
+    const verified = await verifyCloudinaryImageAsset(
+      result.data.cloudinaryPublicId,
+    )
 
-    const mediaId =
-      await attachPinImage({
-        ...result.data,
-        ...verified,
-      })
+    const mediaId = await attachPinImage({
+      ...result.data,
+      ...verified,
+    })
 
     return {
       ok: true,
@@ -411,10 +358,7 @@ export async function attachPinImageAction(
   } catch (error) {
     console.error(error)
 
-    if (
-      error instanceof
-      CloudinaryImageVerificationError
-    ) {
+    if (error instanceof CloudinaryImageVerificationError) {
       return {
         ok: false,
         error: error.message,
@@ -423,22 +367,17 @@ export async function attachPinImageAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Image is too large',
-      )
+      error.message.includes('Image is too large')
     ) {
       return {
         ok: false,
-        error:
-          'La imagen supera los 5 MB.',
+        error: 'La imagen supera los 5 MB.',
       }
     }
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'admite hasta 8 medios',
-      )
+      error.message.includes('admite hasta 8 medios')
     ) {
       return {
         ok: false,
@@ -448,8 +387,7 @@ export async function attachPinImageAction(
 
     return {
       ok: false,
-      error:
-        'No se ha podido adjuntar la imagen.',
+      error: 'No se ha podido adjuntar la imagen.',
     }
   }
 }
@@ -457,28 +395,24 @@ export async function attachPinImageAction(
 export async function attachPinVideoAction(
   input: unknown,
 ): Promise<PinMediaActionResult> {
-  const result =
-    attachPinVideoSchema.safeParse(input)
+  const result = attachPinVideoSchema.safeParse(input)
 
   if (!result.success) {
     return {
       ok: false,
-      error:
-        'Los datos del vídeo no son válidos.',
+      error: 'Los datos del vídeo no son válidos.',
     }
   }
 
   try {
-    const verified =
-      await verifyCloudinaryVideoAsset(
-        result.data.cloudinaryPublicId,
-      )
+    const verified = await verifyCloudinaryVideoAsset(
+      result.data.cloudinaryPublicId,
+    )
 
-    const mediaId =
-      await attachPinVideo({
-        ...result.data,
-        ...verified,
-      })
+    const mediaId = await attachPinVideo({
+      ...result.data,
+      ...verified,
+    })
 
     return {
       ok: true,
@@ -487,10 +421,7 @@ export async function attachPinVideoAction(
   } catch (error) {
     console.error(error)
 
-    if (
-      error instanceof
-      CloudinaryVideoVerificationError
-    ) {
+    if (error instanceof CloudinaryVideoVerificationError) {
       return {
         ok: false,
         error: error.message,
@@ -499,35 +430,27 @@ export async function attachPinVideoAction(
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Animation is too long',
-      )
+      error.message.includes('Animation is too long')
     ) {
       return {
         ok: false,
-        error:
-          'El vídeo no puede superar los 5 segundos.',
+        error: 'El vídeo no puede superar los 5 segundos.',
       }
     }
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'Video is too large',
-      )
+      error.message.includes('Video is too large')
     ) {
       return {
         ok: false,
-        error:
-          'El vídeo supera los 100 MB.',
+        error: 'El vídeo supera los 100 MB.',
       }
     }
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'admite hasta 8 medios',
-      )
+      error.message.includes('admite hasta 8 medios')
     ) {
       return {
         ok: false,
@@ -537,8 +460,7 @@ export async function attachPinVideoAction(
 
     return {
       ok: false,
-      error:
-        'No se ha podido adjuntar el vídeo.',
+      error: 'No se ha podido adjuntar el vídeo.',
     }
   }
 }
@@ -553,29 +475,23 @@ export async function attachPinVideoAction(
 export async function detachPinMediaAction(
   input: unknown,
 ): Promise<DetachPinMediaActionResult> {
-  const result =
-    detachPinMediaSchema.safeParse(input)
+  const result = detachPinMediaSchema.safeParse(input)
 
   if (!result.success) {
     return {
       ok: false,
-      error:
-        'Los datos del medio no son válidos.',
+      error: 'Los datos del medio no son válidos.',
     }
   }
 
   try {
-    await detachPinMedia(
-      result.data,
-    )
+    await detachPinMedia(result.data)
   } catch (error) {
     console.error(error)
 
     if (
       error instanceof Error &&
-      error.message.includes(
-        'no pertenece a este pin',
-      )
+      error.message.includes('no pertenece a este pin')
     ) {
       return {
         ok: false,
@@ -585,27 +501,18 @@ export async function detachPinMediaAction(
 
     if (
       error instanceof Error &&
-      (
-        error.message.includes(
-          'foreign key',
-        ) ||
-        (
-          'code' in error &&
-          error.code === '23503'
-        )
-      )
+      (error.message.includes('foreign key') ||
+        ('code' in error && error.code === '23503'))
     ) {
       return {
         ok: false,
-        error:
-          'Este medio se sigue usando en otro sitio y no se puede borrar.',
+        error: 'Este medio se sigue usando en otro sitio y no se puede borrar.',
       }
     }
 
     return {
       ok: false,
-      error:
-        'No se ha podido quitar el medio.',
+      error: 'No se ha podido quitar el medio.',
     }
   }
 

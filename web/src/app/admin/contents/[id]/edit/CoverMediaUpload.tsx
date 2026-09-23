@@ -1,24 +1,14 @@
 'use client'
 
-import {
-  useState,
-} from 'react'
+import { useState } from 'react'
 
-import {
-  buildImageUrl,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
-import {
-  validateVideoUpload,
-} from '@/modules/media/domain/mediaLimits'
+import { validateVideoUpload } from '@/modules/media/domain/mediaLimits'
 
-import {
-  closestClosedRatio,
-} from '@/modules/media/domain/closestRatio'
+import { closestClosedRatio } from '@/modules/media/domain/closestRatio'
 
-import {
-  pinRatioSchema,
-} from '@/modules/pin/domain/pinSchema'
+import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
 
 import {
   IMAGE_FILE_ACCEPT,
@@ -48,60 +38,29 @@ type Props = {
   contentId: string
   allowVideo: boolean
 
-  coverMedia:
-    CoverMedia | null
+  coverMedia: CoverMedia | null
 }
 
-function readVideoDuration(
-  file: File
-): Promise<number> {
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-      const video =
-        document
-          .createElement(
-            'video'
-          )
+function readVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
 
-      video.preload =
-        'metadata'
+    video.preload = 'metadata'
 
-      video.onloadedmetadata =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
 
-          resolve(
-            video.duration
-          )
-        }
-
-      video.onerror =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
-
-          reject(
-            new Error(
-              'No se ha podido leer la duración del vídeo.'
-            )
-          )
-        }
-
-      video.src =
-        URL
-          .createObjectURL(
-            file
-          )
+      resolve(video.duration)
     }
-  )
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+
+      reject(new Error('No se ha podido leer la duración del vídeo.'))
+    }
+
+    video.src = URL.createObjectURL(file)
+  })
 }
 
 type Dimensions = {
@@ -114,108 +73,52 @@ type Dimensions = {
 // navegador, antes de subir nada — el admin ve el <select> ya precargado
 // con la opción más parecida y puede cambiarla a mano sin problema, esto
 // nunca decide ni se guarda por su cuenta.
-function readImageDimensions(
-  file: File
-): Promise<Dimensions> {
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-      const image =
-        new Image()
+function readImageDimensions(file: File): Promise<Dimensions> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
 
-      image.onload =
-        () => {
-          URL
-            .revokeObjectURL(
-              image.src
-            )
+    image.onload = () => {
+      URL.revokeObjectURL(image.src)
 
-          resolve({
-            width:
-              image.naturalWidth,
-            height:
-              image.naturalHeight,
-          })
-        }
-
-      image.onerror =
-        () => {
-          URL
-            .revokeObjectURL(
-              image.src
-            )
-
-          reject(
-            new Error(
-              'No se ha podido leer las dimensiones de la imagen.'
-            )
-          )
-        }
-
-      image.src =
-        URL
-          .createObjectURL(
-            file
-          )
+      resolve({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })
     }
-  )
+
+    image.onerror = () => {
+      URL.revokeObjectURL(image.src)
+
+      reject(new Error('No se ha podido leer las dimensiones de la imagen.'))
+    }
+
+    image.src = URL.createObjectURL(file)
+  })
 }
 
-function readVideoDimensions(
-  file: File
-): Promise<Dimensions> {
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-      const video =
-        document
-          .createElement(
-            'video'
-          )
+function readVideoDimensions(file: File): Promise<Dimensions> {
+  return new Promise((resolve, reject) => {
+    const video = document.createElement('video')
 
-      video.preload =
-        'metadata'
+    video.preload = 'metadata'
 
-      video.onloadedmetadata =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
+    video.onloadedmetadata = () => {
+      URL.revokeObjectURL(video.src)
 
-          resolve({
-            width:
-              video.videoWidth,
-            height:
-              video.videoHeight,
-          })
-        }
-
-      video.onerror =
-        () => {
-          URL
-            .revokeObjectURL(
-              video.src
-            )
-
-          reject(
-            new Error(
-              'No se ha podido leer las dimensiones del vídeo.'
-            )
-          )
-        }
-
-      video.src =
-        URL
-          .createObjectURL(
-            file
-          )
+      resolve({
+        width: video.videoWidth,
+        height: video.videoHeight,
+      })
     }
-  )
+
+    video.onerror = () => {
+      URL.revokeObjectURL(video.src)
+
+      reject(new Error('No se ha podido leer las dimensiones del vídeo.'))
+    }
+
+    video.src = URL.createObjectURL(file)
+  })
 }
 
 export default function CoverMediaUpload({
@@ -223,86 +126,43 @@ export default function CoverMediaUpload({
   allowVideo,
   coverMedia,
 }: Props) {
-  const [
-    uploading,
-    setUploading,
-  ] =
-    useState(false)
+  const [uploading, setUploading] = useState(false)
 
-  const [
-    error,
-    setError,
-  ] =
-    useState<
-      string | null
-    >(null)
+  const [error, setError] = useState<string | null>(null)
 
-  const [
-    warning,
-    setWarning,
-  ] =
-    useState<
-      string | null
-    >(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
-  const [
-    file,
-    setFile,
-  ] =
-    useState<
-      File | null
-    >(null)
+  const [file, setFile] = useState<File | null>(null)
 
-  const [
-    kind,
-    setKind,
-  ] =
-    useState<
-      'image' | 'video'
-    >('image')
+  const [kind, setKind] = useState<'image' | 'video'>('image')
 
-  const [
-    ratio,
-    setRatio,
-  ] =
-    useState<
-      (typeof pinRatioSchema.options)[number] | ''
-    >('')
+  const [ratio, setRatio] = useState<
+    (typeof pinRatioSchema.options)[number] | ''
+  >('')
 
   async function replaceExistingIfAny() {
     if (!coverMedia) {
       return true
     }
 
-    const result =
-      await deleteCoverMediaAction({
-        contentId,
+    const result = await deleteCoverMediaAction({
+      contentId,
 
-        mediaId:
-          coverMedia.id,
+      mediaId: coverMedia.id,
 
-        cloudinaryPublicId:
-          coverMedia
-            .cloudinaryPublicId,
+      cloudinaryPublicId: coverMedia.cloudinaryPublicId,
 
-        kind:
-          coverMedia.kind,
-      })
+      kind: coverMedia.kind,
+    })
 
     if (!result.ok) {
-      setError(
-        result.error
-      )
+      setError(result.error)
 
       return false
     }
 
-    if (
-      result.warning
-    ) {
-      setWarning(
-        result.warning
-      )
+    if (result.warning) {
+      setWarning(result.warning)
     }
 
     return true
@@ -310,32 +170,21 @@ export default function CoverMediaUpload({
 
   async function handleImageUpload() {
     if (!file) {
-      setError(
-        'Selecciona una imagen.'
-      )
+      setError('Selecciona una imagen.')
 
       return
     }
 
-    const validationError =
-      await validateImageSelection(
-        file
-      )
+    const validationError = await validateImageSelection(file)
 
-    if (
-      validationError
-    ) {
-      setError(
-        validationError
-      )
+    if (validationError) {
+      setError(validationError)
 
       return
     }
 
     if (!ratio) {
-      setError(
-        'Selecciona un ratio antes de subir la portada.'
-      )
+      setError('Selecciona un ratio antes de subir la portada.')
 
       return
     }
@@ -345,67 +194,46 @@ export default function CoverMediaUpload({
     setWarning(null)
 
     try {
-      const replaced =
-        await replaceExistingIfAny()
+      const replaced = await replaceExistingIfAny()
 
       if (!replaced) {
         return
       }
 
-      const signed =
-        await getSignedImageUpload()
+      const signed = await getSignedImageUpload()
 
-      const uploaded =
-        await uploadImageToCloudinary(
-          file,
-          signed
-        )
+      const uploaded = await uploadImageToCloudinary(file, signed)
 
-      const result =
-        await registerCoverImageAction({
-          contentId,
+      const result = await registerCoverImageAction({
+        contentId,
 
-          cloudinaryPublicId:
-            uploaded.public_id,
+        cloudinaryPublicId: uploaded.public_id,
 
-          format:
-            uploaded.format,
+        format: uploaded.format,
 
-          width:
-            uploaded.width,
+        width: uploaded.width,
 
-          height:
-            uploaded.height,
+        height: uploaded.height,
 
-          bytes:
-            uploaded.bytes,
+        bytes: uploaded.bytes,
 
-          ratio,
-        })
+        ratio,
+      })
 
       if (!result.ok) {
-        throw new Error(
-          result.error
-        )
+        throw new Error(result.error)
       }
 
       setFile(null)
       setRatio('')
 
-      window
-        .location
-        .reload()
-
-    } catch (
-      uploadError
-    ) {
+      window.location.reload()
+    } catch (uploadError) {
       setError(
-        uploadError
-          instanceof Error
+        uploadError instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir la imagen.'
+          : 'No se ha podido subir la imagen.',
       )
-
     } finally {
       setUploading(false)
     }
@@ -413,17 +241,13 @@ export default function CoverMediaUpload({
 
   async function handleVideoUpload() {
     if (!file) {
-      setError(
-        'Selecciona un vídeo.'
-      )
+      setError('Selecciona un vídeo.')
 
       return
     }
 
     if (!ratio) {
-      setError(
-        'Selecciona un ratio antes de subir la portada.'
-      )
+      setError('Selecciona un ratio antes de subir la portada.')
 
       return
     }
@@ -433,103 +257,64 @@ export default function CoverMediaUpload({
     setWarning(null)
 
     try {
-      const duration =
-        await readVideoDuration(
-          file
-        )
+      const duration = await readVideoDuration(file)
 
-      const validation =
-        validateVideoUpload(
-          file.size,
-          duration
-        )
+      const validation = validateVideoUpload(file.size, duration)
 
-      if (
-        validation?.code ===
-        'VIDEO_TOO_LONG'
-      ) {
+      if (validation?.code === 'VIDEO_TOO_LONG') {
         throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`
+          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
         )
       }
 
-      if (
-        validation?.code ===
-        'VIDEO_TOO_LARGE'
-      ) {
+      if (validation?.code === 'VIDEO_TOO_LARGE') {
         throw new Error(
-          `El vídeo supera los ${
-            validation.maxBytes /
-            1024 /
-            1024
-          } MB.`
+          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
         )
       }
 
-      const replaced =
-        await replaceExistingIfAny()
+      const replaced = await replaceExistingIfAny()
 
       if (!replaced) {
         return
       }
 
-      const signed =
-        await getSignedVideoUpload()
+      const signed = await getSignedVideoUpload()
 
-      const uploaded =
-        await uploadVideoToCloudinary(
-          file,
-          signed
-        )
+      const uploaded = await uploadVideoToCloudinary(file, signed)
 
-      const result =
-        await registerCoverVideoAction({
-          contentId,
+      const result = await registerCoverVideoAction({
+        contentId,
 
-          cloudinaryPublicId:
-            uploaded.public_id,
+        cloudinaryPublicId: uploaded.public_id,
 
-          format:
-            uploaded.format,
+        format: uploaded.format,
 
-          width:
-            uploaded.width,
+        width: uploaded.width,
 
-          height:
-            uploaded.height,
+        height: uploaded.height,
 
-          durationSeconds:
-            uploaded.duration,
+        durationSeconds: uploaded.duration,
 
-          bytes:
-            uploaded.bytes,
+        bytes: uploaded.bytes,
 
-          ratio,
-        })
+        ratio,
+      })
 
       if (!result.ok) {
-        throw new Error(
-          result.error
-        )
+        throw new Error(result.error)
       }
 
       setFile(null)
       setRatio('')
 
-      window
-        .location
-        .reload()
-
-    } catch (
-      uploadError
-    ) {
+      window.location.reload()
+    } catch (uploadError) {
       setError(
-        uploadError
-          instanceof Error
+        uploadError instanceof Error
           ? uploadError.message
-          : 'No se ha podido subir el vídeo.'
+          : 'No se ha podido subir el vídeo.',
       )
-
     } finally {
       setUploading(false)
     }
@@ -537,211 +322,111 @@ export default function CoverMediaUpload({
 
   return (
     <div>
-
       {coverMedia ? (
         <div>
-
-          {coverMedia.kind ===
-          'image' ? (
+          {coverMedia.kind === 'image' ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={
-                buildImageUrl(
-                  coverMedia
-                    .cloudinaryPublicId,
-                  'feed',
-                  300
-                )
-              }
+              src={buildImageUrl(coverMedia.cloudinaryPublicId, 'feed', 300)}
               alt=""
               width={200}
               height={200}
             />
           ) : (
-            <p>
-              {
-                coverMedia
-                  .cloudinaryPublicId
-              }
-              {' '}
-              (vídeo)
-            </p>
+            <p>{coverMedia.cloudinaryPublicId} (vídeo)</p>
           )}
-
         </div>
       ) : (
-        <p>
-          Todavía no hay
-          portada.
-        </p>
+        <p>Todavía no hay portada.</p>
       )}
 
       {allowVideo && (
         <>
-          <label
-            htmlFor="cover-kind"
-          >
-            Tipo de archivo
-          </label>
+          <label htmlFor="cover-kind">Tipo de archivo</label>
 
           <select
             id="cover-kind"
             value={kind}
-            disabled={
-              uploading
-            }
-            onChange={
-              (event) => {
-                setKind(
-                  event
-                    .target
-                    .value as
-                    'image' |
-                    'video'
-                )
+            disabled={uploading}
+            onChange={(event) => {
+              setKind(event.target.value as 'image' | 'video')
 
-                setFile(null)
-                setError(null)
-                setRatio('')
-              }
-            }
+              setFile(null)
+              setError(null)
+              setRatio('')
+            }}
           >
-            <option
-              value="image"
-            >
-              Imagen
-            </option>
+            <option value="image">Imagen</option>
 
-            <option
-              value="video"
-            >
-              Vídeo
-            </option>
+            <option value="video">Vídeo</option>
           </select>
         </>
       )}
 
       <input
         type="file"
-        accept={
-          kind ===
-          'video'
-            ? 'video/*'
-            : IMAGE_FILE_ACCEPT
-        }
-        disabled={
-          uploading
-        }
-        onChange={
-          (event) => {
-            const selected =
-              event
-                .target
-                .files?.[0] ??
-              null
+        accept={kind === 'video' ? 'video/*' : IMAGE_FILE_ACCEPT}
+        disabled={uploading}
+        onChange={(event) => {
+          const selected = event.target.files?.[0] ?? null
 
-            setFile(
-              selected
-            )
+          setFile(selected)
 
-            setError(null)
-            setRatio('')
+          setError(null)
+          setRatio('')
 
-            if (!selected) {
-              return
-            }
-
-            const readDimensions =
-              kind ===
-              'video'
-                ? readVideoDimensions
-                : readImageDimensions
-
-            readDimensions(
-              selected
-            )
-              .then(
-                (
-                  dimensions
-                ) => {
-                  setRatio(
-                    closestClosedRatio(
-                      dimensions.width,
-                      dimensions.height
-                    )
-                  )
-                }
-              )
-              .catch(
-                () => {
-                  // Sin sugerencia disponible: el admin sigue pudiendo
-                  // elegir el ratio a mano en el <select> de abajo, no
-                  // bloquea la subida.
-                }
-              )
+          if (!selected) {
+            return
           }
-        }
+
+          const readDimensions =
+            kind === 'video' ? readVideoDimensions : readImageDimensions
+
+          readDimensions(selected)
+            .then((dimensions) => {
+              setRatio(closestClosedRatio(dimensions.width, dimensions.height))
+            })
+            .catch(() => {
+              // Sin sugerencia disponible: el admin sigue pudiendo
+              // elegir el ratio a mano en el <select> de abajo, no
+              // bloquea la subida.
+            })
+        }}
       />
 
-      <label
-        htmlFor="cover-ratio"
-      >
+      <label htmlFor="cover-ratio">
         Ratio (sugerido a partir del archivo — puedes cambiarlo)
       </label>
 
       <select
         id="cover-ratio"
         value={ratio}
-        disabled={
-          uploading
-        }
-        onChange={
-          (event) => {
-            setRatio(
-              event
-                .target
-                .value as
-                (typeof pinRatioSchema.options)[number]
-            )
-          }
-        }
-      >
-        <option value="">
-          — Selecciona un ratio —
-        </option>
-
-        {pinRatioSchema.options.map(
-          (option) => (
-            <option
-              key={option}
-              value={option}
-            >
-              {option}
-            </option>
+        disabled={uploading}
+        onChange={(event) => {
+          setRatio(
+            event.target.value as (typeof pinRatioSchema.options)[number],
           )
-        )}
+        }}
+      >
+        <option value="">— Selecciona un ratio —</option>
+
+        {pinRatioSchema.options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
       </select>
 
       <p>
-        {kind ===
-        'video'
+        {kind === 'video'
           ? 'Vídeo, máximo 100 MB / 180 s.'
           : 'JPG, PNG, WebP o AVIF. Máximo 5 MB. Sin animaciones.'}
       </p>
 
       <button
         type="button"
-        disabled={
-          uploading ||
-          !file ||
-          !ratio
-        }
-        onClick={
-          kind ===
-          'video'
-            ? handleVideoUpload
-            : handleImageUpload
-        }
+        disabled={uploading || !file || !ratio}
+        onClick={kind === 'video' ? handleVideoUpload : handleImageUpload}
       >
         {uploading
           ? 'Subiendo...'
@@ -750,18 +435,9 @@ export default function CoverMediaUpload({
             : 'Subir portada'}
       </button>
 
-      {error && (
-        <p>
-          {error}
-        </p>
-      )}
+      {error && <p>{error}</p>}
 
-      {warning && (
-        <p>
-          {warning}
-        </p>
-      )}
-
+      {warning && <p>{warning}</p>}
     </div>
   )
 }

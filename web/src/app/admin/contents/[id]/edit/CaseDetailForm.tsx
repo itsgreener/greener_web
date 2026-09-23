@@ -4,6 +4,12 @@ import { useActionState } from 'react'
 
 import type { CaseDetail } from '@/modules/content/domain/caseDetailSchema'
 
+import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
+
+import { CharCounter } from '@/components/admin/CharCounter'
+
+import { useCharCount } from '@/components/admin/useCharCount'
+
 import { saveCaseDetailAction, type CaseDetailActionState } from './caseActions'
 
 type Props = {
@@ -18,6 +24,8 @@ export default function CaseDetailForm({ contentId, caseDetail }: Props) {
     saveCaseDetailAction,
     initialState,
   )
+
+  const client = useCharCount(caseDetail?.client ?? '')
 
   return (
     <form action={formAction}>
@@ -49,7 +57,10 @@ export default function CaseDetailForm({ contentId, caseDetail }: Props) {
           name="client"
           type="text"
           defaultValue={caseDetail?.client ?? ''}
+          onChange={client.onChange}
         />
+
+        <CharCounter length={client.length} max={TEXT_LIMITS.client} />
 
         {state.fieldErrors?.client?.[0] && <p>{state.fieldErrors.client[0]}</p>}
       </div>

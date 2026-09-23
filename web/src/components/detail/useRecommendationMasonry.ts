@@ -1,7 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FeedBatchItem, FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import type {
+  FeedBatchItem,
+  FeedBatchResult,
+} from '@/modules/feed/application/getFeedSessionBatch'
 import {
   computeMasonryLayout,
   columnsForViewport,
@@ -219,9 +222,7 @@ export function useRecommendationMasonry(
     // con el que confirmar si el caso llega a darse en la práctica.
     const initialColumnHeights = new Array(totalColumns)
       .fill(0)
-      .map((_, c) =>
-        c < contentColumns ? contentBlock.imageHeight + GAP : 0,
-      )
+      .map((_, c) => (c < contentColumns ? contentBlock.imageHeight + GAP : 0))
     return computeMasonryLayout(
       layoutItems,
       containerWidth,
