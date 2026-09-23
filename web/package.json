@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
+    "@plausible-analytics/tracker": "^0.4.6",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.1",
     "adm-zip": "^0.6.0",
