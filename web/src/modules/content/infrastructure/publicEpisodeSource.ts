@@ -1,44 +1,71 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+
+import {
+  createPublicReadClient,
+} from '@/lib/supabase/publicReadClient'
+
+export type PublicEpisodeProgram =
+  | 'brand_the_future'
+  | 'brand_into_europe'
+  | 'brand_to_table'
 
 /**
- * Lectura pública de un episodio para /work/[slug] (tipo B, unificado con
- * caso — especificacion-final-formato-detalle.md §7). No existe ningún
- * repositorio de episode para el ABM todavía (nunca se construyó, ver
- * PROGRESO.md) — este es el primer código que lee esta tabla, y a
- * propósito solo trae lo que necesita la plantilla de detalle nueva:
- * el vídeo embebido (provider + embedId) y episodeKind (el equivalente a
- * "client" en un caso, §3). program/number/guest/role/company/duration
- * siguen existiendo en la tabla (para el futuro listado de Channel, brief
- * §5.4) pero no forman parte del formato de detalle rediseñado, así que
- * no se leen aquí.
+ * Datos públicos necesarios para renderizar un episodio y registrar
+ * el evento de analítica "Episode Play" (arquitectura §18.2).
+ *
+ * `program` ya existe en la tabla episode; simplemente no se estaba
+ * leyendo porque hasta ahora la plantilla de detalle no lo necesitaba.
  */
-
 export interface PublicEpisode {
-  provider: 'youtube' | 'vimeo' | 'spotify'
+  program: PublicEpisodeProgram
+  provider:
+    | 'youtube'
+    | 'vimeo'
+    | 'spotify'
   embedId: string
   episodeKind: 'podcast'
 }
 
 export async function getPublicEpisode(
   contentId: string,
-  client: SupabaseClient = createPublicReadClient(),
+  client: SupabaseClient =
+    createPublicReadClient(),
 ): Promise<PublicEpisode | null> {
-  const { data, error } = await client
+  const {
+    data,
+    error,
+  } = await client
     .from('episode')
-    .select('provider, embed_id, episode_kind')
-    .eq('content_id', contentId)
+    .select(
+      'program, provider, embed_id, episode_kind',
+    )
+    .eq(
+      'content_id',
+      contentId,
+    )
     .maybeSingle()
 
   if (error) {
-    throw new Error(`No se pudo leer el episodio: ${error.message}`)
+    throw new Error(
+      `No se pudo leer el episodio: ${error.message}`,
+    )
   }
 
-  if (!data) return null
+  if (!data) {
+    return null
+  }
 
   return {
-    provider: data.provider,
-    embedId: data.embed_id,
-    episodeKind: data.episode_kind,
+    program:
+      data.program as PublicEpisodeProgram,
+
+    provider:
+      data.provider,
+
+    embedId:
+      data.embed_id,
+
+    episodeKind:
+      data.episode_kind,
   }
 }
