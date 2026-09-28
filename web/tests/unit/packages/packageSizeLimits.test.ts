@@ -17,9 +17,8 @@ import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipVal
  * cambia una sin las otras, falla aquí y no en producción.
  */
 
-function bodySizeLimitBytes(): number {
-  const raw = nextConfig.experimental?.serverActions?.bodySizeLimit
-
+// Next.js (librería `bytes`): 1 mb = 1024 * 1024
+function toBytes(raw: unknown): number {
   if (typeof raw === 'number') {
     return raw
   }
@@ -27,13 +26,18 @@ function bodySizeLimitBytes(): number {
   const match = /^(\d+(?:\.\d+)?)\s*mb$/i.exec(String(raw))
 
   if (!match) {
-    throw new Error(
-      `bodySizeLimit con formato no soportado por el test: ${raw}`,
-    )
+    throw new Error(`Tamaño con formato no soportado por el test: ${raw}`)
   }
 
-  // Next.js (librería `bytes`): 1 mb = 1024 * 1024
   return Number(match[1]) * 1024 * 1024
+}
+
+function bodySizeLimitBytes(): number {
+  return toBytes(nextConfig.experimental?.serverActions?.bodySizeLimit)
+}
+
+function proxyClientMaxBodySizeBytes(): number {
+  return toBytes(nextConfig.experimental?.proxyClientMaxBodySize)
 }
 
 beforeEach(() => {
@@ -58,6 +62,18 @@ describe('límite de tamaño del ZIP de tools/insights', () => {
   it('el cuerpo máximo de la Server Action es igual o mayor que el límite del ZIP', () => {
     expect(bodySizeLimitBytes()).toBeGreaterThanOrEqual(
       PACKAGE_LIMITS.maxZipSizeBytes,
+    )
+  })
+
+  it('el tope de copia del proxy es igual o mayor que el de las Server Actions (si no, Next trunca el cuerpo en silencio)', () => {
+    expect(proxyClientMaxBodySizeBytes()).toBeGreaterThanOrEqual(
+      bodySizeLimitBytes(),
+    )
+  })
+
+  it('el tope de copia del proxy deja sitio a un ZIP de exactamente el límite más la cabecera multipart', () => {
+    expect(proxyClientMaxBodySizeBytes()).toBeGreaterThan(
+      PACKAGE_LIMITS.maxZipSizeBytes + 1024 * 1024,
     )
   })
 

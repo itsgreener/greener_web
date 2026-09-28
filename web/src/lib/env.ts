@@ -44,7 +44,15 @@ const envSchema = z.object({
   CONTACT_IP_HASH_SALT: z.string().min(1).default('greener-dev-salt'),
 
   // Site
-  NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
+  // Sin barra final: se recorta aquí una sola vez ("https://itsgreener.com/"
+  // → "https://itsgreener.com") para que quien la concatena con una ruta
+  // que empieza por "/" (link de preview, sitemap, robots) no produzca
+  // "//" en mitad de la URL.
+  NEXT_PUBLIC_SITE_URL: z
+    .string()
+    .url()
+    .transform((value) => value.replace(/\/+$/, ''))
+    .default('http://localhost:3000'),
 
   // Analítica (arquitectura §18.2) — Plausible vía @plausible-analytics/
   // tracker. Opcional: sin ella, initAnalytics() no hace nada (ver
@@ -65,6 +73,21 @@ function loadEnv(): Env {
     )
     throw new Error(
       'Configuración de entorno inválida. Revisa .env.local contra .env.local.example.',
+    )
+  }
+
+  // Valor por defecto silencioso = un fallo que no se ve: en producción,
+  // sitemap, robots, hreflang y los links de preview saldrían apuntando a
+  // localhost. No se hace obligatoria (rompería builds que hoy funcionan)
+  // pero sí se avisa en voz alta al arrancar.
+  if (
+    process.env.NODE_ENV === 'production' &&
+    !process.env.NEXT_PUBLIC_SITE_URL
+  ) {
+    console.warn(
+      '⚠ NEXT_PUBLIC_SITE_URL no está definida: se usa http://localhost:3000. ' +
+        'En producción debe ser el dominio público (https://itsgreener.com) — ' +
+        'de ello dependen el sitemap, robots.txt, el hreflang y los links de preview.',
     )
   }
 

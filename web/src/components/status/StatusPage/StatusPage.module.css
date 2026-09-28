@@ -1,0 +1,49 @@
+/* Página de estado básica (404 / error) — mismo tono que el "Cargando…" del
+   feed (.status en Feed.module.css), a la espera del diseño final. */
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  min-height: 60vh;
+  padding: var(--space-xl) var(--space-md);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text);
+  opacity: 0.6;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  font-size: 0.85rem;
+
+  & a,
+  & button {
+    color: var(--color-text);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  & button {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    cursor: pointer;
+  }
+}

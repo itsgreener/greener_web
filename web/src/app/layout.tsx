@@ -1,8 +1,17 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
+import { env } from '@/lib/env'
 import './globals.css'
 
 export const metadata: Metadata = {
+  // Dominio público: sin esto, Next no sabe contra qué resolver las URLs
+  // relativas de metadata (hreflang de /work/[slug], og:image relativas...)
+  // y en producción saldrían contra localhost. Sale de NEXT_PUBLIC_SITE_URL,
+  // ya normalizada sin barra final (src/lib/env.ts).
+  metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
+  // Favicon: sin él el navegador pide /favicon.ico en cada visita y recibe
+  // un 404. El logo ya vive en /public/icons.
+  icons: { icon: '/icons/logo_greener.svg' },
   title: {
     default: 'Greener',
     template: '%s · Greener',

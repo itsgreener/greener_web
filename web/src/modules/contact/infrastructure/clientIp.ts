@@ -3,13 +3,16 @@ import { headers } from 'next/headers'
 import { env } from '@/lib/env'
 
 /**
- * Dirección IP real del visitante detrás del proxy inverso (Dinahosting
- * + Nginx, arquitectura §19 — mismo hosting que el resto del sitio):
- * x-forwarded-for lleva la cadena completa de saltos, "cliente,
- * proxy1, proxy2..."; el primero es el cliente original. Sin ese
- * encabezado (desarrollo local sin proxy delante, por ejemplo), no hay
- * forma fiable de saber la IP real — se trata como "desconocida" en vez
- * de inventar un valor.
+ * Dirección IP real del visitante detrás del proxy inverso de Dinahosting (lo
+ * gestiona Dinahosting y no es configurable por nosotros; la app corre con
+ * PM2 — despliegue.md §6): x-forwarded-for lleva la cadena completa de
+ * saltos, "cliente, proxy1, proxy2..."; el primero es el cliente original.
+ * Sin ese encabezado (desarrollo local sin proxy delante, o un proxy que no
+ * lo envíe) no hay forma fiable de saber la IP real — se trata como
+ * "desconocida" en vez de inventar un valor. OJO: en ese caso TODOS los
+ * visitantes comparten el mismo hash y el límite de envíos (5 por hora,
+ * contactSubmissionLog.ts) se aplicaría al sitio entero, no por persona:
+ * hay que comprobarlo tras el primer despliegue (despliegue.md §6, punto 3).
  */
 async function getClientIp(): Promise<string | null> {
   const headerList = await headers()

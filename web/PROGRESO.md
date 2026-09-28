@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **658 tests automáticos, todos en verde** (`npm test`, 71 ficheros).
+- **694 tests automáticos, todos en verde** (`npm test`, 75 ficheros).
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -137,6 +137,38 @@ Arreglo, sin migración ni cambio de esquema: **revalidación con ETag** usando 
 - **`next.config.ts` se queda en `bodySizeLimit: '20mb'` a propósito**: tiene que ser igual o mayor que el límite (el cuerpo lleva el ZIP más los campos del formulario), y siendo más grande un ZIP de 10-20 MB llega al validador y recibe el mensaje claro en vez del error genérico de Next por cuerpo demasiado grande.
 - `packageSizeLimits.test.ts` (7 tests) ata las tres cifras: falla si el límite del ZIP supera el del antivirus o si el cuerpo de la Server Action baja de ese límite. Comprobado a propósito forzando ambos desalineamientos.
 
+### 2.9 Despliegue standalone, metadatos, 404/error y normalización de `SITE_URL` (28 sep)
+
+**`output: 'standalone'`** activado en `next.config.ts` y **probado ejecutando `node server.js`** en un sandbox (Node 22), contrastado con la documentación oficial de Next. Verificado: `public/` va junto a `server.js` y `.next/static/` dentro de la carpeta `.next` del standalone (ninguna de las dos se copia sola); `.env.local` se lee cuando está junto a `server.js`, y sin él la app falla con el error de validación de `env.ts`; los estáticos y `public` se sirven (200) tras la copia manual. Guía completa en **`despliegue.md`**; la versión inicial incluía una plantilla de Nginx y de las redirecciones 301 que **se retiró después**, porque en Dinahosting el proxy no es editable (ver §2.10).
+
+**Metadatos.** `metadataBase` en el layout raíz (desde `NEXT_PUBLIC_SITE_URL`), favicon, `src/app/sitemap.ts` y `src/app/robots.ts`, ambos dinámicos a propósito (dependen del contenido publicado y del entorno de ejecución, no del del build). El sitemap incluye las páginas fijas, el contenido publicado por su ruta pública y, para casos y episodios con varias traducciones, `/work/[slug]/[locale]` con hreflang; se lee con paginación para no truncarse en las 1.000 filas por defecto de PostgREST. `robots.txt` bloquea `/admin`, `/api/`, `/auth` y `/preview`. Probado contra el servidor real con un Supabase falso local: XML válido, dominio correcto y consulta con la forma esperada.
+
+**`NEXT_PUBLIC_SITE_URL`.** Con una barra final (`https://itsgreener.com/`) el link de preview salía con `//`. `env.ts` la recorta ahora una sola vez, y en producción, si la variable falta, avisa en voz alta en vez de caer a localhost sin decir nada (no se hace obligatoria: rompería builds que hoy funcionan).
+
+**404 y error básicos.** `StatusPage` (componente compartido, sin `<main>` porque el Shell ya lo aporta), `NotFoundPage` y `ErrorPage`; `not-found.tsx`, `error.tsx` y `global-error.tsx` en la raíz, y `not-found.tsx` y `error.tsx` en `(public)` para que dentro del Shell se mantenga el menú lateral. En inglés (§2.4: interfaz global en inglés), aunque los textos actuales del feed («Cargando…») están en español.
+
+**Hallazgo: el 404 de una página pública llega con el `<body>` vacío** (ver §4.8). Se aisló con una serie de experimentos de compilación y, al final, con una aplicación Next mínima creada desde cero: reproduce lo mismo, así que no es del proyecto.
+
+**Pruebas.** 34 tests nuevos (`tests/unit/seo`, `tests/unit/status`), con roturas deliberadas para comprobar que detectan la normalización de la URL, la paginación, el hreflang y el `robots`. Total: 692 tests en 75 ficheros.
+
+**Dos fallos de método propios, anotados para no repetirlos:** (1) una prueba sirvió una copia antigua del build porque mis comandos con `pkill -f "node server.js"` se mataban a sí mismos antes de copiar; se detectó comparando los `BUILD_ID`. (2) Tras `npm run build` con `output: 'standalone'`, `next start` ya no vale: hay que usar `node .next/standalone/server.js`.
+
+### 2.10 Despliegue real (PM2 + cron), tope de copia del proxy, hreflang y redirecciones (28 sep)
+
+**Un error mío de partida, corregido.** La ayuda de Dinahosting que se consultó («Utilizar versión personalizada de NodeJs») describe «Otras aplicaciones» con Passenger, y la tomé como el modelo de despliegue. **No lo es: no sirve para Next.** El despliegue real, que el usuario ya había descrito antes y que contradije, es **PM2 manual + un cron de vigilancia**, con un proxy Nginx que gestiona Dinahosting y que no se puede modificar (solo se enciende y se espera al puerto que asigna). `despliegue.md` se ha reescrito **dos veces**: la primera versión asumía un Nginx editable, la segunda Passenger; la actual parte de lo que el usuario describe y solo afirma lo que se ha probado. Se retira la plantilla de Nginx y el plan de 301 en Nginx.
+
+**PM2, verificado con PM2 7.0.4 y una release real del proyecto.** Un `ecosystem.config.cjs` con `PORT`, `cwd` por el enlace simbólico e `interpreter` por ruta absoluta arranca la app; lee el `.env.local` aunque sea un enlace simbólico a un fichero compartido; PM2 la levanta tras un `kill -9`; y con varias releases, cambiar el enlace `current` **no** cambia el proceso en marcha hasta `pm2 restart` (tras lo cual sí sale de la release nueva). El `PATH` mínimo del cron es una trampa real: `pm2` empieza por `#!/usr/bin/env node` y falla sin Node en el `PATH` (`env: 'node': No such file or directory`), así que el vigilante lo fija.
+
+**Fallo real encontrado en mi propio vigilante.** La primera versión no funcionaba en el caso para el que existe: con el daemon de PM2 muerto, `pm2 pid` lo arranca y escribe su aviso («[PM2] Spawning PM2 daemon…») en la salida estándar; mi script lo leía como un PID válido y no hacía nada. Corregido aceptando solo una línea numérica y **reprobado en cinco escenarios** bajo un entorno mínimo tipo cron: daemon muerto (la app responde en unos 2 s), app en marcha (no toca nada), parada, borrada de PM2 y proceso que muere. Lección de método: la primera prueba dio resultados ambiguos porque medía con un tiempo fijo; el fallo solo quedó claro esperando a que el puerto respondiera y leyendo qué imprimía `pm2 pid`.
+
+**Redirecciones de las apps antiguas: descartadas (28 sep).** Se llegó a construir un redirector de 95 líneas (y se probó con 9 tests) como alternativa a tocar las apps viejas, porque las redirecciones del panel de Dinahosting solo admiten subdominio o dominio entero. **Se ha eliminado** al decidirse que no hacen falta: `tools.itsgreener.com` e `insight.itsgreener.com` eran pruebas de un proyecto que no llegó a terminarse, sin visitas, y sus contenidos no tienen equivalente en la web nueva (ninguna de las 9 tools antiguas coincide con las 12 nuevas; de los 4 insights, 3 tienen equivalente). Un redirector sin uso era código muerto, contra el principio de §3 de la arquitectura. Queda anotado en `despliegue.md` §7, junto con el matiz de que `permanent: true` de Next devuelve un 308, no un 301.
+
+**Defecto propio encontrado y corregido.** Al leer el config serializado de `server.js` apareció `proxyClientMaxBodySize: 10485760`. Confirmado con la documentación de Next y varios casos reales, y **reproducido**: con `src/proxy.ts` cuyo matcher cubre las Server Actions, Next copia en memoria el cuerpo de cada petición no-GET con un tope de 10 MiB y por encima trunca en silencio. Sonda con `POST /api/feed/sessions`: 5 MB llegaba entero, 12 y 18 MB llegaban cortados a 10 MB («Request body exceeded 10MB… Only the first 10MB will be available»). Con `proxyClientMaxBodySize: '25mb'`, 12 y 18 MB llegan enteros y el aviso desaparece. `packageSizeLimits.test.ts` amplía la guarda: el tope del proxy debe ser ≥ el de las Server Actions y dejar sitio a un ZIP de 10 MB más la cabecera multipart.
+
+**hreflang verificado.** Con un Supabase falso local que imita PostgREST y `SITE_URL` con barra final a propósito, `/work/destroyer`, `/work/destroyer/en` y `/work/destroyer/ca` emiten los tres `<link rel="alternate" hreflang>` con el dominio completo y consistentes entre sí. Se observa además que **no se emite `canonical`** (anotado en §4.8).
+
+**Pruebas.** 694 tests en 75 ficheros. Las roturas deliberadas del tope del proxy se detectan.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -147,7 +179,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 658 tests (unit + property-based + smoke con jsdom)
+npm test                     # 694 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -172,7 +204,7 @@ Completo — ver `historial-fases-0-2.md` y `historial-fases-3-4.md` para el det
 ### 4.2 Fase 1 (hasta el 15 de agosto)
 
 - [~] Especificación de formatos para Greener (Anexo A.1) — **límites de caracteres cerrados e implementados el 22 sep, ver §2.3**. Sigue sin cerrar el resto: ratios/dimensiones por breakpoint, códecs de vídeo, contrato ZIP definitivo (aunque `contrato-zip-tools-insights.md` ya cubre buena parte).
-- [~] Inventario de URLs actuales para las redirecciones 301 — catálogo de tools (9) e insights (4) confirmado; falta el resto del sitio actual.
+- [x] Inventario de URLs actuales para las redirecciones 301 — **cerrado sin hacer** (28 sep): ni las apps antiguas de tools e insights ni el sitio corporativo actual se redirigen; ver §4.8.
 - [ ] Ajustar el algoritmo de layout masonry con el diseño real cuando esté disponible.
 
 ### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
@@ -197,7 +229,7 @@ Verificación server-side de imagen y vídeo en Cloudinary, cabeceras de segurid
 
 - [ ] Tests E2E de los criterios de aceptación críticos de §20.1.
 - [~] Auditoría de cookies y consentimiento — **avanzada el 22-23 sep, §2.5**: hallazgo de Vimeo corregido (`dnt=1`), click-to-load construido para Vimeo/Spotify. Sigue abierta la decisión de fondo (banner/CMP, nivel de rigor) — explícitamente aplazada por el usuario, ver §5.
-- [ ] Verificación de las redirecciones 301.
+- [x] Verificación de las redirecciones 301 — no aplica: no habrá redirecciones (28 sep, §4.8).
 - [ ] Accesibilidad: teclado, foco, contraste, `prefers-reduced-motion`, menú solo-iconos con labels. `alt` de `case_detail_media` ya cerrado; pendiente el resto.
 - [ ] Carga real de contenido por Greener contra el ABM ya terminado.
 
@@ -212,15 +244,28 @@ Comprobados leyendo y ejecutando el código, no supuestos. Lo que ya figura arri
 - [ ] **Assets de un paquete fuera de `assets/`**: la subida los acepta y luego dan 404. O se valida al subir, o el servidor sirve cualquier ruta del ZIP (y con Content-Type propio para más extensiones que las cinco actuales).
 - [ ] **Menú lateral en `/tools|insights/[slug]/app`**: es una mini-nav hecha a mano (iniciales, «Contacto» en español, `lang="es"` fijo), no el Shell real con iconos y «We did it»/«Podcasts». Además esas rutas se saltan el proxy entero (sin HSTS ni `frame-ancestors`).
 - [ ] **Sin preview de una versión en borrador del paquete**: `/app` solo lee la versión publicada, así que un admin no puede revisar el HTML antes de publicarlo; y el botón «Use» de una tool en preview de contenido lleva a un 404.
-- [ ] **Redirecciones 301**: la tabla `redirect_301` existe, nada la aplica.
-- [ ] **`sitemap` y `robots`**: no existen.
-- [ ] **`not-found.tsx` / `error.tsx`**: no existen, se ve el 404 por defecto de Next.
+- [x] **Redirecciones 301: CERRADO, no se harán (28 sep).** Ni para `tools.itsgreener.com`/`insight.itsgreener.com` (pruebas sin visitas y sin contenido equivalente, §2.10) ni para el sitio corporativo actual de `itsgreener.com`: tiene demasiadas URLs para inventariarlas y **desaparece por completo el viernes 2 de octubre**, sustituido en el mismo dominio por esta web. **Asumido a propósito**: tras el cambio, las URLs del sitio actual darán 404 y su posicionamiento en Google se irá perdiendo hasta que se reindexe el nuevo. Sin módulo en el ABM; la tabla `redirect_301` se conserva sin uso. Solo queda, opcional y barato: buscar `site:tools.itsgreener.com` y `site:insight.itsgreener.com`, y apagar esas dos apps cuando se publique la web nueva.
+- [x] **`sitemap.xml`, `robots.txt`, `metadataBase` y favicon** (28 sep, §2.9): hechos y probados contra el servidor real.
+- [x] **404 y error básicos** (28 sep, §2.9): `not-found.tsx`, `error.tsx` y `global-error.tsx`, en inglés y con el mismo tono que el «Cargando…» del feed. Ver el punto siguiente sobre el 404 de páginas públicas.
+- [x] **404 de una página pública (`/work/no-existe`)**: el HTML del servidor llega con el `<body>` vacío (código 404 y `noindex` correctos). **No es del proyecto**: una aplicación Next 16.3.5 recién creada, sin nada nuestro, se comporta igual. **Comprobado en un navegador real, en local (28 sep): se ve correctamente la página de `not-found` de `(public)`**, es decir, el cliente la pinta con JavaScript. Descartado uno a uno: mis páginas de 404, el layout `(public)`, proveedores y Shell, `await headers()`, `proxy.ts`, `output: 'standalone'` y el User-Agent (incluido Googlebot).
 - [ ] **`/api/feed/demo` y `/preview/masonry`** siguen públicos en producción.
 - [ ] **Health check** (§19.2): no existe.
-- [ ] **Analítica**: 6 de los 8 tipos de `AnalyticsEventMap` siguen sin dispararse (ver §4.5).
+- [ ] **Analítica**: solo se dispara «Pin Click»; los otros **7 de los 8** tipos de `AnalyticsEventMap` siguen sin dispararse (ver §4.5). Corregido el 28 sep: una versión anterior de esta línea decía 6 de 8.
 - [ ] **ABM (§15.1)**: solo existe el CRUD de contenidos. Faltan editor de `feed_config` con simulador, etiquetas, módulo de Acceso (`admin_allowed_domain`), Redirecciones, Configuración y visor de `audit_log`; el dashboard es una página de 13 líneas.
 - [ ] **Etiquetas del feed**: no hay ningún uso de `tag`/`content_tag` en `src` y el filtro solo se guarda como hash — confirmar si el filtrado por etiquetas sigue en alcance de V1.
 - [ ] **Límites del plan de Cloudinary** frente al volumen real (Anexo A.2): no consta en §5.
+- [~] **Despliegue (§19.1-19.2)**: `output: 'standalone'` activado y probado; guía verificada con PM2 real en `despliegue.md` (ecosystem, cambio de release con enlace simbólico, `.env.local`, vigilante de cron probado en cinco escenarios). Quedan **tres cosas del proxy de Dinahosting que solo se pueden comprobar desplegado** (`despliegue.md` §6), porque no es modificable: el límite de tamaño de la subida de ZIP, que las Server Actions funcionen tras el proxy y que llegue la IP del visitante (si no, el límite de 5 mensajes de contacto por hora se aplicaría al sitio entero). Por confirmar: el `HOSTNAME` que use el proxy (127.0.0.1 o 0.0.0.0), Node 24 vía nvm y contrastar el cron de reinicio que ya existe con el vigilante de la guía. Punto aparte: el health check.
+- [x] **Tope de copia del proxy de Next (`proxyClientMaxBodySize`) — defecto de mi diseño anterior, corregido el 28 sep** (§2.10): con `proxy.ts` presente, Next copia el cuerpo de las peticiones no-GET con un tope de 10 MiB y por encima **trunca en silencio**. Un ZIP válido (≤10 MB) cabía, pero uno de 10-20 MB llegaba cortado y fallaba con un error confuso en vez del mensaje claro. Ahora `proxyClientMaxBodySize: '25mb'`, con test de guarda.
+- [~] **Entorno de producción**: `CONTACT_IP_HASH_SALT` ya existe en el `.env.local` real; `NEXT_PUBLIC_SITE_URL` sin barra final (además, desde el 28 sep `env.ts` la recorta si viene con ella y avisa en producción si falta); dominios del ABM ya insertados en `admin_allowed_domain`. Por confirmar: redirect URLs del dominio real en Supabase Auth y en el cliente OAuth de Google, y `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`.
+- [ ] **`feed_session`**: no hay limpieza de sesiones expiradas (el único cron es el de publicación programada) ni límite de peticiones en `POST /api/feed/sessions`, que es público: la tabla y `feed_round` crecen sin freno.
+- [ ] **Unpublish sin ventana de gracia real**: la migración `20260907100000` razona que no hace falta lógica extra porque el feed ya servido es inmutable, pero la RLS bloquea el detalle al instante, así que quien tenga el feed abierto y pulse un pin recién despublicado ve un 404. §8.5 recomendaba «soft unpublish» de 24 h. Decidir y, si se mantiene, implementar.
+- [ ] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: no aparecen en ningún sitio del código; el autoplay de vídeo y los carruseles no se desactivan. `<html lang="en">` fijo aunque haya contenido en es/ca.
+- [ ] **Filtros por etiquetas**: el `filter` de la sesión se hashea pero no se aplica, y `tag`/`content_tag` no se usan. Además, el filtro de Channel por programa choca con el rediseño: `program` sigue en BD y en el repositorio, y `episode_kind` es el campo nuevo del diseño. Decidir cuál manda.
+- [ ] **`feed_config.video_limit_*` no se lee**: el límite 2/1 está fijo en código según el ancho (<640 px), así que lo «editable desde el ABM» no tiene efecto para vídeos.
+- [~] **SEO**: `metadataBase` resuelto y **hreflang verificado en el HTML real** (28 sep): las tres versiones de un caso (`/work/x`, `/work/x/en`, `/work/x/ca`) emiten los tres `<link rel="alternate" hreflang>` con el dominio completo y sin `//`, aunque `SITE_URL` llegara con barra final. Falta: `<link rel="canonical">` (no se emite ninguno; conviene uno autorreferente por versión de idioma) y `x-default`; y sigue sin haber JSON-LD (`VideoObject`/`PodcastEpisode`, §18.1).
+- [ ] **Evento «Tool Used»**: el contrato no explica cómo lo reporta un paquete (§12.3 propone el cliente de analítica o un evento DOM). Definirlo y documentarlo antes de que se construyan las 30 tools.
+- [ ] **Retención de `contact_submission` (§17.2)**: sin plazo definido ni purga.
+- [ ] **Observabilidad (§19.4) y CI (§19.2)**: no hay error tracking, logs estructurados ni alertas, y el zip no trae pipeline de CI (confirmar si existe fuera del repo).
 
 ---
 
@@ -248,3 +293,7 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **23 sep 2026 (cierre de la sesión)**: resuelto un conflicto de git real entre el trabajo de esta sesión y el de un compañero en paralelo (`episodeDetail.smoke.test.tsx`), e integrada su analítica Plausible real — evento "Pin Click" disparado desde `PinCard`, cableado en los cuatro sitios donde se pinta un pin. Hallazgo real corregido al integrar: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` no estaba en el schema de `env.ts` pese a usarse en `layout.tsx`. Descartado un `Archivo.zip` suelto (backup accidental, no algo a integrar). **611 tests en verde (65 ficheros), `eslint` a 0, build y `tsc` limpios, `format:check` limpio.** Este mismo cierre incluyó archivar las antiguas §2/§3 (rediseño de detalle + construcción del sitio público, ambas confirmadas y completas) en `historial-fases-3-4.md`, reorganizando este documento para que vuelva a quedarse centrado en el estado actual — mismo criterio que el archivado del 9 de septiembre.
 - **28 sep 2026**: corregido un fallo real de caché — los assets de tools/insights se servían `immutable` durante un año bajo una URL sin versión, así que una versión nueva o un rollback no habrían llegado a los visitantes; ahora revalidan con ETag a partir del checksum de la versión (§2.8). Contrato ZIP ampliado y dos afirmaciones suyas corregidas (estructura bajo `assets/`, rutas de `Worker`/`fetch` relativas a la base); la tool de ejemplo tenía ese mismo fallo del Worker y se ha corregido. 40 tests nuevos, 651 en total. Añadida §4.8 con los pendientes detectados en la auditoría del día.
 - **28 sep 2026 (después)**: cerrado el límite del ZIP en **10 MB** (decimales) por el tope del antivirus — guarda nueva en el escaneo y un test que ata el límite, el del antivirus y el `bodySizeLimit` de Next (§2.8). Restaurados los dotfiles del proyecto (`.gitignore`, `.nvmrc`, `.prettierrc`, `.prettierignore`, `.env.local.example`); con el `.prettierrc` real, `format:check` completo pasa limpio. 658 tests.
+- **28 sep 2026 (tercera parte)**: activado `output: 'standalone'` y verificada su estructura real (§2.9, `despliegue.md`); `metadataBase`, `sitemap.xml`, `robots.txt` y favicon; 404 y error básicos; `SITE_URL` normalizada. Decidido que las redirecciones 301 sean reglas estáticas y sin módulo en el ABM, conservando la tabla sin uso (el «cómo» se corrigió después: no hay Nginx editable, ver la cuarta parte). Aislado con una aplicación Next mínima que el `<body>` vacío en el 404 de páginas públicas es comportamiento de Next 16.3.5, no del proyecto. 692 tests.
+- **28 sep 2026 (cuarta parte)**: corregido un error de método mío: se tomó la ayuda de Dinahosting sobre Passenger («Otras aplicaciones») como el modelo de despliegue, y no sirve para Next; el real es PM2 manual + cron con un Nginx no editable. `despliegue.md` reescrito con lo verificado con PM2 real, incluido un fallo propio del vigilante (el aviso de arranque del daemon se leía como PID). Defecto propio corregido: `proxyClientMaxBodySize` (10 MiB por defecto) truncaba en silencio los ZIP de 10-20 MB. Hreflang verificado en el HTML real. Confirmado por el usuario en navegador que el 404 de páginas públicas se ve bien. 694 tests.
+- **28 sep 2026 (quinta parte)**: decidido no redirigir las apps antiguas `tools.` e `insight.` (pruebas sin visitas y sin contenido equivalente en la web nueva); eliminado el redirector que se había construido para ello, por ser código muerto. Anotado que `permanent: true` de Next da un 308, no un 301. 694 tests.
+- **28 sep 2026 (sexta parte)**: cerrado definitivamente el tema de las redirecciones 301: no se harán tampoco para el sitio corporativo actual (demasiadas URLs y desaparece por completo el viernes 2 de octubre, sustituido en el mismo dominio). Se asume que sus URLs darán 404 tras el cambio. Sin cambios de código.
