@@ -51,7 +51,7 @@ const SERVICE_WORKER_REGEX = /serviceWorker\s*\.\s*register\s*\(/i
 export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   if (buffer.byteLength > PACKAGE_LIMITS.maxZipSizeBytes) {
     throw new PackageValidationError([
-      `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1024 / 1024} MB.`,
+      `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1_000_000} MB.`,
     ])
   }
 

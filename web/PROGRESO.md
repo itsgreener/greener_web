@@ -13,7 +13,7 @@ Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualí
 
 **Nota de numeración (23 de septiembre):** este documento se reorganizó al archivar las antiguas §2 (rediseño de detalle) y §3 (construcción del sitio público) en `historial-fases-3-4.md` — la sesión de trabajo del 22-23 de septiembre ocupa ahora la §2, y todo lo que seguía se ha renumerado en consecuencia (antigua §4 → §3, §5 → §4, §6 → §5, §7 → §6).
 
-Todas las referencias `§X` sin más contexto apuntan a secciones del documento de arquitectura. Última revisión: 23 de septiembre de 2026, verificada ejecutando el código real (no solo por lectura) — cierre de esta sesión de trabajo.
+Todas las referencias `§X` sin más contexto apuntan a secciones del documento de arquitectura. Última revisión: 28 de septiembre de 2026, verificada ejecutando el código real (no solo por lectura) — ver §2.8 (caché de assets y contrato ZIP) y §4.8 (pendientes detectados en la auditoría del mismo día).
 
 ---
 
@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **611 tests automáticos, todos en verde** (`npm test`, 65 ficheros).
+- **658 tests automáticos, todos en verde** (`npm test`, 71 ficheros).
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -110,6 +110,33 @@ También descartado un `Archivo.zip` suelto dentro del zip recibido (backup acci
 
 **Verificación final de toda la sesión**: ESLint 0, `next build` y `tsc --noEmit` limpios, **65 ficheros / 611 tests** en verde, `format:check` limpio.
 
+### 2.8 Caché de assets de tools/insights y ampliación del contrato ZIP (28 sep)
+
+**Bug real corregido.** Los assets de un paquete (`/tools|insights/[slug]/app/assets/...`) se servían con `Cache-Control: public, max-age=31536000, immutable`, pero **su URL no lleva la versión del paquete**: la de la v1 y la de la v2 es la misma. Tras publicar una versión nueva (o hacer un rollback) los visitantes habrían seguido viendo el JS/CSS antiguo hasta un año. Una caché «para siempre» solo es correcta si la URL cambia cuando cambia el contenido.
+
+Arreglo, sin migración ni cambio de esquema: **revalidación con ETag** usando el `checksum` de contenido que ya guarda `html_package_version` (inmutable por versión). `Cache-Control: public, no-cache` + `ETag`; con `If-None-Match` coincidente se responde **304 sin descargar nada de Storage**. Una versión nueva o un rollback cambian el checksum, y el navegador recibe el asset correcto en su siguiente carga. Sin necesidad de renombrar archivos (`main.v2.js`).
+
+- `modules/packages/domain/assetCaching.ts` — dominio puro: `ASSET_CACHE_CONTROL`, `buildAssetEtag`, `isNotModified` (comparación débil `W/`, listas y `*`, RFC 9110).
+- `modules/packages/infrastructure/assetResponse.ts` — `buildAssetResponse` (200/304 con cabeceras) y `contentTypeFor` (movido aquí sin cambios desde las rutas).
+- `supabaseStorageSource.getStoragePackageAsset` ahora devuelve `{ notModified, etag, data? }` y acepta `ifNoneMatch`. Las dos rutas de assets quedan como capas finas (ADR-15) que solo delegan.
+
+**Contrato `contrato-zip-tools-insights.md` ampliado** con las aclaraciones que se le dieron a quien prepara los paquetes, y con dos correcciones a lo que decía el propio contrato:
+
+- **Todo recurso debe ir bajo `assets/`** — el contrato decía «subcarpetas libres», pero el servidor solo entrega lo que cuelga de `assets/`; un `style.css` en la raíz **pasa la subida y da 404**. Solo `.js/.css/.json/.png/.svg` tienen Content-Type propio.
+- **Las rutas relativas escritas dentro del JS cuentan desde el `<base href>`, no desde el archivo**: `new Worker('./worker.js')` apuntaba a `/tools/{slug}/app/worker.js` (404). **La tool de ejemplo `fixtures/tools/pixel-palette` tenía exactamente ese fallo** y se ha corregido a `./assets/worker.js`.
+- Qué cuenta el escáner de dominios (todo `http(s)://`, sin distinguir `href`/recurso/texto/comentario, dominio exacto, se declara el dominio y no cada enlace), y que `externalDomains` **no habilita** cargar nada de ese origen — solo permite que la subida pase y que los enlaces `<a href>` funcionen.
+- Cómo se monta el HTML (se conserva el `<head>`; del `<body>` solo el interior; se pierden sus atributos y los de `<html>`; `body {}` afecta al body del sitio) y tabla de qué permite y qué no la CSP (scripts inline y `onclick=` no se ejecutan, `blob:` no vale para imágenes, fuentes `data:` bloqueadas…). Checklist ampliado.
+
+**47 tests nuevos** (611 → 658): ETag y `If-None-Match`; resolución contra un Supabase simulado (incluido que un 304 **no descarga** de Storage, y que versión nueva y rollback invalidan la caché); las dos rutas con sus cabeceras reales; y **dos ficheros que fijan las afirmaciones del contrato contra el código** (`zipValidationContract.test.ts`, `composeToolDocumentContract.test.ts`) — si el validador o la composición cambian, el contrato deja de ser cierto y el test lo dice.
+
+**Límite del ZIP: 10 MB, cerrado el mismo día.** El contrato decía 10 MB y el código admitía 20, y la decisión estaba abierta. Se cierra en **10 MB** por una razón técnica, no de preferencia: el ZIP entero se envía tal cual a Cloudmersive (§12.5) y su cuenta gratuita solo escanea ficheros de hasta 10 MB («requires paid account for >10MB»); como el escaneo es bloqueante, un ZIP mayor tampoco se podría publicar. Con un plan de pago de Cloudmersive el tope sube mucho, así que la cifra puede revisarse si hiciera falta. Detalles:
+
+- **10 MB decimales (10.000.000 bytes), no MiB**: coincide con lo que muestra el Finder de macOS a quien prepare el ZIP, y queda bajo el tope del antivirus se cuente como se cuente (su documentación no aclara cuál de las dos).
+- `PACKAGE_LIMITS.maxZipSizeBytes` baja a esa cifra y el mensaje de rechazo dice «10 MB».
+- **Guarda nueva en `scanZipForViruses`** (`CLOUDMERSIVE_MAX_FILE_BYTES`): si un ZIP mayor llegara hasta ahí, se rechaza con mensaje claro y **sin enviarlo**, en vez de recibir un error opaco del servicio. Sigue siendo bloqueante.
+- **`next.config.ts` se queda en `bodySizeLimit: '20mb'` a propósito**: tiene que ser igual o mayor que el límite (el cuerpo lleva el ZIP más los campos del formulario), y siendo más grande un ZIP de 10-20 MB llega al validador y recibe el mensaje claro en vez del error genérico de Next por cuerpo demasiado grande.
+- `packageSizeLimits.test.ts` (7 tests) ata las tres cifras: falla si el límite del ZIP supera el del antivirus o si el cuerpo de la Server Action baja de ese límite. Comprobado a propósito forzando ambos desalineamientos.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -120,7 +147,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 611 tests (unit + property-based + smoke con jsdom)
+npm test                     # 658 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -176,6 +203,25 @@ Verificación server-side de imagen y vídeo en Cloudinary, cabeceras de segurid
 
 ### 4.7 1 de octubre — Publicación y monitorización reforzada
 
+### 4.8 Pendientes detectados en la auditoría del 28 de septiembre
+
+Comprobados leyendo y ejecutando el código, no supuestos. Lo que ya figura arriba (E2E, cookies/CMP, accesibilidad, LCP/CLS, legales, Mailchimp) no se repite.
+
+- [ ] **Sin tope al tamaño descomprimido del ZIP**: el límite de 10 MB es sobre el `.zip` comprimido; `validateHtmlPackageZip` descomprime todas las entradas en memoria sin mirar su tamaño real, así que un ZIP pequeño con mucha redundancia (zip bomb) podría agotar memoria. Riesgo bajo (solo suben admins autenticados), arreglo barato: comprobar `entry.header.size` antes de `getData()` y un tope total.
+- [ ] **Escáner de dominios**: falsos positivos con el namespace de SVG (`www.w3.org`) y las cabeceras de licencia de librerías; hoy hay que declararlos en `externalDomains`. Documentado en el contrato, no arreglado.
+- [ ] **Assets de un paquete fuera de `assets/`**: la subida los acepta y luego dan 404. O se valida al subir, o el servidor sirve cualquier ruta del ZIP (y con Content-Type propio para más extensiones que las cinco actuales).
+- [ ] **Menú lateral en `/tools|insights/[slug]/app`**: es una mini-nav hecha a mano (iniciales, «Contacto» en español, `lang="es"` fijo), no el Shell real con iconos y «We did it»/«Podcasts». Además esas rutas se saltan el proxy entero (sin HSTS ni `frame-ancestors`).
+- [ ] **Sin preview de una versión en borrador del paquete**: `/app` solo lee la versión publicada, así que un admin no puede revisar el HTML antes de publicarlo; y el botón «Use» de una tool en preview de contenido lleva a un 404.
+- [ ] **Redirecciones 301**: la tabla `redirect_301` existe, nada la aplica.
+- [ ] **`sitemap` y `robots`**: no existen.
+- [ ] **`not-found.tsx` / `error.tsx`**: no existen, se ve el 404 por defecto de Next.
+- [ ] **`/api/feed/demo` y `/preview/masonry`** siguen públicos en producción.
+- [ ] **Health check** (§19.2): no existe.
+- [ ] **Analítica**: 6 de los 8 tipos de `AnalyticsEventMap` siguen sin dispararse (ver §4.5).
+- [ ] **ABM (§15.1)**: solo existe el CRUD de contenidos. Faltan editor de `feed_config` con simulador, etiquetas, módulo de Acceso (`admin_allowed_domain`), Redirecciones, Configuración y visor de `audit_log`; el dashboard es una página de 13 líneas.
+- [ ] **Etiquetas del feed**: no hay ningún uso de `tag`/`content_tag` en `src` y el filtro solo se guarda como hash — confirmar si el filtrado por etiquetas sigue en alcance de V1.
+- [ ] **Límites del plan de Cloudinary** frente al volumen real (Anexo A.2): no consta en §5.
+
 ---
 
 ## 5. Decisiones pendientes con Greener (Anexo A.2)
@@ -200,3 +246,5 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **22-23 sep 2026**: auditoría de cookies iniciada — contrastado el estado real de YouTube/Vimeo/Spotify (no las guías de hace un año), hallazgo real corregido (Vimeo sin `dnt=1`), y click-to-load construido para Vimeo/Spotify vía integración de trabajo externo (§2.5). Decisión de fondo (nivel de rigor, banner/CMP) explícitamente aplazada por el usuario — ver §5.
 - **23 sep 2026**: preview firmado del ABM construido de cero (§2.6) — cierra la decisión pendiente desde el 7 de septiembre. Token autocontenido sin estado (mismo mecanismo que el cursor del feed), caduca a los 7 días, `resolvePreviewContext` como único punto de entrada para las cuatro plantillas públicas. 15 tests nuevos, dos fallos propios corregidos antes de cerrar el bloque (estrechamiento de tipos, mocks sin limpiar entre tests).
 - **23 sep 2026 (cierre de la sesión)**: resuelto un conflicto de git real entre el trabajo de esta sesión y el de un compañero en paralelo (`episodeDetail.smoke.test.tsx`), e integrada su analítica Plausible real — evento "Pin Click" disparado desde `PinCard`, cableado en los cuatro sitios donde se pinta un pin. Hallazgo real corregido al integrar: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` no estaba en el schema de `env.ts` pese a usarse en `layout.tsx`. Descartado un `Archivo.zip` suelto (backup accidental, no algo a integrar). **611 tests en verde (65 ficheros), `eslint` a 0, build y `tsc` limpios, `format:check` limpio.** Este mismo cierre incluyó archivar las antiguas §2/§3 (rediseño de detalle + construcción del sitio público, ambas confirmadas y completas) en `historial-fases-3-4.md`, reorganizando este documento para que vuelva a quedarse centrado en el estado actual — mismo criterio que el archivado del 9 de septiembre.
+- **28 sep 2026**: corregido un fallo real de caché — los assets de tools/insights se servían `immutable` durante un año bajo una URL sin versión, así que una versión nueva o un rollback no habrían llegado a los visitantes; ahora revalidan con ETag a partir del checksum de la versión (§2.8). Contrato ZIP ampliado y dos afirmaciones suyas corregidas (estructura bajo `assets/`, rutas de `Worker`/`fetch` relativas a la base); la tool de ejemplo tenía ese mismo fallo del Worker y se ha corregido. 40 tests nuevos, 651 en total. Añadida §4.8 con los pendientes detectados en la auditoría del día.
+- **28 sep 2026 (después)**: cerrado el límite del ZIP en **10 MB** (decimales) por el tope del antivirus — guarda nueva en el escaneo y un test que ata el límite, el del antivirus y el `bodySizeLimit` de Next (§2.8). Restaurados los dotfiles del proyecto (`.gitignore`, `.nvmrc`, `.prettierrc`, `.prettierignore`, `.env.local.example`); con el `.prettierrc` real, `format:check` completo pasa limpio. 658 tests.

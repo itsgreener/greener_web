@@ -1,6 +1,7 @@
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
+import { buildAssetEtag, isNotModified } from '../domain/assetCaching'
 import {
   PackageNotFoundError,
   type PackageManifest,
@@ -77,12 +78,29 @@ export async function getStoragePackage(
   return { slug, manifest, html }
 }
 
-/** Resuelve un asset (CSS/JS/etc.) del paquete publicado, por ruta relativa. */
+/**
+ * Resultado de pedir un asset: o bien el navegador ya tiene esta versión
+ * (`notModified`, sin descargar nada de Storage), o bien los bytes.
+ * `etag` sale del checksum de la versión publicada (ver assetCaching.ts).
+ */
+export type StoragePackageAsset =
+  | { notModified: true; etag: string }
+  | { notModified: false; etag: string; data: Buffer }
+
+/**
+ * Resuelve un asset (CSS/JS/etc.) del paquete publicado, por ruta relativa.
+ *
+ * `ifNoneMatch` es la cabecera de la petición: si coincide con el ETag de
+ * la versión publicada se evita la descarga desde Storage y se devuelve
+ * `notModified`. Como el checksum es inmutable por versión, una versión
+ * nueva o un rollback cambian el ETag y el navegador recibe el asset nuevo.
+ */
 export async function getStoragePackageAsset(
   kind: 'tool' | 'insight',
   slug: string,
   assetPath: string[],
-): Promise<Buffer> {
+  ifNoneMatch: string | null = null,
+): Promise<StoragePackageAsset> {
   const publicClient = createPublicReadClient()
 
   const { data: content } = await publicClient
@@ -109,7 +127,7 @@ export async function getStoragePackageAsset(
 
   const { data: version } = await publicClient
     .from('html_package_version')
-    .select('storage_path, status')
+    .select('storage_path, status, checksum')
     .eq('id', pkg.current_version_id)
     .eq('status', 'published')
     .maybeSingle()
@@ -125,6 +143,12 @@ export async function getStoragePackageAsset(
     throw new PackageNotFoundError(slug)
   }
 
+  const etag = buildAssetEtag(version.checksum)
+
+  if (isNotModified(ifNoneMatch, etag)) {
+    return { notModified: true, etag }
+  }
+
   const serviceClient = createServiceClient()
 
   const path = `${version.storage_path}/${assetPath.join('/')}`
@@ -137,5 +161,9 @@ export async function getStoragePackageAsset(
     throw new PackageNotFoundError(slug)
   }
 
-  return Buffer.from(await file.arrayBuffer())
+  return {
+    notModified: false,
+    etag,
+    data: Buffer.from(await file.arrayBuffer()),
+  }
 }
