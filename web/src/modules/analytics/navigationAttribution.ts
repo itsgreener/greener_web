@@ -1,10 +1,26 @@
 'use client'
 
-const STORAGE_KEY =
-  'greener:analytics:navigation-source'
+/**
+ * De qué sección venía la navegación que llevó a abrir un contenido
+ * (arquitectura §18.2: `sourceSection` de "Case Open").
+ *
+ * `PinCard` guarda aquí la sección justo antes de navegar (al hacer clic);
+ * la página de detalle la consume una sola vez al montarse, y solo si el
+ * destino guardado coincide con la ruta actual — así una atribución vieja
+ * nunca se asocia a una visita distinta a la que la originó.
+ *
+ * Vive en sessionStorage, no en el contenido del evento en sí, porque el
+ * clic ocurre en un componente (PinCard) y la lectura en otro (la página
+ * de destino, tras una navegación completa de cliente) sin relación
+ * directa entre ambos. Sin datos personales.
+ */
 
-const MAX_AGE_MS =
-  30 * 60 * 1000
+const STORAGE_KEY = 'greener:analytics:navigation-source'
+
+// Una atribución más vieja que esto se descarta: evita que una pestaña
+// dejada abierta con un clic antiguo sin consumir contamine una visita
+// muy posterior.
+const MAX_AGE_MS = 30 * 60 * 1000
 
 type StoredNavigationSource = {
   destinationPath: string
@@ -12,106 +28,62 @@ type StoredNavigationSource = {
   createdAt: number
 }
 
-function normalizePath(
-  value: string,
-): string | null {
-  if (
-    typeof window ===
-    'undefined'
-  ) {
+function normalizePath(value: string): string | null {
+  if (typeof window === 'undefined') {
     return null
   }
 
   try {
-    return new URL(
-      value,
-      window.location.origin,
-    ).pathname
+    return new URL(value, window.location.origin).pathname
   } catch {
     return null
   }
 }
 
-/**
- * Guarda de forma efímera desde qué sección se ha iniciado una
- * navegación interna.
- *
- * No contiene información personal y vive únicamente en sessionStorage.
- */
 export function rememberNavigationSource(
   destination: string,
   section: string,
 ): void {
-  if (
-    typeof window ===
-    'undefined'
-  ) {
+  if (typeof window === 'undefined') {
     return
   }
 
-  const destinationPath =
-    normalizePath(
-      destination,
-    )
+  const destinationPath = normalizePath(destination)
+  const normalizedSection = section.trim()
 
-  const normalizedSection =
-    section.trim()
-
-  if (
-    !destinationPath ||
-    !normalizedSection
-  ) {
+  if (!destinationPath || !normalizedSection) {
     return
   }
 
-  const value: StoredNavigationSource =
-    {
-      destinationPath,
-      section:
-        normalizedSection,
-      createdAt:
-        Date.now(),
-    }
+  const value: StoredNavigationSource = {
+    destinationPath,
+    section: normalizedSection,
+    createdAt: Date.now(),
+  }
 
   try {
-    window.sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify(
-        value,
-      ),
-    )
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value))
   } catch {
-    // sessionStorage puede estar deshabilitado.
-    // La navegación debe seguir funcionando igualmente.
+    // sessionStorage puede estar deshabilitado (navegación privada
+    // estricta) — la navegación debe seguir funcionando igualmente,
+    // simplemente sin atribución.
   }
 }
 
 /**
- * Recupera la atribución solamente si pertenece a la página actual.
- *
- * Siempre consume/elimina el registro para impedir que una atribución
- * antigua termine asociándose posteriormente a otra visita.
+ * Siempre consume (borra) el registro, exista o no, para que una
+ * atribución ya leída nunca se reutilice en una visita posterior.
  */
 export function consumeNavigationSource(): string {
-  if (
-    typeof window ===
-    'undefined'
-  ) {
+  if (typeof window === 'undefined') {
     return 'direct'
   }
 
-  let raw: string | null =
-    null
+  let raw: string | null = null
 
   try {
-    raw =
-      window.sessionStorage.getItem(
-        STORAGE_KEY,
-      )
-
-    window.sessionStorage.removeItem(
-      STORAGE_KEY,
-    )
+    raw = window.sessionStorage.getItem(STORAGE_KEY)
+    window.sessionStorage.removeItem(STORAGE_KEY)
   } catch {
     return 'direct'
   }
@@ -121,41 +93,25 @@ export function consumeNavigationSource(): string {
   }
 
   try {
-    const parsed =
-      JSON.parse(
-        raw,
-      ) as Partial<StoredNavigationSource>
+    const parsed = JSON.parse(raw) as Partial<StoredNavigationSource>
 
     if (
-      typeof parsed.destinationPath !==
-        'string' ||
-      typeof parsed.section !==
-        'string' ||
-      typeof parsed.createdAt !==
-        'number'
+      typeof parsed.destinationPath !== 'string' ||
+      typeof parsed.section !== 'string' ||
+      typeof parsed.createdAt !== 'number'
     ) {
       return 'direct'
     }
 
-    if (
-      Date.now() -
-        parsed.createdAt >
-      MAX_AGE_MS
-    ) {
+    if (Date.now() - parsed.createdAt > MAX_AGE_MS) {
       return 'direct'
     }
 
-    if (
-      parsed.destinationPath !==
-      window.location.pathname
-    ) {
+    if (parsed.destinationPath !== window.location.pathname) {
       return 'direct'
     }
 
-    return (
-      parsed.section.trim() ||
-      'direct'
-    )
+    return parsed.section.trim() || 'direct'
   } catch {
     return 'direct'
   }

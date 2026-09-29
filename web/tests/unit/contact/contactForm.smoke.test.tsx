@@ -17,9 +17,19 @@ describe('ContactForm — prueba de humo', () => {
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Message')).toBeInTheDocument()
     expect(
-      screen.getByLabelText('I agree to the privacy policy'),
+      screen.getByLabelText('I agree to the Privacy & Cookies policy'),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
+  })
+
+  it('la casilla de consentimiento enlaza a la política (Privacy & Cookies) sin perder lo escrito: pestaña nueva y rel seguro', () => {
+    render(<ContactForm />)
+
+    const link = screen.getByRole('link', { name: 'Privacy & Cookies policy' })
+
+    expect(link).toHaveAttribute('href', '/privacy')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
   })
 
   it('los campos obligatorios llevan el atributo required (arquitectura §14.1)', () => {
@@ -30,7 +40,7 @@ describe('ContactForm — prueba de humo', () => {
     expect(screen.getByLabelText('Email')).toBeRequired()
     expect(screen.getByLabelText('Message')).toBeRequired()
     expect(
-      screen.getByLabelText('I agree to the privacy policy'),
+      screen.getByLabelText('I agree to the Privacy & Cookies policy'),
     ).toBeRequired()
   })
 

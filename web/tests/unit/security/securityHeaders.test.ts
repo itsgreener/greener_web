@@ -35,6 +35,36 @@ describe('buildContentSecurityPolicy', () => {
     )
   })
 
+  it('sin analítica configurada, connect-src NO abre plausible.io (mínimo privilegio)', () => {
+    expect(buildContentSecurityPolicy(INPUT)).not.toContain('plausible.io')
+    expect(
+      buildContentSecurityPolicy({ ...INPUT, analyticsEnabled: false }),
+    ).not.toContain('plausible.io')
+  })
+
+  it('con analítica configurada, connect-src permite https://plausible.io: sin él el navegador bloquea en silencio el fetch de cada evento (fallo real del 28 sep)', () => {
+    const csp = buildContentSecurityPolicy({ ...INPUT, analyticsEnabled: true })
+
+    expect(csp).toContain(
+      `connect-src 'self' https://abcxyz.supabase.co https://api.cloudinary.com https://plausible.io`,
+    )
+  })
+
+  it('abrir plausible.io no toca script-src ni ninguna otra directiva', () => {
+    const base = buildContentSecurityPolicy(INPUT)
+    const withAnalytics = buildContentSecurityPolicy({
+      ...INPUT,
+      analyticsEnabled: true,
+    })
+
+    const directive = (csp: string, name: string) =>
+      csp.split('; ').find((d) => d.startsWith(`${name} `))
+
+    for (const name of ['script-src', 'img-src', 'frame-src', 'default-src']) {
+      expect(directive(withAnalytics, name)).toBe(directive(base, name))
+    }
+  })
+
   it('connect-src usa solo el origen de Supabase, sin arrastrar query/path si la URL los trajera', () => {
     const csp = buildContentSecurityPolicy({
       ...INPUT,

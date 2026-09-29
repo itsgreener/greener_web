@@ -1,110 +1,66 @@
 'use client'
 
-import {
-  useEffect,
-  useRef,
-} from 'react'
+import { useEffect, useRef } from 'react'
 
-import {
-  trackAnalyticsEvent,
-} from './analytics'
-
-import {
-  consumeNavigationSource,
-} from './navigationAttribution'
+import { trackAnalyticsEvent } from './analytics'
+import { consumeNavigationSource } from './navigationAttribution'
 
 type Props =
-  | {
-      type: 'case'
-      contentId: string
-    }
-  | {
-      type: 'tool'
-      contentId: string
-    }
-  | {
-      type: 'insight'
-      contentId: string
-    }
+  | { type: 'case'; contentId: string }
+  | { type: 'tool'; contentId: string }
+  | { type: 'insight'; contentId: string }
 
 /**
- * Registra una apertura real de contenido.
+ * Registra una apertura pública real de contenido (arquitectura §18.2:
+ * "Case Open" / "Tool Open" / "Insight Open") — se monta dentro de la
+ * página de detalle correspondiente, no en el pin que enlaza a ella, para
+ * que solo cuente una carga real de la página de destino.
  *
- * Los previews firmados no cuentan como aperturas públicas y por eso
- * cualquier URL con ?preview= queda excluida.
+ * Un preview firmado (`?preview=<token>`, §15.3) no es una apertura
+ * pública y queda excluido explícitamente, aunque `resolvePreviewContext`
+ * también lo excluiría de RLS — esto es solo sobre no contaminar métricas.
+ *
+ * Se dispara como máximo una vez por montaje (`tracked`), no en cada
+ * re-render.
  */
-export function ContentOpenTracker(
-  props: Props,
-) {
-  const tracked =
-    useRef(false)
+export function ContentOpenTracker(props: Props) {
+  const tracked = useRef(false)
 
   useEffect(() => {
-    if (
-      tracked.current
-    ) {
+    if (tracked.current) {
       return
     }
 
-    if (
-      new URLSearchParams(
-        window.location.search,
-      ).has('preview')
-    ) {
+    if (new URLSearchParams(window.location.search).has('preview')) {
       return
     }
 
-    tracked.current =
-      true
+    tracked.current = true
 
-    const sourceSection =
-      consumeNavigationSource()
+    const sourceSection = consumeNavigationSource()
 
-    switch (
-      props.type
-    ) {
+    switch (props.type) {
       case 'case':
-        trackAnalyticsEvent(
-          'Case Open',
-          {
-            caseId:
-              props.contentId,
-
-            sourceSection,
-          },
-        )
-
+        trackAnalyticsEvent('Case Open', {
+          caseId: props.contentId,
+          sourceSection,
+        })
         break
 
       case 'tool':
-        trackAnalyticsEvent(
-          'Tool Open',
-          {
-            toolId:
-              props.contentId,
-
-            action:
-              'open',
-          },
-        )
-
+        trackAnalyticsEvent('Tool Open', {
+          toolId: props.contentId,
+          action: 'open',
+        })
         break
 
       case 'insight':
-        trackAnalyticsEvent(
-          'Insight Open',
-          {
-            insightId:
-              props.contentId,
-          },
-        )
-
+        trackAnalyticsEvent('Insight Open', {
+          insightId: props.contentId,
+        })
         break
     }
-  }, [
-    props.type,
-    props.contentId,
-  ])
+  }, [props.type, props.contentId])
 
   return null
 }

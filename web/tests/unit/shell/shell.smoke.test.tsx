@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
+import { existsSync } from 'node:fs'
+import path from 'node:path'
 import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Shell } from '@/components/shell/Shell'
@@ -65,5 +67,28 @@ describe('Shell — prueba de humo', () => {
     expect(icon?.style.getPropertyValue('--icon-url')).toBe(
       'url(/icons/linkedin.svg)',
     )
+  })
+
+  it('el menú lateral incluye siempre a la vista el enlace a Privacy & Cookies (la guía de la AEPD pide acceso fácil y permanente; un pie de página no sirve con el feed infinito)', () => {
+    render(
+      <Shell>
+        <p>Contenido</p>
+      </Shell>,
+    )
+
+    const link = screen.getByLabelText('Privacy & Cookies')
+
+    expect(link).toHaveAttribute('href', '/privacy')
+    expect(link).not.toHaveAttribute('target')
+    expect(link).toHaveTextContent('Privacy & Cookies')
+    expect(
+      link.querySelector('span')?.style.getPropertyValue('--icon-url'),
+    ).toBe('url(/icons/privacy.svg)')
+  })
+
+  it('el icono de privacidad existe como fichero (la máscara CSS no avisa si falta)', () => {
+    expect(
+      existsSync(path.resolve(__dirname, '../../../public/icons/privacy.svg')),
+    ).toBe(true)
   })
 })

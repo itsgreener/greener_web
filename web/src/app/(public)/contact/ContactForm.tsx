@@ -1,6 +1,7 @@
 'use client'
 
 import { useActionState } from 'react'
+import Link from 'next/link'
 import { submitContactAction, type ContactActionState } from './contactActions'
 import styles from './ContactForm.module.css'
 
@@ -70,7 +71,10 @@ export function ContactForm() {
             type="checkbox"
             required
           />
-          I agree to the privacy policy
+          I agree to the{' '}
+          <Link href="/privacy" target="_blank" rel="noopener">
+            Privacy &amp; Cookies policy
+          </Link>
         </label>
         {state.fieldErrors?.privacyConsent?.[0] && (
           <p>{state.fieldErrors.privacyConsent[0]}</p>

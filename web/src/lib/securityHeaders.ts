@@ -41,7 +41,20 @@ export interface SecurityHeadersInput {
   // `true` aquí, así que la política de producción se queda tan
   // estricta como estaba.
   isDev: boolean
+  // Plausible está configurado (NEXT_PUBLIC_PLAUSIBLE_DOMAIN). El tracker
+  // publica cada evento con `fetch` en https://plausible.io/api/event;
+  // sin este origen en `connect-src`, el navegador bloquea la petición en
+  // silencio y NINGÚN evento llega (fallo real encontrado el 28 sep: la CSP
+  // se añadió el 22 de septiembre, un día antes que la integración de
+  // Plausible, y nadie comprobó que encajaran). Solo se abre si hay analítica
+  // configurada: sin ella, ese origen no hace falta.
+  analyticsEnabled?: boolean
 }
+
+// Endpoint de eventos del tracker de Plausible (su valor por defecto, que es el
+// que usa el paquete al no configurarse otro). Si algún día se alojara
+// Plausible en un dominio propio, cambiar aquí y en analytics.ts.
+const PLAUSIBLE_EVENTS_ORIGIN = 'https://plausible.io'
 
 const CLOUDINARY_DELIVERY_ORIGIN = 'https://res.cloudinary.com'
 // Subida directa desde el navegador (arquitectura §9.2: "El navegador
@@ -62,8 +75,16 @@ export function buildContentSecurityPolicy({
   nonce,
   supabaseUrl,
   isDev,
+  analyticsEnabled = false,
 }: SecurityHeadersInput): string {
   const supabaseOrigin = new URL(supabaseUrl).origin
+
+  const connectSources = [
+    `'self'`,
+    supabaseOrigin,
+    CLOUDINARY_UPLOAD_ORIGIN,
+    ...(analyticsEnabled ? [PLAUSIBLE_EVENTS_ORIGIN] : []),
+  ]
 
   const directives = [
     `default-src 'self'`,
@@ -76,7 +97,7 @@ export function buildContentSecurityPolicy({
     // precaución de más.
     `media-src 'self' ${CLOUDINARY_DELIVERY_ORIGIN}`,
     `font-src 'self'`,
-    `connect-src 'self' ${supabaseOrigin} ${CLOUDINARY_UPLOAD_ORIGIN}`,
+    `connect-src ${connectSources.join(' ')}`,
     `frame-src ${EMBED_FRAME_ORIGINS.join(' ')}`,
     `object-src 'none'`,
     `base-uri 'self'`,

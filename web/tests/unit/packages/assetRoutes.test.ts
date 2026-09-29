@@ -68,10 +68,33 @@ describe.each(ROUTES)('ruta de assets de $kind', ({ kind, load }) => {
 
     await GET(request('"abc"'), params(['assets-sub', 'main.js']))
 
+    // Bug real corregido el 29 sep: la ruta debe volver a anteponer
+    // 'assets' — Next.js ya lo consume como segmento fijo de la propia
+    // ruta antes de pasarle `file`, pero en Storage el asset vive bajo
+    // <storage_path>/assets/... (todo lo que no sea index.html/manifest.json
+    // sube conservando su ruta dentro del ZIP). Sin este prefijo, TODO
+    // asset de TODO paquete daba 404 contra Storage real.
     expect(getStoragePackageAsset).toHaveBeenCalledWith(
       kind,
       'mi-slug',
-      ['assets-sub', 'main.js'],
+      ['assets', 'assets-sub', 'main.js'],
+      '"abc"',
+    )
+  })
+
+  it('un asset en la raíz de assets/ también lleva el prefijo', async () => {
+    getStoragePackageAsset.mockResolvedValue({
+      notModified: true,
+      etag: '"abc"',
+    })
+    const { GET } = await load()
+
+    await GET(request('"abc"'), params(['main.js']))
+
+    expect(getStoragePackageAsset).toHaveBeenCalledWith(
+      kind,
+      'mi-slug',
+      ['assets', 'main.js'],
       '"abc"',
     )
   })

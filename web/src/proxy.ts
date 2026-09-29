@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
     nonce,
     supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL!,
     isDev: process.env.NODE_ENV === 'development',
+    analyticsEnabled: Boolean(env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN),
   })
 
   // El propio Next.js busca el nonce en la cabecera Content-Security-

@@ -27,11 +27,10 @@ mi-tool.zip
 
 ### Tipos de archivo dentro de `assets/`
 
-El servidor asigna el tipo de contenido (Content-Type) por extensión, y solo reconoce cinco: **`.js`, `.css`, `.json`, `.png` y `.svg`**. Cualquier otra extensión (`.webp`, `.jpg`, `.woff2`, `.txt`, `.mp4`, `.pdf`…) se sirve con un tipo genérico. Consecuencias prácticas:
+El servidor asigna el tipo de contenido (Content-Type) por extensión. Reconoce nueve, ampliados el 29 de septiembre tras los primeros insights reales (que traían tipografía propia): **`.js`, `.css`, `.json`, `.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`, `.woff` y `.woff2`**. La extensión se normaliza a minúsculas (`Coolvetica.WOFF2` se sirve igual que `coolvetica.woff2`). Cualquier otra extensión (`.txt`, `.mp4`, `.pdf`…) se sirve con un tipo genérico. Consecuencias prácticas:
 
 - Un archivo `.txt`, `.pdf` u otro enlazado con un `<a href>` **se descargará en vez de abrirse** en el navegador (por ejemplo, un `llms.txt` enlazado desde la página).
-- Las imágenes `.webp`/`.jpg` en un `<img>` y las fuentes `.woff2` en un `@font-face` **suelen funcionar** porque el navegador identifica el formato por su contenido, pero **no está verificado ni garantizado**. Si el paquete las necesita, hay que probarlas en una subida real antes de darlas por buenas.
-- Para V1, lo seguro es limitarse a esos cinco tipos. Si hace falta otro, se avisa para ampliar la lista en el servidor, no se improvisa.
+- Los nueve tipos de arriba (imágenes, tipografía, JS, CSS, JSON) están verificados. Cualquier otro tipo que el paquete necesite, se avisa para ampliar la lista en el servidor, no se improvisa.
 
 ## 2. `manifest.json` — campos obligatorios
 
@@ -218,7 +217,7 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] `entrypoint` del manifest coincide con un archivo real del ZIP
 - [ ] `kind` del manifest coincide con el tipo de contenido (tool/insight)
 - [ ] **Todo lo demás dentro de `assets/`** (CSS, JS, workers, imágenes), y referenciado como `./assets/...`
-- [ ] Solo extensiones `.js`, `.css`, `.json`, `.png`, `.svg` dentro de `assets/` (cualquier otra, probada antes en una subida real — §1)
+- [ ] Solo extensiones `.js`, `.css`, `.json`, `.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`, `.woff`, `.woff2` dentro de `assets/` (cualquier otra, probada antes en una subida real — §1)
 - [ ] **Ningún `<script>` con código inline ni manejadores `onclick=`**: todo el JS en archivo (§6)
 - [ ] Las rutas relativas escritas **dentro del JS** (`new Worker(...)`, `fetch(...)`) empiezan por `./assets/...`, no por el nombre del archivo a secas (§6)
 - [ ] Todo dominio que aparezca en cualquier archivo (enlaces a fuentes, textos de cita, `www.w3.org` de un SVG, cabeceras de licencia de librerías) está en `externalDomains` — se declara el dominio, no cada enlace (§3)

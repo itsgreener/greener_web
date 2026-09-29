@@ -1,132 +1,106 @@
 'use client'
 
-import {
-  useState,
-} from 'react'
+import { useState } from 'react'
+import Link from 'next/link'
 
-import {
-  PinCard,
-} from '@/components/pin/PinCard'
-
-import {
-  useRecommendationMasonry,
-} from '@/components/detail/useRecommendationMasonry'
-
-import {
-  trackAnalyticsEvent,
-} from '@/modules/analytics/analytics'
-
-import type {
-  PublicContent,
-} from '@/modules/content/infrastructure/publicContentSource'
-
-import type {
-  PublicEpisode,
-} from '@/modules/content/infrastructure/publicEpisodeSource'
-
+import { PinCard } from '@/components/pin/PinCard'
+import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
+import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
+import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import type { PublicEpisode } from '@/modules/content/infrastructure/publicEpisodeSource'
 import styles from './EpisodeDetail.module.css'
 
-const EPISODE_RATIO =
-  '16:9' as const
+// especificacion-final-formato-detalle.md §2, punto 1: "la imagen nunca
+// se mide en columnas... igual en tipo A, B y contenido libre, sin
+// excepción" — un episodio no tiene un archivo propio del que sacar
+// ancho/alto real (es un embed externo), así que se asume 16:9, el
+// formato de vídeo estándar de YouTube/Vimeo. Simplificación heredada de
+// antes de esta sesión (el .embedWrapper original ya usaba aspect-ratio:
+// 16/9 fijo) — no resuelta aquí: un embed de Spotify (audio, widget
+// compacto de altura fija) no encaja bien en un marco 16:9, se ve con
+// mucho hueco vacío. Sigue siendo una pregunta de diseño abierta para
+// cuando se audite Spotify (arquitectura §17.2, Anexo A), no algo que
+// este cambio decida.
+const EPISODE_RATIO = '16:9' as const
 
 /**
- * El iframe solo se monta después de una acción explícita del usuario.
+ * https://www.youtube.com/embed vs youtube-nocookie: arquitectura §17.2
+ * ("YouTube usa youtube-nocookie cuando sea viable"). Vimeo y Spotify no
+ * tienen una variante sin cookies equivalente documentada — se auditará
+ * el consentimiento real cuando se aborde §17.2 del todo (Anexo A,
+ * decisión pendiente con Greener).
  *
- * Esto nos da una semántica uniforme para "Episode Play":
- * el evento representa una intención explícita de reproducción,
- * independientemente del proveedor.
- *
- * YouTube conserva youtube-nocookie.
- * Vimeo conserva dnt=1.
+ * `autoplay=1` en YouTube y Vimeo (añadido el 29 sep): con el gate de
+ * consentimiento delante (nada se monta sin un clic previo), pulsar
+ * «Load … content» ya ES la intención explícita de reproducir — sin
+ * autoplay el visitante tendría que pulsar play una segunda vez dentro
+ * del propio iframe. Spotify no admite ese parámetro en su embed.
  */
-function embedUrl(
-  episode: PublicEpisode,
-): string {
-  switch (
-    episode.provider
-  ) {
+function embedUrl(episode: PublicEpisode): string {
+  switch (episode.provider) {
     case 'youtube':
-      return (
-        `https://www.youtube-nocookie.com/embed/` +
-        `${episode.embedId}?autoplay=1`
-      )
-
+      return `https://www.youtube-nocookie.com/embed/${episode.embedId}?autoplay=1`
     case 'vimeo':
-      return (
-        `https://player.vimeo.com/video/` +
-        `${episode.embedId}?dnt=1&autoplay=1`
-      )
-
+      // dnt=1 (Do Not Track): evita que Vimeo plante la cookie `vuid`
+      // (identificador persistente de dos años) desde la carga, antes
+      // de cualquier interacción — arquitectura §17.2, auditoría de
+      // cookies. Vimeo no ofrece un dominio "sin cookies" equivalente
+      // al youtube-nocookie de arriba; este parámetro es la única
+      // mitigación técnica que expone.
+      return `https://player.vimeo.com/video/${episode.embedId}?dnt=1&autoplay=1`
     case 'spotify':
-      return (
-        `https://open.spotify.com/embed/episode/` +
-        episode.embedId
-      )
+      // Mejor suposición: episode_kind hoy solo vale 'podcast', así que se
+      // asume un episodio de Spotify, no un show completo — a confirmar
+      // si algún día se sube contenido que no encaje aquí.
+      return `https://open.spotify.com/embed/episode/${episode.embedId}`
   }
 }
 
-function episodeKindLabel(
-  kind:
-    PublicEpisode['episodeKind'],
-): string {
+function episodeKindLabel(kind: PublicEpisode['episodeKind']): string {
   switch (kind) {
     case 'podcast':
       return 'Podcast'
   }
 }
 
-function providerLabel(
-  provider:
-    PublicEpisode['provider'],
-): string {
+function providerLabel(provider: PublicEpisode['provider']): string {
   switch (provider) {
     case 'youtube':
       return 'YouTube'
-
     case 'vimeo':
       return 'Vimeo'
-
     case 'spotify':
       return 'Spotify'
   }
 }
 
+// Decisión del 28 de septiembre (cookies, opción A): NINGÚN embed de tercero
+// se carga hasta que el usuario pulsa «Load {proveedor} content», tampoco
+// YouTube (antes se servía directo por youtube-nocookie, que sigue siendo la
+// URL, pero que según la auditoría del 22-23 sep escribe un identificador en
+// el almacenamiento local al cargar). La guía de cookies de la AEPD (mayo de
+// 2024, §3.2.3 d) reconoce pedir el consentimiento justo antes de descargar
+// un vídeo. La elección NO se guarda (ni cookie ni almacenamiento): se
+// vuelve a preguntar en cada vídeo, y así el sitio no escribe nada propio
+// que haya que justificar. Si más adelante se pasa a un banner global, esta
+// puerta se sustituye por su estado. Un test fija que no se persiste nada.
+
 /**
- * Plantilla de detalle tipo B para un episodio.
- *
- * El iframe externo no existe en el DOM hasta que el usuario solicita
- * reproducir el episodio. Además de simplificar la atribución de
- * Episode Play, evita conexiones con el proveedor antes de esa acción.
+ * Plantilla de detalle tipo B para un episodio — mismo mecanismo que
+ * CaseDetail (fullWidthContent, sin panel lateral, recomendaciones solo
+ * debajo), con el embed externo en vez de un carrusel propio.
  */
 export function EpisodeDetail({
   content,
   episode,
 }: {
-  content:
-    PublicContent
-
-  episode:
-    PublicEpisode
+  content: PublicContent
+  episode: PublicEpisode
 }) {
-  const [
-    approvedEmbedKey,
-    setApprovedEmbedKey,
-  ] =
-    useState<
-      string | null
-    >(null)
-
-  const embedKey =
-    `${episode.provider}:${episode.embedId}`
-
-  const canRenderEmbed =
-    approvedEmbedKey ===
-    embedKey
-
-  const provider =
-    providerLabel(
-      episode.provider,
-    )
+  const [approvedEmbedKey, setApprovedEmbedKey] = useState<string | null>(null)
+  const embedKey = `${episode.provider}:${episode.embedId}`
+  const canRenderEmbed = approvedEmbedKey === embedKey
+  const provider = providerLabel(episode.provider)
 
   const {
     containerRef,
@@ -140,290 +114,128 @@ export function EpisodeDetail({
     hasMore,
     error,
     sentinelId,
-  } =
-    useRecommendationMasonry(
-      content.id,
-      EPISODE_RATIO,
-      {
-        fullWidthContent:
-          true,
-      },
-    )
+  } = useRecommendationMasonry(content.id, EPISODE_RATIO, {
+    fullWidthContent: true,
+  })
 
+  /**
+   * Registra "Episode Play" (arquitectura §18.2) en el mismo clic que
+   * concede el consentimiento — es la acción explícita de reproducir,
+   * uniforme entre los tres proveedores. Un preview firmado no debe
+   * contaminar las métricas públicas (mismo criterio que
+   * ContentOpenTracker, pero aquí no hay montaje propio que lo dispare:
+   * el evento nace del clic, no de abrir la página).
+   */
   function handlePlay() {
-    /**
-     * Los previews editoriales no deben contaminar las métricas públicas.
-     */
-    const isPreview =
-      new URLSearchParams(
-        window.location.search,
-      ).has('preview')
+    const isPreview = new URLSearchParams(window.location.search).has('preview')
 
     if (!isPreview) {
       trackAnalyticsEvent(
         'Episode Play',
         {
-          program:
-            episode.program,
-
-          episodeId:
-            content.id,
-
-          provider:
-            episode.provider,
+          program: episode.program,
+          episodeId: content.id,
+          provider: episode.provider,
         },
-        {
-          interactive:
-            true,
-        },
+        { interactive: true },
       )
     }
 
-    setApprovedEmbedKey(
-      embedKey,
-    )
+    setApprovedEmbedKey(embedKey)
   }
 
   return (
-    <article
-      className={
-        styles.article
-      }
-    >
+    <article className={styles.article}>
       <div
-        ref={
-          containerRef
-        }
-        className={
-          styles.canvas
-        }
-        style={{
-          height:
-            totalHeight ||
-            undefined,
-        }}
+        ref={containerRef}
+        className={styles.canvas}
+        style={{ height: totalHeight || undefined }}
       >
         <div
-          className={
-            styles.contentBlock
-          }
-          style={{
-            width:
-              contentBlockReservedWidth ||
-              '100%',
-          }}
+          className={styles.contentBlock}
+          style={{ width: contentBlockReservedWidth || '100%' }}
         >
           <div
-            className={
-              styles.embedWrapper
-            }
+            className={styles.embedWrapper}
             style={{
-              width:
-                contentBlockImageWidth ||
-                '100%',
-
-              height:
-                contentBlockImageHeight ||
-                undefined,
+              width: contentBlockImageWidth || '100%',
+              height: contentBlockImageHeight || undefined,
             }}
           >
             {canRenderEmbed ? (
               <iframe
-                src={embedUrl(
-                  episode,
-                )}
-                title={
-                  content.title
-                }
-                className={
-                  styles.embed
-                }
+                src={embedUrl(episode)}
+                title={content.title}
+                className={styles.embed}
                 allow="autoplay; encrypted-media; picture-in-picture"
                 allowFullScreen
                 loading="lazy"
               />
             ) : (
-              <div
-                className={
-                  styles.embedConsent
-                }
-              >
-                <p
-                  className={
-                    styles.embedConsentTitle
-                  }
-                >
-                  Contenido de{' '}
-                  {provider}
+              <div className={styles.embedConsent}>
+                <p className={styles.embedConsentTitle}>{provider} content</p>
+                <p className={styles.embedConsentText}>
+                  This content is served by {provider}. Nothing is loaded from{' '}
+                  {provider} until you choose to. If you load it, your browser
+                  connects to {provider}, which receives your IP address and
+                  uses cookies and similar technologies of its own to deliver
+                  the player and for its own purposes, as described in its
+                  privacy policy.
                 </p>
-
-                <p
-                  className={
-                    styles.embedConsentText
-                  }
-                >
-                  Este contenido
-                  lo sirve{' '}
-                  {provider}. Al
-                  reproducirlo, tu
-                  navegador se
-                  conectará con
-                  este proveedor,
-                  que puede tratar
-                  datos y utilizar
-                  cookies o
-                  tecnologías
-                  similares.
+                <p className={styles.embedConsentText}>
+                  We do not store your choice, so you will be asked again for
+                  each video.{' '}
+                  <Link href="/privacy" target="_blank" rel="noopener">
+                    Privacy &amp; Cookies
+                  </Link>
                 </p>
-
                 <button
                   type="button"
-                  className={
-                    styles.embedConsentButton
-                  }
-                  onClick={
-                    handlePlay
-                  }
+                  className={styles.embedConsentButton}
+                  onClick={handlePlay}
                 >
-                  Reproducir
-                  episodio en{' '}
-                  {provider}
+                  Load {provider} content
                 </button>
               </div>
             )}
           </div>
 
-          <div
-            className={
-              styles.text
-            }
-          >
-            <p
-              className={
-                styles.kind
-              }
-            >
-              {episodeKindLabel(
-                episode.episodeKind,
-              )}
+          <div className={styles.text}>
+            <p className={styles.kind}>
+              {episodeKindLabel(episode.episodeKind)}
             </p>
-
-            <h1
-              className={
-                styles.title
-              }
-            >
-              {content.title}
-            </h1>
-
+            <h1 className={styles.title}>{content.title}</h1>
             {content.highlight && (
-              <p
-                className={
-                  styles.highlight
-                }
-              >
-                {
-                  content.highlight
-                }
-              </p>
+              <p className={styles.highlight}>{content.highlight}</p>
             )}
-
-            {content.body && (
-              <p
-                className={
-                  styles.body
-                }
-              >
-                {
-                  content.body
-                }
-              </p>
-            )}
+            {content.body && <p className={styles.body}>{content.body}</p>}
           </div>
         </div>
 
-        {positioned.map(
-          (p) => (
-            <PinCard
-              key={
-                p.item
-                  .pinId
-              }
-              pin={
-                p.item
-              }
-              style={{
-                x:
-                  p.x,
-
-                y:
-                  p.y,
-
-                width:
-                  p.width,
-
-                height:
-                  p.height,
-              }}
-              analyticsContext={{
-                section:
-                  'recommendations',
-
-                destinationType:
-                  p.item
-                    .kind,
-              }}
-            />
-          ),
-        )}
+        {positioned.map((p) => (
+          <PinCard
+            key={p.item.pinId}
+            pin={p.item}
+            style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
+            analyticsContext={{
+              section: 'recommendations',
+              destinationType: p.item.kind,
+            }}
+          />
+        ))}
       </div>
 
-      <div
-        id={
-          sentinelId
-        }
-        className={
-          styles.sentinel
-        }
-      />
+      <div id={sentinelId} className={styles.sentinel} />
 
-      {error && (
-        <p
-          className={
-            styles.status
-          }
-        >
-          {error}
+      {error && <p className={styles.status}>{error}</p>}
+      {isLoading && itemCount === 0 && (
+        <p className={styles.status}>Cargando recomendaciones…</p>
+      )}
+      {!isLoading && itemCount === 0 && !hasMore && (
+        <p className={styles.status}>
+          Todavía no hay contenido publicado para recomendar.
         </p>
       )}
-
-      {isLoading &&
-        itemCount ===
-          0 && (
-          <p
-            className={
-              styles.status
-            }
-          >
-            Cargando
-            recomendaciones…
-          </p>
-        )}
-
-      {!isLoading &&
-        itemCount ===
-          0 &&
-        !hasMore && (
-          <p
-            className={
-              styles.status
-            }
-          >
-            Todavía no hay
-            contenido publicado
-            para recomendar.
-          </p>
-        )}
     </article>
   )
 }
