@@ -45,28 +45,81 @@ export default function TranslationForm({
   translation,
   showHighlightAndBody,
 }: Props) {
-  const [state, formAction, pending] = useActionState(
-    saveTranslationAction,
-    initialState,
+  const [state, formAction, pending] =
+    useActionState(
+      saveTranslationAction,
+      initialState,
+    )
+
+  const title = useCharCount(
+    translation?.title ?? '',
   )
 
-  const title = useCharCount(translation?.title ?? '')
-  const seoTitle = useCharCount(translation?.seoTitle ?? '')
-  const seoDescription = useCharCount(translation?.seoDescription ?? '')
-  const summary = useCharCount(translation?.summary ?? '')
-  const highlight = useCharCount(translation?.highlight ?? '')
-  const body = useCharCount(translation?.body ?? '')
+  const seoTitle = useCharCount(
+    translation?.seoTitle ?? '',
+  )
+
+  const seoDescription = useCharCount(
+    translation?.seoDescription ?? '',
+  )
+
+  const summary = useCharCount(
+    translation?.summary ?? '',
+  )
+
+  const highlight = useCharCount(
+    translation?.highlight ?? '',
+  )
+
+  const body = useCharCount(
+    translation?.body ?? '',
+  )
 
   return (
-    <form action={formAction}>
-      <input type="hidden" name="contentId" value={contentId} />
+    <form
+      action={formAction}
+      className="admin-form admin-translation-form"
+    >
+      <input
+        type="hidden"
+        name="contentId"
+        value={contentId}
+      />
 
-      <input type="hidden" name="locale" value={locale} />
+      <input
+        type="hidden"
+        name="locale"
+        value={locale}
+      />
 
-      <h3>{getLocaleLabel(locale)}</h3>
+      <div className="admin-translation-heading">
+        <div>
+          <h3>
+            {getLocaleLabel(locale)}
+          </h3>
 
-      <div>
-        <label htmlFor={`title-${locale}`}>Título</label>
+          <p>
+            Contenido y metadatos para esta
+            versión lingüística.
+          </p>
+        </div>
+
+        <span className="admin-locale-badge">
+          {locale.toUpperCase()}
+        </span>
+      </div>
+
+      <div className="admin-field">
+        <div className="admin-field-heading">
+          <label htmlFor={`title-${locale}`}>
+            Título
+          </label>
+
+          <CharCounter
+            length={title.length}
+            max={TEXT_LIMITS.title}
+          />
+        </div>
 
         <input
           id={`title-${locale}`}
@@ -77,98 +130,168 @@ export default function TranslationForm({
           required
         />
 
-        <CharCounter length={title.length} max={TEXT_LIMITS.title} />
-
-        {state.fieldErrors?.title?.[0] && <p>{state.fieldErrors.title[0]}</p>}
+        {state.fieldErrors?.title?.[0] && (
+          <p className="admin-field-error">
+            {state.fieldErrors.title[0]}
+          </p>
+        )}
       </div>
 
-      <div>
-        <label htmlFor={`seoTitle-${locale}`}>SEO title</label>
+      <div className="admin-form-grid admin-form-grid-2">
+        <div className="admin-field">
+          <div className="admin-field-heading">
+            <label htmlFor={`seoTitle-${locale}`}>
+              SEO title
+            </label>
 
-        <input
-          id={`seoTitle-${locale}`}
-          name="seoTitle"
-          type="text"
-          defaultValue={translation?.seoTitle ?? ''}
-          onChange={seoTitle.onChange}
-        />
+            <CharCounter
+              length={seoTitle.length}
+              max={TEXT_LIMITS.seoTitle}
+            />
+          </div>
 
-        <CharCounter length={seoTitle.length} max={TEXT_LIMITS.seoTitle} />
+          <input
+            id={`seoTitle-${locale}`}
+            name="seoTitle"
+            type="text"
+            defaultValue={
+              translation?.seoTitle ?? ''
+            }
+            onChange={seoTitle.onChange}
+          />
+        </div>
+
+        <div className="admin-field">
+          <div className="admin-field-heading">
+            <label htmlFor={`summary-${locale}`}>
+              Summary
+            </label>
+
+            <CharCounter
+              length={summary.length}
+              max={TEXT_LIMITS.summary}
+            />
+          </div>
+
+          <textarea
+            id={`summary-${locale}`}
+            name="summary"
+            rows={3}
+            defaultValue={
+              translation?.summary ?? ''
+            }
+            onChange={summary.onChange}
+          />
+        </div>
       </div>
 
-      <div>
-        <label htmlFor={`seoDescription-${locale}`}>SEO description</label>
+      <div className="admin-field">
+        <div className="admin-field-heading">
+          <label
+            htmlFor={`seoDescription-${locale}`}
+          >
+            SEO description
+          </label>
+
+          <CharCounter
+            length={seoDescription.length}
+            max={TEXT_LIMITS.seoDescription}
+          />
+        </div>
 
         <textarea
           id={`seoDescription-${locale}`}
           name="seoDescription"
-          defaultValue={translation?.seoDescription ?? ''}
+          rows={4}
+          defaultValue={
+            translation?.seoDescription ?? ''
+          }
           onChange={seoDescription.onChange}
         />
-
-        <CharCounter
-          length={seoDescription.length}
-          max={TEXT_LIMITS.seoDescription}
-        />
-      </div>
-
-      <div>
-        <label htmlFor={`summary-${locale}`}>Summary</label>
-
-        <textarea
-          id={`summary-${locale}`}
-          name="summary"
-          defaultValue={translation?.summary ?? ''}
-          onChange={summary.onChange}
-        />
-
-        <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
       </div>
 
       {showHighlightAndBody && (
         <>
-          <div>
-            <label htmlFor={`highlight-${locale}`}>
-              Highlight (subtítulo / cita destacada)
-            </label>
+          <div className="admin-field">
+            <div className="admin-field-heading">
+              <label
+                htmlFor={`highlight-${locale}`}
+              >
+                Highlight
+              </label>
+
+              <CharCounter
+                length={highlight.length}
+                max={TEXT_LIMITS.highlight}
+              />
+            </div>
 
             <input
               id={`highlight-${locale}`}
               name="highlight"
               type="text"
-              defaultValue={translation?.highlight ?? ''}
+              defaultValue={
+                translation?.highlight ?? ''
+              }
               onChange={highlight.onChange}
             />
 
-            <CharCounter
-              length={highlight.length}
-              max={TEXT_LIMITS.highlight}
-            />
+            <p className="admin-field-help">
+              Subtítulo o cita destacada de la
+              página.
+            </p>
           </div>
 
-          <div>
-            <label htmlFor={`body-${locale}`}>Body</label>
+          <div className="admin-field">
+            <div className="admin-field-heading">
+              <label
+                htmlFor={`body-${locale}`}
+              >
+                Body
+              </label>
+
+              <CharCounter
+                length={body.length}
+                max={TEXT_LIMITS.body}
+              />
+            </div>
 
             <textarea
               id={`body-${locale}`}
               name="body"
-              rows={8}
-              defaultValue={translation?.body ?? ''}
+              rows={10}
+              defaultValue={
+                translation?.body ?? ''
+              }
               onChange={body.onChange}
             />
-
-            <CharCounter length={body.length} max={TEXT_LIMITS.body} />
           </div>
         </>
       )}
 
-      {state.formError && <p>{state.formError}</p>}
+      {state.formError && (
+        <p className="admin-form-error">
+          {state.formError}
+        </p>
+      )}
 
-      {state.success && <p>Traducción guardada correctamente.</p>}
+      {state.success && (
+        <p className="admin-form-success">
+          Traducción guardada correctamente.
+        </p>
+      )}
 
-      <button type="submit" disabled={pending}>
-        {pending ? 'Guardando...' : `Guardar ${getLocaleLabel(locale)}`}
-      </button>
+      <div className="admin-form-actions">
+        <button
+          type="submit"
+          className="admin-button admin-button-primary"
+          disabled={pending}
+        >
+          {pending
+            ? 'Guardando...'
+            : `Guardar ${getLocaleLabel(locale)}`}
+        </button>
+      </div>
     </form>
   )
 }

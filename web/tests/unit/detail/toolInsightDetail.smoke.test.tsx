@@ -38,6 +38,7 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
       media: [{ kind: 'image' as const, cloudinaryPublicId: 'sample' }],
     })),
     cursor: 'cursor-1',
+    round: 0,
     hasMore,
   }
 }
@@ -60,6 +61,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
       disconnect() {}
       unobserve() {}
     }
+
     // @ts-expect-error -- stub mínimo suficiente para el smoke test
     global.IntersectionObserver = class {
       observe() {}
@@ -72,6 +74,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
           scope: string
           excludeContentId?: string
         }
+
         return {
           ok: true,
           json: async () => ({
@@ -79,12 +82,14 @@ describe('ToolInsightDetail — prueba de humo', () => {
           }),
         } as Response
       }
+
       if (url.startsWith('/api/feed/session-')) {
         return {
           ok: true,
           json: async () => fakeBatch(6, false),
         } as Response
       }
+
       throw new Error(`URL inesperada en el test: ${url}`)
     }) as typeof fetch
   })
@@ -226,6 +231,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
     // No revienta al montar ni al calcular el layout — sigue mostrando
     // el título y, con el tiempo, las recomendaciones.
     expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+
     await waitFor(() => {
       expect(screen.getAllByText(/^Recomendación/).length).toBeGreaterThan(0)
     })

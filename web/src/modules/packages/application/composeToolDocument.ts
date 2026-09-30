@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+
 import type { ResolvedPackage } from '../domain/manifest'
 
 export interface Viewport {
@@ -28,6 +29,21 @@ function toCssLength(value: number | string): string {
   return typeof value === 'number' ? `${value}px` : value
 }
 
+/**
+ * Runtime de analítica de los paquetes.
+ *
+ * Solo se carga en Tools: "Tool Used" no existe para Insights.
+ * El slug identifica el contenido públicamente; el endpoint server-side
+ * resolverá ese slug al UUID real de content antes de enviar a Plausible.
+ */
+function renderPackageAnalyticsRuntime(pkg: ResolvedPackage): string {
+  if (pkg.manifest.kind !== 'tool') {
+    return ''
+  }
+
+  return `<script src="/greener-package-analytics.js" data-greener-tool-slug="${pkg.slug}"></script>`
+}
+
 const SHELL_STYLES = `
   html, body {
     margin: 0;
@@ -40,7 +56,7 @@ const SHELL_STYLES = `
     display: grid;
     grid-template-columns: var(--greener-sidebar-width) minmax(0, 1fr);
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
   }
 
   .greener-sidebar {
@@ -94,6 +110,10 @@ const SHELL_STYLES = `
  *
  * width y height pueden ser números (útil para tests) o expresiones CSS
  * dinámicas como calc(100dvw - 64px) y 100dvh.
+ *
+ * En las Tools se carga además un runtime mínimo, servido desde el mismo
+ * origen, que escucha `greener:tool-used` y lo envía al endpoint interno
+ * de analítica. Los Insights no cargan ese runtime.
  */
 export function composeToolDocument(
   pkg: ResolvedPackage,
@@ -111,6 +131,8 @@ export function composeToolDocument(
     `--greener-sidebar-width: ${viewport.sidebarWidth}px`,
   ].join('; ')
 
+  const analyticsRuntime = renderPackageAnalyticsRuntime(pkg)
+
   return `<!doctype html>
 <html lang="es">
   <head>
@@ -125,6 +147,7 @@ export function composeToolDocument(
     ${headChildren}
   </head>
   <body>
+    ${analyticsRuntime}
     <div class="greener-shell">
       ${renderSidebar()}
       <main class="greener-package-content">

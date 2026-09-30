@@ -67,24 +67,33 @@ function inMemoryDeps(): GetFeedSessionBatchDeps & {
   rounds: Map<string, string[]>
 } {
   const rounds = new Map<string, string[]>()
+
   return {
     rounds,
+
     getSession: vi.fn(async (id: string) =>
       id === SESSION.id ? SESSION : null,
     ),
+
     getRound: vi.fn(
       async (sessionId: string, roundIndex: number) =>
         rounds.get(`${sessionId}:${roundIndex}`) ?? null,
     ),
+
     saveRound: vi.fn(
       async (sessionId: string, roundIndex: number, pinIds: string[]) => {
         rounds.set(`${sessionId}:${roundIndex}`, pinIds)
       },
     ),
+
     getDataset: vi.fn(async () => DATASET),
+
     getConfig: vi.fn(async () => CONFIG),
+
     getDirectoryByIds: vi.fn(async (pinIds: string[]) =>
-      Object.fromEntries(pinIds.map((id) => [id, DATASET.pinDirectory[id]])),
+      Object.fromEntries(
+        pinIds.map((id) => [id, DATASET.pinDirectory[id]]),
+      ),
     ),
   }
 }
@@ -97,9 +106,9 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('sin sesión, lanza FeedSessionNotFoundError', async () => {
-    await expect(getFeedSessionBatch('no-existe', null, deps)).rejects.toThrow(
-      FeedSessionNotFoundError,
-    )
+    await expect(
+      getFeedSessionBatch('no-existe', null, deps),
+    ).rejects.toThrow(FeedSessionNotFoundError)
   })
 
   it('con sesión caducada, lanza FeedSessionNotFoundError', async () => {
@@ -107,34 +116,44 @@ describe('getFeedSessionBatch', () => {
       ...SESSION,
       expiresAt: new Date(Date.now() - 1000).toISOString(),
     }))
-    await expect(getFeedSessionBatch(SESSION.id, null, deps)).rejects.toThrow(
-      FeedSessionNotFoundError,
-    )
+
+    await expect(
+      getFeedSessionBatch(SESSION.id, null, deps),
+    ).rejects.toThrow(FeedSessionNotFoundError)
   })
 
   it('primer lote (sin cursor): genera la ronda 0, la persiste y devuelve items enriquecidos', async () => {
     const result = await getFeedSessionBatch(SESSION.id, null, deps)
 
-    expect(result.items.length).toBe(4) // force 2 + force 2, sin más tipos en el universo
+    expect(result.round).toBe(0)
+    expect(result.items.length).toBe(4)
     expect(result.hasMore).toBe(true)
+
     for (const item of result.items) {
       // especificacion-final-formato-detalle.md §7: episode se unifica
       // con case bajo /work/[slug] — aquí solo hay casos, pero la ruta es
       // la misma para ambos.
       expect(item.destination).toMatch(/^\/work\//)
       expect(item.kind).toBe('case')
+
       // §1: el CTA del pin es fijo por tipo — case/episode/other → Watch.
       expect(item.cta).toBe('Watch')
-      expect(item.media).toEqual([expect.objectContaining({ kind: 'image' })])
+
+      expect(item.media).toEqual([
+        expect.objectContaining({ kind: 'image' }),
+      ])
     }
+
     expect(deps.rounds.get(`${SESSION.id}:0`)).toEqual(
       result.items.map((i) => i.pinId),
     )
+
     expect(deps.getDataset).toHaveBeenCalledTimes(1)
   })
 
   it('una ronda ya cacheada NO vuelve a leer el catálogo completo (getDataset)', async () => {
     const first = await getFeedSessionBatch(SESSION.id, null, deps)
+
     vi.clearAllMocks()
 
     const second = await getFeedSessionBatch(SESSION.id, null, deps)
@@ -148,7 +167,11 @@ describe('getFeedSessionBatch', () => {
     const first = await getFeedSessionBatch(SESSION.id, null, deps)
     const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
 
+    expect(first.round).toBe(0)
+    expect(second.round).toBe(1)
+
     expect(deps.rounds.has(`${SESSION.id}:1`)).toBe(true)
+
     // Con seed fija, la ronda 1 es determinista pero no tiene por qué
     // coincidir con la ronda 0 pin a pin (offset avanza con roundIndex).
     expect(second.items.length).toBe(4)
@@ -159,6 +182,7 @@ describe('getFeedSessionBatch', () => {
       sessionId: 'otra-sesion',
       roundIndex: 0,
     })
+
     await expect(
       getFeedSessionBatch(SESSION.id, cursorDeOtraSesion, deps),
     ).rejects.toThrow(InvalidFeedCursorError)
@@ -176,7 +200,9 @@ describe('getFeedSessionBatch', () => {
     const deps2 = inMemoryDeps()
     const b = await getFeedSessionBatch(SESSION.id, null, deps2)
 
-    expect(a.items.map((i) => i.pinId)).toEqual(b.items.map((i) => i.pinId))
+    expect(a.items.map((i) => i.pinId)).toEqual(
+      b.items.map((i) => i.pinId),
+    )
   })
 
   it('un pin de tool usa CTA "Use" y un insight "Read" (§1)', async () => {
@@ -200,8 +226,11 @@ describe('getFeedSessionBatch', () => {
     }
 
     deps.getDataset = vi.fn(async () => toolDataset)
+
     deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
-      Object.fromEntries(ids.map((id) => [id, toolDataset.pinDirectory[id]])),
+      Object.fromEntries(
+        ids.map((id) => [id, toolDataset.pinDirectory[id]]),
+      ),
     )
 
     const result = await getFeedSessionBatch(SESSION.id, null, deps)
@@ -211,12 +240,17 @@ describe('getFeedSessionBatch', () => {
 
     expect(toolItem?.cta).toBe('Use')
     expect(toolItem?.destination).toBe('/tools/tool-1-slug')
+
     expect(insightItem?.cta).toBe('Read')
     expect(insightItem?.destination).toBe('/insights/insight-1-slug')
   })
 
   it('para una ronda nueva, pide el dataset con el scope de la sesión, no siempre "home"', async () => {
-    const insightsSession: FeedSessionRow = { ...SESSION, scope: 'insights' }
+    const insightsSession: FeedSessionRow = {
+      ...SESSION,
+      scope: 'insights',
+    }
+
     deps.getSession = vi.fn(async () => insightsSession)
 
     await getFeedSessionBatch(SESSION.id, null, deps)
@@ -229,6 +263,7 @@ describe('getFeedSessionBatch', () => {
       ...SESSION,
       excludeContentId: 'case-2',
     }
+
     deps.getSession = vi.fn(async () => sessionExcluyendoContenido)
 
     await getFeedSessionBatch(SESSION.id, null, deps)
@@ -242,12 +277,19 @@ describe('getFeedSessionBatch', () => {
     // que ve generateRound — no es un filtro sobre la tanda ya generada.
     const datasetSinCase2 = {
       snapshot: {
-        cases: [{ contentId: 'case-1', pinIds: ['pin-1', 'pin-2'], force: 4 }],
+        cases: [
+          {
+            contentId: 'case-1',
+            pinIds: ['pin-1', 'pin-2'],
+            force: 4,
+          },
+        ],
         insights: [],
         tools: [],
         channel: [],
         other: [],
       },
+
       pinDirectory: {
         'pin-1': entry('case-1', 'case'),
         'pin-2': entry('case-1', 'case'),
@@ -258,10 +300,14 @@ describe('getFeedSessionBatch', () => {
       ...SESSION,
       excludeContentId: 'case-2',
     }
+
     deps.getSession = vi.fn(async () => sessionExcluyendoContenido)
-    deps.getDataset = vi.fn(async (_scope?: string, exclude?: string | null) =>
-      exclude === 'case-2' ? datasetSinCase2 : DATASET,
+
+    deps.getDataset = vi.fn(
+      async (_scope?: string, exclude?: string | null) =>
+        exclude === 'case-2' ? datasetSinCase2 : DATASET,
     )
+
     deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
       Object.fromEntries(
         ids.map((id) => [id, datasetSinCase2.pinDirectory[id]]),
@@ -271,6 +317,8 @@ describe('getFeedSessionBatch', () => {
     const result = await getFeedSessionBatch(SESSION.id, null, deps)
 
     expect(result.items.length).toBeGreaterThan(0)
-    expect(result.items.every((i) => i.contentId !== 'case-2')).toBe(true)
+    expect(
+      result.items.every((i) => i.contentId !== 'case-2'),
+    ).toBe(true)
   })
 })

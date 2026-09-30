@@ -46,6 +46,7 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
       media: [{ kind: 'image' as const, cloudinaryPublicId: 'sample' }],
     })),
     cursor: 'cursor-1',
+    round: 0,
     hasMore,
   }
 }
@@ -54,15 +55,18 @@ describe('EpisodeDetail — prueba de humo', () => {
   beforeEach(() => {
     global.ResizeObserver = class {
       callback: ResizeObserverCallback
+
       constructor(callback: ResizeObserverCallback) {
         this.callback = callback
       }
+
       observe() {
         this.callback(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
           this as unknown as ResizeObserver,
         )
       }
+
       disconnect() {}
       unobserve() {}
     }
@@ -77,12 +81,17 @@ describe('EpisodeDetail — prueba de humo', () => {
       if (url === '/api/feed/sessions' && init?.method === 'POST') {
         return {
           ok: true,
-          json: async () => ({ sessionId: 'session-episode' }),
+          json: async () => ({
+            sessionId: 'session-episode',
+          }),
         } as Response
       }
 
       if (url.startsWith('/api/feed/session-episode')) {
-        return { ok: true, json: async () => fakeBatch(3, false) } as Response
+        return {
+          ok: true,
+          json: async () => fakeBatch(3, false),
+        } as Response
       }
 
       throw new Error(`URL inesperada en el test: ${url}`)
@@ -106,12 +115,19 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={episode}
+      />,
+    )
 
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Load YouTube content' }),
+      screen.getByRole('button', {
+        name: 'Load YouTube content',
+      }),
     )
 
     expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
@@ -128,7 +144,12 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={episode}
+      />,
+    )
 
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
@@ -154,7 +175,12 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={episode}
+      />,
+    )
 
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
@@ -185,7 +211,11 @@ describe('EpisodeDetail — prueba de humo', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Load Vimeo content',
+      }),
+    )
 
     expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
@@ -207,7 +237,9 @@ describe('EpisodeDetail — prueba de humo', () => {
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     expect(
-      screen.getByRole('button', { name: 'Load Spotify content' }),
+      screen.getByRole('button', {
+        name: 'Load Spotify content',
+      }),
     ).toBeInTheDocument()
   })
 
@@ -237,27 +269,37 @@ describe('EpisodeDetail — prueba de humo', () => {
       expect(notice.textContent).toContain(
         `Nothing is loaded from ${label} until you choose to`,
       )
+
       expect(notice.textContent).toContain(
         'We do not store your choice, so you will be asked again for each video',
       )
-      // La guía desaconseja «puede», «podría», «a menudo»…
+
       expect(notice.textContent).not.toMatch(
         /\b(may|might|could|possibly|sometimes|often)\b/i,
       )
 
-      const link = screen.getByRole('link', { name: 'Privacy & Cookies' })
+      const link = screen.getByRole('link', {
+        name: 'Privacy & Cookies',
+      })
+
       expect(link).toHaveAttribute('href', '/privacy')
       expect(link).toHaveAttribute('target', '_blank')
-      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+      expect(link).toHaveAttribute(
+        'rel',
+        expect.stringContaining('noopener'),
+      )
 
-      // Y hasta pulsar, no hay nada de terceros en la página.
-      expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
+      expect(
+        screen.queryByTitle('Mi episodio'),
+      ).not.toBeInTheDocument()
+
       expect(document.querySelector('iframe')).toBeNull()
     },
   )
 
   it('no guarda la elección: ni cookies ni almacenamiento del navegador, y un nuevo montaje vuelve a preguntar', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
+
     const episode: PublicEpisode = {
       program: 'brand_the_future',
       provider: 'vimeo',
@@ -265,20 +307,39 @@ describe('EpisodeDetail — prueba de humo', () => {
       episodeKind: 'podcast',
     }
 
-    const first = render(<EpisodeDetail content={CONTENT} episode={episode} />)
+    const first = render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={episode}
+      />,
+    )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Load Vimeo content',
+      }),
+    )
+
     expect(screen.getByTitle('Mi episodio')).toBeInTheDocument()
 
     expect(setItem).not.toHaveBeenCalled()
     expect(document.cookie).toBe('')
 
     first.unmount()
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
+
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={episode}
+      />,
+    )
 
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
+
     expect(
-      screen.getByRole('button', { name: 'Load Vimeo content' }),
+      screen.getByRole('button', {
+        name: 'Load Vimeo content',
+      }),
     ).toBeInTheDocument()
   })
 
@@ -295,7 +356,11 @@ describe('EpisodeDetail — prueba de humo', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Load Vimeo content',
+      }),
+    )
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith(
       'Episode Play',
@@ -304,12 +369,18 @@ describe('EpisodeDetail — prueba de humo', () => {
         episodeId: 'content-1',
         provider: 'vimeo',
       },
-      { interactive: true },
+      {
+        interactive: true,
+      },
     )
   })
 
   it('no registra "Episode Play" durante un preview firmado (?preview=)', () => {
-    window.history.replaceState({}, '', '/work/mi-episodio?preview=token-test')
+    window.history.replaceState(
+      {},
+      '',
+      '/work/mi-episodio?preview=token-test',
+    )
 
     render(
       <EpisodeDetail
@@ -324,11 +395,13 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Load Spotify content' }),
+      screen.getByRole('button', {
+        name: 'Load Spotify content',
+      }),
     )
 
     expect(trackAnalyticsEvent).not.toHaveBeenCalled()
-    // El preview sigue pudiendo reproducirse — solo se excluye la métrica.
+
     expect(screen.getByTitle('Mi episodio')).toBeInTheDocument()
   })
 
@@ -345,7 +418,10 @@ describe('EpisodeDetail — prueba de humo', () => {
       />,
     )
 
-    const button = screen.getByRole('button', { name: 'Load Vimeo content' })
+    const button = screen.getByRole('button', {
+      name: 'Load Vimeo content',
+    })
+
     fireEvent.click(button)
     fireEvent.click(button)
 
@@ -366,8 +442,11 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     expect(
-      screen.getByRole('heading', { name: 'Mi episodio' }),
+      screen.getByRole('heading', {
+        name: 'Mi episodio',
+      }),
     ).toBeInTheDocument()
+
     expect(screen.getByText('Podcast')).toBeInTheDocument()
 
     await waitFor(() => {
@@ -397,9 +476,13 @@ describe('EpisodeDetail — prueba de humo', () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText('Recomendación 0')).toBeInTheDocument()
+      expect(
+        screen.getByText('Recomendación 0'),
+      ).toBeInTheDocument()
     })
 
-    expect(screen.getAllByText(/^Recomendación/)).toHaveLength(3)
+    expect(
+      screen.getAllByText(/^Recomendación/),
+    ).toHaveLength(3)
   })
 })

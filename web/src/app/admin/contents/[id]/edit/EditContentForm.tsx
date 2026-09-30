@@ -41,56 +41,118 @@ export default function EditContentForm({ content }: Props) {
   )
 
   return (
-    <form action={formAction}>
-      <input type="hidden" name="id" value={content.id} />
+    <form
+      action={formAction}
+      className="admin-form"
+    >
+      <input
+        type="hidden"
+        name="id"
+        value={content.id}
+      />
 
-      <div>
-        <strong>Tipo:</strong> {getContentTypeLabel(content.type)}
+      <div className="admin-form-grid admin-form-grid-2">
+        <div className="admin-readonly-field">
+          <span className="admin-field-label">
+            Tipo
+          </span>
+
+          <strong>
+            {getContentTypeLabel(content.type)}
+          </strong>
+        </div>
+
+        <div className="admin-readonly-field">
+          <span className="admin-field-label">
+            Estado
+          </span>
+
+          <span
+            className={`admin-status admin-status-${content.status}`}
+          >
+            {content.status}
+          </span>
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="slug">Slug</label>
+      <div className="admin-form-grid admin-form-grid-2">
+        <div className="admin-field">
+          <label htmlFor="slug">
+            Slug
+          </label>
 
-        <input
-          id="slug"
-          name="slug"
-          type="text"
-          defaultValue={content.slug}
-          required
-        />
+          <input
+            id="slug"
+            name="slug"
+            type="text"
+            defaultValue={content.slug}
+            required
+          />
 
-        {state.fieldErrors?.slug?.[0] && <p>{state.fieldErrors.slug[0]}</p>}
+          <p className="admin-field-help">
+            Se utiliza para construir la URL pública.
+          </p>
+
+          {state.fieldErrors?.slug?.[0] && (
+            <p className="admin-field-error">
+              {state.fieldErrors.slug[0]}
+            </p>
+          )}
+        </div>
+
+        <div className="admin-field">
+          <label htmlFor="defaultLocale">
+            Idioma principal
+          </label>
+
+          <select
+            id="defaultLocale"
+            name="defaultLocale"
+            defaultValue={content.defaultLocale}
+          >
+            <option value="es">
+              Español
+            </option>
+
+            <option value="en">
+              English
+            </option>
+
+            <option value="ca">
+              Català
+            </option>
+          </select>
+
+          <p className="admin-field-help">
+            Será el idioma utilizado en la URL
+            canónica del contenido.
+          </p>
+
+          {state.fieldErrors?.defaultLocale?.[0] && (
+            <p className="admin-field-error">
+              {state.fieldErrors.defaultLocale[0]}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <label htmlFor="defaultLocale">Idioma principal</label>
+      {state.formError && (
+        <p className="admin-form-error">
+          {state.formError}
+        </p>
+      )}
 
-        <select
-          id="defaultLocale"
-          name="defaultLocale"
-          defaultValue={content.defaultLocale}
+      <div className="admin-form-actions">
+        <button
+          className="admin-button admin-button-primary"
+          type="submit"
+          disabled={pending}
         >
-          <option value="es">Español</option>
-
-          <option value="en">English</option>
-
-          <option value="ca">Català</option>
-        </select>
-
-        {state.fieldErrors?.defaultLocale?.[0] && (
-          <p>{state.fieldErrors.defaultLocale[0]}</p>
-        )}
+          {pending
+            ? 'Guardando...'
+            : 'Guardar datos generales'}
+        </button>
       </div>
-
-      <div>
-        <strong>Estado:</strong> {content.status}
-      </div>
-
-      {state.formError && <p>{state.formError}</p>}
-
-      <button type="submit" disabled={pending}>
-        {pending ? 'Guardando...' : 'Guardar datos generales'}
-      </button>
     </form>
   )
 }
