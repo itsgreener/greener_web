@@ -8,7 +8,7 @@ Especificación técnica para quien prepare los paquetes de una tool o insight. 
 
 - **`index.html` en la raíz del ZIP.** Obligatorio, sin excepción — no puede estar dentro de una subcarpeta.
 - **`manifest.json` en la raíz del ZIP.** Obligatorio (ver §2).
-- **Todo lo demás (CSS, JS, Workers, imágenes, fuentes…) dentro de una carpeta `assets/`**, con las subcarpetas que se quiera dentro de ella (`assets/img/logo.png`, `assets/js/worker.js`…). Esto no es una recomendación de orden: el servidor solo entrega archivos que cuelguen de `assets/`. Un `style.css` suelto en la raíz **pasa la validación de la subida** (que no comprueba dónde está cada archivo) pero **da 404 al pedirlo** en la página publicada.
+- **Todo lo demás (CSS, JS, Workers, imágenes, fuentes…) dentro de una carpeta `assets/`**, con las subcarpetas que se quiera dentro de ella (`assets/img/logo.png`, `assets/js/worker.js`…). No es solo una recomendación de orden: el servidor solo entrega archivos que cuelguen de `assets/`. **Desde el 29 de septiembre, la subida rechaza directamente cualquier archivo (que no sea `index.html` o `manifest.json`) que esté fuera de `assets/`**, con un mensaje que dice cuál. Antes de esa fecha, un `style.css` suelto en la raíz pasaba la validación sin avisar y solo se descubría al dar 404 en la página publicada.
 - **Tamaño máximo del ZIP completo: 10 MB** (10.000.000 bytes, que es lo que muestra el Finder de macOS). Se mide sobre el archivo `.zip` ya comprimido, no sobre su contenido descomprimido. El límite viene del antivirus: el ZIP entero se escanea antes de publicarse y el servicio de escaneo no admite más. Un ZIP mayor se rechaza en la subida con un mensaje explícito.
 - **Nada de rutas que salgan de la carpeta del paquete**: ninguna ruta interna puede contener `..` ni empezar por `/`. Cualquier entrada así hace que se rechace el ZIP entero.
 - **Sin symlinks** dentro del ZIP — se rechaza el ZIP entero si se detecta alguno.
@@ -69,7 +69,7 @@ Al subir el ZIP, el sistema recorre los archivos `.html`, `.htm`, `.js`, `.mjs`,
 - **Cuenta todo lo que parezca una URL absoluta, sin distinguir dónde está.** Un `<a href>` a una fuente citada cuenta igual que un `<script src>`; una URL escrita como texto visible de una cita, o dentro de un comentario, también. No hay distinción entre «enlace» y «recurso».
 - **Se declara el dominio, no cada enlace.** Cien enlaces al mismo medio son una única entrada. La ruta de la URL da igual.
 - **La comparación es por dominio exacto.** `www.ejemplo.com` y `ejemplo.com` son dos entradas distintas, y no hay comodines (`*.ejemplo.com` no vale).
-- **Salen dominios que no son enlaces reales.** Los más habituales: el namespace de un SVG inline (`http://www.w3.org/2000/svg` → hay que declarar `www.w3.org`) y las cabeceras de licencia de las librerías (`https://threejs.org`, `github.com`…). Es una limitación conocida del escaneo, que es de texto y no entiende para qué se usa cada URL: hoy hay que declararlos igualmente.
+- **Salen dominios que no son enlaces reales — con una excepción corregida el 29 de septiembre.** El namespace de un SVG inline (`xmlns="http://www.w3.org/2000/svg"`, y también `http://www.w3.org/1999/xlink`, `http://www.w3.org/1999/xhtml`, `http://www.w3.org/2000/xmlns/`, `http://www.w3.org/XML/1998/namespace`, `http://www.w3.org/1998/Math/MathML`) **ya no cuenta como dominio externo**: el escaneo reconoce esas cadenas exactas y las ignora. **Las cabeceras de licencia de las librerías** (`https://threejs.org`, `github.com`…) siguen contando — no hay forma fiable de distinguir por texto «esto es un comentario de licencia» de «esto es una referencia real» —, así que esos dominios hay que seguir declarándolos.
 - **Un enlace relativo** (`./assets/llms.txt`, `#seccion`) no es un dominio y no cuenta.
 - El escaneo **no detecta** una URL que el código construya dinámicamente (por ejemplo, concatenando strings en tiempo de ejecución). Aun así, cualquier dominio que se use tiene que declararse igual — si se descubre uso no declarado más adelante, la versión se retira.
 
@@ -220,7 +220,7 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] Solo extensiones `.js`, `.css`, `.json`, `.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`, `.woff`, `.woff2` dentro de `assets/` (cualquier otra, probada antes en una subida real — §1)
 - [ ] **Ningún `<script>` con código inline ni manejadores `onclick=`**: todo el JS en archivo (§6)
 - [ ] Las rutas relativas escritas **dentro del JS** (`new Worker(...)`, `fetch(...)`) empiezan por `./assets/...`, no por el nombre del archivo a secas (§6)
-- [ ] Todo dominio que aparezca en cualquier archivo (enlaces a fuentes, textos de cita, `www.w3.org` de un SVG, cabeceras de licencia de librerías) está en `externalDomains` — se declara el dominio, no cada enlace (§3)
+- [ ] Todo dominio que aparezca en cualquier archivo (enlaces a fuentes, textos de cita, cabeceras de licencia de librerías) está en `externalDomains` — se declara el dominio, no cada enlace; **excepción:** el namespace de un SVG inline (`www.w3.org`) no hace falta declararlo (§3)
 - [ ] Ningún recurso (script, fuente, imagen, `fetch`) cargado desde otro dominio — no funciona aunque esté declarado (§3, §6)
 - [ ] Enlaces externos con `target="_blank" rel="noopener"`, sin navegación automática
 - [ ] Sin Service Workers

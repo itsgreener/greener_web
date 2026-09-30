@@ -35,8 +35,56 @@ const TEXT_EXTENSIONS = new Set(['html', 'htm', 'js', 'mjs', 'css', 'json'])
 // dominio referenciado debe estar en la allowlist del manifest; si no, la
 // subida se rechaza"). Es un escaneo de texto, no un análisis real de JS:
 // no detecta URLs construidas dinámicamente (p.ej. concatenando strings) —
-// mejor que nada, no una garantía completa.
+// mejor que nada, no una garantía completa. A propósito cuenta TODO:
+// enlaces, recursos, texto de citas... (contrato §3) — es deliberadamente
+// amplio, no un descuido; lo único que se excluye son los namespaces XML
+// de abajo, por ser boilerplate estructural, nunca una referencia real.
 const ABSOLUTE_URL_REGEX = /https?:\/\/([a-z0-9.-]+)/gi
+
+// Namespaces XML/SVG estándar (especificaciones W3C): cadenas fijas y
+// exactas que el navegador exige tal cual para que un `<svg>` o un
+// `xlink:href` funcionen — nunca son una petición de red ni una
+// referencia real a contenido de ese dominio. Sin esta lista, CUALQUIER
+// SVG inline (`xmlns="http://www.w3.org/2000/svg"`) rechazaba la subida
+// por "referenciar www.w3.org", incluso en un paquete sin ningún recurso
+// externo real (falso positivo real, encontrado el 28 de septiembre —
+// contrato-zip-tools-insights.md §3 — y corregido aquí el 29).
+//
+// Coincidencia exacta de la cadena completa (con límite de palabra, ver
+// más abajo), no solo del dominio: si algún día un paquete referenciara
+// de verdad otra URL de w3.org (poco habitual, pero posible — una fuente
+// citada, por ejemplo), esa sigue contando como dominio externo y hay
+// que declararla, porque no es ninguna de estas cadenas exactas.
+const XML_NAMESPACE_URIS = [
+  'http://www.w3.org/2000/svg',
+  'http://www.w3.org/1999/xlink',
+  'http://www.w3.org/1999/xhtml',
+  'http://www.w3.org/2000/xmlns/',
+  'http://www.w3.org/XML/1998/namespace',
+  'http://www.w3.org/1998/Math/MathML',
+]
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+// Uno por namespace, con límite de palabra al final: sin él,
+// "http://www.w3.org/2000/svg" también "reconocería" por error una URL
+// bien distinta como "http://www.w3.org/2000/svgx/otra-cosa" (coincide
+// como prefijo). El límite exige que justo después del namespace exacto
+// venga algo que NO pueda seguir siendo parte de un host o una ruta
+// (comilla, espacio, `>`, fin de texto…), nunca una letra o dígito.
+const NAMESPACE_STRIP_PATTERNS = XML_NAMESPACE_URIS.map(
+  (uri) => new RegExp(`${escapeRegExp(uri)}(?![A-Za-z0-9.-])`, 'g'),
+)
+
+function stripKnownNamespaceUris(text: string): string {
+  let result = text
+  for (const pattern of NAMESPACE_STRIP_PATTERNS) {
+    result = result.replace(pattern, '')
+  }
+  return result
+}
 
 // Heurística de texto para "no Service Workers" (§12.2): busca la llamada
 // de registro, no analiza si el archivo se sirve realmente como SW.
@@ -106,6 +154,30 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     ])
   }
 
+  // Todo lo que no sea index.html/manifest.json debe vivir bajo assets/
+  // (contrato §1). Antes de esta comprobación (29 sep), un archivo mal
+  // colocado en la raíz pasaba la validación sin avisar y luego daba 404
+  // en la página publicada, porque la ruta que sirve los assets siempre
+  // busca en Storage bajo `<versión>/assets/...` (ver
+  // `getStoragePackageAsset` / bug real corregido en la misma sesión).
+  // Mejor rechazarlo aquí, con un mensaje claro, que descubrirlo así.
+  const misplacedEntries = entries.filter(
+    (entry) =>
+      entry.path !== 'index.html' &&
+      entry.path !== 'manifest.json' &&
+      !entry.path.startsWith('assets/'),
+  )
+
+  for (const entry of misplacedEntries) {
+    structuralIssues.push(
+      `"${entry.path}" está fuera de la carpeta assets/ — todo el paquete, salvo index.html y manifest.json, debe vivir bajo assets/ (§1).`,
+    )
+  }
+
+  if (structuralIssues.length > 0) {
+    throw new PackageValidationError(structuralIssues)
+  }
+
   const manifestEntry = entries.find((entry) => entry.path === 'manifest.json')
 
   if (!manifestEntry) {
@@ -144,6 +216,11 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     manifest.externalDomains.map((domain) => domain.toLowerCase()),
   )
   const contentIssues: string[] = []
+  // Un mismo dominio sin declarar puede aparecer decenas de veces en un
+  // insight con muchas citas a la misma fuente — un aviso por aparición
+  // ahogaría el resto de la lista. Un aviso por (archivo, dominio) basta:
+  // dice dónde está y qué falta declarar, sin repetirse.
+  const reportedPerFile = new Set<string>()
 
   for (const entry of entries) {
     const extension = entry.path.split('.').pop()?.toLowerCase() ?? ''
@@ -160,14 +237,25 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
       )
     }
 
-    for (const match of text.matchAll(ABSOLUTE_URL_REGEX)) {
+    const scannedText = stripKnownNamespaceUris(text)
+
+    for (const match of scannedText.matchAll(ABSOLUTE_URL_REGEX)) {
       const host = match[1]?.toLowerCase()
 
-      if (host && !declaredDomains.has(host)) {
-        contentIssues.push(
-          `"${entry.path}" referencia el dominio externo "${host}", que no está en externalDomains del manifest.`,
-        )
+      if (!host || declaredDomains.has(host)) {
+        continue
       }
+
+      const key = `${entry.path}\u0000${host}`
+
+      if (reportedPerFile.has(key)) {
+        continue
+      }
+
+      reportedPerFile.add(key)
+      contentIssues.push(
+        `"${entry.path}" referencia el dominio externo "${host}", que no está en externalDomains del manifest.`,
+      )
     }
   }
 

@@ -79,15 +79,29 @@ describe('contrato §3 — el escaneo de dominios cuenta todo, sin distinguir ti
     expect(issues.join(' ')).toContain('threejs.org')
   })
 
-  it('el namespace de un SVG inline cuenta (falso positivo conocido, hay que declarar www.w3.org)', () => {
+  it('el namespace de un SVG inline NO cuenta como dominio externo (falso positivo corregido el 29 sep)', () => {
     const html = '<svg xmlns="http://www.w3.org/2000/svg"></svg>'
 
-    expect(issuesOf(buildZip({ 'index.html': html })).join(' ')).toContain(
-      'www.w3.org',
+    expect(issuesOf(buildZip({ 'index.html': html }))).toEqual([])
+  })
+
+  it('los namespaces XLink y XHTML tampoco cuentan', () => {
+    const html =
+      '<html xmlns="http://www.w3.org/1999/xhtml">' +
+      '<svg><use xlink:href="#x" xmlns:xlink="http://www.w3.org/1999/xlink" /></svg>' +
+      '</html>'
+
+    expect(issuesOf(buildZip({ 'index.html': html }))).toEqual([])
+  })
+
+  it('una URL real de w3.org que NO sea exactamente un namespace conocido sigue contando', () => {
+    const issues = issuesOf(
+      buildZip({
+        'index.html':
+          '<a href="http://www.w3.org/2000/svgx/algo-distinto">x</a>',
+      }),
     )
-    expect(issuesOf(buildZip({ 'index.html': html }, ['www.w3.org']))).toEqual(
-      [],
-    )
+    expect(issues.join(' ')).toContain('www.w3.org')
   })
 
   it('declarar el dominio basta: cien enlaces al mismo dominio son una entrada', () => {
@@ -99,6 +113,18 @@ describe('contrato §3 — el escaneo de dominios cuenta todo, sin distinguir ti
     expect(
       issuesOf(buildZip({ 'index.html': links }, ['fuente.example'])),
     ).toEqual([])
+  })
+
+  it('sin declarar, cien enlaces al mismo dominio dan UN solo aviso, no cien (evita ahogar el resto de la lista)', () => {
+    const links = Array.from(
+      { length: 100 },
+      (_, i) => `<a href="https://fuente.example/p${i}">${i}</a>`,
+    ).join('')
+
+    const issues = issuesOf(buildZip({ 'index.html': links }))
+
+    expect(issues).toHaveLength(1)
+    expect(issues[0]).toContain('fuente.example')
   })
 
   it('la comparación es por dominio exacto: www.x.com y x.com son distintos', () => {
@@ -147,10 +173,35 @@ describe('contrato §3 — el escaneo de dominios cuenta todo, sin distinguir ti
   })
 })
 
-describe('contrato §1 — la validación no comprueba que los archivos estén bajo assets/', () => {
-  it('un CSS en la raíz PASA la subida (aunque luego dé 404 en la página publicada)', () => {
+describe('contrato §1 — todo lo que no sea index.html/manifest.json debe vivir bajo assets/', () => {
+  it('un CSS en la raíz rechaza la subida con un mensaje claro (corregido el 29 sep: antes pasaba y daba 404)', () => {
+    const issues = issuesOf(
+      buildZip({ 'index.html': '<p>hola</p>', 'style.css': 'p{}' }),
+    )
+    expect(issues.join(' ')).toContain('style.css')
+    expect(issues.join(' ')).toContain('assets/')
+  })
+
+  it('el mismo CSS pasa si está bajo assets/', () => {
     expect(
-      issuesOf(buildZip({ 'index.html': '<p>hola</p>', 'style.css': 'p{}' })),
+      issuesOf(
+        buildZip({
+          'index.html': '<p>hola</p>',
+          'assets/style.css': 'p{}',
+        }),
+      ),
+    ).toEqual([])
+  })
+
+  it('subcarpetas dentro de assets/ están permitidas', () => {
+    expect(
+      issuesOf(
+        buildZip({
+          'index.html': '<p>hola</p>',
+          'assets/img/logo.png': 'x',
+          'assets/js/worker.js': 'x',
+        }),
+      ),
     ).toEqual([])
   })
 })

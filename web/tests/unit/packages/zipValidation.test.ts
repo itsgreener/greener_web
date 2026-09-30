@@ -124,8 +124,8 @@ describe('validateHtmlPackageZip', () => {
 
   it('rechaza si el JS del paquete registra un Service Worker (§12.2)', () => {
     const buffer = buildZip({
-      'index.html': '<script src="main.js"></script>',
-      'main.js': 'navigator.serviceWorker.register("/sw.js")',
+      'index.html': '<script src="assets/main.js"></script>',
+      'assets/main.js': 'navigator.serviceWorker.register("/sw.js")',
     })
 
     expect(() => validateHtmlPackageZip(buffer)).toThrow(/Service Worker/)
@@ -133,8 +133,8 @@ describe('validateHtmlPackageZip', () => {
 
   it('rechaza una URL absoluta a un dominio que no está en externalDomains', () => {
     const buffer = buildZip({
-      'index.html': '<script src="main.js"></script>',
-      'main.js': 'fetch("https://evil.example.com/data")',
+      'index.html': '<script src="assets/main.js"></script>',
+      'assets/main.js': 'fetch("https://evil.example.com/data")',
     })
 
     expect(() => validateHtmlPackageZip(buffer)).toThrow(/evil\.example\.com/)
@@ -143,8 +143,8 @@ describe('validateHtmlPackageZip', () => {
   it('acepta una URL absoluta cuyo dominio SÍ está en externalDomains del manifest', () => {
     const buffer = buildZip(
       {
-        'index.html': '<script src="main.js"></script>',
-        'main.js': 'fetch("https://api.trusted.com/data")',
+        'index.html': '<script src="assets/main.js"></script>',
+        'assets/main.js': 'fetch("https://api.trusted.com/data")',
       },
       { ...VALID_MANIFEST, externalDomains: ['api.trusted.com'] },
     )
@@ -152,6 +152,26 @@ describe('validateHtmlPackageZip', () => {
     const result = validateHtmlPackageZip(buffer)
 
     expect(result.manifest.externalDomains).toEqual(['api.trusted.com'])
+  })
+
+  it('rechaza un archivo fuera de assets/ que no sea index.html ni manifest.json (§1)', () => {
+    const buffer = buildZip({
+      'index.html': '<script src="style.css"></script>',
+      'style.css': 'p { color: red; }',
+    })
+
+    expect(() => validateHtmlPackageZip(buffer)).toThrow(
+      /"style\.css".*fuera de la carpeta assets\//,
+    )
+  })
+
+  it('acepta el mismo archivo si está correctamente bajo assets/', () => {
+    const buffer = buildZip({
+      'index.html': '<link rel="stylesheet" href="assets/style.css">',
+      'assets/style.css': 'p { color: red; }',
+    })
+
+    expect(() => validateHtmlPackageZip(buffer)).not.toThrow()
   })
 
   it('el checksum es determinista para el mismo contenido', () => {
