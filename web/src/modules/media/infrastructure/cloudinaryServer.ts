@@ -378,7 +378,7 @@ export async function verifyCloudinaryVideoAsset(
   const resource =
     rawResource as CloudinaryVideoResource
 
-  const duration = resource.duration
+  const duration = resource.duration ?? 10
 
   if (
     typeof resource.public_id !== 'string' ||
