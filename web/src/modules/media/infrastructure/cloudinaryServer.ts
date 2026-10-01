@@ -350,6 +350,7 @@ export async function verifyCloudinaryVideoAsset(
   }
 
   const resource = rawResource as CloudinaryVideoResource
+  const hasValidDuration = (typeof resource.duration === 'number' && resource.duration > 0) || resource.duration === undefined;
 
   if (
     typeof resource.public_id !== 'string' ||
@@ -358,7 +359,7 @@ export async function verifyCloudinaryVideoAsset(
     resource.format.trim().length === 0 ||
     !isPositiveInteger(resource.width) ||
     !isPositiveInteger(resource.height) ||
-    !isPositiveNumber(resource.duration) ||
+    !hasValidDuration ||
     !isPositiveInteger(resource.bytes)
   ) {
     throw new CloudinaryVideoVerificationError(
