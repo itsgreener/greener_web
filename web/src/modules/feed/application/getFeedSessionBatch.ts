@@ -36,6 +36,13 @@ export interface FeedBatchResult {
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
+  // Marca SOLO del fallback de límite de peticiones en
+  // api/feed/[sessionId]/route.ts (§2.16, §2.19) — generateRound() nunca
+  // la pone. Distingue "vacío porque se superó el límite" (temporal) de
+  // "vacío porque este scope no tiene contenido" (permanente), que es lo
+  // que appendBatch (FeedProvider.tsx) usa para decidir si corta
+  // hasMore para siempre o no.
+  rateLimited?: boolean
 }
 
 export class FeedSessionNotFoundError extends Error {

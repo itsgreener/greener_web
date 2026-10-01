@@ -90,7 +90,12 @@ interface FeedContextValue {
   setSessionId: (scope: string, sessionId: string) => void
   appendBatch: (
     scope: string,
-    batch: { items: FeedBatchItem[]; cursor: string; hasMore: boolean },
+    batch: {
+      items: FeedBatchItem[]
+      cursor: string
+      hasMore: boolean
+      rateLimited?: boolean
+    },
   ) => void
   setScrollY: (scope: string, y: number) => void
 }
@@ -130,8 +135,26 @@ export function FeedProvider({ children }: { children: ReactNode }) {
   const appendBatch = useCallback(
     (
       scope: string,
-      batch: { items: FeedBatchItem[]; cursor: string; hasMore: boolean },
+      batch: {
+        items: FeedBatchItem[]
+        cursor: string
+        hasMore: boolean
+        rateLimited?: boolean
+      },
     ) => {
+      // Bug real corregido el 30 sep (PROGRESO §2.19 — rompía el scroll
+      // de la home): un lote vacío por haberse superado el límite de
+      // peticiones (api/feed/[sessionId]/route.ts, §2.16) es temporal,
+      // no "esta sección no tiene contenido" — no debe tocar `hasMore`.
+      // Antes de esta marca, los dos casos eran indistinguibles aquí
+      // (ambos llegaban como "0 items") y se trataban igual, cortando
+      // el scroll para siempre en vez de solo hasta el minuto
+      // siguiente. No se actualiza nada más del estado tampoco: no hay
+      // ronda real que registrar.
+      if (batch.rateLimited) {
+        return
+      }
+
       setScopes((prev) => {
         const current = prev[scope] ?? EMPTY_SCOPE_STATE
         return {
@@ -142,13 +165,14 @@ export function FeedProvider({ children }: { children: ReactNode }) {
             batchSizes: [...current.batchSizes, batch.items.length],
             cursor: batch.cursor,
             // El servidor devuelve hasMore=true siempre (arquitectura
-            // §8.5, "el feed no termina") — pero una ronda vacía es una
-            // señal real y definitiva de que este scope no tiene
-            // contenido publicado (generateRound es determinista: si el
-            // pool de ese tipo tiene 0 elementos, todas las rondas
-            // futuras también vendrán vacías). Sin este corte, el
-            // sentinel de prefetch pide ronda tras ronda sin parar nunca
-            // en una subhome sin contenido todavía (insights/tools).
+            // §8.5, "el feed no termina") — pero una ronda vacía Y no
+            // debida a un límite de peticiones es una señal real y
+            // definitiva de que este scope no tiene contenido publicado
+            // (generateRound es determinista: si el pool de ese tipo
+            // tiene 0 elementos, todas las rondas futuras también
+            // vendrán vacías). Sin este corte, el sentinel de prefetch
+            // pide ronda tras ronda sin parar nunca en una subhome sin
+            // contenido todavía (insights/tools).
             hasMore: batch.items.length > 0 ? batch.hasMore : false,
           },
         }

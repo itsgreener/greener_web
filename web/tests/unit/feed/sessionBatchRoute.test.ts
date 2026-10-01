@@ -72,10 +72,21 @@ describe('GET /api/feed/{sessionId} — límite de 50 lotes por minuto', () => {
     const body = (await response.json()) as {
       items: unknown[]
       hasMore: boolean
+      rateLimited?: boolean
     }
 
     expect(response.status).toBe(200)
-    expect(body).toEqual({ items: [], cursor: '', round: 0, hasMore: false })
+    // hasMore: true a propósito (bug real corregido el 30 sep, §2.19):
+    // SÍ hay más, solo que no ahora mismo — `rateLimited` es la señal
+    // real para que el cliente no lo confunda con "sin contenido" y
+    // corte el scroll para siempre. Ver FeedProvider.test.ts.
+    expect(body).toEqual({
+      items: [],
+      cursor: '',
+      round: 0,
+      hasMore: true,
+      rateLimited: true,
+    })
     expect(getFeedSessionBatch).toHaveBeenCalledTimes(50) // no una 51ª
   })
 

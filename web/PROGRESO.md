@@ -279,6 +279,25 @@ Coste aceptado, con los ojos abiertos: a diferencia del mecanismo retirado (que 
 
 **`contrato-zip-tools-insights.md` actualizado el 30 sep** (se había quedado sin ninguna mención a esto): nueva sección "Reportar uso real (solo Tools): `window.GreenerAnalytics.toolUsed()`" en §6, con el patrón exacto de `action` verificado contra el regex real del script (`^[a-z0-9][a-z0-9:_-]{0,63}$`), y un punto nuevo en el checklist de §8. Documentado sin suavizarlo: una Tool que nunca llame a esto muestra cero uso sin ningún aviso.
 
+### 2.19 Bug real: el límite de peticiones rompía el scroll de la home (30 sep)
+
+Aviso del usuario: "el scroll de la home se rompió un poco... solo muestra una línea de casos... en tools e insights funciona bien". Las tres páginas usan el mismo componente (`<Feed scope="...">`), así que el fallo tenía que estar en algo que distinguiera home de las subhomes — o en algo que SOLO se manifestara con el patrón de tráfico de home.
+
+**La causa real: una interacción entre dos piezas que no se conocían entre sí.** `appendBatch` (`FeedProvider.tsx`) ya tenía, de antes, una regla: un lote vacío (`items.length === 0`) corta `hasMore` a `false` **para siempre** — pensada para que una subhome sin contenido todavía (insights/tools al principio) no siga pidiendo rondas sin parar, ya que `generateRound` es determinista: si el pool de un tipo está vacío, toda ronda futura también lo estará. Es un corte permanente, a propósito.
+
+El límite de peticiones del 29 sep (§2.16) **reutilizaba exactamente esa misma forma de respuesta** (lote vacío) para decir "espera, no ahora mismo" — algo temporal, no permanente. `appendBatch` no tenía forma de distinguir los dos casos: a sus ojos, un lote vacío por límite de peticiones superado era indistinguible de una subhome sin contenido, así que lo trataba igual — cortaba `hasMore` para siempre, en memoria **y en `sessionStorage`**.
+
+Por qué solo se notaba en home: `useFeed.ts` auto-carga rondas mientras el sentinel de `IntersectionObserver` esté cerca del final (§10.3) — pero el observador solo reacciona a un **cambio** de intersección, no re-chequea solo porque pase el tiempo. Home mezcla tipos por cuota (§8.2) en vez de servir un único tipo denso como tools/insights, así que arrancar necesita más rondas seguidas para llenar la pantalla — más probable agotar el cupo (50/min) durante esa ráfaga inicial, sobre todo recargando varias veces seguidas en poco tiempo, que es justo lo que se estaba haciendo al cargar contenido. Una vez cortado, nada volvía a intentarlo solo: hacía falta un scroll manual para que el sentinel recalculara su posición y el observador volviera a dispararse — pero `hasMore` ya estaba en `false` para siempre, así que ni el scroll manual servía de nada, salvo que diera la casualidad de coincidir con una recarga completa (nuevo `pageLoadId`, estado limpio) fuera ya de la ventana de un minuto.
+
+**La corrección, en dos sitios:**
+
+1. `api/feed/[sessionId]/route.ts`: la respuesta de límite superado ahora dice la verdad — `hasMore: true` (sí hay más, solo que no ahora) — y añade `rateLimited: true` como señal explícita.
+2. `appendBatch`: si `batch.rateLimited` es verdadero, no toca el estado en absoluto — ni pines, ni cursor, ni `hasMore`. El siguiente intento (el próximo scroll, o el propio sentinel si hay ocasión) vuelve a probar con normalidad.
+
+El comportamiento de "corte permanente para una subhome sin contenido real" **no cambia** — sigue intacto, solo ahora distinguible del caso temporal.
+
+**Pruebas.** 6 tests nuevos en `feedProvider.test.tsx`, el primer test que existe para `appendBatch` (no tenía ninguno). Reproducida la mutación exacta del bug original (quitar la guarda de `rateLimited`) y confirmado que los tests la detectan — 2 de 6 fallan exactamente como deberían. Actualizada la aserción de `sessionBatchRoute.test.ts`, que yo mismo había fijado con el comportamiento incorrecto el día anterior.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -418,3 +437,4 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **29 sep 2026 (continuación, límite de peticiones)**: cerrado el límite de POST /api/feed/sessions (12/min) y GET /api/feed/{sessionId} (50/min) por visitante (cookie anónima, en memoria de proceso), con degradación silenciosa en los dos casos (repite la última sesión / hasMore:false). Corregido un fallo real propio en el limitador genérico (la ventana se prolongaba en vez de ser fija) detectado solo tras escribir un segundo test más preciso que el primero. 787 tests.
 - **29 sep 2026 (integración de una segunda rama de trabajo)**: integrado un zip con cambios paralelos — rediseño completo del ABM (dashboard, listado y editor de contenidos, ~1.700 líneas de CSS), evento "Feed Depth" cableado en useFeed.ts (campo `round` nuevo en FeedBatchResult), y un SEGUNDO mecanismo para "Tool Used" (`greener-package-analytics.js` + `POST /api/analytics/package`) que resuelve el UUID real de content, cruzable con "Tool Open" — a diferencia del mecanismo servidor de ayer. Los dos conviven bajo el mismo nombre de evento; decisión pendiente del usuario sobre cuál mantener. Descartada de nuevo la regresión del fixture pixel-palette (ruta del Worker). 794 tests.
 - **29 sep 2026 (decisión «Tool Used»)**: elegido un único mecanismo para «Tool Used» — el que dispara la propia tool y cruza con «Tool Open» por UUID (`greener-package-analytics.js` + `POST /api/analytics/package`). Retirado el mecanismo servidor del día anterior (`serverAnalytics.ts`, sus tests, y la llamada en `tools/[slug]/app/route.ts`). 785 tests.
+- **30 sep 2026 (scroll de la home roto)**: encontrado y corregido un bug real — el límite de peticiones del feed (29 sep, §2.16) reutilizaba la misma forma de respuesta que "esta sección no tiene contenido", y appendBatch cortaba hasMore para siempre en ambos casos sin distinguirlos. Solo se notaba en home (mezcla tipos, necesita más rondas para llenar la pantalla) y no en tools/insights (un único tipo denso). Corregido con una marca explícita rateLimited que appendBatch ahora respeta sin tocar el estado. 794 tests.

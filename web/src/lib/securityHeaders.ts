@@ -90,12 +90,12 @@ export function buildContentSecurityPolicy({
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? ` 'unsafe-eval'` : ''}`,
     `style-src 'self' 'unsafe-inline'`,
-    `img-src 'self' data: ${CLOUDINARY_DELIVERY_ORIGIN}`,
+    `img-src 'self' data: blob: ${CLOUDINARY_DELIVERY_ORIGIN}`,
     // <video src> del carrusel de caso, el pin con vídeo y la portada de
     // vídeo de `other` — plano, sin next/image de por medio (no se usa
     // en ningún sitio del proyecto), así que esto es real, no una
     // precaución de más.
-    `media-src 'self' ${CLOUDINARY_DELIVERY_ORIGIN}`,
+    `media-src 'self' blob: ${CLOUDINARY_DELIVERY_ORIGIN}`,
     `font-src 'self'`,
     `connect-src ${connectSources.join(' ')}`,
     `frame-src ${EMBED_FRAME_ORIGINS.join(' ')}`,

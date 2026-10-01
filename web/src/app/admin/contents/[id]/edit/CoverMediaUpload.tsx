@@ -4,7 +4,10 @@ import { useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
-import { validateVideoUpload } from '@/modules/media/domain/mediaLimits'
+import {
+  VIDEO_LIMITS,
+  validateVideoUpload,
+} from '@/modules/media/domain/mediaLimits'
 
 import { closestClosedRatio } from '@/modules/media/domain/closestRatio'
 
@@ -257,19 +260,67 @@ export default function CoverMediaUpload({
     setWarning(null)
 
     try {
-      const duration = await readVideoDuration(file)
+      // Mismo parche urgente que CaseCarouselManager.tsx (30 sep): si el
+      // navegador no puede leer la duración localmente (típico con
+      // .mov/HEVC), no se bloquea aquí — se valida solo el tamaño y se
+      // sube. La duración real se valida después con el dato de
+      // Cloudinary, la fuente de verdad.
+      //
+      // OJO con el orden en ESTE fichero en concreto: replaceExistingIfAny()
+      // BORRA la portada anterior de forma permanente. Por eso aquí —a
+      // diferencia de CaseCarouselManager/PinMediaManager, que solo
+      // añaden un elemento nuevo— el borrado se ha movido a DESPUÉS de
+      // confirmar con el dato real de Cloudinary que el vídeo es válido,
+      // no antes de subirlo. Si se borrara antes y el vídeo real
+      // resultara demasiado largo, el caso se quedaría sin portada.
+      let localDuration: number | null = null
 
-      const validation = validateVideoUpload(file.size, duration)
+      try {
+        localDuration = await readVideoDuration(file)
+      } catch {
+        localDuration = null
+      }
 
-      if (validation?.code === 'VIDEO_TOO_LONG') {
+      if (localDuration !== null) {
+        const validation = validateVideoUpload(file.size, localDuration)
+
+        if (validation?.code === 'VIDEO_TOO_LONG') {
+          throw new Error(
+            `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+          )
+        }
+
+        if (validation?.code === 'VIDEO_TOO_LARGE') {
+          throw new Error(
+            `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          )
+        }
+      } else if (file.size > VIDEO_LIMITS.maxSizeBytes) {
         throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+          `El vídeo supera los ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB.`,
         )
       }
 
-      if (validation?.code === 'VIDEO_TOO_LARGE') {
+      const signed = await getSignedVideoUpload()
+
+      const uploaded = await uploadVideoToCloudinary(file, signed)
+
+      // Validación real con la duración de Cloudinary, ANTES de tocar la
+      // portada existente.
+      const finalValidation = validateVideoUpload(
+        uploaded.bytes,
+        uploaded.duration,
+      )
+
+      if (finalValidation?.code === 'VIDEO_TOO_LONG') {
         throw new Error(
-          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (ya subido a Cloudinary, pero la portada anterior no se ha tocado).`,
+        )
+      }
+
+      if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
+        throw new Error(
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero la portada anterior no se ha tocado).`,
         )
       }
 
@@ -278,10 +329,6 @@ export default function CoverMediaUpload({
       if (!replaced) {
         return
       }
-
-      const signed = await getSignedVideoUpload()
-
-      const uploaded = await uploadVideoToCloudinary(file, signed)
 
       const result = await registerCoverVideoAction({
         contentId,

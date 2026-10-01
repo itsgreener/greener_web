@@ -18,11 +18,32 @@ import {
  * Límite de peticiones (29 sep, PROGRESO §2.16): 50 lotes por minuto y
  * visitante — cada lote genera una ronda completa (§8), más caro que
  * crear la sesión, pero también lo que dispara el scroll rápido, así
- * que necesita más margen que POST /api/feed/sessions (12/min). Al
- * superarlo, se responde como si el catálogo se hubiera agotado
- * (`hasMore: false`, sin pines): el cliente ya sabe dejar de pedir más
- * ante eso (useFeed.ts), sin ningún error visible — reutiliza un
- * comportamiento que ya existía, no añade ninguno nuevo.
+ * que necesita más margen que POST /api/feed/sessions (12/min).
+ *
+ * Bug real encontrado y corregido el 30 sep (rompía el scroll de la
+ * home — PROGRESO §2.19): al superarlo, esta ruta respondía sin pines y
+ * con `hasMore: false`, pensando que reutilizaba el comportamiento de
+ * "sección sin contenido todavía" que ya existía en el cliente
+ * (`appendBatch`, FeedProvider.tsx). Pero ese comportamiento existente
+ * es un corte PERMANENTE (si una subhome no tiene nada publicado,
+ * generateRound es determinista y todas las rondas futuras también
+ * vendrán vacías — no tiene sentido seguir pidiendo). Un límite de
+ * peticiones no es eso: es temporal, el minuto siguiente ya hay cupo de
+ * nuevo. Al devolver `hasMore: false` aquí, la home (que necesita más
+ * rondas que tools/insights para llenar la pantalla, porque mezcla
+ * tipos por cuota en vez de servir un único tipo denso) podía agotar el
+ * cupo durante la carga automática inicial — sobre todo recargando
+ * varias veces seguidas en poco tiempo, como al probar contenido — y se
+ * quedaba con el scroll roto para el resto de esa carga del documento:
+ * el sentinel de IntersectionObserver solo reacciona a un CAMBIO de
+ * intersección, así que sin un scroll manual que lo recoloque, nunca
+ * reintentaba por su cuenta.
+ *
+ * Ahora se marca con `rateLimited: true`, que FeedProvider.tsx sabe
+ * distinguir de un lote vacío de verdad: no toca `hasMore`, así que el
+ * siguiente intento (el próximo scroll, o el propio prefetch si hay
+ * ocasión) vuelve a probar con normalidad en vez de rendirse para
+ * siempre.
  */
 export async function GET(
   request: NextRequest,
@@ -40,7 +61,15 @@ export async function GET(
 
   if (!canFetchBatch(visitorId)) {
     return respond(
-      { items: [], cursor: cursor ?? '', round: 0, hasMore: false },
+      {
+        items: [],
+        cursor: cursor ?? '',
+        round: 0,
+        // Honesto: SÍ hay más (§8.5, "el feed no termina"), solo que no
+        // ahora mismo. `rateLimited` es la señal real para el cliente.
+        hasMore: true,
+        rateLimited: true,
+      },
       { headers: { 'Cache-Control': 'no-store' } },
     )
   }

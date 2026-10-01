@@ -4,7 +4,10 @@ import { useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
-import { validateVideoUpload } from '@/modules/media/domain/mediaLimits'
+import {
+  VIDEO_LIMITS,
+  validateVideoUpload,
+} from '@/modules/media/domain/mediaLimits'
 
 import {
   IMAGE_FILE_ACCEPT,
@@ -188,25 +191,69 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
     setWarning(null)
 
     try {
-      const duration = await readVideoDuration(file)
+      // Parche urgente (30 sep): leer la duración en el propio navegador
+      // falla con bastantes vídeos perfectamente válidos — sobre todo
+      // .mov/HEVC, el formato por defecto al grabar en muchos móviles,
+      // que Chrome/Firefox en varios sistemas no saben decodificar aunque
+      // Cloudinary lo acepta sin problema. Antes, ese fallo bloqueaba la
+      // subida entera con "No se ha podido leer la duración del vídeo."
+      // Ahora: si el navegador no puede leerla, no se bloquea aquí — se
+      // valida solo el tamaño (que no necesita decodificar nada) y se
+      // sube. La duración real, la que de verdad importa, se valida más
+      // abajo con el dato que devuelve Cloudinary tras la subida — que es
+      // la fuente de verdad, no una lectura local best-effort.
+      let localDuration: number | null = null
 
-      const validation = validateVideoUpload(file.size, duration)
-
-      if (validation?.code === 'VIDEO_TOO_LONG') {
-        throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
-        )
+      try {
+        localDuration = await readVideoDuration(file)
+      } catch {
+        localDuration = null
       }
 
-      if (validation?.code === 'VIDEO_TOO_LARGE') {
+      if (localDuration !== null) {
+        const validation = validateVideoUpload(file.size, localDuration)
+
+        if (validation?.code === 'VIDEO_TOO_LONG') {
+          throw new Error(
+            `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+          )
+        }
+
+        if (validation?.code === 'VIDEO_TOO_LARGE') {
+          throw new Error(
+            `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          )
+        }
+      } else if (file.size > VIDEO_LIMITS.maxSizeBytes) {
         throw new Error(
-          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          `El vídeo supera los ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB.`,
         )
       }
 
       const signed = await getSignedVideoUpload()
 
       const uploaded = await uploadVideoToCloudinary(file, signed)
+
+      // Validación real, con la duración que ha calculado Cloudinary — no
+      // la del navegador. Cubre tanto el caso en que no se pudo leer en
+      // local como, por prudencia, el caso en que sí se pudo (para que la
+      // comprobación final sea siempre la misma, autoritativa).
+      const finalValidation = validateVideoUpload(
+        uploaded.bytes,
+        uploaded.duration,
+      )
+
+      if (finalValidation?.code === 'VIDEO_TOO_LONG') {
+        throw new Error(
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (ya subido a Cloudinary, pero no se ha guardado en el caso).`,
+        )
+      }
+
+      if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
+        throw new Error(
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero no se ha guardado en el caso).`,
+        )
+      }
 
       const result = await addCaseCarouselVideoAction({
         contentId,

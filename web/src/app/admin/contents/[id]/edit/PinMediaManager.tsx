@@ -4,7 +4,10 @@ import { useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
-import { validatePinAnimationUpload } from '@/modules/media/domain/mediaLimits'
+import {
+  VIDEO_LIMITS,
+  validatePinAnimationUpload,
+} from '@/modules/media/domain/mediaLimits'
 
 import {
   IMAGE_FILE_ACCEPT,
@@ -200,25 +203,62 @@ export default function PinMediaManager({ pinId, media }: Props) {
     setWarning(null)
 
     try {
-      const duration = await readVideoDuration(file)
+      // Mismo parche urgente que CaseCarouselManager.tsx (30 sep): si el
+      // navegador no puede leer la duración localmente (típico con
+      // .mov/HEVC), no se bloquea aquí — se valida solo el tamaño y se
+      // sube. La duración real se valida después con el dato de
+      // Cloudinary, la fuente de verdad.
+      let localDuration: number | null = null
 
-      const validation = validatePinAnimationUpload(file.size, duration)
-
-      if (validation?.code === 'ANIMATION_TOO_LONG') {
-        throw new Error(
-          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
-        )
+      try {
+        localDuration = await readVideoDuration(file)
+      } catch {
+        localDuration = null
       }
 
-      if (validation?.code === 'VIDEO_TOO_LARGE') {
+      if (localDuration !== null) {
+        const validation = validatePinAnimationUpload(file.size, localDuration)
+
+        if (validation?.code === 'ANIMATION_TOO_LONG') {
+          throw new Error(
+            `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+          )
+        }
+
+        if (validation?.code === 'VIDEO_TOO_LARGE') {
+          throw new Error(
+            `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          )
+        }
+      } else if (file.size > VIDEO_LIMITS.maxSizeBytes) {
         throw new Error(
-          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+          `El vídeo supera los ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB.`,
         )
       }
 
       const signed = await getSignedVideoUpload()
 
       const uploaded = await uploadVideoToCloudinary(file, signed)
+
+      // Validación real con la duración de Cloudinary — los pines son
+      // animaciones de como mucho 5 s, así que aquí sí importa rechazar
+      // con claridad si el vídeo real resulta más largo de lo permitido.
+      const finalValidation = validatePinAnimationUpload(
+        uploaded.bytes,
+        uploaded.duration,
+      )
+
+      if (finalValidation?.code === 'ANIMATION_TOO_LONG') {
+        throw new Error(
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos para un pin (ya subido a Cloudinary, pero no se ha guardado).`,
+        )
+      }
+
+      if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
+        throw new Error(
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero no se ha guardado).`,
+        )
+      }
 
       const result = await attachPinVideoAction({
         pinId,
