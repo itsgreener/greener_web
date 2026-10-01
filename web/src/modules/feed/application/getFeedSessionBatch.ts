@@ -21,6 +21,9 @@ export interface FeedBatchItem {
   destination: string
   ratio: string
   label: string | null
+  // Case/episode: texto derivado del contenido, no del admin.
+  displayTitle?: string | null
+  displaySecondary?: string | null
   cta: string | null
   alt: string
   autoplayMode: 'viewport' | 'hover' | null
@@ -30,19 +33,9 @@ export interface FeedBatchItem {
 export interface FeedBatchResult {
   items: FeedBatchItem[]
   cursor: string
-  // Índice de la ronda servida — lo necesita el evento "Feed Depth"
-  // (§18.2: section, round, batch).
-  round: number
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
-  // Marca SOLO del fallback de límite de peticiones en
-  // api/feed/[sessionId]/route.ts (§2.16, §2.19) — generateRound() nunca
-  // la pone. Distingue "vacío porque se superó el límite" (temporal) de
-  // "vacío porque este scope no tiene contenido" (permanente), que es lo
-  // que appendBatch (FeedProvider.tsx) usa para decidir si corta
-  // hasMore para siempre o no.
-  rateLimited?: boolean
 }
 
 export class FeedSessionNotFoundError extends Error {
@@ -120,6 +113,8 @@ function enrich(
       destination: destinationFor(meta.contentType, meta.contentSlug),
       ratio: meta.ratio,
       label: meta.label,
+      displayTitle: meta.displayTitle ?? null,
+      displaySecondary: meta.displaySecondary ?? null,
       cta: ctaFor(meta.contentType),
       alt: meta.alt,
       autoplayMode: meta.autoplayMode,
@@ -210,7 +205,6 @@ export async function getFeedSessionBatch(
   return {
     items,
     cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
-    round: roundIndex,
     hasMore: true,
   }
 }

@@ -17,9 +17,14 @@ export interface PinDirectoryEntry {
   contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
   contentSlug: string
   ratio: string
-  // §3 "Pin (todos los tipos)": obligatorio en tool/insight/libre,
-  // opcional (no se muestra) en caso/episodio.
+  // Tool/insight/other siguen usando el gancho escrito por el admin.
+  // Case/episode NO: su texto se deriva del propio contenido.
   label: string | null
+  // Para case/episode, texto automático del feed:
+  // 1ª línea = título del contenido.
+  displayTitle?: string | null
+  // 2ª línea = cliente en case / episode_kind en episode.
+  displaySecondary?: string | null
   alt: string
   // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
   // 'viewport' lo reproduce vía IntersectionObserver (compite por el
@@ -66,11 +71,36 @@ const SCOPE_TO_TYPES: Record<string, string[]> = {
   channel: ['episode'],
 }
 
-interface ContentRow {
+type ContentTranslationRow = {
+  locale: string
+  title: string
+}
+
+type FeedContentMeta = {
   id: string
   type: string
   slug: string
-  case_detail: { force: number } | null
+  default_locale?: string
+  content_translation?: ContentTranslationRow[]
+  case_detail?: {
+    force?: number
+    client?: string | null
+  } | null
+  episode?: {
+    episode_kind?: string | null
+  } | null
+}
+
+interface ContentRow extends FeedContentMeta {
+  default_locale: string
+  content_translation: ContentTranslationRow[]
+  case_detail: {
+    force: number
+    client: string | null
+  } | null
+  episode: {
+    episode_kind: string | null
+  } | null
   pin: PinRow[]
 }
 
@@ -78,6 +108,7 @@ interface PinRow {
   id: string
   ratio: string
   label: string | null
+  language: string
   alt: string
   queue_order: number
   show_as_carousel: boolean
@@ -93,13 +124,67 @@ interface PinRow {
 }
 
 const PIN_SELECT = `
-  id, ratio, label, alt, queue_order, show_as_carousel, autoplay_mode,
+  id, ratio, label, language, alt, queue_order, show_as_carousel, autoplay_mode,
   pin_media (
     media_id,
     slide_order,
     media_asset ( kind, cloudinary_public_id )
   )
 `
+
+function resolveContentTitle(
+  content: FeedContentMeta,
+  pinLanguage: string,
+): string | null {
+  const translations = content.content_translation ?? []
+
+  return (
+    translations.find((translation) => translation.locale === pinLanguage)
+      ?.title ??
+    translations.find(
+      (translation) => translation.locale === content.default_locale,
+    )?.title ??
+    translations[0]?.title ??
+    null
+  )
+}
+
+function derivedFeedText(
+  pin: PinRow,
+  content: FeedContentMeta,
+): {
+  label: string | null
+  displayTitle: string | null
+  displaySecondary: string | null
+} {
+  const contentType = content.type as PinDirectoryEntry['contentType']
+
+  if (contentType === 'case') {
+    return {
+      // Importante: cualquier label antigua guardada por el ABM queda
+      // deliberadamente ignorada para case.
+      label: null,
+      displayTitle: resolveContentTitle(content, pin.language),
+      displaySecondary: content.case_detail?.client?.trim() || null,
+    }
+  }
+
+  if (contentType === 'episode') {
+    return {
+      // Mismo criterio para episode: el admin no decide el rótulo del feed.
+      label: null,
+      displayTitle: resolveContentTitle(content, pin.language),
+      // En el formato B final, episode sustituye `client` por `episode_kind`.
+      displaySecondary: content.episode?.episode_kind?.trim() || null,
+    }
+  }
+
+  return {
+    label: pin.label,
+    displayTitle: null,
+    displaySecondary: null,
+  }
+}
 
 /**
  * Expande un pin en una o varias "unidades" seleccionables por el motor
@@ -117,7 +202,7 @@ const PIN_SELECT = `
  */
 export function buildFeedUnitsForPin(
   pin: PinRow,
-  content: { id: string; type: string; slug: string },
+  content: FeedContentMeta,
 ): { unitId: string; entry: PinDirectoryEntry }[] {
   const media = [...pin.pin_media]
     .sort((a, b) => a.slide_order - b.slide_order)
@@ -131,13 +216,16 @@ export function buildFeedUnitsForPin(
   if (media.length === 0) return []
 
   const contentType = content.type as PinDirectoryEntry['contentType']
+  const text = derivedFeedText(pin, content)
 
   const base = {
     contentId: content.id,
     contentType,
     contentSlug: content.slug,
     ratio: pin.ratio,
-    label: pin.label,
+    label: text.label,
+    displayTitle: text.displayTitle,
+    displaySecondary: text.displaySecondary,
     alt: pin.alt,
     autoplayMode: pin.autoplay_mode,
   }
@@ -195,7 +283,10 @@ export async function getFeedDataset(
       id,
       type,
       slug,
-      case_detail ( force ),
+      default_locale,
+      content_translation ( locale, title ),
+      case_detail ( force, client ),
+      episode ( episode_kind ),
       pin ( ${PIN_SELECT} )
     `,
     )
@@ -263,7 +354,7 @@ export async function getFeedDataset(
 }
 
 interface PinLookupRow extends PinRow {
-  content: { id: string; type: string; slug: string } | null
+  content: FeedContentMeta | null
 }
 
 /**
@@ -293,7 +384,15 @@ export async function getPinDirectoryByIds(
     .select(
       `
       ${PIN_SELECT},
-      content ( id, type, slug )
+      content (
+        id,
+        type,
+        slug,
+        default_locale,
+        content_translation ( locale, title ),
+        case_detail ( client ),
+        episode ( episode_kind )
+      )
     `,
     )
     .in('id', pinIds)

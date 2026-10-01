@@ -14,6 +14,7 @@ import PinMediaManager from './PinMediaManager'
 
 type Props = {
   contentId: string
+  contentType: string
   pins: PinListItem[]
 }
 
@@ -22,9 +23,11 @@ const initialState: PinFormState = {}
 function EditPinForm({
   pin,
   contentId,
+  derivedLabel,
 }: {
   pin: PinListItem
   contentId: string
+  derivedLabel: boolean
 }) {
   const [state, formAction, pending] = useActionState(
     updatePinAction.bind(null, pin.id, contentId),
@@ -49,15 +52,24 @@ function EditPinForm({
         <option value="16:9">16:9</option>
       </select>
 
-      <label htmlFor={`label-${pin.id}`}>
-        Rótulo (obligatorio salvo en Case/Episode)
-      </label>
-      <input
-        id={`label-${pin.id}`}
-        name="label"
-        type="text"
-        defaultValue={pin.label ?? ''}
-      />
+      {derivedLabel ? (
+        <>
+          <input name="label" type="hidden" value="" />
+          <p>
+            Texto del feed automático: título + cliente (Case) o tipo de episodio (Episode).
+          </p>
+        </>
+      ) : (
+        <>
+          <label htmlFor={`label-${pin.id}`}>Frase gancho</label>
+          <input
+            id={`label-${pin.id}`}
+            name="label"
+            type="text"
+            defaultValue={pin.label ?? ''}
+          />
+        </>
+      )}
 
       <label htmlFor={`carousel-${pin.id}`}>
         <input
@@ -175,8 +187,9 @@ function DeletePinButton({
   )
 }
 
-export default function PinList({ contentId, pins }: Props) {
+export default function PinList({ contentId, contentType, pins }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const derivedLabel = contentType === 'case' || contentType === 'episode'
 
   return (
     <div>
@@ -194,7 +207,11 @@ export default function PinList({ contentId, pins }: Props) {
         <tbody>
           {pins.map((pin) => (
             <tr key={pin.id}>
-              <td>{pin.label ?? '—'}</td>
+              <td>
+                {derivedLabel
+                  ? 'Automático: título + cliente/tipo de episodio'
+                  : pin.label ?? '—'}
+              </td>
               <td>{pin.ratio}</td>
               <td>{pin.queueOrder}</td>
               <td>
@@ -228,7 +245,11 @@ export default function PinList({ contentId, pins }: Props) {
         .filter((pin) => pin.id === expandedId)
         .map((pin) => (
           <div key={pin.id}>
-            <EditPinForm pin={pin} contentId={contentId} />
+            <EditPinForm
+              pin={pin}
+              contentId={contentId}
+              derivedLabel={derivedLabel}
+            />
 
             <PinMediaManager pinId={pin.id} media={pin.media} />
           </div>

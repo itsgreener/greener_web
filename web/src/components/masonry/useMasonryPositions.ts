@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   computeMasonryLayout,
   columnsForViewport,
+  GAP,
   type LayoutInputItem,
   type PinRatio,
 } from '@/modules/masonry/domain/layout'
@@ -42,6 +43,95 @@ function batchIndexForItem(index: number, batchSizes: number[]): number {
     if (index < acc) return b
   }
   return Math.max(0, batchSizes.length - 1)
+}
+
+/*
+ * Debe mantenerse coordinado con PinCard.module.css:
+ * - padding horizontal del texto: 12px por lado
+ * - margin-top del texto: 8px
+ * - font-size: 0.8rem = 12.8px sobre base 16
+ * - line-height: 1.3 ≈ 16.64px
+ * - separación title/secondary: 2px
+ *
+ * El layout es absoluto: si no reservamos aquí el alto REALISTA del texto,
+ * la siguiente tarjeta empieza antes de que termine el rótulo. Ese era el
+ * motivo de que visualmente la imagen de abajo quedase demasiado pegada.
+ */
+const LABEL_SIDE_PADDING = 12
+const LABEL_TOP_GAP = 8
+const LABEL_LINE_HEIGHT = 17
+const LABEL_SECONDARY_GAP = 2
+const LABEL_SAFETY = 2
+const APPROX_CHAR_WIDTH = 6.5
+
+function estimateWrappedLines(
+  text: string,
+  availableWidth: number,
+  maxLines: number,
+): number {
+  const normalized = text.trim()
+  if (!normalized) return 0
+
+  const charsPerLine = Math.max(
+    8,
+    Math.floor(availableWidth / APPROX_CHAR_WIDTH),
+  )
+
+  let lines = 1
+  let currentLength = 0
+
+  for (const word of normalized.split(/\s+/)) {
+    const wordLength = word.length
+
+    if (currentLength === 0) {
+      currentLength = wordLength
+      continue
+    }
+
+    if (currentLength + 1 + wordLength <= charsPerLine) {
+      currentLength += 1 + wordLength
+      continue
+    }
+
+    lines += 1
+    currentLength = wordLength
+
+    if (lines >= maxLines) return maxLines
+  }
+
+  return Math.min(lines, maxLines)
+}
+
+function estimateLabelHeight(item: PinCardData, columnWidth: number): number {
+  const availableWidth = Math.max(1, columnWidth - LABEL_SIDE_PADDING * 2)
+
+  // Case / Episode: título automático + dato secundario en negrita.
+  if (item.displayTitle) {
+    const primaryLines = estimateWrappedLines(
+      item.displayTitle,
+      availableWidth,
+      2,
+    )
+    const secondaryLines = item.displaySecondary ? 1 : 0
+
+    return (
+      LABEL_TOP_GAP +
+      primaryLines * LABEL_LINE_HEIGHT +
+      (secondaryLines > 0
+        ? LABEL_SECONDARY_GAP + secondaryLines * LABEL_LINE_HEIGHT
+        : 0) +
+      LABEL_SAFETY
+    )
+  }
+
+  // Tool / Insight / Other: gancho libre del admin, máximo dos líneas.
+  if (item.label) {
+    const lines = estimateWrappedLines(item.label, availableWidth, 2)
+    return LABEL_TOP_GAP + lines * LABEL_LINE_HEIGHT + LABEL_SAFETY
+  }
+
+  // No hay texto bajo el medio: no reservar el antiguo alto por defecto.
+  return 0
 }
 
 export function useMasonryPositions(
@@ -89,28 +179,48 @@ export function useMasonryPositions(
 
   const columnCount = columnsForViewport(containerWidth || 1200)
 
+  const layoutItems = useMemo<LayoutInputItem[]>(() => {
+    if (containerWidth === 0) return []
+
+    const columnWidth =
+      (containerWidth - GAP * (columnCount - 1)) / columnCount
+
+    return items.map((item) => ({
+      id: item.pinId,
+      ratio: item.ratio as PinRatio,
+      labelHeight: estimateLabelHeight(item, columnWidth),
+    }))
+  }, [items, containerWidth, columnCount])
+
   const layout = useMemo(() => {
     if (containerWidth === 0) return null
-    const layoutItems: LayoutInputItem[] = items.map((i) => ({
-      id: i.pinId,
-      ratio: i.ratio as PinRatio,
-    }))
     return computeMasonryLayout(layoutItems, containerWidth, columnCount)
-  }, [items, containerWidth, columnCount])
+  }, [layoutItems, containerWidth, columnCount])
 
   const positioned: PositionedPin[] = useMemo(() => {
     if (!layout) return []
 
-    // Altura de cada batch real (para la virtualización), aproximada por
-    // el rango [min y, max y+height] de sus items — arquitectura §10.2.
+    // Altura de cada batch real (para la virtualización), incluyendo la
+    // reserva estimada del texto. Antes solo se contaba el medio, lo que
+    // hacía la estimación cada vez menos precisa cuando el rótulo ocupaba
+    // más de una línea.
     const batchHeights: BatchHeight[] = []
     let start = 0
     for (let b = 0; b < batchSizes.length; b++) {
+      const batchStart = start
       const slice = layout.positions.slice(start, start + batchSizes[b])
       start += batchSizes[b]
       if (slice.length === 0) continue
+
       const top = Math.min(...slice.map((p) => p.y))
-      const bottom = Math.max(...slice.map((p) => p.y + p.height))
+      const bottom = Math.max(
+        ...slice.map((p, offset) => {
+          const labelHeight =
+            layoutItems[batchStart + offset]?.labelHeight ?? 0
+          return p.y + p.height + labelHeight
+        }),
+      )
+
       batchHeights.push({ batchIndex: b, height: bottom - top })
     }
 
@@ -142,7 +252,7 @@ export function useMasonryPositions(
         mounted: mountedBatchIndexes.has(batchIndex),
       }
     })
-  }, [layout, items, batchSizes, relativeScrollCenter])
+  }, [layout, layoutItems, items, batchSizes, relativeScrollCenter])
 
   return {
     containerRef,

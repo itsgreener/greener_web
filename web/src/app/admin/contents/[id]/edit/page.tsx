@@ -294,7 +294,11 @@ export default async function EditContentPage({ params }: Props) {
             </div>
 
             <div className="admin-editor-subsection">
-              <PinList contentId={content.id} pins={pins} />
+              <PinList
+                contentId={content.id}
+                contentType={content.type}
+                pins={pins}
+              />
             </div>
 
             <div className="admin-editor-subsection">

@@ -8,7 +8,6 @@ import {
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
-import { rememberNavigationSource } from '@/modules/analytics/navigationAttribution'
 import { useVideoSlot } from '../useVideoSlot'
 import styles from './PinCard.module.css'
 
@@ -21,8 +20,11 @@ export interface PinCardData {
   pinId: string
   destination: string
   ratio: string
-  // §3 "Pin (todos los tipos)": opcional en caso/episodio, no se muestra.
+  // Tool/insight/other: gancho escrito por el admin.
+  // Case/episode: siempre llega null; el texto se deriva del contenido.
   label: string | null
+  displayTitle?: string | null
+  displaySecondary?: string | null
   cta: string | null
   alt: string
   // Solo tiene efecto en un pin de un único medio de vídeo — ver más
@@ -184,11 +186,6 @@ export function PinCard({
   function handlePinClick() {
     if (!analyticsContext) return
 
-    // Se guarda ANTES de trackear/navegar: el destino la consumirá para
-    // atribuir su "Case Open"/"Tool Open"/"Insight Open" a esta sección
-    // (arquitectura §18.2, navigationAttribution.ts).
-    rememberNavigationSource(pin.destination, analyticsContext.section)
-
     trackAnalyticsEvent(
       'Pin Click',
       {
@@ -263,7 +260,23 @@ export function PinCard({
         )}
         {pin.cta && <span className={styles.cta}>{pin.cta}</span>}
       </div>
-      {pin.label && <p className={styles.label}>{pin.label}</p>}
+      {(pin.displayTitle || pin.label) && (
+        <div className={styles.label}>
+          {pin.displayTitle ? (
+            <>
+              <span className={styles.labelPrimary}>{pin.displayTitle}</span>
+
+              {pin.displaySecondary && (
+                <strong className={styles.labelSecondary}>
+                  {pin.displaySecondary}
+                </strong>
+              )}
+            </>
+          ) : (
+            <span className={styles.labelHook}>{pin.label}</span>
+          )}
+        </div>
+      )}
     </a>
   )
 }
