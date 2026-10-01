@@ -81,6 +81,89 @@ export interface PositionedRecommendation {
   height: number
 }
 
+/*
+ * Mismas métricas visuales que PinCard.module.css y useMasonryPositions:
+ * el panel de recomendaciones usa el MISMO PinCard, así que también debe
+ * reservar el alto realista del texto. Si no, en detalle de Tool/Insight/
+ * Other/Case/Episode la siguiente tarjeta se coloca como si el rótulo
+ * midiera siempre 28px y acaba visualmente demasiado cerca.
+ */
+const LABEL_SIDE_PADDING = 12
+const LABEL_TOP_GAP = 8
+const LABEL_LINE_HEIGHT = 17
+const LABEL_SECONDARY_GAP = 2
+const LABEL_SAFETY = 2
+const APPROX_CHAR_WIDTH = 6.5
+
+function estimateWrappedLines(
+  text: string,
+  availableWidth: number,
+  maxLines: number,
+): number {
+  const normalized = text.trim()
+  if (!normalized) return 0
+
+  const charsPerLine = Math.max(
+    8,
+    Math.floor(availableWidth / APPROX_CHAR_WIDTH),
+  )
+
+  let lines = 1
+  let currentLength = 0
+
+  for (const word of normalized.split(/\s+/)) {
+    const wordLength = word.length
+
+    if (currentLength === 0) {
+      currentLength = wordLength
+      continue
+    }
+
+    if (currentLength + 1 + wordLength <= charsPerLine) {
+      currentLength += 1 + wordLength
+      continue
+    }
+
+    lines += 1
+    currentLength = wordLength
+
+    if (lines >= maxLines) return maxLines
+  }
+
+  return Math.min(lines, maxLines)
+}
+
+function estimateLabelHeight(item: FeedBatchItem, columnWidth: number): number {
+  const availableWidth = Math.max(1, columnWidth - LABEL_SIDE_PADDING * 2)
+
+  // Case / Episode: título automático + cliente/tipo de episodio.
+  if (item.displayTitle) {
+    const primaryLines = estimateWrappedLines(
+      item.displayTitle,
+      availableWidth,
+      2,
+    )
+    const secondaryLines = item.displaySecondary ? 1 : 0
+
+    return (
+      LABEL_TOP_GAP +
+      primaryLines * LABEL_LINE_HEIGHT +
+      (secondaryLines > 0
+        ? LABEL_SECONDARY_GAP + secondaryLines * LABEL_LINE_HEIGHT
+        : 0) +
+      LABEL_SAFETY
+    )
+  }
+
+  // Tool / Insight / Other: frase gancho introducida por el admin.
+  if (item.label) {
+    const lines = estimateWrappedLines(item.label, availableWidth, 2)
+    return LABEL_TOP_GAP + lines * LABEL_LINE_HEIGHT + LABEL_SAFETY
+  }
+
+  return 0
+}
+
 export function useRecommendationMasonry(
   excludeContentId: string,
   ratio: PinRatioValue,
@@ -207,9 +290,13 @@ export function useRecommendationMasonry(
 
   const layout = useMemo(() => {
     if (containerWidth === 0 || contentBlock.imageHeight === 0) return null
-    const layoutItems: LayoutInputItem[] = items.map((i) => ({
-      id: i.pinId,
-      ratio: i.ratio as PinRatio,
+    const columnWidth =
+      (containerWidth - GAP * (totalColumns - 1)) / totalColumns
+
+    const layoutItems: LayoutInputItem[] = items.map((item) => ({
+      id: item.pinId,
+      ratio: item.ratio as PinRatio,
+      labelHeight: estimateLabelHeight(item, columnWidth),
     }))
     // Límite conocido de esta primera versión: la siembra usa la altura
     // de la IMAGEN (contentBlockImageDimensions, §2), no la altura real

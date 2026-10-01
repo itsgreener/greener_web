@@ -1,20 +1,24 @@
 'use client'
 
 import { useActionState } from 'react'
+import type { ContentType } from '@/modules/content/domain/contentSchema'
 
 import { createPinAction, type PinFormState } from './pinActions'
 
 type Props = {
   contentId: string
+  contentType: ContentType
 }
 
 const initialState: PinFormState = {}
 
-export default function NewPinForm({ contentId }: Props) {
+export default function NewPinForm({ contentId, contentType }: Props) {
   const [state, formAction, pending] = useActionState(
     createPinAction.bind(null, contentId),
     initialState,
   )
+
+  const derivedLabel = contentType === 'case' || contentType === 'episode'
 
   return (
     <form action={formAction}>
@@ -31,11 +35,23 @@ export default function NewPinForm({ contentId }: Props) {
         <option value="16:9">16:9</option>
       </select>
 
-      <label htmlFor="pin-label">
-        Rótulo (obligatorio salvo en Case/Episode)
-      </label>
-      <input id="pin-label" name="label" type="text" />
-      {state.fieldErrors?.label?.[0] && <p>{state.fieldErrors.label[0]}</p>}
+      {derivedLabel ? (
+        <>
+          <input name="label" type="hidden" value="" />
+          <p>
+            Texto del feed automático:{' '}
+            {contentType === 'case'
+              ? 'título del Case + cliente.'
+              : 'título del Episode + tipo de episodio.'}
+          </p>
+        </>
+      ) : (
+        <>
+          <label htmlFor="pin-label">Frase gancho</label>
+          <input id="pin-label" name="label" type="text" required />
+          {state.fieldErrors?.label?.[0] && <p>{state.fieldErrors.label[0]}</p>}
+        </>
+      )}
 
       <label htmlFor="pin-show-as-carousel">
         <input

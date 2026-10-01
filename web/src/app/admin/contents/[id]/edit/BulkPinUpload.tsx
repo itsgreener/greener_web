@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import type { ContentType } from '@/modules/content/domain/contentSchema'
 
 import {
   parsePinCsv,
@@ -19,6 +20,7 @@ import { createPinWithImageAction } from './pinActions'
 
 type Props = {
   contentId: string
+  contentType: ContentType
 }
 
 type RowStatus = 'pending' | 'uploading' | 'ok' | 'error'
@@ -60,7 +62,9 @@ function buildRow(
   }
 }
 
-export default function BulkPinUpload({ contentId }: Props) {
+export default function BulkPinUpload({ contentId, contentType }: Props) {
+  const derivedLabel = contentType === 'case' || contentType === 'episode'
+
   const [files, setFiles] = useState<File[]>([])
   const [csvRows, setCsvRows] = useState<PinCsvRow[]>([])
   const [rows, setRows] = useState<Row[]>([])
@@ -126,11 +130,15 @@ export default function BulkPinUpload({ contentId }: Props) {
       return
     }
 
-    const invalidRow = rows.find((row) => !row.label.trim() || !row.alt.trim())
+    const invalidRow = rows.find(
+      (row) => (!derivedLabel && !row.label.trim()) || !row.alt.trim(),
+    )
 
     if (invalidRow) {
       setFormError(
-        `"${invalidRow.file.name}" no tiene rótulo o alt — complétalo antes de subir el lote.`,
+        derivedLabel
+          ? `"${invalidRow.file.name}" no tiene alt — complétalo antes de subir el lote.`
+          : `"${invalidRow.file.name}" no tiene frase gancho o alt — complétalo antes de subir el lote.`,
       )
       return
     }
@@ -139,13 +147,9 @@ export default function BulkPinUpload({ contentId }: Props) {
 
     // Secuencial, no en paralelo: son subidas directas a Cloudinary desde
     // el navegador, y un lote de cientos de archivos en paralelo satura
-    // la conexión del admin sin necesidad — la carga masiva no es una
-    // ruta de latencia crítica (§15.4 no exige velocidad, exige que no se
-    // pierda ningún archivo por un fallo de otro).
+    // la conexión del admin sin necesidad.
     for (const row of rows) {
-      if (row.status === 'ok') {
-        continue
-      }
+      if (row.status === 'ok') continue
 
       updateRow(row.key, { status: 'uploading', error: undefined })
 
@@ -164,7 +168,9 @@ export default function BulkPinUpload({ contentId }: Props) {
         const result = await createPinWithImageAction({
           contentId,
           ratio: row.ratio,
-          label: row.label,
+          // En Case/Episode el feed nunca usa un texto escrito a mano.
+          // Se deriva de título + cliente / tipo de episodio.
+          label: derivedLabel ? null : row.label,
           showAsCarousel: true,
           language: row.language,
           autoplayMode: null,
@@ -178,9 +184,7 @@ export default function BulkPinUpload({ contentId }: Props) {
           bytes: uploaded.bytes,
         })
 
-        if (!result.ok) {
-          throw new Error(result.error)
-        }
+        if (!result.ok) throw new Error(result.error)
 
         updateRow(row.key, { status: 'ok' })
       } catch (error) {
@@ -201,6 +205,13 @@ export default function BulkPinUpload({ contentId }: Props) {
     <div>
       <h4>Carga masiva</h4>
 
+      {derivedLabel && (
+        <p>
+          El texto del feed es automático para {contentType === 'case' ? 'Case' : 'Episode'}.
+          No se usa ninguna frase gancho del CSV ni del nombre del archivo.
+        </p>
+      )}
+
       <label htmlFor="bulk-files">Imágenes (varias)</label>
       <input
         id="bulk-files"
@@ -212,7 +223,10 @@ export default function BulkPinUpload({ contentId }: Props) {
       />
 
       <label htmlFor="bulk-csv">
-        Plantilla CSV (opcional): filename,label,ratio,language,alt,queueOrder
+        Plantilla CSV (opcional):{' '}
+        {derivedLabel
+          ? 'filename,ratio,language,alt,queueOrder'
+          : 'filename,label,ratio,language,alt,queueOrder'}
       </label>
       <input
         id="bulk-csv"
@@ -223,9 +237,7 @@ export default function BulkPinUpload({ contentId }: Props) {
       />
 
       <fieldset disabled={uploading}>
-        <legend>
-          Campos comunes (se usan cuando el CSV no trae ese valor)
-        </legend>
+        <legend>Campos comunes (se usan cuando el CSV no trae ese valor)</legend>
 
         <label htmlFor="bulk-default-ratio">Ratio por defecto</label>
         <select
@@ -278,7 +290,7 @@ export default function BulkPinUpload({ contentId }: Props) {
           <thead>
             <tr>
               <th>Archivo</th>
-              <th>Rótulo</th>
+              <th>{derivedLabel ? 'Texto del feed' : 'Frase gancho'}</th>
               <th>Ratio</th>
               <th>Idioma</th>
               <th>Alt</th>
@@ -293,13 +305,17 @@ export default function BulkPinUpload({ contentId }: Props) {
                 <td>{row.file.name}</td>
 
                 <td>
-                  <input
-                    value={row.label}
-                    disabled={uploading}
-                    onChange={(event) =>
-                      updateRow(row.key, { label: event.target.value })
-                    }
-                  />
+                  {derivedLabel ? (
+                    <span>Automático</span>
+                  ) : (
+                    <input
+                      value={row.label}
+                      disabled={uploading}
+                      onChange={(event) =>
+                        updateRow(row.key, { label: event.target.value })
+                      }
+                    />
+                  )}
                 </td>
 
                 <td>

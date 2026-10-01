@@ -304,13 +304,13 @@ export default async function EditContentPage({ params }: Props) {
             <div className="admin-editor-subsection">
               <h3>Crear un pin</h3>
 
-              <NewPinForm contentId={content.id} />
+              <NewPinForm contentId={content.id} contentType={content.type} />
             </div>
 
             <div className="admin-editor-subsection">
               <h3>Carga masiva</h3>
 
-              <BulkPinUpload contentId={content.id} />
+              <BulkPinUpload contentId={content.id} contentType={content.type} />
             </div>
           </section>
 
