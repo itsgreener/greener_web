@@ -43,20 +43,15 @@ export default function ContentTranslations({
   defaultLocale,
   translations,
 }: Props) {
-  const locales =
-    contentType === 'episode'
-      ? [defaultLocale]
-      : allLocales
+  const locales = contentType === 'episode' ? [defaultLocale] : allLocales
 
-  const [activeLocale, setActiveLocale] =
-    useState<Locale>(defaultLocale)
+  const [activeLocale, setActiveLocale] = useState<Locale>(defaultLocale)
 
   // especificacion-final-formato-detalle.md §3:
   // highlight/body son campos propios del formato
   // de detalle tipo B (caso/episodio).
   const showHighlightAndBody =
-    contentType === 'case' ||
-    contentType === 'episode'
+    contentType === 'case' || contentType === 'episode'
 
   return (
     <div className="admin-translations">
@@ -68,12 +63,9 @@ export default function ContentTranslations({
         >
           {locales.map((locale) => {
             const translation =
-              translations.find(
-                (item) => item.locale === locale,
-              ) ?? null
+              translations.find((item) => item.locale === locale) ?? null
 
-            const isActive =
-              activeLocale === locale
+            const isActive = activeLocale === locale
 
             return (
               <button
@@ -86,17 +78,11 @@ export default function ContentTranslations({
                     ? 'admin-language-tab admin-language-tab-active'
                     : 'admin-language-tab'
                 }
-                onClick={() =>
-                  setActiveLocale(locale)
-                }
+                onClick={() => setActiveLocale(locale)}
               >
-                <span>
-                  {getLocaleShortLabel(locale)}
-                </span>
+                <span>{getLocaleShortLabel(locale)}</span>
 
-                <small>
-                  {getLocaleLabel(locale)}
-                </small>
+                <small>{getLocaleLabel(locale)}</small>
 
                 <span
                   className={
@@ -115,12 +101,9 @@ export default function ContentTranslations({
       <div className="admin-language-panels">
         {locales.map((locale) => {
           const translation =
-            translations.find(
-              (item) => item.locale === locale,
-            ) ?? null
+            translations.find((item) => item.locale === locale) ?? null
 
-          const isActive =
-            activeLocale === locale
+          const isActive = activeLocale === locale
 
           return (
             <div
@@ -133,9 +116,7 @@ export default function ContentTranslations({
                 contentId={contentId}
                 locale={locale}
                 translation={translation}
-                showHighlightAndBody={
-                  showHighlightAndBody
-                }
+                showHighlightAndBody={showHighlightAndBody}
               />
             </div>
           )

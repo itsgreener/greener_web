@@ -9,8 +9,16 @@ const MAX_COUNT = 200 // límite defensivo — el batch real de producción es 4
  * en Supabase, no firma cursor. Sirve directamente sobre el dataset de
  * demostración (data/demo/feed-snapshot.json) para poder probar fps,
  * virtualización y scroll continuo sin esperar al resto del ABM.
+ *
+ * Bloqueado en producción (29 sep, PROGRESO §4.8): era una ruta pública
+ * sin ninguna guarda, sirviendo un dataset falso sin relación con el
+ * contenido real. Sigue disponible en desarrollo, donde sí es útil.
  */
 export async function GET(request: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'No encontrado.' }, { status: 404 })
+  }
+
   const { searchParams } = new URL(request.url)
 
   const seed = searchParams.get('seed')

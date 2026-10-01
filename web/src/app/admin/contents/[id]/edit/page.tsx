@@ -76,8 +76,7 @@ export default async function EditContentPage({ params }: Props) {
   // detalle — tipo A (tool/insight, con paquete HTML + portada imagen),
   // tipo B (case/episode), y contenido libre (other, portada imagen o
   // vídeo). El editor de bloques genérico desaparece por completo (§6).
-  const supportsPackage =
-    content.type === 'tool' || content.type === 'insight'
+  const supportsPackage = content.type === 'tool' || content.type === 'insight'
 
   const supportsCoverMedia =
     content.type === 'tool' ||
@@ -94,21 +93,13 @@ export default async function EditContentPage({ params }: Props) {
   ] = await Promise.all([
     getContentTranslations(content.id),
 
-    content.type === 'case'
-      ? getCaseDetail(content.id)
-      : Promise.resolve(null),
+    content.type === 'case' ? getCaseDetail(content.id) : Promise.resolve(null),
 
-    content.type === 'case'
-      ? getCaseCarousel(content.id)
-      : Promise.resolve([]),
+    content.type === 'case' ? getCaseCarousel(content.id) : Promise.resolve([]),
 
-    content.type === 'episode'
-      ? getEpisode(content.id)
-      : Promise.resolve(null),
+    content.type === 'episode' ? getEpisode(content.id) : Promise.resolve(null),
 
-    supportsPackage
-      ? listHtmlPackageVersions(content.id)
-      : Promise.resolve([]),
+    supportsPackage ? listHtmlPackageVersions(content.id) : Promise.resolve([]),
 
     listPins(content.id),
   ])
@@ -117,10 +108,7 @@ export default async function EditContentPage({ params }: Props) {
     <main className="admin-editor-page">
       <div className="admin-editor-shell">
         <header className="admin-editor-header">
-          <Link
-            href="/admin/contents"
-            className="admin-back-link"
-          >
+          <Link href="/admin/contents" className="admin-back-link">
             ← Volver a contenidos
           </Link>
 
@@ -153,15 +141,13 @@ export default async function EditContentPage({ params }: Props) {
           <section className="admin-card">
             <div className="admin-card-heading">
               <div>
-                <p className="admin-card-kicker">
-                  Configuración
-                </p>
+                <p className="admin-card-kicker">Configuración</p>
 
                 <h2>Datos generales</h2>
 
                 <p>
-                  Configura la URL, el idioma principal y los
-                  datos básicos del contenido.
+                  Configura la URL, el idioma principal y los datos básicos del
+                  contenido.
                 </p>
               </div>
             </div>
@@ -172,15 +158,13 @@ export default async function EditContentPage({ params }: Props) {
           <section className="admin-card">
             <div className="admin-card-heading">
               <div>
-                <p className="admin-card-kicker">
-                  Contenido
-                </p>
+                <p className="admin-card-kicker">Contenido</p>
 
                 <h2>Traducciones</h2>
 
                 <p>
-                  Edita el título, resumen y metadatos de cada
-                  idioma disponible.
+                  Edita el título, resumen y metadatos de cada idioma
+                  disponible.
                 </p>
               </div>
             </div>
@@ -198,15 +182,13 @@ export default async function EditContentPage({ params }: Props) {
               <section className="admin-card">
                 <div className="admin-card-heading">
                   <div>
-                    <p className="admin-card-kicker">
-                      Case
-                    </p>
+                    <p className="admin-card-kicker">Case</p>
 
                     <h2>Datos del Case</h2>
 
                     <p>
-                      Información específica del proyecto y
-                      configuración de su ficha.
+                      Información específica del proyecto y configuración de su
+                      ficha.
                     </p>
                   </div>
                 </div>
@@ -220,16 +202,11 @@ export default async function EditContentPage({ params }: Props) {
               <section className="admin-card">
                 <div className="admin-card-heading">
                   <div>
-                    <p className="admin-card-kicker">
-                      Media
-                    </p>
+                    <p className="admin-card-kicker">Media</p>
 
                     <h2>Carrusel de detalle</h2>
 
-                    <p>
-                      Gestiona las imágenes y vídeos del
-                      carrusel del Case.
-                    </p>
+                    <p>Gestiona las imágenes y vídeos del carrusel del Case.</p>
                   </div>
                 </div>
 
@@ -245,23 +222,18 @@ export default async function EditContentPage({ params }: Props) {
             <section className="admin-card">
               <div className="admin-card-heading">
                 <div>
-                  <p className="admin-card-kicker">
-                    Channel
-                  </p>
+                  <p className="admin-card-kicker">Channel</p>
 
                   <h2>Datos del episodio</h2>
 
                   <p>
-                    Configura programa, proveedor y datos
-                    específicos del episodio.
+                    Configura programa, proveedor y datos específicos del
+                    episodio.
                   </p>
                 </div>
               </div>
 
-              <EpisodeDetailForm
-                contentId={content.id}
-                episode={episode}
-              />
+              <EpisodeDetailForm contentId={content.id} episode={episode} />
             </section>
           )}
 
@@ -269,15 +241,13 @@ export default async function EditContentPage({ params }: Props) {
             <section className="admin-card">
               <div className="admin-card-heading">
                 <div>
-                  <p className="admin-card-kicker">
-                    Media
-                  </p>
+                  <p className="admin-card-kicker">Media</p>
 
                   <h2>Portada</h2>
 
                   <p>
-                    Imagen principal utilizada en la página
-                    de detalle del contenido.
+                    Imagen principal utilizada en la página de detalle del
+                    contenido.
                   </p>
                 </div>
               </div>
@@ -294,16 +264,11 @@ export default async function EditContentPage({ params }: Props) {
             <section className="admin-card">
               <div className="admin-card-heading">
                 <div>
-                  <p className="admin-card-kicker">
-                    Runtime
-                  </p>
+                  <p className="admin-card-kicker">Runtime</p>
 
                   <h2>Paquete HTML</h2>
 
-                  <p>
-                    Gestiona las versiones publicadas de la
-                    Tool o Insight.
-                  </p>
+                  <p>Gestiona las versiones publicadas de la Tool o Insight.</p>
                 </div>
               </div>
 
@@ -317,24 +282,19 @@ export default async function EditContentPage({ params }: Props) {
           <section className="admin-card">
             <div className="admin-card-heading">
               <div>
-                <p className="admin-card-kicker">
-                  Feed
-                </p>
+                <p className="admin-card-kicker">Feed</p>
 
                 <h2>Pines</h2>
 
                 <p>
-                  Gestiona los pines que representan este
-                  contenido dentro del feed.
+                  Gestiona los pines que representan este contenido dentro del
+                  feed.
                 </p>
               </div>
             </div>
 
             <div className="admin-editor-subsection">
-              <PinList
-                contentId={content.id}
-                pins={pins}
-              />
+              <PinList contentId={content.id} pins={pins} />
             </div>
 
             <div className="admin-editor-subsection">
@@ -353,23 +313,17 @@ export default async function EditContentPage({ params }: Props) {
           <section className="admin-card admin-danger-card">
             <div className="admin-card-heading">
               <div>
-                <p className="admin-card-kicker">
-                  Danger zone
-                </p>
+                <p className="admin-card-kicker">Danger zone</p>
 
                 <h2>Zona peligrosa</h2>
 
                 <p>
-                  Estas acciones pueden eliminar
-                  definitivamente el contenido.
+                  Estas acciones pueden eliminar definitivamente el contenido.
                 </p>
               </div>
             </div>
 
-            <DeleteContentButton
-              id={content.id}
-              status={content.status}
-            />
+            <DeleteContentButton id={content.id} status={content.status} />
           </section>
         </div>
       </div>

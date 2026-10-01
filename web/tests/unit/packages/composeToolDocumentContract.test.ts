@@ -9,7 +9,7 @@ import type { ResolvedPackage } from '@/modules/packages/domain/manifest'
  */
 
 const PACKAGE_HTML = `<!doctype html>
-<html lang="en" data-tema="oscuro">
+<html lang="ca" data-tema="oscuro">
   <head>
     <meta charset="utf-8" />
     <title>Título del paquete</title>
@@ -51,14 +51,15 @@ describe('contrato §6 — cómo se monta el HTML del paquete', () => {
     expect(doc).toContain('.mi-tool { color: red; }')
   })
 
-  it('del <body> solo copia lo de dentro: se pierden sus atributos y los de <html>', () => {
+  it('del <body> solo copia lo de dentro: se pierden sus atributos y los de <html> (el <html lang> del documento compuesto es el del sitio, no el del paquete)', () => {
     const doc = compose()
 
     expect(doc).toContain('<div class="mi-tool">Hola</div>')
     expect(doc).not.toContain('class="oscuro"')
     expect(doc).not.toContain('style="margin: 0"')
     expect(doc).not.toContain('data-tema')
-    expect(doc).not.toContain('lang="en"')
+    expect(doc).not.toContain('lang="ca"')
+    expect(doc).toContain('<html lang="en">')
   })
 
   it('el <title> del documento es el propio del sitio y va antes que el del paquete', () => {

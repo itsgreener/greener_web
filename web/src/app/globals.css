@@ -5,7 +5,9 @@
   --color-border: #e5e5e5;
   --color-surface-hover: #f4f4f4;
 
-  /* CTA */
+  /* CTA — confirmado por diseño el 14 sep (azul #1941F5, radio 11px sobre
+     una base de 16px = 0.6875rem). A diferencia del resto de esta hoja,
+     esto NO es provisional. */
   --color-cta: #1941f5;
   --color-cta-text: #ffffff;
   --radius-cta: 0.6875rem;
@@ -19,6 +21,9 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 40px;
+
+  /* Breakpoints de referencia (documentales — arquitectura §10.1) */
+  /* < 640px: 2 columnas · 640-899: 3 · 900-1199: 4 · 1200-1599: 5 · >=1600: 6 */
 }
 
 * {
@@ -1262,13 +1267,7 @@ body {
   overflow: hidden;
   margin-top: 4px;
   color: #979ca5;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1501,16 +1500,14 @@ body {
 
 .admin-content-type-grid {
   display: grid;
-  grid-template-columns:
-    repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
 .admin-content-type-card {
   position: relative;
   display: grid;
-  grid-template-columns:
-    auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 13px;
   min-height: 88px;
@@ -1538,8 +1535,7 @@ body {
 .admin-content-type-card-selected {
   border-color: #1941f5;
   background: #f7f8ff;
-  box-shadow:
-    0 0 0 3px rgba(25, 65, 245, 0.08);
+  box-shadow: 0 0 0 3px rgba(25, 65, 245, 0.08);
 }
 
 .admin-content-type-card input {
@@ -1563,8 +1559,7 @@ body {
   font-weight: 850;
 }
 
-.admin-content-type-card-selected
-  .admin-content-type-symbol {
+.admin-content-type-card-selected .admin-content-type-symbol {
   background: #1941f5;
   color: #ffffff;
 }
@@ -1600,8 +1595,7 @@ body {
   font-weight: 900;
 }
 
-.admin-content-type-card-selected
-  .admin-content-type-check {
+.admin-content-type-card-selected .admin-content-type-check {
   border-color: #1941f5;
   background: #1941f5;
   color: #ffffff;
@@ -1626,13 +1620,7 @@ body {
   border-radius: 9px 0 0 9px;
   background: #f5f6f8;
   color: #9297a0;
-  font-family:
-    ui-monospace,
-    SFMono-Regular,
-    Menlo,
-    Monaco,
-    Consolas,
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 13px;
 }
 

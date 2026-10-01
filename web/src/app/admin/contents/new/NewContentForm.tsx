@@ -1,14 +1,8 @@
 'use client'
 
-import {
-  useActionState,
-  useState,
-} from 'react'
+import { useActionState, useState } from 'react'
 
-import {
-  createContentAction,
-  type CreateContentActionState,
-} from '../actions'
+import { createContentAction, type CreateContentActionState } from '../actions'
 
 const initialState: CreateContentActionState = {}
 
@@ -30,64 +24,51 @@ const contentTypes = [
   {
     value: 'tool',
     label: 'Tool',
-    description:
-      'Herramienta interactiva ejecutada desde su propia página.',
+    description: 'Herramienta interactiva ejecutada desde su propia página.',
     symbol: 'T',
   },
   {
     value: 'episode',
     label: 'Episode',
-    description:
-      'Episodio de Channel con vídeo, podcast y datos del programa.',
+    description: 'Episodio de Channel con vídeo, podcast y datos del programa.',
     symbol: 'E',
   },
   {
     value: 'other',
     label: 'Other',
-    description:
-      'Contenido libre que no pertenece a los formatos principales.',
+    description: 'Contenido libre que no pertenece a los formatos principales.',
     symbol: 'O',
   },
 ] as const
 
-type ContentTypeValue =
-  (typeof contentTypes)[number]['value']
+type ContentTypeValue = (typeof contentTypes)[number]['value']
 
 export default function NewContentForm() {
-  const [state, formAction, pending] =
-    useActionState(
-      createContentAction,
-      initialState,
-    )
+  const [state, formAction, pending] = useActionState(
+    createContentAction,
+    initialState,
+  )
 
-  const [selectedType, setSelectedType] =
-    useState<ContentTypeValue>('case')
+  const [selectedType, setSelectedType] = useState<ContentTypeValue>('case')
 
   return (
-    <form
-      action={formAction}
-      className="admin-form admin-new-content-form"
-    >
+    <form action={formAction} className="admin-form admin-new-content-form">
       <div className="admin-new-section">
         <div className="admin-new-section-heading">
-          <span className="admin-new-step">
-            1
-          </span>
+          <span className="admin-new-step">1</span>
 
           <div>
             <h3>Tipo de contenido</h3>
 
             <p>
-              Determina qué opciones estarán
-              disponibles después en el editor.
+              Determina qué opciones estarán disponibles después en el editor.
             </p>
           </div>
         </div>
 
         <div className="admin-content-type-grid">
           {contentTypes.map((type) => {
-            const selected =
-              selectedType === type.value
+            const selected = selectedType === type.value
 
             return (
               <label
@@ -103,31 +84,18 @@ export default function NewContentForm() {
                   name="type"
                   value={type.value}
                   checked={selected}
-                  onChange={() =>
-                    setSelectedType(
-                      type.value,
-                    )
-                  }
+                  onChange={() => setSelectedType(type.value)}
                 />
 
-                <span className="admin-content-type-symbol">
-                  {type.symbol}
-                </span>
+                <span className="admin-content-type-symbol">{type.symbol}</span>
 
                 <span className="admin-content-type-copy">
-                  <strong>
-                    {type.label}
-                  </strong>
+                  <strong>{type.label}</strong>
 
-                  <small>
-                    {type.description}
-                  </small>
+                  <small>{type.description}</small>
                 </span>
 
-                <span
-                  className="admin-content-type-check"
-                  aria-hidden="true"
-                >
+                <span className="admin-content-type-check" aria-hidden="true">
                   {selected ? '✓' : ''}
                 </span>
               </label>
@@ -136,32 +104,26 @@ export default function NewContentForm() {
         </div>
 
         {state.fieldErrors?.type?.[0] && (
-          <p className="admin-field-error">
-            {state.fieldErrors.type[0]}
-          </p>
+          <p className="admin-field-error">{state.fieldErrors.type[0]}</p>
         )}
       </div>
 
       <div className="admin-new-section">
         <div className="admin-new-section-heading">
-          <span className="admin-new-step">
-            2
-          </span>
+          <span className="admin-new-step">2</span>
 
           <div>
             <h3>Datos básicos</h3>
 
             <p>
-              Define cómo se identificará el
-              contenido dentro del panel y en la web.
+              Define cómo se identificará el contenido dentro del panel y en la
+              web.
             </p>
           </div>
         </div>
 
         <div className="admin-field">
-          <label htmlFor="title">
-            Título
-          </label>
+          <label htmlFor="title">Título</label>
 
           <input
             id="title"
@@ -173,22 +135,17 @@ export default function NewContentForm() {
           />
 
           <p className="admin-field-help">
-            Podrás modificarlo después y añadir
-            traducciones desde el editor.
+            Podrás modificarlo después y añadir traducciones desde el editor.
           </p>
 
           {state.fieldErrors?.title?.[0] && (
-            <p className="admin-field-error">
-              {state.fieldErrors.title[0]}
-            </p>
+            <p className="admin-field-error">{state.fieldErrors.title[0]}</p>
           )}
         </div>
 
         <div className="admin-form-grid admin-form-grid-2">
           <div className="admin-field">
-            <label htmlFor="slug">
-              Slug
-            </label>
+            <label htmlFor="slug">Slug</label>
 
             <div className="admin-slug-input">
               <span>/</span>
@@ -203,76 +160,47 @@ export default function NewContentForm() {
             </div>
 
             <p className="admin-field-help">
-              Forma parte de la URL pública.
-              Utiliza minúsculas y guiones.
+              Forma parte de la URL pública. Utiliza minúsculas y guiones.
             </p>
 
             {state.fieldErrors?.slug?.[0] && (
-              <p className="admin-field-error">
-                {state.fieldErrors.slug[0]}
-              </p>
+              <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
             )}
           </div>
 
           <div className="admin-field">
-            <label htmlFor="defaultLocale">
-              Idioma principal
-            </label>
+            <label htmlFor="defaultLocale">Idioma principal</label>
 
-            <select
-              id="defaultLocale"
-              name="defaultLocale"
-              defaultValue="es"
-            >
-              <option value="es">
-                Español
-              </option>
+            <select id="defaultLocale" name="defaultLocale" defaultValue="es">
+              <option value="es">Español</option>
 
-              <option value="en">
-                English
-              </option>
+              <option value="en">English</option>
 
-              <option value="ca">
-                Català
-              </option>
+              <option value="ca">Català</option>
             </select>
 
             <p className="admin-field-help">
-              Será el idioma principal del
-              contenido.
+              Será el idioma principal del contenido.
             </p>
 
-            {state.fieldErrors
-              ?.defaultLocale?.[0] && (
+            {state.fieldErrors?.defaultLocale?.[0] && (
               <p className="admin-field-error">
-                {
-                  state.fieldErrors
-                    .defaultLocale[0]
-                }
+                {state.fieldErrors.defaultLocale[0]}
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {state.formError && (
-        <p className="admin-form-error">
-          {state.formError}
-        </p>
-      )}
+      {state.formError && <p className="admin-form-error">{state.formError}</p>}
 
       <div className="admin-new-content-footer">
         <div className="admin-new-content-note">
-          <span aria-hidden="true">
-            i
-          </span>
+          <span aria-hidden="true">i</span>
 
           <p>
-            <strong>
-              Se creará como borrador.
-            </strong>{' '}
-            Después podrás añadir el resto de
-            información antes de publicarlo.
+            <strong>Se creará como borrador.</strong> Después podrás añadir el
+            resto de información antes de publicarlo.
           </p>
         </div>
 
@@ -281,9 +209,7 @@ export default function NewContentForm() {
           className="admin-button admin-button-primary admin-create-content-button"
           disabled={pending}
         >
-          {pending
-            ? 'Creando borrador...'
-            : 'Crear borrador →'}
+          {pending ? 'Creando borrador...' : 'Crear borrador →'}
         </button>
       </div>
     </form>

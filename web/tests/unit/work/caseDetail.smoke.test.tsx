@@ -47,22 +47,18 @@ describe('CaseDetail — prueba de humo', () => {
   beforeEach(() => {
     global.ResizeObserver = class {
       callback: ResizeObserverCallback
-
       constructor(callback: ResizeObserverCallback) {
         this.callback = callback
       }
-
       observe() {
         this.callback(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
           this as unknown as ResizeObserver,
         )
       }
-
       disconnect() {}
       unobserve() {}
     }
-
     // @ts-expect-error -- stub mínimo suficiente para el smoke test
     global.IntersectionObserver = class {
       observe() {}
@@ -76,14 +72,9 @@ describe('CaseDetail — prueba de humo', () => {
           json: async () => ({ sessionId: 'session-case' }),
         } as Response
       }
-
       if (url.startsWith('/api/feed/session-case')) {
-        return {
-          ok: true,
-          json: async () => fakeBatch(4, false),
-        } as Response
+        return { ok: true, json: async () => fakeBatch(4, false) } as Response
       }
-
       throw new Error(`URL inesperada en el test: ${url}`)
     }) as typeof fetch
   })
@@ -101,41 +92,23 @@ describe('CaseDetail — prueba de humo', () => {
       />,
     )
 
-    expect(
-      screen.getByRole('heading', { name: 'Mi caso' }),
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText('Un subtítulo destacado'),
-    ).toBeInTheDocument()
-
+    expect(screen.getByRole('heading', { name: 'Mi caso' })).toBeInTheDocument()
+    expect(screen.getByText('Un subtítulo destacado')).toBeInTheDocument()
     expect(screen.getByText('El cuerpo del caso.')).toBeInTheDocument()
     expect(screen.getByText('Agróptimum')).toBeInTheDocument()
 
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/feed/sessions',
       expect.objectContaining({
-        body: JSON.stringify({
-          scope: 'home',
-          excludeContentId: 'content-1',
-        }),
+        body: JSON.stringify({ scope: 'home', excludeContentId: 'content-1' }),
       }),
     )
   })
 
   it('sin case_detail (dato ausente), no revienta y simplemente omite el cliente', () => {
-    render(
-      <CaseDetail
-        content={CONTENT}
-        caseDetail={null}
-        carousel={[]}
-      />,
-    )
+    render(<CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />)
 
-    expect(
-      screen.getByRole('heading', { name: 'Mi caso' }),
-    ).toBeInTheDocument()
-
+    expect(screen.getByRole('heading', { name: 'Mi caso' })).toBeInTheDocument()
     expect(screen.queryByText('Agróptimum')).not.toBeInTheDocument()
   })
 
@@ -190,7 +163,7 @@ describe('CaseDetail — prueba de humo', () => {
             sortOrder: 0,
             alt: 'Vertical',
             width: 900,
-            height: 1600,
+            height: 1600, // 9:16
           },
           {
             mediaId: 'm2',
@@ -199,7 +172,7 @@ describe('CaseDetail — prueba de humo', () => {
             sortOrder: 1,
             alt: 'Panorámica',
             width: 1600,
-            height: 900,
+            height: 900, // 16:9 — la más ancha, gana
           },
         ]}
       />,
@@ -207,7 +180,6 @@ describe('CaseDetail — prueba de humo', () => {
 
     const slides = container.querySelectorAll('[class*="slide"]')
     expect(slides.length).toBe(2)
-
     for (const slide of slides) {
       expect((slide as HTMLElement).style.aspectRatio).toBe('16 / 9')
     }
@@ -232,21 +204,12 @@ describe('CaseDetail — prueba de humo', () => {
       />,
     )
 
-    const slide = container.querySelector(
-      '[class*="slide"]',
-    ) as HTMLElement
-
+    const slide = container.querySelector('[class*="slide"]') as HTMLElement
     expect(slide.style.aspectRatio).toBe('1 / 1')
   })
 
   it('con una sola traducción disponible, no pinta el selector de idioma', () => {
-    render(
-      <CaseDetail
-        content={CONTENT}
-        caseDetail={null}
-        carousel={[]}
-      />,
-    )
+    render(<CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />)
 
     expect(
       screen.queryByRole('navigation', { name: 'Idioma' }),
@@ -256,10 +219,7 @@ describe('CaseDetail — prueba de humo', () => {
   it('con varias traducciones, pinta el selector — el default va a /work/{slug}, el resto a /work/{slug}/{locale} (arquitectura §7.7)', () => {
     render(
       <CaseDetail
-        content={{
-          ...CONTENT,
-          availableLocales: ['es', 'en'],
-        }}
+        content={{ ...CONTENT, availableLocales: ['es', 'en'] }}
         caseDetail={null}
         carousel={[]}
       />,
@@ -270,7 +230,6 @@ describe('CaseDetail — prueba de humo', () => {
 
     const esLink = screen.getByRole('link', { name: 'ES' })
     const enLink = screen.getByRole('link', { name: 'EN' })
-
     expect(esLink).toHaveAttribute('href', '/work/mi-caso')
     expect(enLink).toHaveAttribute('href', '/work/mi-caso/en')
   })
@@ -288,28 +247,21 @@ describe('CaseDetail — prueba de humo', () => {
       />,
     )
 
-    expect(
-      screen.getByRole('link', { name: 'EN' }),
-    ).toHaveAttribute('aria-current', 'page')
-
-    expect(
-      screen.getByRole('link', { name: 'ES' }),
-    ).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'EN' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('link', { name: 'ES' })).not.toHaveAttribute(
+      'aria-current',
+    )
   })
 
   it('el panel de recomendaciones solo aparece debajo, nunca al lado (fullWidthContent — especificacion-final-formato-detalle.md §1)', async () => {
-    render(
-      <CaseDetail
-        content={CONTENT}
-        caseDetail={null}
-        carousel={[]}
-      />,
-    )
+    render(<CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />)
 
     await waitFor(() => {
       expect(screen.getByText('Recomendación 0')).toBeInTheDocument()
     })
-
     expect(screen.getAllByText(/^Recomendación/)).toHaveLength(4)
   })
 })

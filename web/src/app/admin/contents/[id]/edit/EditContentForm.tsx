@@ -41,35 +41,20 @@ export default function EditContentForm({ content }: Props) {
   )
 
   return (
-    <form
-      action={formAction}
-      className="admin-form"
-    >
-      <input
-        type="hidden"
-        name="id"
-        value={content.id}
-      />
+    <form action={formAction} className="admin-form">
+      <input type="hidden" name="id" value={content.id} />
 
       <div className="admin-form-grid admin-form-grid-2">
         <div className="admin-readonly-field">
-          <span className="admin-field-label">
-            Tipo
-          </span>
+          <span className="admin-field-label">Tipo</span>
 
-          <strong>
-            {getContentTypeLabel(content.type)}
-          </strong>
+          <strong>{getContentTypeLabel(content.type)}</strong>
         </div>
 
         <div className="admin-readonly-field">
-          <span className="admin-field-label">
-            Estado
-          </span>
+          <span className="admin-field-label">Estado</span>
 
-          <span
-            className={`admin-status admin-status-${content.status}`}
-          >
+          <span className={`admin-status admin-status-${content.status}`}>
             {content.status}
           </span>
         </div>
@@ -77,9 +62,7 @@ export default function EditContentForm({ content }: Props) {
 
       <div className="admin-form-grid admin-form-grid-2">
         <div className="admin-field">
-          <label htmlFor="slug">
-            Slug
-          </label>
+          <label htmlFor="slug">Slug</label>
 
           <input
             id="slug"
@@ -94,38 +77,27 @@ export default function EditContentForm({ content }: Props) {
           </p>
 
           {state.fieldErrors?.slug?.[0] && (
-            <p className="admin-field-error">
-              {state.fieldErrors.slug[0]}
-            </p>
+            <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
           )}
         </div>
 
         <div className="admin-field">
-          <label htmlFor="defaultLocale">
-            Idioma principal
-          </label>
+          <label htmlFor="defaultLocale">Idioma principal</label>
 
           <select
             id="defaultLocale"
             name="defaultLocale"
             defaultValue={content.defaultLocale}
           >
-            <option value="es">
-              Español
-            </option>
+            <option value="es">Español</option>
 
-            <option value="en">
-              English
-            </option>
+            <option value="en">English</option>
 
-            <option value="ca">
-              Català
-            </option>
+            <option value="ca">Català</option>
           </select>
 
           <p className="admin-field-help">
-            Será el idioma utilizado en la URL
-            canónica del contenido.
+            Será el idioma utilizado en la URL canónica del contenido.
           </p>
 
           {state.fieldErrors?.defaultLocale?.[0] && (
@@ -136,11 +108,7 @@ export default function EditContentForm({ content }: Props) {
         </div>
       </div>
 
-      {state.formError && (
-        <p className="admin-form-error">
-          {state.formError}
-        </p>
-      )}
+      {state.formError && <p className="admin-form-error">{state.formError}</p>}
 
       <div className="admin-form-actions">
         <button
@@ -148,9 +116,7 @@ export default function EditContentForm({ content }: Props) {
           type="submit"
           disabled={pending}
         >
-          {pending
-            ? 'Guardando...'
-            : 'Guardar datos generales'}
+          {pending ? 'Guardando...' : 'Guardar datos generales'}
         </button>
       </div>
     </form>

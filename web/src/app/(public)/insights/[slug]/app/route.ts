@@ -40,6 +40,11 @@ export async function GET(
           "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;",
 
         'X-Content-Type-Options': 'nosniff',
+
+        // Ver el mismo comentario en tools/[slug]/app/route.ts.
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
       },
     })
   } catch (error) {

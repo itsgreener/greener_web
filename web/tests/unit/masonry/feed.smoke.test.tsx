@@ -52,7 +52,6 @@ function renderFeed(scope: string) {
  */
 function Wrapper({ scope }: { scope: string }) {
   const [show, setShow] = useState(true)
-
   return (
     <FeedProvider>
       <button onClick={() => setShow((s) => !s)}>toggle</button>
@@ -71,22 +70,18 @@ describe('Feed — prueba de humo', () => {
     // queda en 0 y el layout nunca llega a calcularse.
     global.ResizeObserver = class {
       callback: ResizeObserverCallback
-
       constructor(callback: ResizeObserverCallback) {
         this.callback = callback
       }
-
       observe() {
         this.callback(
           [{ contentRect: { width: 1200 } } as ResizeObserverEntry],
           this as unknown as ResizeObserver,
         )
       }
-
       disconnect() {}
       unobserve() {}
     }
-
     // @ts-expect-error -- stub mínimo suficiente para el smoke test
     global.IntersectionObserver = class {
       observe() {}
@@ -95,30 +90,21 @@ describe('Feed — prueba de humo', () => {
 
     global.fetch = vi.fn(async (url: string, init?: RequestInit) => {
       if (url === '/api/feed/sessions' && init?.method === 'POST') {
-        const { scope } = JSON.parse(init.body as string) as {
-          scope: string
-        }
-
+        const { scope } = JSON.parse(init.body as string) as { scope: string }
         return {
           ok: true,
-          json: async () => ({
-            sessionId: SESSION_IDS[scope] ?? scope,
-          }),
+          json: async () => ({ sessionId: SESSION_IDS[scope] ?? scope }),
         } as Response
       }
-
       const matchedScope = Object.entries(SESSION_IDS).find(([, id]) =>
         url.startsWith(`/api/feed/${id}`),
       )
-
       if (matchedScope) {
         return {
           ok: true,
-          json: async () =>
-            fakeBatch(12, 'cursor-1', true, matchedScope[0]),
+          json: async () => fakeBatch(12, 'cursor-1', true, matchedScope[0]),
         } as Response
       }
-
       throw new Error(`URL inesperada en el test: ${url}`)
     }) as typeof fetch
   })
@@ -154,9 +140,7 @@ describe('Feed — prueba de humo', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          'No se ha podido cargar el feed. Recarga la página.',
-        ),
+        screen.getByText('No se ha podido cargar el feed. Recarga la página.'),
       ).toBeInTheDocument()
     })
   })
@@ -168,13 +152,12 @@ describe('Feed — prueba de humo', () => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
     })
 
-    const fetchCallsAfterFirstLoad =
-      vi.mocked(global.fetch).mock.calls.length
+    const fetchCallsAfterFirstLoad = vi.mocked(global.fetch).mock.calls.length
 
-    fireEvent.click(screen.getByText('toggle'))
+    fireEvent.click(screen.getByText('toggle')) // "navega" fuera
     expect(screen.queryAllByRole('link')).toHaveLength(0)
 
-    fireEvent.click(screen.getByText('toggle'))
+    fireEvent.click(screen.getByText('toggle')) // "vuelve"
 
     await waitFor(() => {
       expect(screen.getAllByRole('link')).toHaveLength(12)
@@ -198,30 +181,19 @@ describe('Feed — prueba de humo', () => {
     render(<TwoScopes />)
 
     await waitFor(() => {
-      expect(screen.getAllByRole('link')).toHaveLength(24)
+      expect(screen.getAllByRole('link')).toHaveLength(24) // 12 + 12
     })
 
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/feed/sessions',
-      expect.objectContaining({
-        body: JSON.stringify({ scope: 'home' }),
-      }),
+      expect.objectContaining({ body: JSON.stringify({ scope: 'home' }) }),
     )
-
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/feed/sessions',
-      expect.objectContaining({
-        body: JSON.stringify({ scope: 'tools' }),
-      }),
+      expect.objectContaining({ body: JSON.stringify({ scope: 'tools' }) }),
     )
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      `/api/feed/${SESSION_IDS.home}`,
-    )
-
-    expect(global.fetch).toHaveBeenCalledWith(
-      `/api/feed/${SESSION_IDS.tools}`,
-    )
+    expect(global.fetch).toHaveBeenCalledWith(`/api/feed/${SESSION_IDS.home}`)
+    expect(global.fetch).toHaveBeenCalledWith(`/api/feed/${SESSION_IDS.tools}`)
   })
 
   it('restaura la posición de scroll guardada al volver de un detalle', async () => {
@@ -239,7 +211,6 @@ describe('Feed — prueba de humo', () => {
       value: 456,
       configurable: true,
     })
-
     fireEvent.scroll(window)
 
     // El guardado de scroll está throttled por requestAnimationFrame — hay
@@ -247,8 +218,8 @@ describe('Feed — prueba de humo', () => {
     // clics de abajo) adelanta al guardado y se restaura un scrollY viejo.
     await new Promise((resolve) => requestAnimationFrame(resolve))
 
-    fireEvent.click(screen.getByText('toggle'))
-    fireEvent.click(screen.getByText('toggle'))
+    fireEvent.click(screen.getByText('toggle')) // fuera
+    fireEvent.click(screen.getByText('toggle')) // vuelta
 
     await waitFor(() => {
       expect(scrollToSpy).toHaveBeenCalledWith(0, 456)
@@ -259,15 +230,15 @@ describe('Feed — prueba de humo', () => {
     // A diferencia del stub no-op del beforeEach: aquí el sentinel tiene
     // que reportarse "visible" de verdad al observarlo, igual que pasaría
     // en un navegador real con una página casi vacía — si no, este test
-    // no reproduce el bucle real.
+    // no reproduce el bucle real (loadMore cambia de identidad en cada
+    // actualización de estado, lo que reconecta el observer una y otra
+    // vez; sin este stub, nunca se llega a disparar una segunda vez).
     // @ts-expect-error -- stub mínimo suficiente para el smoke test
     global.IntersectionObserver = class {
       callback: IntersectionObserverCallback
-
       constructor(callback: IntersectionObserverCallback) {
         this.callback = callback
       }
-
       observe(target: Element) {
         this.callback(
           [
@@ -280,7 +251,6 @@ describe('Feed — prueba de humo', () => {
           this as unknown as IntersectionObserver,
         )
       }
-
       disconnect() {}
       unobserve() {}
     }
@@ -289,20 +259,17 @@ describe('Feed — prueba de humo', () => {
       if (url === '/api/feed/sessions' && init?.method === 'POST') {
         return {
           ok: true,
-          json: async () => ({
-            sessionId: 'session-insights',
-          }),
+          json: async () => ({ sessionId: 'session-insights' }),
         } as Response
       }
-
       if (url.startsWith('/api/feed/session-insights')) {
+        // El servidor devuelve hasMore=true siempre (arquitectura §8.5)
+        // — el corte real tiene que salir del cliente al ver 0 items.
         return {
           ok: true,
-          json: async () =>
-            fakeBatch(0, 'cursor-1', true, 'insights'),
+          json: async () => fakeBatch(0, 'cursor-1', true, 'insights'),
         } as Response
       }
-
       throw new Error(`URL inesperada en el test: ${url}`)
     }) as typeof fetch
 
@@ -310,15 +277,14 @@ describe('Feed — prueba de humo', () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(
-          'Todavía no hay contenido publicado en esta sección.',
-        ),
+        screen.getByText('Todavía no hay contenido publicado en esta sección.'),
       ).toBeInTheDocument()
     })
 
-    const fetchCallsAfterEmptyRound =
-      vi.mocked(global.fetch).mock.calls.length
+    const fetchCallsAfterEmptyRound = vi.mocked(global.fetch).mock.calls.length
 
+    // Deja correr un poco más: sin el fix, aquí seguiría acumulando
+    // llamadas sin parar.
     await new Promise((resolve) => setTimeout(resolve, 50))
 
     expect(vi.mocked(global.fetch).mock.calls.length).toBe(

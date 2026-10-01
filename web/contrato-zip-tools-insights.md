@@ -195,6 +195,35 @@ Qué significa para quien escribe el código de la tool o insight:
 
 Si algún paquete necesita cargar algo de un origen externo, hoy no es posible: es una limitación real, pendiente de si algún día hace falta ampliar esta política concreta.
 
+### Reportar uso real (solo Tools): `window.GreenerAnalytics.toolUsed()`
+
+Añadido el 30 de septiembre. **Solo para Tools — los Insights no tienen ningún mecanismo equivalente.**
+
+El shell de cada Tool carga automáticamente `/greener-package-analytics.js` (un script del propio sitio, nada que añadir al paquete). Expone una función global, y una Tool la llama tras una acción real del usuario — generar algo, descargar, completar un paso — **no** al cargar la página, eso ya lo cubre el evento de apertura:
+
+```js
+// Desde cualquier archivo .js del paquete, tras una acción real:
+window.GreenerAnalytics.toolUsed('generate')
+```
+
+Equivalente, si se prefiere no depender de que el script ya esté cargado (por ejemplo, disparado desde un `<script>` que se ejecuta antes):
+
+```js
+window.dispatchEvent(
+  new CustomEvent('greener:tool-used', { detail: { action: 'generate' } }),
+)
+```
+
+Reglas sobre `action`:
+
+- Texto, 1 a 64 caracteres: letras, números, `:`, `_` y `-`. El primer carácter no puede ser `:`, `_` ni `-`.
+- Lo decide quien construye la Tool — no hay una lista cerrada. Conviene que sea corto y describa la acción (`'generate'`, `'download'`, `'export:png'`), porque es lo que luego se ve en el panel de analítica.
+- Una `action` que no cumpla el patrón se descarta en silencio, sin avisar — ni en la consola del navegador ni en ningún sitio. Probarlo antes de dar la Tool por terminada.
+
+Qué hace por dentro, para quien quiera entender el porqué: pide al propio servidor (mismo origen, por eso no choca con la CSP de arriba) que resuelva el slug de la Tool al identificador real de su ficha, y desde ahí lo manda a la analítica — así este evento se puede cruzar con el de apertura de la ficha de la Tool, cosa que no sería posible si cada Tool mandara su propio identificador.
+
+**No es obligatorio, pero sin ninguna llamada la Tool mostrará cero uso en el panel de analítica aunque reciba visitas reales.** No hay ningún aviso de que falte: es un silencio, no un error. Para una Tool puramente informativa, sin ninguna acción que reportar, es aceptable no llamarlo nunca — pero si la Tool genera, descarga o transforma algo, conviene no olvidarlo.
+
 ## 7. Qué pasa después de subir el ZIP
 
 1. El ZIP se valida contra todo lo anterior. Si falla algo, se informa el motivo exacto y no se sube nada.
@@ -227,6 +256,7 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] Sin `eval()` ni `new Function()`
 - [ ] Sin imágenes desde `blob:`; sin fuentes incrustadas como `data:` (§6)
 - [ ] CSS colgado de una clase de contenedor propio, sin estilar `body`/`html` directamente, ni depender de atributos del `<body>` (§6)
+- [ ] Si es una Tool con alguna acción real (generar, descargar, transformar...): llama a `window.GreenerAnalytics.toolUsed('acción')` tras esa acción — si no, mostrará cero uso en analítica aunque reciba visitas (§6)
 - [ ] ZIP completo por debajo de 10 MB
 - [ ] Sin rutas `..` ni symlinks (si se ha construido el ZIP con herramientas estándar, esto no suele dar problema — es una comprobación de seguridad, no algo que haya que montar a mano)
 - [ ] Nada de `100vw`/`100vh`/`window.innerWidth`/`window.innerHeight` en el código — solo `100%` o las variables `--greener-available-*`

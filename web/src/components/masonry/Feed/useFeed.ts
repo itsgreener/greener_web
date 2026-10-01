@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import { useMasonryPositions } from '../useMasonryPositions'
 import { useFeedContext } from '../FeedProvider'
-import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 
 /**
  * Feed real de la home y las subhomes: abre una feedSession (POST
@@ -86,25 +86,28 @@ export function useFeed(scope: string) {
     loadingRef.current = true
     setIsLoading(true)
     try {
-  const batch = await fetchBatch(current.sessionId, current.cursor)
+      const batch = await fetchBatch(current.sessionId, current.cursor)
 
-  appendBatch(scope, batch)
+      appendBatch(scope, batch)
 
-  if (batch.items.length > 0) {
-    trackAnalyticsEvent(
-      'Feed Depth',
-      {
-        section: scope,
-        round: batch.round,
-        // Implementación actual: una ronda se sirve como un único batch.
-        // Cuando una ronda se trocee realmente en varios lotes, este
-        // valor podrá avanzar dentro de la misma ronda.
-        batch: 0,
-      },
-      { interactive: false },
-    )
-  }
-} catch (err) {
+      // Un batch vacío (fin de catálogo real, o límite de peticiones
+      // superado — feedRateLimit.ts) no cuenta como profundidad real
+      // alcanzada: nada que el visitante haya visto de más.
+      if (batch.items.length > 0) {
+        trackAnalyticsEvent(
+          'Feed Depth',
+          {
+            section: scope,
+            round: batch.round,
+            // Implementación actual: una ronda se sirve como un único
+            // batch. Cuando una ronda se trocee en varios lotes, este
+            // valor podrá avanzar dentro de la misma ronda.
+            batch: 0,
+          },
+          { interactive: false },
+        )
+      }
+    } catch (err) {
       setError(
         err instanceof Error ? err.message : 'No se pudo cargar el feed.',
       )

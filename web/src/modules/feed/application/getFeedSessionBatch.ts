@@ -30,11 +30,14 @@ export interface FeedBatchItem {
 export interface FeedBatchResult {
   items: FeedBatchItem[]
   cursor: string
+  // Índice de la ronda servida — lo necesita el evento "Feed Depth"
+  // (§18.2: section, round, batch).
   round: number
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
 }
+
 export class FeedSessionNotFoundError extends Error {
   constructor() {
     super('La sesión de feed no existe o ha caducado.')
@@ -197,10 +200,10 @@ export async function getFeedSessionBatch(
   }
 
   const items = enrich(unitIds, directory)
- return {
-  items,
-  cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
-  round: roundIndex,
-  hasMore: true,
-}
+  return {
+    items,
+    cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
+    round: roundIndex,
+    hasMore: true,
+  }
 }

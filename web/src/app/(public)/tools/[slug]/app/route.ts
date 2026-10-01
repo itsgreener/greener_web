@@ -43,6 +43,17 @@ export async function GET(
           "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;",
 
         'X-Content-Type-Options': 'nosniff',
+
+        // HSTS y Referrer-Policy (arquitectura §17.1): src/proxy.ts salta
+        // por completo estas rutas para no duplicar/mezclar la CSP global
+        // con la suya propia (ver el comentario en proxy.ts), pero eso
+        // dejaba fuera TODAS las demás cabeceras de seguridad, no solo la
+        // CSP — hueco real, corregido el 29 sep (PROGRESO §4.8). Mismos
+        // valores que src/lib/securityHeaders.ts; no hay conflicto
+        // posible con estas dos, a diferencia de la CSP.
+        'Strict-Transport-Security':
+          'max-age=63072000; includeSubDomains; preload',
+        'Referrer-Policy': 'strict-origin-when-cross-origin',
       },
     })
   } catch (error) {
