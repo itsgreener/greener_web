@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { env } from '@/lib/env'
+import { helveticaNeue, kinder } from '@/lib/fonts'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -34,7 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
   await headers()
 
   return (
-    <html lang="en">
+    <html lang="en" className={`${helveticaNeue.variable} ${kinder.variable}`}>
       <body>{children}</body>
     </html>
   )

@@ -1,5 +1,6 @@
 'use client'
 
+import { EPISODE_PROGRAM_LABEL } from '@/modules/content/domain/episodeLabels'
 import { useActionState } from 'react'
 
 import {
@@ -19,12 +20,6 @@ type Props = {
 }
 
 const initialState: EpisodeActionState = {}
-
-const PROGRAM_LABEL: Record<string, string> = {
-  brand_the_future: 'Brand the Future',
-  brand_into_europe: 'Brand into Europe',
-  brand_to_table: 'Brand to Table',
-}
 
 export default function EpisodeDetailForm({ contentId, episode }: Props) {
   const [state, formAction, pending] = useActionState(
@@ -46,7 +41,7 @@ export default function EpisodeDetailForm({ contentId, episode }: Props) {
         >
           {episodeProgramSchema.options.map((option) => (
             <option key={option} value={option}>
-              {PROGRAM_LABEL[option] ?? option}
+              {EPISODE_PROGRAM_LABEL[option]}
             </option>
           ))}
         </select>

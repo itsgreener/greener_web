@@ -14,8 +14,7 @@ import {
 } from '@/modules/masonry/domain/layout'
 import {
   columnReservationForRatio,
-  contentBlockImageDimensions,
-  mobileContentImageDimensions,
+  computeContentBlockGeometry,
 } from '@/modules/masonry/domain/detailLayout'
 import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 
@@ -175,6 +174,10 @@ export function useRecommendationMasonry(
     // el bloque de contenido: las recomendaciones solo pueden aparecer
     // debajo, nunca al lado (recommendationColumns siempre 0).
     fullWidthContent?: boolean
+    // Tipo A (tool/insight/other): el texto ocupa una columna de la
+    // retícula con ancho fijo y la imagen cede espacio para garantizarlo
+    // (ver computeContentBlockGeometry). Casos y episodios no lo activan.
+    textColumn?: boolean
   },
 ) {
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -265,28 +268,27 @@ export function useRecommendationMasonry(
     ? { contentColumns: totalColumns, recommendationColumns: 0 }
     : columnReservationForRatio(ratio, totalColumns)
 
-  const contentBlock = useMemo(() => {
-    if (containerWidth === 0 || viewportHeight === 0) {
-      return { imageWidth: 0, imageHeight: 0, reservedWidth: 0 }
-    }
-    const columnWidth =
-      (containerWidth - GAP * (totalColumns - 1)) / totalColumns
-    const reservedWidth =
-      contentColumns * columnWidth + GAP * (contentColumns - 1)
-    // Móvil (§2: fuera de la tabla a propósito, "diseño entrega un
-    // rediseño propio aparte") — placeholder del 21 sep: ratio natural a
-    // ancho completo, sin la regla de 66,7vh (esa regla solo existe para
-    // coordinarse con un panel lateral que en móvil no existe nunca).
-    const image =
-      totalColumns <= 2
-        ? mobileContentImageDimensions(ratio, reservedWidth)
-        : contentBlockImageDimensions(ratio, reservedWidth, viewportHeight)
-    return {
-      imageWidth: image.width,
-      imageHeight: image.height,
-      reservedWidth,
-    }
-  }, [containerWidth, viewportHeight, totalColumns, contentColumns, ratio])
+  const textColumn = options?.textColumn ?? false
+
+  const contentBlock = useMemo(
+    () =>
+      computeContentBlockGeometry({
+        containerWidth,
+        viewportHeight,
+        ratio,
+        totalColumns,
+        contentColumns,
+        textColumn,
+      }),
+    [
+      containerWidth,
+      viewportHeight,
+      totalColumns,
+      contentColumns,
+      ratio,
+      textColumn,
+    ],
+  )
 
   const layout = useMemo(() => {
     if (containerWidth === 0 || contentBlock.imageHeight === 0) return null
@@ -357,6 +359,7 @@ export function useRecommendationMasonry(
     contentBlockImageWidth: contentBlock.imageWidth,
     contentBlockImageHeight: contentBlock.imageHeight,
     contentBlockReservedWidth: contentBlock.reservedWidth,
+    contentBlockTextWidth: contentBlock.textColumnWidth,
     totalHeight: Math.max(layout?.totalHeight ?? 0, contentBlock.imageHeight),
     recommendationColumns,
     positioned,

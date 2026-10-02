@@ -41,7 +41,23 @@ process.env.CONTACT_EMAIL_FROM ??= 'no-reply-test@example.com'
  * de React de forma síncrona. Se deja documentado aquí para quien lo
  * vuelva a ver y busque el porqué.
  */
-import { afterEach } from 'vitest'
+import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 
 afterEach(cleanup)
+
+/**
+ * `next/font/local` solo funciona con la transformación (SWC) de Next, que
+ * Vitest no aplica: fuera de `next build/dev` la función importada no es
+ * ejecutable. Basta con un doble que devuelva lo que el layout lee
+ * (`variable`, `className`); las fuentes reales se comprueban en el build
+ * y en navegador, no aquí. Registrado en el setup para cubrir cualquier test
+ * que importe el layout raíz (p. ej. seo/siteMetadata.test.ts).
+ */
+vi.mock('next/font/local', () => ({
+  default: () => ({
+    className: 'font-stub',
+    variable: 'font-variable-stub',
+    style: { fontFamily: 'font-stub' },
+  }),
+}))

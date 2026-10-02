@@ -65,6 +65,7 @@ export function ToolInsightDetail({
     contentBlockImageWidth,
     contentBlockImageHeight,
     contentBlockReservedWidth,
+    contentBlockTextWidth,
     totalHeight,
     positioned,
     isLoading,
@@ -72,7 +73,7 @@ export function ToolInsightDetail({
     hasMore,
     error,
     sentinelId,
-  } = useRecommendationMasonry(content.id, ratio)
+  } = useRecommendationMasonry(content.id, ratio, { textColumn: true })
 
   return (
     <article className={styles.article}>
@@ -129,7 +130,19 @@ export function ToolInsightDetail({
             </div>
           )}
 
-          <div className={styles.text}>
+          <div
+            className={styles.text}
+            style={
+              contentBlockTextWidth
+                ? ({
+                    // Una columna de la retícula como máximo (ver
+                    // computeContentBlockGeometry): el CSS lo usa como
+                    // `max-width` de .text.
+                    '--text-column-width': `${contentBlockTextWidth}px`,
+                  } as React.CSSProperties)
+                : undefined
+            }
+          >
             <h1 className={styles.title}>{content.title}</h1>
             {content.summary && (
               <p className={styles.summary}>{content.summary}</p>

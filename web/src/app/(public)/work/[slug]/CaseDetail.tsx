@@ -156,7 +156,7 @@ export function CaseDetail({
             {caseDetail?.client && (
               <p className={styles.client}>{caseDetail.client}</p>
             )}
-            <h1 className={styles.title}>{content.title}</h1>
+            <h1 className={`${styles.title} text-display`}>{content.title}</h1>
             {content.highlight && (
               <p className={styles.highlight}>{content.highlight}</p>
             )}

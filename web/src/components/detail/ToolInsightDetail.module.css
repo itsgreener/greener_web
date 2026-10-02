@@ -49,6 +49,13 @@
      hijo flex pueda encogerse por debajo de su contenido intrínseco. */
   flex: 1 1 0;
   min-width: 0;
+  /* Texto limitado a UNA columna de la retícula (2 oct 2026): la columna la
+     calcula useRecommendationMasonry (JS, una sola fuente de verdad) y llega
+     como variable. Sin la variable (aún sin medir, o móvil) no hay tope. La
+     imagen cede espacio en el dominio (computeContentBlockGeometry) para que
+     el texto nunca quede por debajo de una columna: aquí solo se pone el
+     techo; sobra aire a la derecha si la imagen es estrecha. */
+  max-width: var(--text-column-width, none);
 }
 
 /* Ver comentario equivalente en CaseDetail.module.css — mismo

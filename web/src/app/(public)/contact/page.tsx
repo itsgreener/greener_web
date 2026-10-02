@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className={styles.page}>
-      <h1 className={styles.title}>Contact</h1>
+      <h1 className={`${styles.title} text-display`}>Contact</h1>
       <ContactForm />
     </div>
   )

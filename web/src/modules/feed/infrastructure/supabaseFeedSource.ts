@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+import { episodePinSecondaryText } from '@/modules/content/domain/episodeLabels'
 import type {
   CaseInput,
   ContentPinQueue,
@@ -27,7 +28,7 @@ export interface PinDirectoryEntry {
   // (pin.label) en Tool.
   displayTitle?: string | null
   // Segunda línea en negrita: cliente en Case, nombre de la Tool en Tool,
-  // episode_kind en Episode y el texto fijo INSIGHT_PIN_SECONDARY_TEXT
+  // «programa + tipo» en Episode y el texto fijo INSIGHT_PIN_SECONDARY_TEXT
   // en Insight.
   displaySecondary?: string | null
   alt: string
@@ -100,6 +101,7 @@ type FeedContentMeta = {
     client?: string | null
   } | null
   episode?: {
+    program?: string | null
     episode_kind?: string | null
   } | null
 }
@@ -112,6 +114,7 @@ interface ContentRow extends FeedContentMeta {
     client: string | null
   } | null
   episode: {
+    program: string | null
     episode_kind: string | null
   } | null
   pin: PinRow[]
@@ -211,8 +214,13 @@ function derivedFeedText(
       // Mismo criterio para episode: el admin no decide el rótulo del feed.
       label: null,
       displayTitle: resolveContentTitle(content, pin.language),
-      // En el formato B final, episode sustituye `client` por `episode_kind`.
-      displaySecondary: content.episode?.episode_kind?.trim() || null,
+      // En el formato B final, episode sustituye `client` por el programa
+      // + el tipo: «Brand the Future Podcast» (2 oct 2026). El programa es
+      // el campo «Programa» del ABM; el tipo, «Tipo de episodio».
+      displaySecondary: episodePinSecondaryText(
+        content.episode?.program,
+        content.episode?.episode_kind,
+      ),
     }
   }
 
@@ -323,7 +331,7 @@ export async function getFeedDataset(
       default_locale,
       content_translation ( locale, title ),
       case_detail ( force, client ),
-      episode ( episode_kind ),
+      episode ( program, episode_kind ),
       pin ( ${PIN_SELECT} )
     `,
     )
@@ -428,7 +436,7 @@ export async function getPinDirectoryByIds(
         default_locale,
         content_translation ( locale, title ),
         case_detail ( client ),
-        episode ( episode_kind )
+        episode ( program, episode_kind )
       )
     `,
     )

@@ -121,6 +121,17 @@ describe('ToolInsightDetail — prueba de humo', () => {
     )
   })
 
+  it('el texto queda limitado a una columna: recibe --text-column-width con el ancho de una columna de la retícula', async () => {
+    // Contenedor simulado de 1200 px → 6 columnas, hueco de 12 px:
+    // (1200 − 5 × 12) / 6 = 190 px por columna.
+    render(<ToolInsightDetail content={BASE_CONTENT} />)
+
+    const text = screen.getByRole('heading', { name: 'Mi tool' }).parentElement
+    await waitFor(() =>
+      expect(text?.style.getPropertyValue('--text-column-width')).toBe('190px'),
+    )
+  })
+
   it('con un insight, el CTA es "Read" en vez de "Use"', async () => {
     render(
       <ToolInsightDetail

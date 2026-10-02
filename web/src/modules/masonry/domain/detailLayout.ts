@@ -2,6 +2,7 @@ import {
   RATIO_DECIMAL_VALUE,
   type PinRatioValue,
 } from '@/modules/media/domain/closestRatio'
+import { GAP } from './layout'
 
 /**
  * especificacion-final-formato-detalle.md §2 — el modelo de columnas de
@@ -78,19 +79,49 @@ export interface ContentBlockDimensions {
 }
 
 /**
+ * Hueco que ocupa el texto del bloque de contenido a su lado (tipo A): su
+ * ancho y la separación con la imagen.
+ */
+export interface TextReserve {
+  /** Ancho mínimo que debe quedar libre para el texto. */
+  widthPx: number
+  /** Separación entre la imagen y el texto (`gap` de `.contentBlock`). */
+  gapPx: number
+}
+
+/**
+ * Separación entre imagen y texto en `.contentBlock`
+ * (ToolInsightDetail.module.css: `gap: var(--space-md)` = 16 px). Si el CSS
+ * cambia, este valor debe cambiar con él; hay un test que lo vigila.
+ */
+export const CONTENT_BLOCK_TEXT_GAP_PX = 16
+
+/**
  * Ancho y alto reales de la imagen del bloque de contenido (§2, puntos 1
  * y 2): altura fija 66,7vh × ratio, con tope del 83% del ancho útil de
  * contenido — si el ancho natural supera ese tope, se recorta la ALTURA
  * renderizada (nunca el ratio, que se respeta siempre).
+ *
+ * Con `textReserve` (tipo A, texto limitado a una columna — 2 oct 2026) el
+ * tope pasa a ser el MENOR entre ese 83% y «ancho útil − texto − hueco»:
+ * así el texto siempre dispone, como mínimo, de su ancho completo y nunca
+ * queda aplastado. Sin `textReserve` el resultado es el de siempre.
  */
 export function contentBlockImageDimensions(
   ratio: PinRatioValue,
   availableContentWidthPx: number,
   viewportHeightPx: number,
+  textReserve?: TextReserve,
 ): ContentBlockDimensions {
   const naturalHeight = viewportHeightPx * 0.667
   const naturalWidth = naturalHeight * RATIO_DECIMAL_VALUE[ratio]
-  const widthCap = availableContentWidthPx * 0.83
+  let widthCap = availableContentWidthPx * 0.83
+
+  if (textReserve) {
+    const leftForImage =
+      availableContentWidthPx - textReserve.widthPx - textReserve.gapPx
+    widthCap = Math.min(widthCap, Math.max(0, leftForImage))
+  }
 
   if (naturalWidth <= widthCap) {
     return { width: naturalWidth, height: naturalHeight }
@@ -115,5 +146,93 @@ export function mobileContentImageDimensions(
   return {
     width: availableWidthPx,
     height: availableWidthPx / RATIO_DECIMAL_VALUE[ratio],
+  }
+}
+
+export interface ContentBlockGeometryInput {
+  /** Ancho del contenedor del feed (no el del viewport). */
+  containerWidth: number
+  viewportHeight: number
+  ratio: PinRatioValue
+  totalColumns: number
+  contentColumns: number
+  /**
+   * Tipo A (tool / insight / other): el texto ocupa UNA columna de la
+   * retícula, con ancho fijo, y la imagen cede el espacio que haga falta
+   * para garantizarlo. Casos y episodios (tipo B) no lo activan.
+   */
+  textColumn?: boolean
+}
+
+export interface ContentBlockGeometry {
+  imageWidth: number
+  imageHeight: number
+  reservedWidth: number
+  /**
+   * Ancho de una columna de la retícula, a aplicar como tope del texto.
+   * 0 = no aplica (sin medir, tipo B, o móvil).
+   */
+  textColumnWidth: number
+}
+
+const EMPTY_GEOMETRY: ContentBlockGeometry = {
+  imageWidth: 0,
+  imageHeight: 0,
+  reservedWidth: 0,
+  textColumnWidth: 0,
+}
+
+/**
+ * Geometría completa del bloque de contenido de una página de detalle:
+ * ancho reservado, imagen y (tipo A) ancho de la columna de texto. Es la
+ * fórmula que antes vivía dentro de `useRecommendationMasonry`, sacada al
+ * dominio para poder probarla sin React.
+ *
+ * Móvil (<3 columnas, §2: fuera de la tabla a propósito): placeholder del
+ * 21 sep — imagen a ancho completo y SIN la regla de una columna para el
+ * texto (necesitaría apilar imagen y texto, que depende del rediseño móvil).
+ */
+export function computeContentBlockGeometry(
+  input: ContentBlockGeometryInput,
+): ContentBlockGeometry {
+  const {
+    containerWidth,
+    viewportHeight,
+    ratio,
+    totalColumns,
+    contentColumns,
+    textColumn = false,
+  } = input
+
+  if (containerWidth === 0 || viewportHeight === 0) return EMPTY_GEOMETRY
+
+  const columnWidth = (containerWidth - GAP * (totalColumns - 1)) / totalColumns
+  const reservedWidth =
+    contentColumns * columnWidth + GAP * (contentColumns - 1)
+
+  if (totalColumns <= 2) {
+    const image = mobileContentImageDimensions(ratio, reservedWidth)
+    return {
+      imageWidth: image.width,
+      imageHeight: image.height,
+      reservedWidth,
+      textColumnWidth: 0,
+    }
+  }
+
+  const image = contentBlockImageDimensions(
+    ratio,
+    reservedWidth,
+    viewportHeight,
+    textColumn
+      ? { widthPx: columnWidth, gapPx: CONTENT_BLOCK_TEXT_GAP_PX }
+      : undefined,
+  )
+
+  return {
+    imageWidth: image.width,
+    imageHeight: image.height,
+    reservedWidth,
+    textColumnWidth: textColumn ? columnWidth : 0,
   }
 }

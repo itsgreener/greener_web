@@ -83,6 +83,32 @@ describe('CaseDetail — prueba de humo', () => {
     vi.restoreAllMocks()
   })
 
+  it('el bloque de contenido NO limita el texto a una columna (solo tool/insight/other)', async () => {
+    const { container } = render(
+      <CaseDetail
+        content={CONTENT}
+        caseDetail={{ client: 'Agróptimum' }}
+        carousel={[]}
+      />,
+    )
+
+    expect(container.querySelector('[style*="--text-column-width"]')).toBeNull()
+  })
+
+  it('el título del caso usa la tipografía de display (Kinder) vía la clase global', async () => {
+    render(
+      <CaseDetail
+        content={CONTENT}
+        caseDetail={{ client: 'Agróptimum' }}
+        carousel={[]}
+      />,
+    )
+
+    expect(screen.getByRole('heading', { name: 'Mi caso' })).toHaveClass(
+      'text-display',
+    )
+  })
+
   it('pinta título, highlight, body y cliente, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {
     render(
       <CaseDetail

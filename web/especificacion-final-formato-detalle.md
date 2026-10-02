@@ -25,6 +25,7 @@ Esto se confundió varias veces por el camino, así que lo dejo explicado paso a
 
 1. **La imagen nunca se mide en columnas.** Su ancho sale siempre de `altura fija (66,7vh) × ratio`, igual en tipo A, B y contenido libre — sin excepción, sin tabla de por medio.
 2. **Tope de ancho: 83% del ancho útil de contenido**, para que ningún ratio (ni en pantallas muy altas o ventanas estrechas) pueda dejar sin espacio al texto o desbordar el layout. Si `altura × ratio` supera ese 83%, se recorta la altura real renderizada de la imagen — nunca el ratio, que se respeta siempre.
+   - **Excepción para tipo A (tool / insight / contenido libre), 2 oct 2026:** el texto ocupa siempre **una columna de la retícula** (ancho fijo; sobra aire a la derecha si la imagen es estrecha) y nunca menos. Para garantizarlo, el tope de la imagen pasa a ser el **menor** entre el 83% y «ancho útil − una columna − 16 px de hueco». Tipo B (caso / episodio) no cambia. Móvil (<3 columnas) tampoco: sigue el placeholder.
 3. **El bloque de contenido (imagen + texto, como unidad) sí reserva un número entero de columnas** — esto es necesario porque las recomendaciones de al lado son un masonry real y necesitan saber cuántas columnas les quedan libres para poder encajar piezas. Ese reparto es el que depende del ratio, agrupado en tres franjas:
 
 | Grupo de ratio      | Columnas de contenido (imagen+texto) | Columnas de recomendación (el resto, hasta 6) |

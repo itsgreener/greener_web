@@ -10,4 +10,12 @@ describe('/contact — prueba de humo', () => {
 
     expect(screen.getByRole('heading', { name: 'Contact' })).toBeInTheDocument()
   })
+
+  it('el título usa la tipografía de display (Kinder) vía la clase global', () => {
+    render(<ContactPage />)
+
+    expect(screen.getByRole('heading', { name: 'Contact' })).toHaveClass(
+      'text-display',
+    )
+  })
 })

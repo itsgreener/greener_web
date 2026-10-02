@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **806 tests automáticos, todos en verde** (`npm test`, 91 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
+- **834 tests automáticos, todos en verde** (`npm test`, 92 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -424,7 +424,7 @@ Se comparó el zip recibido con la versión de trabajo, fichero a fichero, y se 
 
 El CTA queda pegado al borde derecho de la columna; si se quiere aire, un `margin-right` en `.cta`.
 
-### 2.26 Investigación (NO implementada): texto de la ficha limitado a una columna (2 oct)
+### 2.26 Investigación: texto de la ficha limitado a una columna (2 oct) — implementada en §2.31
 
 Objetivo: el texto de tools ocupa siempre **una columna de la retícula** (aunque sobre aire a la derecha) y nunca queda aplastado.
 
@@ -496,6 +496,76 @@ Comentarios de `PinDirectoryEntry` fusionados para describir los cuatro casos.
 
 **Ficheros donde viven nuestros cambios del 2 oct** (para comprobar que no se hayan pisado en otras copias): `getFeedSessionBatch.ts` (`round`, `feedPinDestination`, `?pin=`), `contentPath.ts`, `supabaseFeedSource.ts`, `NewPinForm.tsx`, `PinList.tsx`, `BulkPinUpload.tsx`, `ToolInsightDetail.module.css` (summary sin `line-clamp`, CTA abajo a la derecha), `textLimits.ts`, `layout.ts` (6 columnas desde 1200) y los tests `feedPinText`, `getFeedSessionBatch`, `contentPath`, `layout.property` y `generateRound.property`.
 
+### 2.30 Tipografías: Helvetica Neue (general) y Kinder (títulos de caso y de contacto) (2 oct)
+
+**Pesos necesarios (comprobado en el código):** el CSS público usa `font-weight` **400, 600 y 700**; no hay cursivas. Basta con **Regular (400) y Bold (700)**: el 600 (CTA, botones, etiquetas de formulario…) no tiene cara propia y el navegador lo resuelve al Bold. Medium, Light, Italic, etc. del zip no se usan y no se incluyen. El panel de admin usa pesos intermedios (650, 750, 800, 850, 900) que ahora también se resuelven todos a Bold, es decir, **se aplanan visualmente** porque el admin hereda la fuente del `body` (no se ha aislado; si no se quiere, es una línea en el layout del admin).
+
+**Cómo se cargan:** `next/font/local` en `src/lib/fonts.ts` (autoalojadas, URL con hash e `immutable`, tipografía de respaldo con métricas ajustadas contra el CLS, y `font-src 'self'` ya estaba en la CSP). Ficheros en `src/fonts/` (con `README.md` y los comandos para regenerarlos). Los OTF originales no están en el repo.
+
+- **Tamaño:** los OTF de Helvetica Neue pesaban **615 KB (Regular) y 595 KB (Bold)** por traer 2340 glifos; se convirtieron a WOFF2 con el juego latino (ASCII, Latin-1, Latin Extended-A, puntuación tipográfica, €, ™, flechas): **31 KB y 24 KB**. Kinder (39 KB) se convirtió a WOFF2 sin recortar: 26 KB. Verificado que no falta ningún carácter del español, catalán o inglés. Kinder no trae `ŀ` (U+0140) ni `ª º`; el catalán normal usa `·`, que sí está.
+- **Kinder con `preload: false`:** la home no descarga una fuente que solo usan los casos y contacto.
+
+**CSS (convención §24.1):** variables en `:root` de `globals.css`: `--font-body` (Helvetica Neue + respaldos) y `--font-display` (Kinder + respaldos); `body` usa `--font-body`. **Clase global `.text-display`** (Kinder, `font-weight: 400`, `font-synthesis: none`): Kinder solo existe en Regular y un `h1` es negrita por defecto, así que sin esa clase el navegador fabricaría una negrita falsa. Los módulos CSS no escriben nombres de fuente (hay un test que lo vigila).
+
+**Aplicado en:** el `h1` de `CaseDetail` (título de la ficha de caso) y el `h1` de `/contact`. **No** en: título de episodios (`EpisodeDetail`), ni el texto de los pines del feed (incluido el título de un pin de caso), ni nada más. Si «título de los casos» incluía el pin del feed, hay que añadir `text-display` a `PinCard`.
+
+**Verificado** en Chromium real contra el servidor de producción (`/contact`): las 3 fuentes se piden (200, `font/woff2`) y quedan `loaded`, sin avisos de CSP, `h1` en Kinder 400 sin síntesis, resto en Helvetica Neue. El título de la ficha de caso no se pudo ver renderizado (necesita datos de Supabase); sí está cubierto por test (lleva `text-display`) y comparte la misma clase.
+
+**Pendiente / a tener en cuenta:**
+
+- **Licencias:** los metadatos de los OTF no traen texto de licencia (Helvetica Neue: `fsType` 0; Kinder: `fsType` 8). Conviene confirmar que cubren uso web autoalojado, y que convertirlas a WOFF2 y recortarlas está permitido.
+- **Documentos HTML de tools/insights (`composeToolDocument.ts`, `/app`):** el menú lateral que replica el Shell **no** usa estas fuentes (no define `font-family`), así que sus etiquetas flotantes no coinciden tipográficamente con las del Shell. Habría que servir las fuentes con URL estable (`public/fonts`) porque las de `next/font` llevan hash. No tocado.
+- **Fuera de alcance de hoy:** rediseño de la página de contacto (se hablará luego) y texto de la ficha de tool en una columna (pospuesto).
+
+**Tests nuevos (2 + 5), y un doble de `next/font/local` en `tests/setup.ts`** (esa función solo funciona con la transformación de Next, y `siteMetadata.test.ts` importa el layout raíz): el título de caso y el de contacto llevan `text-display`; `typographyCss.test.ts` fija en `globals.css` que `.text-display` fuerza peso 400 y sin síntesis (comprobado con mutación), que `body` y las variables parten de Helvetica Neue y Kinder, que los 3 WOFF2 existen y que ningún módulo CSS escribe nombres de fuente.
+
+### 2.31 Texto de la ficha de tool/insight limitado a una columna — implementado (2 oct)
+
+Implementada la primera solución de §2.26 (ancho fijo precalculado), en dos piezas que van juntas:
+
+1. **Máximo — una columna de la retícula.** `.text` (`ToolInsightDetail.module.css`) tiene `max-width: var(--text-column-width, none)`. La variable la pone `ToolInsightDetail` con el ancho de una columna que calcula el hook. Se usa `max-width` y no un ancho fijo: `.text` sigue ocupando «lo que sobra» (`flex: 1 1 0`) con ese techo, así que nunca desborda el bloque.
+2. **Mínimo — la imagen cede sitio.** `contentBlockImageDimensions` admite un cuarto parámetro `textReserve`; con él, el tope de la imagen es el **menor** entre el 83 % y «ancho útil − columna − 16 px». Se respeta el ratio y se recorta la altura renderizada, como siempre.
+
+**Refactor necesario:** la fórmula del bloque (ancho reservado, imagen, columna) vivía dentro de un `useMemo` del hook; ahora es la función pura `computeContentBlockGeometry` en `detailLayout.ts` (con `CONTENT_BLOCK_TEXT_GAP_PX = 16`), probada sin React. El hook solo la llama y devuelve `contentBlockTextWidth`. Opt-in por `options.textColumn`: **solo `ToolInsightDetail` lo activa.**
+
+**Alcance:** la ficha de tool, la de insight (aunque hoy el flujo salte a `/app`, §2.21) y la de contenido libre (`/variety`), porque comparten componente. **Casos y episodios no cambian** (hay un test que lo fija y otro de equivalencia con la fórmula antigua). **Móvil (<3 columnas) no se toca.**
+
+**Verificado en Chromium real** (CSS real de la ficha + geometría real del proyecto, 9 tamaños de pantalla × 7 ratios × texto corto y largo = 252 casos): con ≥3 columnas el texto mide **exactamente una columna en 56 de 56 casos**, con texto corto y largo, y **cero desbordes**. Con las capturas a la vista, el CTA queda abajo a la derecha de la columna. No se ha visto con una ficha real (necesita datos de Supabase).
+
+**Coste visual (la imagen se encoge solo donde el texto quedaba aplastado):**
+
+| Viewport         | Columnas | Cambio de la imagen                                                             |
+| ---------------- | -------- | ------------------------------------------------------------------------------- |
+| 1280×720         | 4        | 4:3 −9 %                                                                        |
+| 1366–1920        | 6        | 4:3 −6/−8 %, 16:9 −4 %; el resto sin cambio                                     |
+| 2560×1300        | 6        | ninguno                                                                         |
+| 1000×800         | 4        | 16:9 −11 %, 1:1 −17 %, 4:3 −21 %                                                |
+| 800×900 (tablet) | 3        | 16:9, 1:1 y 4:3 −21 %; verticales −34 % a −42 % (la imagen queda de ~1 columna) |
+
+En **tablet** (640–899 de contenedor) el bloque de contenido solo reserva 2 columnas con ratios verticales, así que «texto = 1 columna» deja a la imagen otra columna: es el precio de la regla. Si no gusta, la salida es no aplicarla por debajo de 4 columnas.
+
+**Hallazgo (ya existía, no lo introduce este cambio):** en **móvil** (<640 de contenedor, ~736 px de viewport) la imagen ocupa el 100 % del bloque y el texto queda con **0 px de ancho**; midiendo con el CSS y la geometría reales, el texto de tool/insight no se ve en un móvil (7 de 7 casos). Es el «placeholder de móvil» ya documentado, pero con ese efecto. Pendiente del rediseño móvil (lo razonable es apilar imagen y texto).
+
+**Tests (+12):** propiedades con fast-check sobre todos los ratios/viewports/anchos (imagen + hueco + texto ≤ ancho útil; ratio conservado; la imagen nunca crece frente a la regla antigua; sin `textReserve` el resultado es el de siempre), equivalencia con la fórmula original sin `textColumn`, el texto mide exactamente una columna con `textColumn`, móvil intacto, y guardas de CSS (el `gap` real de `.contentBlock` coincide con la constante; `.text` usa la variable). Comprobado con mutaciones: quitar el tope de la imagen o activar la columna también en casos/episodios rompe tests. Smoke de la ficha: recibe `--text-column-width` (190 px con un contenedor de 1200); smoke de caso: no la recibe.
+
+**Especificación actualizada:** `especificacion-final-formato-detalle.md` §2, punto 2 (excepción para tipo A).
+
+### 2.32 Pin de episodio: «programa + tipo» en la segunda línea (2 oct)
+
+Petición de Greener: en el pin de un episodio, la línea en negrita bajo el título pasa de «tipo de episodio» a **«<programa> <tipo>»**, p. ej. «Carlos Lledó nos cuenta su visión del mercado» / **«Brand the Future Podcast»**. El programa es el campo **«Programa»** del ABM (`episode.program`); el tipo sigue siendo «Tipo de episodio» (`episode.episode_kind`), al final.
+
+**Cambios:**
+
+- `modules/content/domain/episodeLabels.ts` (nuevo): única fuente de los nombres legibles — `EPISODE_PROGRAM_LABEL` («Brand the Future», «Brand into Europe», «Brand to Table»), `EPISODE_KIND_LABEL` («Podcast») y `episodePinSecondaryText(program, kind)`. Si falta uno de los dos, sale solo el otro; si faltan ambos, no hay segunda línea; un valor desconocido se muestra tal cual en vez de romper.
+- `supabaseFeedSource.ts`: las **dos** consultas del feed piden ahora `episode ( program, episode_kind )` — la de ronda nueva (`getFeedDataset`) y la de ronda ya guardada (`getPinDirectoryByIds`); `derivedFeedText` usa `episodePinSecondaryText`.
+- Dedup: el desplegable «Programa» del ABM (`EpisodeDetailForm`) y la ficha pública (`EpisodeDetail`, que tenía su propio `episodeKindLabel`) usan ahora esas mismas etiquetas; antes los nombres estaban duplicados en privado.
+
+**Efecto colateral:** el pin mostraba el valor crudo del tipo (**«podcast»**, en minúscula); ahora sale **«Podcast»**, como en la ficha del episodio y en el ejemplo de Greener.
+
+**Tests (+9):** etiquetas (hay una para cada programa y tipo del esquema; nombres iguales a los del ABM), pin de episodio (cada programa), y dos pruebas con un cliente de Supabase falso que captura el `select` de cada consulta — comprobado con mutaciones: olvidar `program` en cualquiera de las dos las rompe (importante: si faltara en la de rondas guardadas, esas rondas mostrarían solo «Podcast»). 834 tests.
+
+**Límite conocido (medido con Helvetica Neue Bold real y el CSS real del pin):** la segunda línea es de **una sola línea con puntos suspensivos** (`white-space: nowrap`). La más larga, «Brand into Europe Podcast», ocupa ~168 px: cabe en escritorio y tablet, **salvo** una rendija de viewport de ~1296–1307 px (6 columnas recién activadas) y los **móviles** (columnas de ~141 px), donde las tres combinaciones se cortan («Brand the Future Po…»). No se ha tocado el CSS (la misma clase sirve para el cliente de los casos). Si molesta, la salida es dejar esa línea en 2 líneas para episodios (CSS + estimación de altura en `useMasonryPositions` y `useRecommendationMasonry`).
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -506,7 +576,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 806 tests (unit + property-based + smoke con jsdom)
+npm test                     # 834 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -566,7 +636,9 @@ Las referencias a «§4.8» que quedan dentro de §2 apuntan a la lista de pendi
 - [ ] **Tests del login del ABM**: confirmar con quien lo llevó el estado real y añadir tests (único punto abierto del antiguo «housekeeping»).
 - [ ] **Masonry y diseño móvil con el diseño real**: en pausa por decisión de Greener (28 sep); ajustar `layout.ts` cuando llegue.
 
-- [ ] **Texto de la ficha de tool limitado a una columna** (§2.26): investigado, sin implementar; pendiente de decidir con diseño (cambia el tope del 83 % de la imagen).
+- [x] Texto de la ficha de tool limitado a una columna (§2.31).
+- [ ] **Móvil: el texto de tool/insight mide 0 px** (§2.31): ya pasaba antes; necesita el rediseño móvil (apilar imagen y texto).
+- [ ] **Revisar con diseño la imagen de tablet** (§2.31): con «texto = 1 columna» queda de ~1 columna en 640–899 de contenedor.
 - [ ] **Tests de `?pin=`/`slide=`** de la ficha de tool (§2.24): `getToolPinCover` y el `slide` de `PinCard` no tienen cobertura.
 
 ### 4.4 Cerrado o descartado a propósito (no reabrir sin motivo)
@@ -636,3 +708,6 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **2 oct 2026 (columnas e insights desde el detalle)**: restaurado el escalonado de columnas 2/3/4/5/6 (`layout.ts` original; el zip recibido lo había perdido) y revertido el test que se cambió; recalculados los números de §2.26 con ese escalonado; test de regresión de insights abiertos desde las recomendaciones (§2.27). 803 tests.
 - **2 oct 2026 (6 columnas desde 1200 y compilación)**: columnas a 2/3/4/6 con 6 desde 1200 de ancho de contenedor (§2.28); recalculados los números de §2.26; corregido un test de propiedades intermitente (~1 de cada 50 ejecuciones) y verificado todo en una copia limpia con Node 24.15.0. 803 tests.
 - **2 oct 2026 (reconciliación de supabaseFeedSource)**: fusionada la rama de tools de Greener (descripción del pin + nombre de la tool en negrita) con la de insights (título + «Insights by Greener»), que se había pisado; tests ampliados y comprobados con mutación (§2.29). 806 tests.
+- **2 oct 2026 (tipografías)**: Helvetica Neue Regular/Bold como fuente general y Kinder en el título de caso y de contacto (clase global `.text-display`), con `next/font/local` y WOFF2 recortados (de ~1,2 MB a ~56 KB en Helvetica); aviso de licencias y de los pesos del admin (§2.30).
+- **2 oct 2026 (texto a una columna)**: el texto de la ficha de tool/insight/contenido libre mide una columna de la retícula (`max-width` por variable CSS) y la imagen cede sitio (`textReserve`); geometría extraída a `computeContentBlockGeometry`; verificado en Chromium (56/56) y con tests de propiedades; hallazgo del texto a 0 px en móvil (§2.31).
+- **2 oct 2026 (pin de episodio)**: la segunda línea del pin de un episodio pasa a «<programa> <tipo>» (p. ej. «Brand the Future Podcast»), con etiquetas compartidas entre feed, ABM y ficha pública; las dos consultas de Supabase piden `program`; límite de una línea medido en móvil (§2.32). 834 tests.

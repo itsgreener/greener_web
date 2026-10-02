@@ -24,6 +24,16 @@
 
   /* Breakpoints de referencia (documentales — arquitectura §10.1) */
   /* < 640px: 2 columnas · 640-899: 3 · 900-1199: 4 · 1200-1599: 5 · >=1600: 6 */
+
+  /* Tipografías (2 oct 2026). --font-helvetica-neue y --font-kinder las
+     define next/font en <html> (src/lib/fonts.ts) e incluyen ya su
+     respaldo con métricas ajustadas. Los módulos CSS usan estas dos
+     variables, nunca el nombre de la fuente. */
+  --font-body:
+    var(--font-helvetica-neue), 'Helvetica Neue', Helvetica, Arial, system-ui,
+    sans-serif;
+  --font-display:
+    var(--font-kinder), 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 * {
@@ -39,12 +49,21 @@ body {
 }
 
 body {
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  font-family: var(--font-body);
+}
+
+/* =========================================================
+   TIPOGRAFÍA — clases globales de texto
+   ========================================================= */
+
+/* Texto de display (Kinder): para títulos concretos, no para texto
+   corrido. Kinder solo existe en Regular: se fija font-weight: 400 (un h1
+   es negrita por defecto) y se desactiva la síntesis para que el navegador
+   no fabrique una negrita falsa. Uso: className="... text-display". */
+.text-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-synthesis: none;
 }
 
 /* =========================================================

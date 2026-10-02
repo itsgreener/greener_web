@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   buildFeedUnitsForPin,
+  getFeedDataset,
+  getPinDirectoryByIds,
   INSIGHT_PIN_SECONDARY_TEXT,
 } from '@/modules/feed/infrastructure/supabaseFeedSource'
 
@@ -77,6 +80,43 @@ describe('texto del pie del pin según el tipo de contenido', () => {
     expect(entry.label).toBeNull()
   })
 
+  it('episode: título + «<programa> <tipo>» en negrita (p. ej. «Brand the Future Podcast»)', () => {
+    const entry = entryFor({
+      id: 'c5',
+      type: 'episode',
+      slug: 'carlos-lledo',
+      default_locale: 'es',
+      content_translation: [
+        {
+          locale: 'es',
+          title: 'Carlos Lledó nos cuenta su visión del mercado',
+        },
+      ],
+      episode: { program: 'brand_the_future', episode_kind: 'podcast' },
+    })
+
+    expect(entry.displayTitle).toBe(
+      'Carlos Lledó nos cuenta su visión del mercado',
+    )
+    expect(entry.displaySecondary).toBe('Brand the Future Podcast')
+    expect(entry.label).toBeNull()
+  })
+
+  it('episode: cada programa sale con su nombre', () => {
+    const secondary = (program: string) =>
+      entryFor({
+        id: 'c6',
+        type: 'episode',
+        slug: 'ep',
+        default_locale: 'es',
+        content_translation: [{ locale: 'es', title: 'Ep' }],
+        episode: { program, episode_kind: 'podcast' },
+      }).displaySecondary
+
+    expect(secondary('brand_into_europe')).toBe('Brand into Europe Podcast')
+    expect(secondary('brand_to_table')).toBe('Brand to Table Podcast')
+  })
+
   it('tool: descripción del pin arriba + nombre de la tool en negrita debajo', () => {
     const entry = entryFor({
       id: 'c3',
@@ -139,5 +179,72 @@ describe('texto del pie del pin según el tipo de contenido', () => {
     expect(entry.label).toBe('Frase gancho antigua del admin')
     expect(entry.displayTitle).toBeNull()
     expect(entry.displaySecondary).toBeNull()
+  })
+})
+
+/** Cliente de Supabase falso: captura el `select` y devuelve filas fijas. */
+function fakeClient(rows: unknown[]) {
+  const selects: string[] = []
+  const builder = {
+    select(columns: string) {
+      selects.push(columns)
+      return builder
+    },
+    eq: () => builder,
+    in: () => builder,
+    neq: () => builder,
+    single: () => builder,
+    returns: () => Promise.resolve({ data: rows, error: null }),
+  }
+  return {
+    selects,
+    client: { from: () => builder } as unknown as SupabaseClient,
+  }
+}
+
+describe('las dos consultas del feed piden el programa del episodio', () => {
+  const EPISODE_PIN = {
+    id: 'pin-ep',
+    ratio: '4:5',
+    label: null,
+    language: 'es',
+    alt: 'alt',
+    queue_order: 0,
+    show_as_carousel: false,
+    autoplay_mode: null,
+    pin_media: PIN.pin_media,
+  }
+  const EPISODE_CONTENT = {
+    id: 'ep-1',
+    type: 'episode',
+    slug: 'ep-1',
+    default_locale: 'es',
+    content_translation: [{ locale: 'es', title: 'Un episodio' }],
+    case_detail: null,
+    episode: { program: 'brand_to_table', episode_kind: 'podcast' },
+  }
+
+  it('getFeedDataset (ronda nueva): select con `program` y segunda línea completa', async () => {
+    const { client, selects } = fakeClient([
+      { ...EPISODE_CONTENT, pin: [EPISODE_PIN] },
+    ])
+
+    const { pinDirectory } = await getFeedDataset('home', null, client)
+
+    expect(selects[0]).toMatch(/episode \(\s*program,\s*episode_kind\s*\)/)
+    expect(pinDirectory['pin-ep'].displaySecondary).toBe(
+      'Brand to Table Podcast',
+    )
+  })
+
+  it('getPinDirectoryByIds (ronda ya guardada): select con `program` y segunda línea completa', async () => {
+    const { client, selects } = fakeClient([
+      { ...EPISODE_PIN, content: EPISODE_CONTENT },
+    ])
+
+    const directory = await getPinDirectoryByIds(['pin-ep'], client)
+
+    expect(selects[0]).toMatch(/episode \(\s*program,\s*episode_kind\s*\)/)
+    expect(directory['pin-ep'].displaySecondary).toBe('Brand to Table Podcast')
   })
 })

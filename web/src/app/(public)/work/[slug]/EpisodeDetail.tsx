@@ -1,5 +1,6 @@
 'use client'
 
+import { episodeKindLabel } from '@/modules/content/domain/episodeLabels'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -53,13 +54,6 @@ function embedUrl(episode: PublicEpisode): string {
       // asume un episodio de Spotify, no un show completo — a confirmar
       // si algún día se sube contenido que no encaje aquí.
       return `https://open.spotify.com/embed/episode/${episode.embedId}`
-  }
-}
-
-function episodeKindLabel(kind: PublicEpisode['episodeKind']): string {
-  switch (kind) {
-    case 'podcast':
-      return 'Podcast'
   }
 }
 

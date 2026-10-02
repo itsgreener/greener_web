@@ -1,10 +1,16 @@
 import { describe, it, expect } from 'vitest'
+import fc from 'fast-check'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import {
   columnReservationForRatio,
+  computeContentBlockGeometry,
   contentBlockImageDimensions,
+  CONTENT_BLOCK_TEXT_GAP_PX,
   mobileContentImageDimensions,
 } from '@/modules/masonry/domain/detailLayout'
+import { columnsForViewport } from '@/modules/masonry/domain/layout'
 
 describe('columnReservationForRatio — tabla base de 6 columnas (especificacion-final-formato-detalle.md §2)', () => {
   it('16:9 → 5 columnas de contenido, 1 de recomendación', () => {
@@ -145,5 +151,250 @@ describe('mobileContentImageDimensions — placeholder de móvil (decisión del 
     const a = mobileContentImageDimensions('16:9', 400)
     const b = mobileContentImageDimensions('16:9', 400)
     expect(a).toEqual(b)
+  })
+})
+
+// ---------------------------------------------------------------------
+// Texto de tipo A limitado a una columna (2 oct 2026)
+// ---------------------------------------------------------------------
+
+const ALL_RATIOS = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
+const RATIO_DECIMAL: Record<(typeof ALL_RATIOS)[number], number> = {
+  '16:9': 16 / 9,
+  '1:1': 1,
+  '4:3': 4 / 3,
+  '4:5': 4 / 5,
+  '3:4': 3 / 4,
+  '2:3': 2 / 3,
+  '9:16': 9 / 16,
+}
+const ratioArb = fc.constantFrom(...ALL_RATIOS)
+
+describe('contentBlockImageDimensions con textReserve — el texto nunca queda por debajo de su ancho', () => {
+  it('sin textReserve el resultado es exactamente el de siempre', () => {
+    fc.assert(
+      fc.property(
+        ratioArb,
+        fc.integer({ min: 200, max: 3000 }),
+        fc.integer({ min: 400, max: 2000 }),
+        (ratio, available, viewport) => {
+          expect(
+            contentBlockImageDimensions(ratio, available, viewport),
+          ).toEqual(
+            contentBlockImageDimensions(ratio, available, viewport, undefined),
+          )
+        },
+      ),
+    )
+  })
+
+  it('imagen + hueco + texto nunca superan el ancho útil, para cualquier ratio y viewport', () => {
+    fc.assert(
+      fc.property(
+        ratioArb,
+        fc.integer({ min: 300, max: 3000 }), // ancho útil reservado
+        fc.integer({ min: 400, max: 2000 }), // alto del viewport
+        fc.integer({ min: 120, max: 280 }), // una columna
+        (ratio, available, viewport, column) => {
+          fc.pre(available > column + 16)
+          const { width } = contentBlockImageDimensions(
+            ratio,
+            available,
+            viewport,
+            { widthPx: column, gapPx: 16 },
+          )
+          expect(width + 16 + column).toBeLessThanOrEqual(available + 0.001)
+        },
+      ),
+      { numRuns: 1000 },
+    )
+  })
+
+  it('el ratio se respeta siempre y la imagen nunca crece respecto a la regla antigua', () => {
+    fc.assert(
+      fc.property(
+        ratioArb,
+        fc.integer({ min: 300, max: 3000 }),
+        fc.integer({ min: 400, max: 2000 }),
+        fc.integer({ min: 120, max: 280 }),
+        (ratio, available, viewport, column) => {
+          fc.pre(available > column + 16)
+          const old = contentBlockImageDimensions(ratio, available, viewport)
+          const next = contentBlockImageDimensions(ratio, available, viewport, {
+            widthPx: column,
+            gapPx: 16,
+          })
+          expect(next.width / next.height).toBeCloseTo(RATIO_DECIMAL[ratio], 5)
+          expect(next.width).toBeLessThanOrEqual(old.width + 0.001)
+          expect(next.height).toBeLessThanOrEqual(old.height + 0.001)
+        },
+      ),
+      { numRuns: 1000 },
+    )
+  })
+
+  it('si la regla antigua ya deja sitio de sobra, la imagen no se toca', () => {
+    // Vertical 9:16 en un bloque ancho: la imagen es estrecha y el texto cabe.
+    const old = contentBlockImageDimensions('9:16', 1200, 800)
+    const next = contentBlockImageDimensions('9:16', 1200, 800, {
+      widthPx: 200,
+      gapPx: 16,
+    })
+    expect(next).toEqual(old)
+  })
+})
+
+describe('computeContentBlockGeometry', () => {
+  const COLUMNS_BY_WIDTH = columnsForViewport
+
+  function base(
+    containerWidth: number,
+    ratio = '4:3' as (typeof ALL_RATIOS)[number],
+  ) {
+    const totalColumns = COLUMNS_BY_WIDTH(containerWidth)
+    return {
+      containerWidth,
+      viewportHeight: 800,
+      ratio,
+      totalColumns,
+      contentColumns: columnReservationForRatio(ratio, totalColumns)
+        .contentColumns,
+    }
+  }
+
+  it('sin medir (ancho o alto 0) devuelve todo a 0', () => {
+    expect(
+      computeContentBlockGeometry({ ...base(1300), containerWidth: 0 }),
+    ).toEqual({
+      imageWidth: 0,
+      imageHeight: 0,
+      reservedWidth: 0,
+      textColumnWidth: 0,
+    })
+    expect(
+      computeContentBlockGeometry({ ...base(1300), viewportHeight: 0 })
+        .textColumnWidth,
+    ).toBe(0)
+  })
+
+  it('SIN textColumn (casos y episodios) coincide con la fórmula original de siempre', () => {
+    fc.assert(
+      fc.property(
+        ratioArb,
+        fc.integer({ min: 300, max: 2800 }),
+        fc.integer({ min: 400, max: 1600 }),
+        fc.boolean(), // fullWidthContent
+        (ratio, containerWidth, viewportHeight, fullWidth) => {
+          const totalColumns = COLUMNS_BY_WIDTH(containerWidth)
+          const contentColumns = fullWidth
+            ? totalColumns
+            : columnReservationForRatio(ratio, totalColumns).contentColumns
+
+          // Oráculo: la fórmula tal y como estaba inline en el hook.
+          const GAP = 12
+          const columnWidth =
+            (containerWidth - GAP * (totalColumns - 1)) / totalColumns
+          const reservedWidth =
+            contentColumns * columnWidth + GAP * (contentColumns - 1)
+          const image =
+            totalColumns <= 2
+              ? mobileContentImageDimensions(ratio, reservedWidth)
+              : contentBlockImageDimensions(
+                  ratio,
+                  reservedWidth,
+                  viewportHeight,
+                )
+
+          const got = computeContentBlockGeometry({
+            containerWidth,
+            viewportHeight,
+            ratio,
+            totalColumns,
+            contentColumns,
+          })
+
+          expect(got).toEqual({
+            imageWidth: image.width,
+            imageHeight: image.height,
+            reservedWidth,
+            textColumnWidth: 0,
+          })
+        },
+      ),
+      { numRuns: 500 },
+    )
+  })
+
+  it('CON textColumn en escritorio: el texto mide exactamente una columna y siempre cabe a su lado', () => {
+    fc.assert(
+      fc.property(
+        ratioArb,
+        fc.integer({ min: 900, max: 2800 }), // ≥ 3 columnas (no móvil)
+        fc.integer({ min: 400, max: 1600 }),
+        (ratio, containerWidth, viewportHeight) => {
+          const totalColumns = COLUMNS_BY_WIDTH(containerWidth)
+          const { contentColumns } = columnReservationForRatio(
+            ratio,
+            totalColumns,
+          )
+          const geo = computeContentBlockGeometry({
+            containerWidth,
+            viewportHeight,
+            ratio,
+            totalColumns,
+            contentColumns,
+            textColumn: true,
+          })
+
+          const columnWidth =
+            (containerWidth - 12 * (totalColumns - 1)) / totalColumns
+          expect(geo.textColumnWidth).toBeCloseTo(columnWidth, 6)
+          // El texto, a ancho completo, cabe junto a la imagen dentro del bloque.
+          expect(
+            geo.imageWidth + CONTENT_BLOCK_TEXT_GAP_PX + geo.textColumnWidth,
+          ).toBeLessThanOrEqual(geo.reservedWidth + 0.001)
+          // y la imagen sigue teniendo un tamaño real.
+          expect(geo.imageWidth).toBeGreaterThan(0)
+          expect(geo.imageHeight).toBeGreaterThan(0)
+        },
+      ),
+      { numRuns: 1000 },
+    )
+  })
+
+  it('móvil (<3 columnas): placeholder intacto, sin regla de una columna', () => {
+    const geo = computeContentBlockGeometry({
+      containerWidth: 360,
+      viewportHeight: 800,
+      ratio: '4:5',
+      totalColumns: 2,
+      contentColumns: 2,
+      textColumn: true,
+    })
+    expect(geo.textColumnWidth).toBe(0)
+    expect(geo.imageWidth).toBe(geo.reservedWidth)
+  })
+
+  it('CONTENT_BLOCK_TEXT_GAP_PX coincide con el gap real de .contentBlock en el CSS', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/components/detail/ToolInsightDetail.module.css'),
+      'utf8',
+    )
+    const globals = readFileSync(
+      join(process.cwd(), 'src/app/globals.css'),
+      'utf8',
+    )
+    const gapVar = css.match(/\.contentBlock\s*\{[^}]*gap:\s*var\((--[\w-]+)\)/)
+    expect(gapVar, '.contentBlock debe usar gap: var(--space-*)').not.toBeNull()
+    const value = globals.match(new RegExp(`${gapVar![1]}:\\s*(\\d+)px`))
+    expect(Number(value![1])).toBe(CONTENT_BLOCK_TEXT_GAP_PX)
+  })
+
+  it('el CSS de .text usa --text-column-width como max-width', () => {
+    const css = readFileSync(
+      join(process.cwd(), 'src/components/detail/ToolInsightDetail.module.css'),
+      'utf8',
+    )
+    expect(css).toMatch(/\.text\s*\{[^}]*max-width:\s*var\(--text-column-width/)
   })
 })
