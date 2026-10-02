@@ -56,7 +56,8 @@ function EditPinForm({
         <>
           <input name="label" type="hidden" value="" />
           <p>
-            Texto del feed automático: título + cliente (Case) o tipo de episodio (Episode).
+            Texto del feed automático: título + cliente (Case) o tipo de
+            episodio (Episode).
           </p>
         </>
       ) : (
@@ -210,7 +211,7 @@ export default function PinList({ contentId, contentType, pins }: Props) {
               <td>
                 {derivedLabel
                   ? 'Automático: título + cliente/tipo de episodio'
-                  : pin.label ?? '—'}
+                  : (pin.label ?? '—')}
               </td>
               <td>{pin.ratio}</td>
               <td>{pin.queueOrder}</td>

@@ -148,7 +148,7 @@ const SHELL_STYLES = `
     display: grid;
     grid-template-columns: var(--greener-sidebar-width) minmax(0, 1fr);
     width: 100%;
-    min-height: 100dvh;
+    height: 100dvh;
   }
 
   .greener-sidebar {

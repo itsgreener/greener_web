@@ -79,7 +79,9 @@ describe('buildContentSecurityPolicy', () => {
   it('img-src y media-src incluyen res.cloudinary.com (portadas, carrusel, pines y vídeo — sin next/image de por medio)', () => {
     const csp = buildContentSecurityPolicy(INPUT)
 
-    expect(csp).toContain(`img-src 'self' data: blob: https://res.cloudinary.com`)
+    expect(csp).toContain(
+      `img-src 'self' data: blob: https://res.cloudinary.com`,
+    )
     expect(csp).toContain(`media-src 'self' blob: https://res.cloudinary.com`)
   })
 

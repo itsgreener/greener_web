@@ -18,3 +18,19 @@ export function publicContentPath(type: ContentType, slug: string): string {
       return `/variety/${slug}`
   }
 }
+
+/**
+ * Destino al que lleva un PIN del feed (home, subhomes y relacionados).
+ *
+ * Igual que `publicContentPath` salvo en insights: el pin salta la página
+ * de detalle (/insights/[slug]) y abre directamente el contenido real en
+ * /insights/[slug]/app (decisión del 2 oct 2026). La página de detalle se
+ * mantiene intacta y sigue siendo la URL canónica (sitemap, preview,
+ * compartir); solo el feed deja de pasar por ella.
+ *
+ * Las tools NO cambian: siguen yendo a /tools/[slug].
+ */
+export function feedPinDestination(type: ContentType, slug: string): string {
+  const path = publicContentPath(type, slug)
+  return type === 'insight' ? `${path}/app` : path
+}

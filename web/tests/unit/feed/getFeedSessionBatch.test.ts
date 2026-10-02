@@ -154,6 +154,14 @@ describe('getFeedSessionBatch', () => {
     expect(second.items.length).toBe(4)
   })
 
+  it('devuelve el índice de ronda (round) que lee el evento Feed Depth', async () => {
+    const first = await getFeedSessionBatch(SESSION.id, null, deps)
+    const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+
+    expect(first.round).toBe(0)
+    expect(second.round).toBe(1)
+  })
+
   it('un cursor de otra sesión se rechaza (InvalidFeedCursorError)', async () => {
     const cursorDeOtraSesion = encodeCursor({
       sessionId: 'otra-sesion',
@@ -212,7 +220,9 @@ describe('getFeedSessionBatch', () => {
     expect(toolItem?.cta).toBe('Use')
     expect(toolItem?.destination).toBe('/tools/tool-1-slug')
     expect(insightItem?.cta).toBe('Read')
-    expect(insightItem?.destination).toBe('/insights/insight-1-slug')
+    // Los insights abren directamente el contenido real (/app), sin
+    // pasar por su página de detalle; las tools siguen yendo al detalle.
+    expect(insightItem?.destination).toBe('/insights/insight-1-slug/app')
   })
 
   it('para una ronda nueva, pide el dataset con el scope de la sesión, no siempre "home"', async () => {

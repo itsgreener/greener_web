@@ -37,26 +37,20 @@ export default function AdminLoginPage() {
     <main className="admin-login-page">
       <section className="admin-login-card">
         <div className="admin-login-brand">
-          <div className="admin-login-brand-name">
-            Greener
-          </div>
+          <div className="admin-login-brand-name">Greener</div>
 
-          <div className="admin-login-brand-label">
-            Admin
-          </div>
+          <div className="admin-login-brand-label">Admin</div>
         </div>
 
         <div className="admin-login-content">
           <div className="admin-login-heading">
-            <p className="admin-page-eyebrow">
-              Panel de administración
-            </p>
+            <p className="admin-page-eyebrow">Panel de administración</p>
 
             <h1>Bienvenido</h1>
 
             <p>
-              Accede para gestionar contenidos, publicaciones,
-              herramientas y recursos de Greener.
+              Accede para gestionar contenidos, publicaciones, herramientas y
+              recursos de Greener.
             </p>
           </div>
 
@@ -66,10 +60,7 @@ export default function AdminLoginPage() {
             onClick={loginWithGoogle}
             disabled={loading}
           >
-            <span
-              className="admin-google-icon"
-              aria-hidden="true"
-            >
+            <span className="admin-google-icon" aria-hidden="true">
               <svg
                 viewBox="0 0 24 24"
                 width="20"
@@ -96,41 +87,29 @@ export default function AdminLoginPage() {
             </span>
 
             <span>
-              {loading
-                ? 'Conectando con Google...'
-                : 'Continuar con Google'}
+              {loading ? 'Conectando con Google...' : 'Continuar con Google'}
             </span>
           </button>
 
           {errorMessage && (
-            <div
-              className="admin-login-error"
-              role="alert"
-            >
+            <div className="admin-login-error" role="alert">
               {errorMessage}
             </div>
           )}
 
           <div className="admin-login-security">
-            <span aria-hidden="true">
-              ✓
-            </span>
+            <span aria-hidden="true">✓</span>
 
             <p>
-              Utiliza una cuenta corporativa autorizada para acceder
-              al panel.
+              Utiliza una cuenta corporativa autorizada para acceder al panel.
             </p>
           </div>
         </div>
 
         <footer className="admin-login-footer">
-          <Link href="/">
-            ← Volver a la web
-          </Link>
+          <Link href="/">← Volver a la web</Link>
 
-          <span>
-            Greener Admin
-          </span>
+          <span>Greener Admin</span>
         </footer>
       </section>
     </main>

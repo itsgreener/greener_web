@@ -1,3 +1,4 @@
+import { feedPinDestination } from '@/modules/content/domain/contentPath'
 import { generateRound } from '@/modules/feed/domain'
 import {
   getFeedSessionRow,
@@ -33,6 +34,9 @@ export interface FeedBatchItem {
 export interface FeedBatchResult {
   items: FeedBatchItem[]
   cursor: string
+  // Índice de la ronda a la que pertenece este lote (§8.5, §16.3). Lo lee
+  // el evento «Feed Depth» de analítica (useFeed.ts).
+  round: number
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
@@ -52,27 +56,13 @@ export class InvalidFeedCursorError extends Error {
   }
 }
 
-// especificacion-final-formato-detalle.md §7: episode se unifica con
-// case bajo /work/[slug] (tipo B) — ya no tiene ruta propia /channel.
+// Destino del pin: ver feedPinDestination (contentPath.ts). Los insights
+// abren directamente /insights/[slug]/app, sin pasar por su detalle.
 function destinationFor(
   contentType: PinDirectoryEntry['contentType'],
   slug: string,
 ): string {
-  switch (contentType) {
-    case 'case':
-    case 'episode':
-      return `/work/${slug}`
-    case 'tool':
-      return `/tools/${slug}`
-    case 'insight':
-      return `/insights/${slug}`
-    case 'other':
-      // especificacion-final-formato-detalle.md §7 (ampliado el 21 sep):
-      // prefijo propio en vez de raíz, para no arriesgar colisión con
-      // /work, /tools, /insights, /channel, /contact, /admin, /preview
-      // — decisión cerrada, ya no es una suposición.
-      return `/variety/${slug}`
-  }
+  return feedPinDestination(contentType, slug)
 }
 
 function kindFor(contentType: PinDirectoryEntry['contentType']): string {
@@ -205,6 +195,7 @@ export async function getFeedSessionBatch(
   return {
     items,
     cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
+    round: roundIndex,
     hasMore: true,
   }
 }

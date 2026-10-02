@@ -1732,11 +1732,7 @@ body {
   place-items: center;
   padding: 32px 20px;
   background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(25, 65, 245, 0.08),
-      transparent 35%
-    ),
+    radial-gradient(circle at 50% 0%, rgba(25, 65, 245, 0.08), transparent 35%),
     #f6f7f9;
 }
 

@@ -104,19 +104,11 @@ export function createSignedVideoUpload(): SignedMediaUpload {
 }
 
 function isPositiveInteger(value: unknown): value is number {
-  return (
-    typeof value === 'number' &&
-    Number.isInteger(value) &&
-    value > 0
-  )
+  return typeof value === 'number' && Number.isInteger(value) && value > 0
 }
 
 function isPositiveNumber(value: unknown): value is number {
-  return (
-    typeof value === 'number' &&
-    Number.isFinite(value) &&
-    value > 0
-  )
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
 }
 
 function imageMimeFromFormat(format: string): string {
@@ -143,9 +135,7 @@ function imageMimeFromFormat(format: string): string {
 }
 
 function validationErrorMessage(
-  validation:
-    | Awaited<ReturnType<typeof validateImageFile>>
-    | null,
+  validation: Awaited<ReturnType<typeof validateImageFile>> | null,
 ): string | null {
   if (!validation) {
     return null
@@ -171,8 +161,7 @@ function validationErrorMessage(
 
     case 'IMAGE_FORMAT_NOT_ALLOWED':
       return (
-        'Formato de imagen no permitido. ' +
-        'Utiliza JPG, PNG, WebP o AVIF.'
+        'Formato de imagen no permitido. ' + 'Utiliza JPG, PNG, WebP o AVIF.'
       )
 
     default:
@@ -271,13 +260,7 @@ export async function verifyCloudinaryImageAsset(
     )
   }
 
-  const allowedFormats = new Set([
-    'jpg',
-    'jpeg',
-    'png',
-    'webp',
-    'avif',
-  ])
+  const allowedFormats = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
 
   if (!allowedFormats.has(format)) {
     throw new CloudinaryImageVerificationError(
@@ -311,23 +294,17 @@ export async function verifyCloudinaryImageAsset(
     name: `cloudinary.${format}`,
     type: imageMimeFromFormat(format),
 
-    size: Math.max(
-      resource.bytes,
-      buffer.byteLength,
-    ),
+    size: Math.max(resource.bytes, buffer.byteLength),
 
     async arrayBuffer() {
       return buffer
     },
   })
 
-  const validationMessage =
-    validationErrorMessage(validation)
+  const validationMessage = validationErrorMessage(validation)
 
   if (validationMessage) {
-    throw new CloudinaryImageVerificationError(
-      validationMessage,
-    )
+    throw new CloudinaryImageVerificationError(validationMessage)
   }
 
   return {
@@ -375,8 +352,7 @@ export async function verifyCloudinaryVideoAsset(
     )
   }
 
-  const resource =
-    rawResource as CloudinaryVideoResource
+  const resource = rawResource as CloudinaryVideoResource
 
   const duration = resource.duration ?? 10
 
@@ -406,18 +382,12 @@ export async function verifyCloudinaryVideoAsset(
 
   const format = resource.format.toLowerCase()
 
-  const validation = validateVideoUpload(
-    resource.bytes,
-    duration,
-  )
+  const validation = validateVideoUpload(resource.bytes, duration)
 
-  const validationMessage =
-    videoValidationErrorMessage(validation)
+  const validationMessage = videoValidationErrorMessage(validation)
 
   if (validationMessage) {
-    throw new CloudinaryVideoVerificationError(
-      validationMessage,
-    )
+    throw new CloudinaryVideoVerificationError(validationMessage)
   }
 
   return {
@@ -437,18 +407,12 @@ export async function deleteCloudinaryAsset(
   publicId: string,
   resourceType: 'image' | 'video',
 ): Promise<void> {
-  const result = await cloudinary.uploader.destroy(
-    publicId,
-    {
-      resource_type: resourceType,
-      invalidate: true,
-    },
-  )
+  const result = await cloudinary.uploader.destroy(publicId, {
+    resource_type: resourceType,
+    invalidate: true,
+  })
 
-  if (
-    result?.result !== 'ok' &&
-    result?.result !== 'not found'
-  ) {
+  if (result?.result !== 'ok' && result?.result !== 'not found') {
     throw new Error(
       `Cloudinary no ha podido borrar el recurso (${
         result?.result ?? 'sin respuesta'

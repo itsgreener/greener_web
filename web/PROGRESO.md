@@ -13,7 +13,7 @@ Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualí
 
 **Nota de numeración (23 de septiembre):** este documento se reorganizó al archivar las antiguas §2 (rediseño de detalle) y §3 (construcción del sitio público) en `historial-fases-3-4.md` — la sesión de trabajo del 22-23 de septiembre ocupa ahora la §2, y todo lo que seguía se ha renumerado en consecuencia (antigua §4 → §3, §5 → §4, §6 → §5, §7 → §6).
 
-Todas las referencias `§X` sin más contexto apuntan a secciones del documento de arquitectura. Última revisión: 28 de septiembre de 2026, verificada ejecutando el código real (no solo por lectura) — ver §2.8 (caché de assets y contrato ZIP) y §4.8 (pendientes detectados en la auditoría del mismo día).
+Todas las referencias `§X` sin más contexto apuntan a secciones del documento de arquitectura. Última revisión: 2 de octubre de 2026 (día de lanzamiento), verificada ejecutando el código real (lint, `tsc`, tests, `next build` y `prettier`) — ver §2.20 (auditoría de estado y limpieza) y el checklist actualizado en §4.
 
 ---
 
@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **785 tests automáticos, todos en verde** (`npm test`, 88 ficheros).
+- **798 tests automáticos, todos en verde** (`npm test`, 90 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -298,6 +298,62 @@ El comportamiento de "corte permanente para una subhome sin contenido real" **no
 
 **Pruebas.** 6 tests nuevos en `feedProvider.test.tsx`, el primer test que existe para `appendBatch` (no tenía ninguno). Reproducida la mutación exacta del bug original (quitar la guarda de `rateLimited`) y confirmado que los tests la detectan — 2 de 6 fallan exactamente como deberían. Actualizada la aserción de `sessionBatchRoute.test.ts`, que yo mismo había fijado con el comportamiento incorrecto el día anterior.
 
+### 2.20 Auditoría de estado y limpieza del repositorio (2 oct, día de lanzamiento)
+
+Revisión completa del zip contra el código real: `npm ci`, ESLint, `tsc`, Vitest, `next build`, Prettier y una pasada con `knip` (código, ficheros y dependencias sin usar) más revisión a mano de carpetas, esquema y documentación.
+
+**Hallazgo bloqueante, ya corregido: `next build` fallaba.** `useFeed.ts` lee `batch.round` para el evento «Feed Depth» (§2.17), pero `FeedBatchResult` (`getFeedSessionBatch.ts`) no tenía el campo ni el servicio lo devolvía. Las cuatro pruebas de humo que lo simulaban tampoco compilaban. Consecuencias: el paso de tipos del build fallaba (`TS2339`) y, aun forzándolo, el evento habría enviado `round: undefined` a Plausible. Se añade `round: number` al tipo, `getFeedSessionBatch` devuelve `round: roundIndex` y hay un test nuevo que lo fija (ronda 0 y ronda 1). Tras el arreglo: build limpio, `tsc` sin errores (salvo el falso positivo conocido de `LayoutProps` si se ejecuta antes del build, §3), ESLint a 0, 795 tests en verde. El zip del 1 oct, tal cual, **no desplegaba**: el «build limpio» anotado en §2.17-§2.19 no se re-comprobó tras integrar la segunda rama.
+
+**Formato.** `format:check` fallaba en 9 ficheros reales (`BulkPinUpload.tsx`, `edit/page.tsx`, `PinList.tsx`, `login/page.tsx`, `globals.css`, `useMasonryPositions.ts`, `cloudinaryServer.ts`, `securityHeaders.test.ts`, `greener-package-analytics.js`), procedentes sobre todo del rediseño del ABM integrado el 29 sep. Reformateados con el `.prettierrc` real, sin cambios de lógica. Solo queda `next-env.d.ts`, que es generado y está en `.gitignore`.
+
+**Carpetas vacías o con marcadores sin sentido** (propuestos para borrar, no se ha borrado nada):
+
+| Ruta                                                                                                | Qué es                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(public)/tools/[slug]/assets/[...file]/` y `insights/[slug]/assets/[...file]/`             | Directorios vacíos, resto de la ruta antigua. Las rutas reales viven en `.../[slug]/app/assets/[...file]/route.ts`.                                     |
+| `supabase/policies/`                                                                                | Vacía: las políticas RLS están dentro de las migraciones (`20260806090700_rls_policies.sql`). El documento de arquitectura (Anexo B) la preveía.        |
+| `src/components/case-blocks/`                                                                       | Solo `.gitkeep`. El editor de bloques se descartó (migración `drop_content_block_editor`).                                                              |
+| `src/lib/auth/`, `src/lib/validation/`, `src/lib/security/`, `src/modules/admin/`                   | Solo `.gitkeep`: estructura del Anexo B que nunca se llegó a usar (la auth vive en `lib/supabase/` y `proxy.ts`; los schemas zod, junto a cada módulo). |
+| `.gitkeep` en `modules/analytics/`, `modules/content/infrastructure/`, `modules/media/application/` | Carpetas que ya tienen ficheros: el marcador sobra.                                                                                                     |
+
+**Código y ficheros sin uso:**
+
+- `src/modules/packages/infrastructure/localPackageSource.ts`: nada lo importa (solo lo citan dos comentarios). Es el origen de paquetes desde disco de la época de los spikes; hoy todo va por `supabaseStorageSource.ts`. El fixture `fixtures/tools/pixel-palette/` **sí** se usa (`pixelPaletteWorker.test.ts`), así que se queda.
+- Dependencias que nadie importa: `next-cloudinary`, `react-hook-form` y `@hookform/resolvers` (el §24.5 las preveía; los formularios del ABM usan Server Actions con zod directamente) y `@types/adm-zip` en devDependencies (revisar: `adm-zip` sí se usa).
+- `ADMIN_ALLOWED_DOMAIN_FALLBACK`: está en `env.ts` y en `.env.local.example`, pero ningún código la lee. O se implementa el respaldo o se retira de ambos.
+- Iconos: **todos** los SVG de `public/icons/` se usan (el Shell los compone por nombre). `shop.svg` va con el item «Shop» oculto a propósito.
+- Exports que solo se usan dentro de su propio fichero (`getVideoSlotLimit`, `buildFeedUnitsForPin`, `RATE_LIMIT_WINDOW_MS`, `pinLocaleSchema`…) y 33 tipos exportados sin importador: ruido, sin impacto; no merece tocarlos hoy.
+- Se conservan a propósito, aunque nada de producción los use: `scripts/generate-demo-data.mjs`, `data/demo/feed-snapshot.json`, `supabase/seed_demo_data.sql` y las rutas `/api/feed/demo` y `/preview/masonry` (404 en producción, §2.14) — son el entorno de pruebas del feed.
+- Tablas sin uso en el código, conservadas por decisión: `redirect_301`, `tag`/`content_tag` (filtros fuera de V1), `admin_profile`. `audit_log` y `admin_allowed_domain` solo las tocan las funciones SQL, no el código TypeScript — correcto, pero no hay visor (§4).
+- `feed_config.video_limit_*` existe en el esquema pero no se lee (ver §4).
+
+**Basura que no debería viajar en el zip:** `.DS_Store` (7 ficheros), `tsconfig.tsbuildinfo` (224 KB, ignorado por git), `next-env.d.ts` (generado), y `supabase/.temp/` (incluye `linked-project.json` y `pooler-url`, ya en `.gitignore`). El zip llega con la carpeta `__MACOSX/`, que además hace fallar ESLint (318 «errores» de parseo): hay que borrarla antes de lintar.
+
+**Documentación desactualizada o ausente:**
+
+- Faltan en el zip `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md`, que `PROGRESO.md` cita como fuente del porqué de decisiones. Hay que recuperarlos del repositorio (si no existen en git, el historial se ha perdido).
+- `estructura-src.txt` está obsoleto (le faltan 20 o más ficheros, entre ellos todo lo de preview, rate limit, sitemap y analítica); `estructura-migrations.txt` sí coincide (40). Son volcados generados: o se regeneran o se eliminan.
+- `supabase/README.md` lista migraciones antiguas (ya anotado en §3).
+- `contrato-zip-tools-insights.md` §1 sigue diciendo «solo js/css/json/png/svg» pese a la ampliación del 29 sep.
+
+---
+
+### 2.21 Insights: el pin del feed abre directamente `/insights/[slug]/app` (2 oct)
+
+Cambio de flujo pedido por Greener, **solo para insights**: home → clic en el pin → `/insights/{slug}/app` (contenido real), sin pasar por la página de detalle. Por prisa, la página `/insights/{slug}` **se mantiene tal cual** (sigue existiendo, es la URL canónica del sitemap, la del preview firmado y la que se comparte); solo cambia a dónde apunta el pin.
+
+**Dónde:** `feedPinDestination()` (nuevo, `modules/content/domain/contentPath.ts`) devuelve `${publicContentPath}/app` para `insight` y `publicContentPath` para el resto; `destinationFor` de `getFeedSessionBatch.ts` delega en ella. `publicContentPath` no se toca, así que sitemap, preview y enlaces del ABM siguen apuntando al detalle. Las tools **no** cambian (siguen yendo a `/tools/[slug]`).
+
+**Alcance real:** el cambio vive en la API del feed, así que afecta a **todo pin de insight**: home, subhome `/insights` y los feeds de «relacionados» de las páginas de detalle (casos, episodios, tools, insights). Se decidió así para que un insight se comporte igual venga de donde venga. Si Greener quisiera solo la home, habría que filtrar por `scope` en `getFeedSessionBatch`.
+
+**Pruebas:** 3 tests nuevos en `contentPath.test.ts` y actualizada la aserción de `getFeedSessionBatch.test.ts` (insight → `/insights/insight-1-slug/app`, tool sigue en `/tools/tool-1-slug`). 798 tests, build, ESLint, `tsc` y Prettier limpios.
+
+**Efectos colaterales conocidos (no se han tocado):**
+
+1. **«Insight Open» deja de contarse para los clics del feed.** Lo dispara `ContentOpenTracker` dentro de la página de detalle, y `/app` es un documento HTML autónomo con CSP `script-src 'self'` y sin el tracker del sitio. «Pin Click» con `destinationType: insight` y `section` sí sigue disparándose desde el pin, así que el interés por insights se sigue midiendo, pero «Insight Open» solo contará a quien llegue al detalle por URL directa. Arreglo posible: enviarlo desde el servidor en `insights/[slug]/app/route.ts` (como «Tool Used» antes de §2.18), con cuidado de no duplicar cuando el visitante venga del detalle.
+2. **El CTA del pin sigue diciendo «Read»** (`ctaFor`); sigue siendo coherente.
+3. **Sin preview de borrador en `/app`** (ya anotado en §4.2): un insight en preview firmado se abre en su detalle, pero el pin del feed solo existe si está publicado, así que no hay 404 por esto (la migración `block_publish_tool_insight_without_package` impide publicar un insight sin paquete).
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -308,7 +364,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 785 tests (unit + property-based + smoke con jsdom)
+npm test                     # 798 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -320,84 +376,72 @@ Para arrancar en local contra datos reales: `.env.local` con `NEXT_PUBLIC_SUPABA
 
 ---
 
-## 4. Próximos pasos — checklist por fases
+## 4. Próximos pasos — checklist actualizado (2 de octubre de 2026)
 
-Basado en el Anexo E ("paso a paso óptimo de ejecución") del documento de arquitectura, cruzado con el estado real verificado. `[x]` hecho y verificado · `[~]` hecho parcialmente / sin verificar del todo · `[ ]` pendiente.
+Reorganizado el 2 oct: las antiguas fases por fecha (Fase 1 al 15 ago, Fase 5 del 26-30 sep…) ya están todas vencidas, así que el checklist se ordena ahora por **urgencia real**. Cruzado con el Anexo E del documento de arquitectura y con lo verificado ejecutando el código (§2.20). `[x]` hecho y verificado · `[~]` parcial o sin verificar del todo · `[ ]` pendiente.
 
-### 4.1 Housekeeping inmediato
+Las referencias a «§4.8» que quedan dentro de §2 apuntan a la lista de pendientes del 28 sep, que ya no existe como tal: sus puntos se han redistribuido en §4.1-§4.4.
 
-Completo — ver `historial-fases-0-2.md` y `historial-fases-3-4.md` para el detalle. Único punto que seguía abierto ahí, sin relación con esta sesión:
+### 4.1 Hoy, antes de apagar el sitio actual (bloqueantes de lanzamiento)
 
-- [ ] Confirmar con quien lleve el login del ABM el estado real de esa parte y añadir tests.
+- [x] **`next build` en verde** — estaba roto por el campo `round` que faltaba en `FeedBatchResult` (§2.20). Corregido y con test. **Hay que desplegar desde este zip, no desde el del 1 oct.**
+- [ ] **Supabase → Authentication → URL Configuration**: cambiar el _Site URL_ de `http://localhost:3000` a `https://itsgreener.com` y añadir las _Redirect URLs_ del dominio real (`https://itsgreener.com/auth/callback`). Sin esto el login del ABM en producción redirige a localhost.
+- [ ] **Cliente OAuth de Google** (Google Cloud Console): añadir el origen y la URI de redirección de producción.
+- [ ] **`.env.local` de producción**: confirmar `NEXT_PUBLIC_SITE_URL=https://itsgreener.com` (sin barra final), `NEXT_PUBLIC_PLAUSIBLE_DOMAIN=itsgreener.com`, `CONTACT_IP_HASH_SALT` propia y `SUPABASE_SECRET_KEY` real.
+- [ ] **Las tres comprobaciones del proxy de Dinahosting** (`despliegue.md` §6), que solo se ven desplegado: (1) subida de un ZIP de ~10 MB; (2) que las Server Actions funcionen tras el proxy; (3) que llegue la IP real del visitante (si no, el límite de 5 mensajes de contacto por hora se aplica al sitio entero).
+- [ ] Confirmar el `HOSTNAME` que usa el proxy (127.0.0.1 o 0.0.0.0), que Node 24 vía nvm está activo para PM2 y contrastar el cron de reinicio que ya existe con el vigilante de `despliegue.md`.
+- [ ] **Comprobar en navegador real, ya desplegado**, que Plausible recibe eventos (la CSP que lo bloqueaba se corrigió el 28 sep pero no se ha visto en producción) y recorrer `cookies-inventario.md` §6.
+- [ ] **Textos legales en `/privacy`**: sigue siendo un placeholder (enlazado desde el menú y desde el formulario de contacto). Los aporta Greener; `cookies-inventario.md` recoge los hechos técnicos.
+- [ ] **Carga real de contenido por Greener** contra el ABM (el dataset de demo no incluye ninguna tool ni insight; `/insights` y `/tools` salen vacías hasta entonces).
+- [ ] **Insight Open tras el cambio de flujo (§2.21)**: decidir si se envía desde el servidor en `/insights/[slug]/app` (hoy no cuenta los clics del feed).
+- [ ] Tras publicar: apagar las apps `tools.itsgreener.com` e `insight.itsgreener.com` (decidido sin 301) y, opcional, `site:` en Google para ver qué tenían indexado.
 
-### 4.2 Fase 1 (hasta el 15 de agosto)
+### 4.2 Primera semana tras el lanzamiento (riesgo real, arreglo corto)
 
-- [~] Especificación de formatos para Greener (Anexo A.1) — **límites de caracteres cerrados e implementados el 22 sep, ver §2.3**. Sigue sin cerrar el resto: ratios/dimensiones por breakpoint, códecs de vídeo, contrato ZIP definitivo (aunque `contrato-zip-tools-insights.md` ya cubre buena parte).
-- [x] Inventario de URLs actuales para las redirecciones 301 — **cerrado sin hacer** (28 sep): ni las apps antiguas de tools e insights ni el sitio corporativo actual se redirigen; ver §4.8.
-- [ ] Ajustar el algoritmo de layout masonry con el diseño real cuando esté disponible.
-
-### 4.3 Fase 2 (hasta el 1 de septiembre) — ABM base
-
-Completa, incluido `preview` (cerrado el 23 sep, §2.6) — ver historial Fases 0-2 y §2.6. Sin nada pendiente.
-
-### 4.4 Fase 3 — home y `/work` (hasta el 15 de septiembre)
-
-Completa — ver historial Fases 3-4. Único punto abierto:
-
-- [ ] Primeras métricas reales de LCP/CLS — todavía no medido contra contenido real, solo contra el dataset de demo.
-
-### 4.5 Fase 4 — tipo A y resto del sitio (hasta el 22 de septiembre)
-
-Verificación server-side de imagen y vídeo en Cloudinary, cabeceras de seguridad globales, panel de recomendaciones, Tipo A y Channel — completos, ver historial Fases 3-4 y §2.4. Queda abierto:
-
-- [~] Contacto — formulario real cerrado. Mailchimp (doble opt-in de newsletter) sigue fuera a propósito, es un flujo aparte.
-- [~] Páginas legales — solo placeholder de `/privacy`, **ya enlazada** desde el menú lateral y desde el formulario de contacto (28 sep). Falta el contenido real (aviso legal, privacidad y cookies, condiciones), que aporta Greener; `cookies-inventario.md` recoge los hechos técnicos para redactarlo.
-- [~] Analítica Plausible — **integración real cerrada el 23 sep (§2.7)**, pero solo dispara "Pin Click": faltan "Case Open", "Tool Open"/"Tool Used", "Insight Open", "Episode Play", "Newsletter Signup" y "Feed Depth" (§18.2).
-
-### 4.6 Fase 5 (26-30 de septiembre) — QA y cierre
-
-- [ ] Tests E2E de los criterios de aceptación críticos de §20.1.
-- [x] Auditoría de cookies y consentimiento — **decidido y construido el 28 sep, opción A sin banner** (§2.11): ningún embed de tercero (YouTube incluido) se carga hasta que el visitante pulsa, con aviso en inglés, sin recordar la elección y con enlace a «Privacy & Cookies». Queda lo que no depende del código: los textos legales de Greener y la comprobación en navegador de `cookies-inventario.md` §6.
-- [x] Verificación de las redirecciones 301 — no aplica: no habrá redirecciones (28 sep, §4.8).
-- [ ] Accesibilidad: teclado, foco, contraste, `prefers-reduced-motion`, menú solo-iconos con labels. `alt` de `case_detail_media` ya cerrado; pendiente el resto.
-- [ ] Carga real de contenido por Greener contra el ABM ya terminado.
-
-### 4.7 1 de octubre — Publicación y monitorización reforzada
-
-### 4.8 Pendientes detectados en la auditoría del 28 de septiembre
-
-Comprobados leyendo y ejecutando el código, no supuestos. Lo que ya figura arriba (E2E, cookies/CMP, accesibilidad, LCP/CLS, legales, Mailchimp) no se repite.
-
-- [ ] **Sin tope al tamaño descomprimido del ZIP**: el límite de 10 MB es sobre el `.zip` comprimido; `validateHtmlPackageZip` descomprime todas las entradas en memoria sin mirar su tamaño real, así que un ZIP pequeño con mucha redundancia (zip bomb) podría agotar memoria. Riesgo bajo (solo suben admins autenticados), arreglo barato: comprobar `entry.header.size` antes de `getData()` y un tope total.
-- [x] **Escáner de dominios — falso positivo del namespace SVG corregido el 29 sep (§2.13).** `xmlns="http://www.w3.org/2000/svg"` y los otros namespaces XML estándar (XLink, XHTML, MathML…) ya no cuentan como dominio externo; una URL real de w3.org que no sea exactamente uno de esos namespaces sigue contando. Las cabeceras de licencia de librerías (`threejs.org`, `github.com`…) **siguen sin poder distinguirse por texto** de una referencia real — se mantiene documentado en el contrato, hay que seguir declarándolas.
-- [x] **Bug real de raíz, corregido el 29 sep — todo asset de toda tool/insight daba 404 en producción.** Las rutas `/tools|insights/[slug]/app/assets/[...file]` pedían a Storage `<versión>/<fichero>` en vez de `<versión>/assets/<fichero>`: Next.js consume `assets` como segmento fijo de la ruta, así que no llegaba en el parámetro `file`, pero en Storage el fichero SÍ vive bajo `assets/` (el ZIP se sube conservando su estructura interna). Bug presente desde el primer zip, nunca detectado por los tests porque mockean Storage. **Encontrado y corregido por el equipo el 28 sep, integrado y verificado aquí el 29 sep contra un servidor real** (§2.12): con un Storage simulado real (no solo mocks de Vitest) y `node server.js` sirviendo el build, se confirmó que la petición HTTP ahora sí lleva `/assets/`. Relacionado y cerrado el mismo día (§2.13): la subida ahora **rechaza** directamente cualquier fichero fuera de `assets/` (que no sea `index.html`/`manifest.json`), en vez de aceptarlo y descubrirlo como 404 más tarde.
-- [x] **Tipos de archivo ampliados (29 sep, §2.12):** WOFF2, WOFF, JPEG y WebP ahora se sirven con su Content-Type real (antes salían como `application/octet-stream`); necesario para que una tipografía propia (Coolvetica, usada en los insights reales) se aplique. La extensión se normaliza a minúsculas. `contrato-zip-tools-insights.md` §1 sigue sin actualizar (dice "solo js/css/json/png/svg") — pendiente.
-- [x] **Menú lateral en `/tools|insights/[slug]/app`, sustituido por el real (29 sep, §2.14).** `composeToolDocument.ts` ahora replica el Shell de verdad (los mismos nueve iconos, mismos SVG, mismo hover con la pastilla del nombre, `lang="en"`), en vez de la mini-nav de iniciales en español que había antes. Dos implementaciones separadas del mismo menú (no puede compartir el componente React: es un documento HTML compuesto a mano) — riesgo real si `useShell.ts` cambia y esta copia no se actualiza, anotado en el propio código. **Hallazgo relacionado, también cerrado:** estas rutas se saltan `proxy.ts` entero a propósito para no mezclar su CSP propia con la global, pero eso dejaba fuera también HSTS y Referrer-Policy, sin ningún motivo para ello — añadidas directamente en las dos rutas.
-- [ ] **Sin preview de una versión en borrador del paquete**: `/app` solo lee la versión publicada, así que un admin no puede revisar el HTML antes de publicarlo; y el botón «Use» de una tool en preview de contenido lleva a un 404.
-- [x] **Redirecciones 301: CERRADO, no se harán (28 sep).** Ni para `tools.itsgreener.com`/`insight.itsgreener.com` (pruebas sin visitas y sin contenido equivalente, §2.10) ni para el sitio corporativo actual de `itsgreener.com`: tiene demasiadas URLs para inventariarlas y **desaparece por completo el viernes 2 de octubre**, sustituido en el mismo dominio por esta web. **Asumido a propósito**: tras el cambio, las URLs del sitio actual darán 404 y su posicionamiento en Google se irá perdiendo hasta que se reindexe el nuevo. Sin módulo en el ABM; la tabla `redirect_301` se conserva sin uso. Solo queda, opcional y barato: buscar `site:tools.itsgreener.com` y `site:insight.itsgreener.com`, y apagar esas dos apps cuando se publique la web nueva.
-- [x] **`sitemap.xml`, `robots.txt`, `metadataBase` y favicon** (28 sep, §2.9): hechos y probados contra el servidor real.
-- [x] **404 y error básicos** (28 sep, §2.9): `not-found.tsx`, `error.tsx` y `global-error.tsx`, en inglés y con el mismo tono que el «Cargando…» del feed. Ver el punto siguiente sobre el 404 de páginas públicas.
-- [x] **404 de una página pública (`/work/no-existe`)**: el HTML del servidor llega con el `<body>` vacío (código 404 y `noindex` correctos). **No es del proyecto**: una aplicación Next 16.3.5 recién creada, sin nada nuestro, se comporta igual. **Comprobado en un navegador real, en local (28 sep): se ve correctamente la página de `not-found` de `(public)`**, es decir, el cliente la pinta con JavaScript. Descartado uno a uno: mis páginas de 404, el layout `(public)`, proveedores y Shell, `await headers()`, `proxy.ts`, `output: 'standalone'` y el User-Agent (incluido Googlebot).
-- [x] **`/api/feed/demo` y `/preview/masonry` bloqueadas en producción (29 sep, §2.14).** Ambas responden 404 cuando `NODE_ENV=production`; siguen disponibles en desarrollo, que es donde de verdad sirven para probar el feed sin esperar al ABM.
-- [ ] **Health check** (§19.2): no existe.
-- [~] **Analítica**: `Pin Click`, `Case Open`, `Tool Open`, `Insight Open` y `Episode Play` ya se disparan (los cuatro últimos, del 28-29 sep — §2.12, con atribución de la sección de origen vía `navigationAttribution.ts`). Quedan sin cablear **`Tool Used`, `Newsletter Signup` y `Feed Depth`** (3 de 8). El fallo de la CSP que bloqueaba a Plausible en producción (§2.11) sigue sin comprobarse desplegado (`despliegue.md` §6, punto 4).
-- [x] **La CSP bloqueaba a Plausible en producción** (28 sep, §2.11): el tracker publica con `fetch` en `https://plausible.io/api/event` y `connect-src` no lo permitía, así que el navegador descartaba todos los eventos en silencio. Corregido abriendo ese origen solo si hay analítica configurada, con test. Sin comprobar en un navegador real: es semántica estándar de CSP, pero no había forma de ejecutarlo en el sandbox.
-- [x] **`/privacy` no estaba enlazada desde ninguna parte** y la casilla del formulario de contacto pedía aceptarla sin enlace (28 sep, §2.11). Ahora hay un icono «Privacy & Cookies» siempre visible en el menú lateral y la casilla enlaza a la política. La página sigue siendo un placeholder hasta que Greener aporte los textos.
-- [~] **ABM (§15.1): dashboard, listado y editor de contenidos rediseñados por completo (29 sep, §2.17) — integrado desde otra rama de trabajo, no construido en esta sesión.** El dashboard ya no es una página de 13 líneas: tiene estadísticas, contenido reciente y accesos rápidos, con un menú lateral propio (`admin/layout.tsx`). Sigue faltando lo mismo de antes: editor de `feed_config` con simulador, etiquetas, módulo de Acceso (`admin_allowed_domain`), Redirecciones, Configuración y visor de `audit_log`.
-- [x] **Etiquetas del feed**: cerrado con lo anterior, fuera de la V1 (28 sep).
-- [ ] **Límites del plan de Cloudinary** frente al volumen real (Anexo A.2): no consta en §5.
-- [~] **Despliegue (§19.1-19.2)**: `output: 'standalone'` activado y probado; guía verificada con PM2 real en `despliegue.md` (ecosystem, cambio de release con enlace simbólico, `.env.local`, vigilante de cron probado en cinco escenarios). Quedan **tres cosas del proxy de Dinahosting que solo se pueden comprobar desplegado** (`despliegue.md` §6), porque no es modificable: el límite de tamaño de la subida de ZIP, que las Server Actions funcionen tras el proxy y que llegue la IP del visitante (si no, el límite de 5 mensajes de contacto por hora se aplicaría al sitio entero). Por confirmar: el `HOSTNAME` que use el proxy (127.0.0.1 o 0.0.0.0), Node 24 vía nvm y contrastar el cron de reinicio que ya existe con el vigilante de la guía. Punto aparte: el health check.
-- [x] **Tope de copia del proxy de Next (`proxyClientMaxBodySize`) — defecto de mi diseño anterior, corregido el 28 sep** (§2.10): con `proxy.ts` presente, Next copia el cuerpo de las peticiones no-GET con un tope de 10 MiB y por encima **trunca en silencio**. Un ZIP válido (≤10 MB) cabía, pero uno de 10-20 MB llegaba cortado y fallaba con un error confuso en vez del mensaje claro. Ahora `proxyClientMaxBodySize: '25mb'`, con test de guarda.
-- [~] **Entorno de producción**: `CONTACT_IP_HASH_SALT` ya existe en el `.env.local` real; `NEXT_PUBLIC_SITE_URL` sin barra final (además, desde el 28 sep `env.ts` la recorta si viene con ella y avisa en producción si falta); dominios del ABM ya insertados en `admin_allowed_domain`. Por confirmar: redirect URLs del dominio real en Supabase Auth y en el cliente OAuth de Google, y `NEXT_PUBLIC_PLAUSIBLE_DOMAIN`.
-- [~] **`feed_session`: límite de peticiones cerrado el 29 sep (§2.16).** 12 creaciones de sesión y 50 lotes por minuto y visitante (cookie anónima), en memoria de proceso. Sigue pendiente, sin relación con esto: no hay limpieza de las filas ya caducadas en `feed_session`/`feed_round` (el único cron es el de publicación programada) — el límite de peticiones frena el ritmo de crecimiento, no borra lo que ya existe.
-- [x] **Despublicar: inmediato** (decidido el 28 sep). Se mantiene el comportamiento actual: el detalle da 404 al instante, y quien tenga el feed abierto y pulse un pin recién despublicado ve un 404. Sin cambios de código.
-- [ ] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: no aparecen en ningún sitio del código; el autoplay de vídeo y los carruseles no se desactivan. `<html lang="en">` fijo aunque haya contenido en es/ca.
-- [x] **Filtros por etiquetas: fuera de la V1** (decidido el 28 sep). No hay filtros dentro de cada categoría en el diseño manejado; la navegación por categorías (All, We did it, Podcasts, Insights, Tools) ya existe. Las tablas `tag`/`content_tag` y el parámetro `filter` de la sesión quedan sin usar; sin filtros, el conflicto entre `program` y `episode_kind` no aplica.
-- [ ] **`feed_config.video_limit_*` no se lee**: el límite 2/1 está fijo en código según el ancho (<640 px), así que lo «editable desde el ABM» no tiene efecto para vídeos.
-- [~] **SEO**: `metadataBase` resuelto y **hreflang verificado en el HTML real** (28 sep): las tres versiones de un caso (`/work/x`, `/work/x/en`, `/work/x/ca`) emiten los tres `<link rel="alternate" hreflang>` con el dominio completo y sin `//`, aunque `SITE_URL` llegara con barra final. Falta: `<link rel="canonical">` (no se emite ninguno; conviene uno autorreferente por versión de idioma) y `x-default`; y sigue sin haber JSON-LD (`VideoObject`/`PodcastEpisode`, §18.1).
-- [x] **Evento «Tool Used»: decidido el 29 sep (§2.18) — un solo mecanismo, el que cruza con «Tool Open».** Retirado el que disparaba el servidor automáticamente al entrar en `/tools/[slug]/app` (`serverAnalytics.ts`, toolId = slug, no cruzable). Se queda `greener-package-analytics.js` + `POST /api/analytics/package`: lo dispara la propia tool tras una interacción real, y resuelve el toolId al UUID real de `content`, igual que «Tool Open». Coste aceptado: depende de que cada tool llame a `window.GreenerAnalytics.toolUsed(action)` o dispare `greener:tool-used` — una tool que no lo haga nunca mostrará cero usos, aunque reciba visitas.
-- [ ] **Retención de `contact_submission` (§17.2)**: sin plazo definido ni purga.
+- [ ] **Zip bomb**: el límite de 10 MB es sobre el `.zip` comprimido; `validateHtmlPackageZip` descomprime todo en memoria sin mirar el tamaño real. Comprobar `entry.header.size` antes de `getData()` y poner un tope total. Riesgo bajo (solo suben admins autenticados), arreglo barato.
+- [ ] **Health check** (§19.2): no existe. Un `GET /api/health` que compruebe la conexión con Supabase basta, y permite que el cron/vigilante de PM2 compruebe algo más que «el proceso está vivo».
+- [ ] **Limpieza de `feed_session`/`feed_round` caducadas**: nadie las borra (el único cron es el de publicación programada). El límite de peticiones frena el ritmo de crecimiento, no borra lo existente.
+- [ ] **Retención de `contact_submission`** (§17.2): sin plazo definido ni purga; lo ideal es fijarlo junto con el texto de privacidad.
 - [ ] **Observabilidad (§19.4) y CI (§19.2)**: no hay error tracking, logs estructurados ni alertas, y el zip no trae pipeline de CI (confirmar si existe fuera del repo).
+- [ ] **Backups (§19.3)**: confirmar el plan de Supabase (copias diarias / PITR), la exportación periódica propia y la retención de Cloudinary antes de depender de ellas.
+- [ ] **Límites del plan Free de Cloudinary** frente al volumen real (Anexo A.2): créditos de transformación y ancho de banda con ~500 pines, carruseles y posters.
+- [ ] **ABM (§15.1) — módulos que faltan**: editor de `feed_config` con simulador de seed (§8.6), módulo de Acceso (`admin_allowed_domain`), Configuración y visor de `audit_log`. Hoy esas tablas solo se tocan por SQL. El dashboard, el listado y el editor de contenidos ya están rediseñados (§2.17). Redirecciones: descartado (§4.4).
+- [ ] **Preview de una versión en borrador del paquete HTML**: `/app` solo lee la versión publicada, así que un admin no puede revisar un ZIP antes de publicarlo, y el botón «Use» de una tool en preview de contenido lleva a un 404.
+
+### 4.3 Calidad: lo que el brief exigía y no está
+
+- [ ] **Tests E2E de los criterios de aceptación críticos de §20.1** (misma seed → misma secuencia, recargar → seed nueva, volver desde un detalle conserva orden y posición…). Hoy hay 795 tests unitarios/de propiedad/de humo, ninguno de navegador.
+- [ ] **Accesibilidad**: teclado, foco, contraste y menú solo-iconos con labels. `alt` de `case_detail_media` ya cerrado; falta el resto.
+- [ ] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: no existen en el código; el autoplay de vídeo y los carruseles no se desactivan.
+- [ ] **`<html lang="en">` fijo** aunque haya contenido en es/ca.
+- [ ] **`feed_config.video_limit_*` no se lee**: el límite 2/1 está fijo en `videoPlaybackCoordinator.ts` según el ancho (<640 px). O se conecta con la config, o se retiran las columnas y se dice en el ABM que no es editable.
+- [ ] **Primeras métricas reales de LCP/CLS** con contenido real (solo medido con el dataset de demo).
+- [~] **SEO**: hreflang verificado. Falta `<link rel="canonical">` autorreferente por versión de idioma, `x-default` y JSON-LD (`VideoObject`/`PodcastEpisode`, §18.1).
+- [~] **Analítica (§18.2)**: disparados `Pin Click`, `Case Open`, `Tool Open`, `Insight Open`, `Episode Play`, `Feed Depth` (ahora sí con `round` real, §2.20) y `Tool Used` (un solo mecanismo, §2.18: depende de que cada tool llame a `window.GreenerAnalytics.toolUsed(action)` o dispare `greener:tool-used`; una tool que no lo haga mostrará cero usos). Sin cablear: `Newsletter Signup`, porque no hay newsletter.
+- [~] **Contacto**: formulario real cerrado. **Mailchimp** (doble opt-in) sigue fuera a propósito, es un flujo aparte; si se quiere en la V1.0 del lanzamiento hay que decidirlo ya, porque arrastra el evento `Newsletter Signup`.
+- [~] **Especificación de formatos para Greener (Anexo A.1)**: límites de caracteres cerrados (§2.3). Sin cerrar: ratios y dimensiones por breakpoint, códecs/bitrate de vídeo, contrato ZIP definitivo (`contrato-zip-tools-insights.md` cubre buena parte).
+- [ ] **Tests del login del ABM**: confirmar con quien lo llevó el estado real y añadir tests (único punto abierto del antiguo «housekeeping»).
+- [ ] **Masonry y diseño móvil con el diseño real**: en pausa por decisión de Greener (28 sep); ajustar `layout.ts` cuando llegue.
+
+### 4.4 Cerrado o descartado a propósito (no reabrir sin motivo)
+
+- [x] Redirecciones 301: no se harán, ni del sitio actual ni de las apps antiguas (28 sep). La tabla `redirect_301` se conserva sin uso.
+- [x] Filtros por etiquetas: fuera de la V1 (28 sep). `tag`/`content_tag` y el parámetro `filter` de la sesión quedan sin usar.
+- [x] Despublicar: inmediato (el detalle da 404 al instante).
+- [x] Cookies: opción A, sin banner, click-to-load también en YouTube (§2.11).
+- [x] Traducción asistida por IA en el ABM: aplazada a después de publicar.
+- [x] Preview firmado del ABM (§2.6), caché de assets y contrato ZIP (§2.8), `standalone` y despliegue con PM2 (§2.9-§2.10), 404/error, sitemap, robots, favicon, rutas demo bloqueadas en producción (§2.14), límite de peticiones del feed y su bug del scroll (§2.16, §2.19), escáner de dominios y validación de `assets/` (§2.13), bug de assets 404 (§2.12).
+
+### 4.5 Limpieza del repositorio (propuesta de §2.20, no ejecutada)
+
+- [ ] Borrar los directorios vacíos `tools/[slug]/assets/` e `insights/[slug]/assets/` y `supabase/policies/`.
+- [ ] Borrar los `.gitkeep` de carpetas que ya tienen ficheros, y las carpetas solo-`.gitkeep` que nunca se usaron (`components/case-blocks`, `lib/auth`, `lib/validation`, `lib/security`, `modules/admin`) — o decidir que se quedan como estructura prevista.
+- [ ] Borrar `localPackageSource.ts` (y las dos referencias en comentarios).
+- [ ] Quitar de `package.json` `next-cloudinary`, `react-hook-form`, `@hookform/resolvers` y revisar `@types/adm-zip`; regenerar `package-lock.json`.
+- [ ] Implementar o eliminar `ADMIN_ALLOWED_DOMAIN_FALLBACK` (`env.ts` y `.env.local.example`).
+- [ ] Recuperar del repositorio `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md` (no vienen en el zip).
+- [ ] Regenerar o eliminar `estructura-src.txt`; actualizar `supabase/README.md` y §1 de `contrato-zip-tools-insights.md`.
+- [ ] No incluir `__MACOSX/`, `.DS_Store`, `tsconfig.tsbuildinfo`, `next-env.d.ts` ni `supabase/.temp/` al empaquetar.
 
 ---
 
@@ -438,3 +482,5 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **29 sep 2026 (integración de una segunda rama de trabajo)**: integrado un zip con cambios paralelos — rediseño completo del ABM (dashboard, listado y editor de contenidos, ~1.700 líneas de CSS), evento "Feed Depth" cableado en useFeed.ts (campo `round` nuevo en FeedBatchResult), y un SEGUNDO mecanismo para "Tool Used" (`greener-package-analytics.js` + `POST /api/analytics/package`) que resuelve el UUID real de content, cruzable con "Tool Open" — a diferencia del mecanismo servidor de ayer. Los dos conviven bajo el mismo nombre de evento; decisión pendiente del usuario sobre cuál mantener. Descartada de nuevo la regresión del fixture pixel-palette (ruta del Worker). 794 tests.
 - **29 sep 2026 (decisión «Tool Used»)**: elegido un único mecanismo para «Tool Used» — el que dispara la propia tool y cruza con «Tool Open» por UUID (`greener-package-analytics.js` + `POST /api/analytics/package`). Retirado el mecanismo servidor del día anterior (`serverAnalytics.ts`, sus tests, y la llamada en `tools/[slug]/app/route.ts`). 785 tests.
 - **30 sep 2026 (scroll de la home roto)**: encontrado y corregido un bug real — el límite de peticiones del feed (29 sep, §2.16) reutilizaba la misma forma de respuesta que "esta sección no tiene contenido", y appendBatch cortaba hasMore para siempre en ambos casos sin distinguirlos. Solo se notaba en home (mezcla tipos, necesita más rondas para llenar la pantalla) y no en tools/insights (un único tipo denso). Corregido con una marca explícita rateLimited que appendBatch ahora respeta sin tocar el estado. 794 tests.
+- **2 oct 2026 (auditoría de lanzamiento)**: revisado el zip entero contra el código real. Encontrado y corregido un fallo que impedía desplegar: `next build` no compilaba porque `FeedBatchResult` no tenía el campo `round` que lee el evento «Feed Depth» (integración de la segunda rama del 29 sep, §2.17); añadido el campo, el valor en `getFeedSessionBatch` y un test. Reformateados 9 ficheros que incumplían `format:check`. Informe de carpetas vacías, código, dependencias y documentos sobrantes o ausentes en §2.20 (propuesto, sin borrar). Checklist de §4 reescrito por urgencia. 795 tests.
+- **2 oct 2026 (flujo de insights)**: el pin de un insight en el feed abre directamente `/insights/[slug]/app` en vez de su detalle (`feedPinDestination`, §2.21); el detalle se mantiene intacto. Tools sin cambios. Anotado que «Insight Open» ya no cuenta esos clics. 798 tests.

@@ -182,8 +182,7 @@ export function useMasonryPositions(
   const layoutItems = useMemo<LayoutInputItem[]>(() => {
     if (containerWidth === 0) return []
 
-    const columnWidth =
-      (containerWidth - GAP * (columnCount - 1)) / columnCount
+    const columnWidth = (containerWidth - GAP * (columnCount - 1)) / columnCount
 
     return items.map((item) => ({
       id: item.pinId,
@@ -215,8 +214,7 @@ export function useMasonryPositions(
       const top = Math.min(...slice.map((p) => p.y))
       const bottom = Math.max(
         ...slice.map((p, offset) => {
-          const labelHeight =
-            layoutItems[batchStart + offset]?.labelHeight ?? 0
+          const labelHeight = layoutItems[batchStart + offset]?.labelHeight ?? 0
           return p.y + p.height + labelHeight
         }),
       )

@@ -207,8 +207,9 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
       {derivedLabel && (
         <p>
-          El texto del feed es automático para {contentType === 'case' ? 'Case' : 'Episode'}.
-          No se usa ninguna frase gancho del CSV ni del nombre del archivo.
+          El texto del feed es automático para{' '}
+          {contentType === 'case' ? 'Case' : 'Episode'}. No se usa ninguna frase
+          gancho del CSV ni del nombre del archivo.
         </p>
       )}
 
@@ -237,7 +238,9 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       />
 
       <fieldset disabled={uploading}>
-        <legend>Campos comunes (se usan cuando el CSV no trae ese valor)</legend>
+        <legend>
+          Campos comunes (se usan cuando el CSV no trae ese valor)
+        </legend>
 
         <label htmlFor="bulk-default-ratio">Ratio por defecto</label>
         <select
