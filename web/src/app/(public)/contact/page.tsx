@@ -19,7 +19,16 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className={styles.page}>
-      <h1 className={`${styles.title} text-display`}>Contact</h1>
+      <h1 className={`${styles.title} text-display`}>
+        We <br /> should have <br /> a brand <br /> together
+      </h1>
+      <p className="text-body">
+        {`
+  Whether you're thinking about a new website, need a new brand, are about
+  to launch a product, have a campaign in mind or just want to create
+  something new, it usually starts with a message. Tell us who you are and
+  what you're after. We'll write back, and the conversation starts there.`}
+      </p>
       <ContactForm />
     </div>
   )
