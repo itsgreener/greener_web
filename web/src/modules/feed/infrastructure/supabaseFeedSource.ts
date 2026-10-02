@@ -17,13 +17,14 @@ export interface PinDirectoryEntry {
   contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
   contentSlug: string
   ratio: string
-  // Tool/insight/other siguen usando el gancho escrito por el admin.
-  // Case/episode NO: su texto se deriva del propio contenido.
+  // Tool/other siguen usando el gancho escrito por el admin.
+  // Case/episode/insight NO: su texto se deriva del propio contenido.
   label: string | null
-  // Para case/episode, texto automático del feed:
+  // Para case/episode/insight, texto automático del feed:
   // 1ª línea = título del contenido.
   displayTitle?: string | null
-  // 2ª línea = cliente en case / episode_kind en episode.
+  // 2ª línea (en negrita) = cliente en case, episode_kind en episode y el
+  // texto fijo INSIGHT_PIN_SECONDARY_TEXT en insight.
   displaySecondary?: string | null
   alt: string
   // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
@@ -46,6 +47,14 @@ export interface FeedDataset {
   snapshot: FeedSnapshot
   pinDirectory: Record<string, PinDirectoryEntry>
 }
+
+/**
+ * Texto en negrita bajo el título en el pin de un insight (2 oct 2026,
+ * petición de Greener). Ocupa el lugar que en un caso ocupa el cliente,
+ * pero es FIJO: el mismo para todos los insights, sin campo en el ABM.
+ * El texto está en inglés porque la interfaz global lo está (§2.4).
+ */
+export const INSIGHT_PIN_SECONDARY_TEXT = 'Insights by Greener'
 
 const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
   case: 'cases',
@@ -166,6 +175,16 @@ function derivedFeedText(
       label: null,
       displayTitle: resolveContentTitle(content, pin.language),
       displaySecondary: content.case_detail?.client?.trim() || null,
+    }
+  }
+
+  if (contentType === 'insight') {
+    return {
+      // La frase gancho antigua (pin.label) ya no se muestra en insights:
+      // el título del insight basta y no se repite texto debajo.
+      label: null,
+      displayTitle: resolveContentTitle(content, pin.language),
+      displaySecondary: INSIGHT_PIN_SECONDARY_TEXT,
     }
   }
 
