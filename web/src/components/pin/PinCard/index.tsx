@@ -202,10 +202,19 @@ export function PinCard({
     ? buildVideoPosterUrl(current.cloudinaryPublicId)
     : buildImageUrl(current.cloudinaryPublicId, 'feed', Math.round(style.width))
 
+  // Las Tools conservan una única ficha aunque tengan muchos pines. El
+  // servidor ya añade ?pin=<unitId> al destino; si este pin es carrusel,
+  // añadimos el índice del slide que el usuario está viendo justo ahora.
+  // Así la ficha puede usar exactamente ese medio como portada.
+  const destination =
+    isCarousel && pin.destination.startsWith('/tools/')
+      ? `${pin.destination}${pin.destination.includes('?') ? '&' : '?'}slide=${index}`
+      : pin.destination
+
   return (
     <a
       ref={cardRef}
-      href={pin.destination}
+      href={destination}
       className={styles.card}
       style={{
         transform: `translate(${style.x}px, ${style.y}px)`,

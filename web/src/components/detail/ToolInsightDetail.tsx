@@ -7,7 +7,11 @@ import {
   buildVideoFullUrl,
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import type {
+  PublicContent,
+  PublicContentMedia,
+} from '@/modules/content/infrastructure/publicContentSource'
+import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { PinCard } from '@/components/pin/PinCard'
 import { useRecommendationMasonry } from './useRecommendationMasonry'
@@ -41,12 +45,20 @@ export function ToolInsightDetail({
   content,
   ctaLabel,
   appHref,
+  coverMediaOverride,
+  coverRatioOverride,
 }: {
   content: PublicContent
   ctaLabel?: string
   appHref?: string
+  // En Tools, cuando la ficha se abre desde un pin, la portada puede ser
+  // el medio exacto de ese pin en vez de la portada general del contenido.
+  // Insights/Other no pasan estos props y conservan el comportamiento actual.
+  coverMediaOverride?: PublicContentMedia | null
+  coverRatioOverride?: PinRatioValue | null
 }) {
-  const ratio = content.coverRatio ?? FALLBACK_RATIO
+  const coverMedia = coverMediaOverride ?? content.coverMedia
+  const ratio = coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO
 
   const {
     containerRef,
@@ -82,7 +94,7 @@ export function ToolInsightDetail({
             width: contentBlockReservedWidth || '100%',
           }}
         >
-          {content.coverMedia && (
+          {coverMedia && (
             <div
               className={styles.cover}
               style={{
@@ -90,11 +102,11 @@ export function ToolInsightDetail({
                 height: contentBlockImageHeight || undefined,
               }}
             >
-              {content.coverMedia.kind === 'video' ? (
+              {coverMedia.kind === 'video' ? (
                 <video
-                  src={buildVideoFullUrl(content.coverMedia.cloudinaryPublicId)}
+                  src={buildVideoFullUrl(coverMedia.cloudinaryPublicId)}
                   poster={buildVideoPosterUrl(
-                    content.coverMedia.cloudinaryPublicId,
+                    coverMedia.cloudinaryPublicId,
                   )}
                   controls
                   aria-label={content.title}
@@ -106,11 +118,11 @@ export function ToolInsightDetail({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={buildImageUrl(
-                    content.coverMedia.cloudinaryPublicId,
+                    coverMedia.cloudinaryPublicId,
                     'detail',
                   )}
                   srcSet={buildImageSrcSet(
-                    content.coverMedia.cloudinaryPublicId,
+                    coverMedia.cloudinaryPublicId,
                     'detail',
                   )}
                   sizes="83vw"

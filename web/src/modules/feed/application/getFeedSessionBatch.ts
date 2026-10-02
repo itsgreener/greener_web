@@ -1,4 +1,3 @@
-import { feedPinDestination } from '@/modules/content/domain/contentPath'
 import { generateRound } from '@/modules/feed/domain'
 import {
   getFeedSessionRow,
@@ -34,9 +33,6 @@ export interface FeedBatchItem {
 export interface FeedBatchResult {
   items: FeedBatchItem[]
   cursor: string
-  // Índice de la ronda a la que pertenece este lote (§8.5, §16.3). Lo lee
-  // el evento «Feed Depth» de analítica (useFeed.ts).
-  round: number
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
@@ -56,13 +52,33 @@ export class InvalidFeedCursorError extends Error {
   }
 }
 
-// Destino del pin: ver feedPinDestination (contentPath.ts). Los insights
-// abren directamente /insights/[slug]/app, sin pasar por su detalle.
+// especificacion-final-formato-detalle.md §7: episode se unifica con
+// case bajo /work/[slug] (tipo B) — ya no tiene ruta propia /channel.
 function destinationFor(
   contentType: PinDirectoryEntry['contentType'],
   slug: string,
+  unitId: string,
 ): string {
-  return feedPinDestination(contentType, slug)
+  switch (contentType) {
+    case 'case':
+    case 'episode':
+      return `/work/${slug}`
+    case 'tool':
+      // La ficha de Tool necesita saber desde qué pin se abrió para poder
+      // reutilizar exactamente ese medio como portada. `unitId` es el id
+      // del pin o `pinId::mediaId` cuando un pin no-carrusel se expande en
+      // varios medios independientes. PinCard añade además `slide` cuando
+      // el usuario pulsa un carrusel en un slide concreto.
+      return `/tools/${slug}?pin=${encodeURIComponent(unitId)}`
+    case 'insight':
+      return `/insights/${slug}`
+    case 'other':
+      // especificacion-final-formato-detalle.md §7 (ampliado el 21 sep):
+      // prefijo propio en vez de raíz, para no arriesgar colisión con
+      // /work, /tools, /insights, /channel, /contact, /admin, /preview
+      // — decisión cerrada, ya no es una suposición.
+      return `/variety/${slug}`
+  }
 }
 
 function kindFor(contentType: PinDirectoryEntry['contentType']): string {
@@ -100,7 +116,11 @@ function enrich(
       pinId: unitId,
       contentId: meta.contentId,
       kind: kindFor(meta.contentType),
-      destination: destinationFor(meta.contentType, meta.contentSlug),
+      destination: destinationFor(
+        meta.contentType,
+        meta.contentSlug,
+        unitId,
+      ),
       ratio: meta.ratio,
       label: meta.label,
       displayTitle: meta.displayTitle ?? null,
@@ -195,7 +215,6 @@ export async function getFeedSessionBatch(
   return {
     items,
     cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
-    round: roundIndex,
     hasMore: true,
   }
 }

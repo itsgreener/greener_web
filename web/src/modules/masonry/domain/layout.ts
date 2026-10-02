@@ -28,7 +28,6 @@ export const BREAKPOINTS = [
   { maxWidth: 640, columns: 2 },
   { maxWidth: 900, columns: 3 },
   { maxWidth: 1200, columns: 4 },
-  { maxWidth: 1600, columns: 5 },
   { maxWidth: Infinity, columns: 6 },
 ] as const
 
