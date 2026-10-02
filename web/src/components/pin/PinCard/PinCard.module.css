@@ -17,8 +17,8 @@
 
   & .cta {
     position: absolute;
-    bottom: var(--space-sm);
-    left: var(--space-sm);
+   top: var(--space-sm);
+right: var(--space-sm);
     display: flex;
     align-items: center;
     justify-content: center;
