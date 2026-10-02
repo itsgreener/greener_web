@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **798 tests automáticos, todos en verde** (`npm test`, 90 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
+- **802 tests automáticos, todos en verde** (`npm test`, 91 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -354,6 +354,26 @@ Cambio de flujo pedido por Greener, **solo para insights**: home → clic en el 
 2. **El CTA del pin sigue diciendo «Read»** (`ctaFor`); sigue siendo coherente.
 3. **Sin preview de borrador en `/app`** (ya anotado en §4.2): un insight en preview firmado se abre en su detalle, pero el pin del feed solo existe si está publicado, así que no hay 404 por esto (la migración `block_publish_tool_insight_without_package` impide publicar un insight sin paquete).
 
+### 2.22 Insights: nuevo pie del pin en el feed — título + «Insights by Greener» (2 oct)
+
+Petición de Greener (solo insights): bajo la imagen del pin se muestra el **título del insight** y, debajo, **«Insights by Greener» en negrita**, en vez de la frase gancho. Es el mismo formato que un caso (título + cliente), con la diferencia de que el texto en negrita es **fijo** para todos los insights.
+
+**Cómo se renderiza un pin de caso (y por qué bastó con una rama nueva):** `derivedFeedText()` (`supabaseFeedSource.ts`) rellena `displayTitle` (título de la traducción, según el idioma del pin) y `displaySecondary` (cliente) → `getFeedSessionBatch` los pasa tal cual al cliente → `PinCard` pinta `labelPrimary` (regular, 2 líneas) y `labelSecondary` (negrita, 1 línea) → `useMasonryPositions` y `useRecommendationMasonry` estiman el alto del pie a partir de `displayTitle`. Todo ese camino es genérico, así que para insights solo hacía falta que `derivedFeedText` devolviera esos dos campos.
+
+**Cambios:**
+
+1. `derivedFeedText`: rama nueva para `insight` con `label: null`, `displayTitle` = título y `displaySecondary` = constante `INSIGHT_PIN_SECONDARY_TEXT` (`'Insights by Greener'`, exportada). La frase gancho antigua (`pin.label`) queda ignorada para insights, como ya ocurría con casos y episodios.
+2. ABM: en `NewPinForm`, `PinList` y `BulkPinUpload` los insights pasan a `derivedLabel` — ya no piden «Frase gancho» (ni en alta, ni en edición, ni en carga masiva, ni en el CSV) y muestran un aviso de que el texto es automático. Antes el campo era obligatorio y no tenía efecto, lo cual era engañoso.
+3. Tests: `tests/unit/feed/feedPinText.test.ts` (nuevo, 4 tests): insight → título + texto fijo y sin gancho; título según idioma del pin con caída al idioma por defecto; caso sin cambios; tool conserva su gancho. 802 tests, build, ESLint, `tsc` y Prettier limpios.
+
+**Alcance:** solo insights. Tools y «other» siguen usando la frase gancho. Al salir de la API del feed, el nuevo pie se ve en la home, en `/insights` y en los «relacionados» de las páginas de detalle. No se ha comprobado en navegador: el alto del pie se calcula con la misma estimación que los casos (título hasta 2 líneas + 1 línea de negrita).
+
+**Efectos colaterales:**
+
+- El texto está **hardcodeado en inglés** (la interfaz global lo está, §2.4); no es editable desde el ABM ni varía por idioma. Si algún día debe cambiar, es una constante en un solo sitio.
+- Las `label` ya guardadas en pines de insight quedan en base de datos sin uso. No molestan, y se podrían limpiar con un `update pin set label = null` sobre pines de insight si se quiere ordenar.
+- **El título pasa a ser obligatorio en la práctica:** si un insight no tuviera traducción con título, el pie saldría vacío. El ABM ya exige la traducción por defecto, así que no debería pasar.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -364,7 +384,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 798 tests (unit + property-based + smoke con jsdom)
+npm test                     # 802 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -484,3 +504,4 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **30 sep 2026 (scroll de la home roto)**: encontrado y corregido un bug real — el límite de peticiones del feed (29 sep, §2.16) reutilizaba la misma forma de respuesta que "esta sección no tiene contenido", y appendBatch cortaba hasMore para siempre en ambos casos sin distinguirlos. Solo se notaba en home (mezcla tipos, necesita más rondas para llenar la pantalla) y no en tools/insights (un único tipo denso). Corregido con una marca explícita rateLimited que appendBatch ahora respeta sin tocar el estado. 794 tests.
 - **2 oct 2026 (auditoría de lanzamiento)**: revisado el zip entero contra el código real. Encontrado y corregido un fallo que impedía desplegar: `next build` no compilaba porque `FeedBatchResult` no tenía el campo `round` que lee el evento «Feed Depth» (integración de la segunda rama del 29 sep, §2.17); añadido el campo, el valor en `getFeedSessionBatch` y un test. Reformateados 9 ficheros que incumplían `format:check`. Informe de carpetas vacías, código, dependencias y documentos sobrantes o ausentes en §2.20 (propuesto, sin borrar). Checklist de §4 reescrito por urgencia. 795 tests.
 - **2 oct 2026 (flujo de insights)**: el pin de un insight en el feed abre directamente `/insights/[slug]/app` en vez de su detalle (`feedPinDestination`, §2.21); el detalle se mantiene intacto. Tools sin cambios. Anotado que «Insight Open» ya no cuenta esos clics. 798 tests.
+- **2 oct 2026 (pie del pin de insight)**: el pin de un insight muestra ahora título + «Insights by Greener» en negrita (texto fijo), igual que un caso muestra título + cliente (`derivedFeedText`, §2.22). El ABM deja de pedir frase gancho en insights. 802 tests.

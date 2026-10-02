@@ -56,8 +56,8 @@ function EditPinForm({
         <>
           <input name="label" type="hidden" value="" />
           <p>
-            Texto del feed automático: título + cliente (Case) o tipo de
-            episodio (Episode).
+            Texto del feed automático: título + cliente (Case), tipo de episodio
+            (Episode) o «Insights by Greener» (Insight).
           </p>
         </>
       ) : (
@@ -190,7 +190,10 @@ function DeletePinButton({
 
 export default function PinList({ contentId, contentType, pins }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const derivedLabel = contentType === 'case' || contentType === 'episode'
+  const derivedLabel =
+    contentType === 'case' ||
+    contentType === 'episode' ||
+    contentType === 'insight'
 
   return (
     <div>
@@ -210,7 +213,7 @@ export default function PinList({ contentId, contentType, pins }: Props) {
             <tr key={pin.id}>
               <td>
                 {derivedLabel
-                  ? 'Automático: título + cliente/tipo de episodio'
+                  ? 'Automático: título + cliente / tipo de episodio / «Insights by Greener»'
                   : (pin.label ?? '—')}
               </td>
               <td>{pin.ratio}</td>

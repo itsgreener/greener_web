@@ -18,7 +18,10 @@ export default function NewPinForm({ contentId, contentType }: Props) {
     initialState,
   )
 
-  const derivedLabel = contentType === 'case' || contentType === 'episode'
+  const derivedLabel =
+    contentType === 'case' ||
+    contentType === 'episode' ||
+    contentType === 'insight'
 
   return (
     <form action={formAction}>
@@ -42,7 +45,9 @@ export default function NewPinForm({ contentId, contentType }: Props) {
             Texto del feed automático:{' '}
             {contentType === 'case'
               ? 'título del Case + cliente.'
-              : 'título del Episode + tipo de episodio.'}
+              : contentType === 'insight'
+                ? 'título del Insight + «Insights by Greener» (fijo).'
+                : 'título del Episode + tipo de episodio.'}
           </p>
         </>
       ) : (

@@ -63,7 +63,10 @@ function buildRow(
 }
 
 export default function BulkPinUpload({ contentId, contentType }: Props) {
-  const derivedLabel = contentType === 'case' || contentType === 'episode'
+  const derivedLabel =
+    contentType === 'case' ||
+    contentType === 'episode' ||
+    contentType === 'insight'
 
   const [files, setFiles] = useState<File[]>([])
   const [csvRows, setCsvRows] = useState<PinCsvRow[]>([])
@@ -208,8 +211,12 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       {derivedLabel && (
         <p>
           El texto del feed es automático para{' '}
-          {contentType === 'case' ? 'Case' : 'Episode'}. No se usa ninguna frase
-          gancho del CSV ni del nombre del archivo.
+          {contentType === 'case'
+            ? 'Case'
+            : contentType === 'insight'
+              ? 'Insight'
+              : 'Episode'}
+          . No se usa ninguna frase gancho del CSV ni del nombre del archivo.
         </p>
       )}
 
