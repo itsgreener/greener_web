@@ -17,14 +17,15 @@ export interface PinDirectoryEntry {
   contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
   contentSlug: string
   ratio: string
-  // Tool/other siguen usando el gancho escrito por el admin.
-  // Case/episode/insight NO: su texto se deriva del propio contenido.
+  // Insight/other siguen usando el rótulo escrito por el admin.
+  // Case/episode derivan ambas líneas del contenido.
+  // Tool reutiliza el rótulo del pin como descripción superior y deriva
+  // automáticamente el nombre de la herramienta como segunda línea.
   label: string | null
-  // Para case/episode/insight, texto automático del feed:
-  // 1ª línea = título del contenido.
+  // Texto de la primera línea cuando el pin usa formato de dos líneas.
   displayTitle?: string | null
-  // 2ª línea (en negrita) = cliente en case, episode_kind en episode y el
-  // texto fijo INSIGHT_PIN_SECONDARY_TEXT en insight.
+  // Segunda línea en negrita: cliente en Case, nombre de Tool en Tool,
+  // episode_kind en Episode.
   displaySecondary?: string | null
   alt: string
   // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
@@ -47,14 +48,6 @@ export interface FeedDataset {
   snapshot: FeedSnapshot
   pinDirectory: Record<string, PinDirectoryEntry>
 }
-
-/**
- * Texto en negrita bajo el título en el pin de un insight (2 oct 2026,
- * petición de Greener). Ocupa el lugar que en un caso ocupa el cliente,
- * pero es FIJO: el mismo para todos los insights, sin campo en el ABM.
- * El texto está en inglés porque la interfaz global lo está (§2.4).
- */
-export const INSIGHT_PIN_SECONDARY_TEXT = 'Insights by Greener'
 
 const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
   case: 'cases',
@@ -178,13 +171,17 @@ function derivedFeedText(
     }
   }
 
-  if (contentType === 'insight') {
+  if (contentType === 'tool') {
     return {
-      // La frase gancho antigua (pin.label) ya no se muestra en insights:
-      // el título del insight basta y no se repite texto debajo.
+      // Para Tool mantenemos el texto específico de cada pin que ya existe
+      // en `pin.label`, pero deja de renderizarse como rótulo de una sola
+      // línea: pasa a ser la descripción superior. La segunda línea es el
+      // nombre de la herramienta, obtenido automáticamente del contenido.
+      // Así una Tool puede tener muchos pines con descripciones distintas
+      // sin duplicar el contenido ni repetir manualmente su nombre.
       label: null,
-      displayTitle: resolveContentTitle(content, pin.language),
-      displaySecondary: INSIGHT_PIN_SECONDARY_TEXT,
+      displayTitle: pin.label?.trim() || null,
+      displaySecondary: resolveContentTitle(content, pin.language),
     }
   }
 
