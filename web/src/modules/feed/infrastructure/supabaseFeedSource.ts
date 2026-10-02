@@ -17,15 +17,18 @@ export interface PinDirectoryEntry {
   contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
   contentSlug: string
   ratio: string
-  // Insight/other siguen usando el rótulo escrito por el admin.
-  // Case/episode derivan ambas líneas del contenido.
+  // Other sigue usando el rótulo escrito por el admin.
+  // Case/episode/insight derivan sus líneas del propio contenido.
   // Tool reutiliza el rótulo del pin como descripción superior y deriva
   // automáticamente el nombre de la herramienta como segunda línea.
   label: string | null
-  // Texto de la primera línea cuando el pin usa formato de dos líneas.
+  // Texto de la primera línea cuando el pin usa formato de dos líneas:
+  // título del contenido en Case/Episode/Insight, descripción del pin
+  // (pin.label) en Tool.
   displayTitle?: string | null
-  // Segunda línea en negrita: cliente en Case, nombre de Tool en Tool,
-  // episode_kind en Episode.
+  // Segunda línea en negrita: cliente en Case, nombre de la Tool en Tool,
+  // episode_kind en Episode y el texto fijo INSIGHT_PIN_SECONDARY_TEXT
+  // en Insight.
   displaySecondary?: string | null
   alt: string
   // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
@@ -48,6 +51,14 @@ export interface FeedDataset {
   snapshot: FeedSnapshot
   pinDirectory: Record<string, PinDirectoryEntry>
 }
+
+/**
+ * Texto en negrita bajo el título en el pin de un insight (2 oct 2026,
+ * petición de Greener). Ocupa el lugar que en un caso ocupa el cliente,
+ * pero es FIJO: el mismo para todos los insights, sin campo en el ABM.
+ * El texto está en inglés porque la interfaz global lo está (§2.4).
+ */
+export const INSIGHT_PIN_SECONDARY_TEXT = 'Insights by Greener'
 
 const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
   case: 'cases',
@@ -182,6 +193,16 @@ function derivedFeedText(
       label: null,
       displayTitle: pin.label?.trim() || null,
       displaySecondary: resolveContentTitle(content, pin.language),
+    }
+  }
+
+  if (contentType === 'insight') {
+    return {
+      // La frase gancho antigua (pin.label) ya no se muestra en insights:
+      // el título del insight basta y no se repite texto debajo.
+      label: null,
+      displayTitle: resolveContentTitle(content, pin.language),
+      displaySecondary: INSIGHT_PIN_SECONDARY_TEXT,
     }
   }
 

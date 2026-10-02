@@ -105,9 +105,7 @@ export function ToolInsightDetail({
               {coverMedia.kind === 'video' ? (
                 <video
                   src={buildVideoFullUrl(coverMedia.cloudinaryPublicId)}
-                  poster={buildVideoPosterUrl(
-                    coverMedia.cloudinaryPublicId,
-                  )}
+                  poster={buildVideoPosterUrl(coverMedia.cloudinaryPublicId)}
                   controls
                   aria-label={content.title}
                   className={styles.coverImage}
@@ -117,10 +115,7 @@ export function ToolInsightDetail({
                 // modules/media/infrastructure/cloudinaryUrl.ts
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={buildImageUrl(
-                    coverMedia.cloudinaryPublicId,
-                    'detail',
-                  )}
+                  src={buildImageUrl(coverMedia.cloudinaryPublicId, 'detail')}
                   srcSet={buildImageSrcSet(
                     coverMedia.cloudinaryPublicId,
                     'detail',

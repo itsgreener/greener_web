@@ -33,7 +33,7 @@ Todas las referencias `§X` sin más contexto apuntan a secciones del documento 
 
 **Cifras actuales, verificadas a fecha de hoy:**
 
-- **802 tests automáticos, todos en verde** (`npm test`, 91 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
+- **806 tests automáticos, todos en verde** (`npm test`, 91 ficheros) — cifra del 2 oct; las menciones anteriores (611, 785, 794…) son fotografías de su día.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`).
 - **40 migraciones SQL** — sin cambios esta sesión, ninguno de los siete bloques necesitó tocar el esquema.
 
@@ -331,7 +331,7 @@ Revisión completa del zip contra el código real: `npm ci`, ESLint, `tsc`, Vite
 
 **Documentación desactualizada o ausente:**
 
-- Faltan en el zip `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md`, que `PROGRESO.md` cita como fuente del porqué de decisiones. Hay que recuperarlos del repositorio (si no existen en git, el historial se ha perdido).
+- ~~Faltan en el zip `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md`.~~ **Aclarado el 2 oct (§2.24): existen en el repositorio**; solo faltaban en los zips compartidos.
 - `estructura-src.txt` está obsoleto (le faltan 20 o más ficheros, entre ellos todo lo de preview, rate limit, sitemap y analítica); `estructura-migrations.txt` sí coincide (40). Son volcados generados: o se regeneran o se eliminan.
 - `supabase/README.md` lista migraciones antiguas (ya anotado en §3).
 - `contrato-zip-tools-insights.md` §1 sigue diciendo «solo js/css/json/png/svg» pese a la ampliación del 29 sep.
@@ -374,6 +374,128 @@ Petición de Greener (solo insights): bajo la imagen del pin se muestra el **tí
 - Las `label` ya guardadas en pines de insight quedan en base de datos sin uso. No molestan, y se podrían limpiar con un `update pin set label = null` sobre pines de insight si se quiere ordenar.
 - **El título pasa a ser obligatorio en la práctica:** si un insight no tuviera traducción con título, el pie saldría vacío. El ABM ya exige la traducción por defecto, así que no debería pasar.
 
+### 2.23 Tools/insights: la descripción (`summary`) deja de truncarse con elipsis (2 oct)
+
+Hallazgo con captura de la página de detalle de una tool («Cubicator»): la descripción acababa en «Sigue generando hast…». **Causa:** `.summary` en `ToolInsightDetail.module.css` llevaba `line-clamp: 3` + `overflow: hidden`, decidido el 22 sep (§2.3) como protección de layout; con el ancho real de la columna de texto, una frase legítima de la tool ocupaba más de 3 líneas y se cortaba. La misma plantilla sirve tools e insights, así que afectaba a los dos.
+
+**Cambio:** quitado el `line-clamp` y el `overflow` de `.summary`; se conserva `max-width: 70ch`. El título (`.title`) sigue limitado a 2 líneas. Actualizados los comentarios del CSS y de `textLimits.ts` (el `summary` es ahora la excepción a «protección real del layout = elipsis»). El aviso blando de ~200 caracteres del ABM se mantiene como guía para el editor.
+
+**Alcance:** solo `summary` de la página de detalle de tool/insight. No tocados: `body` de casos/episodios (8 líneas), títulos, ni el pie de los pines del feed. 802 tests, build, ESLint y Prettier limpios; sin test nuevo (es un cambio de CSS, y los tests con jsdom no calculan estilos). No comprobado en navegador.
+
+**Riesgo conocido, no tocado:** el panel de recomendaciones se siembra con la altura de la IMAGEN, no con la del bloque imagen+texto (límite ya anotado en `useRecommendationMasonry.ts`). Con el recorte, el texto tenía un tope de alto; ahora, si un `summary` es largo y la imagen es baja (por ejemplo 16:9 con la columna de texto estrecha), el texto podría solaparse con la primera fila de recomendaciones. Con descripciones cortas, como las actuales, no debería darse; si apareciera, la solución es medir el bloque con un `ResizeObserver`.
+
+### 2.24 Integración del zip compartido (2 oct)
+
+Se comparó el zip recibido con la versión de trabajo, fichero a fichero, y se fusionó. Resultado:
+
+**Cambios del zip recibido, adoptados tal cual** (no construidos aquí; revisados y compilados, pero **no vistos en navegador**):
+
+- **Tools: la ficha usa como portada el medio del pin desde el que se abrió.** `getFeedSessionBatch` añade `?pin=<unitId>` al destino de los pines de tool; `PinCard` añade `&slide=<n>` si el pin es un carrusel y se pulsa en un slide concreto; `tools/[slug]/page.tsx` resuelve ese pin (filtrado por `content_id`, así que no se puede usar `?pin=` para colar el medio de otra tool) y se lo pasa a `ToolInsightDetail` como `coverMediaOverride`/`coverRatioOverride`. Insights y «other» no cambian.
+- **El CTA del pin** (`PinCard.module.css`, `.cta`) pasa de la esquina inferior izquierda a la **superior derecha** del medio.
+- **Masonry:** el `layout.ts` del zip recibido eliminaba el tramo de 5 columnas (2/3/4/6). Se restauró el original (2/3/4/5/6) y, después, Greener decidió **6 columnas a partir de 1200** (ver §2.28), que deja el escalonado en 2/3/4/6. Hubo cambios de criterio entre 5 y 6 en el pasado; no se ha investigado, a petición de Greener.
+- `composeToolDocument.ts`: `.greener-shell` pasa de `min-height: 100dvh` a `height: 100dvh`. No consta el motivo.
+
+**Cosas de nuestra versión que el zip recibido había pisado y se han recuperado:**
+
+- `getFeedSessionBatch.ts` volvía a la versión anterior a nuestros cambios: sin el campo `round` (otra vez rompía `next build`, §2.20) y con el insight apuntando a `/insights/{slug}` en vez de `/insights/{slug}/app` (§2.21). Fusionado: se conserva su lógica de `?pin=` para tools, `round`, y `feedPinDestination` para insights.
+- `textLimits.ts` y `ToolInsightDetail.module.css` volvían a tener el `line-clamp: 3` del `summary` (§2.23): se mantiene nuestra versión sin truncar.
+- `tests/unit/feed/feedPinText.test.ts` (§2.22) no venía en el zip: se mantiene.
+- `public/greener-package-analytics.js`: solo difería en el salto de línea final (Prettier): se mantiene la versión formateada.
+- `PROGRESO.md` del zip recibido terminaba en §2.22: se mantiene el nuestro.
+
+**Test que fallaba por los cambios del zip y se ha actualizado** (la lógica es la nueva, el test era el viejo): `getFeedSessionBatch.test.ts` (el destino de la tool es `/tools/tool-1-slug?pin=pin-t`). `layout.property.test.ts` se tocó un momento y se ha revertido al original (ver arriba). Prettier reformateó 3 ficheros del zip recibido (`tools/[slug]/page.tsx`, `ToolInsightDetail.tsx`, `PinCard.module.css`).
+
+**Sin cubrir por tests:** la resolución de `?pin=`/`slide=` (`getToolPinCover`, no exportada) y el `slide` de `PinCard` no tienen test. Pendiente.
+
+**Aclaración sobre los historiales:** `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md` **sí existen en el repositorio** (solo faltaban en los zips compartidos). Se retira el aviso de §2.20 y el punto correspondiente de §4.5.
+
+### 2.25 CTA de la ficha de tool/insight anclado abajo a la derecha (2 oct)
+
+**Causa real del problema.** No era que el contenedor esté en `position: absolute`: un elemento absoluto sigue siendo un contenedor flex normal, y `margin-top: auto` / `margin-left: auto` funcionan igual, sin necesidad de `width: 100%`. El bloqueo era que `.contentBlock` tenía `align-items: flex-start`, así que la columna de texto (`.text`) medía solo lo que ocupaba su contenido y **no había espacio libre en vertical** que repartir; el CTA se quedaba justo debajo del texto y pegado a la izquierda.
+
+**Solución (verificada midiendo en Chromium con el CSS real del proyecto, no solo razonada):**
+
+- `.contentBlock`: `align-items: stretch`, para que `.text` mida como mínimo lo que la portada, que tiene alto fijo en línea.
+- `.cover`: `align-self: flex-start`, para que la portada conserve su comportamiento anterior.
+- `.cta`: `margin-top: auto; margin-left: auto` en lugar de `margin-top: var(--space-sm)`.
+- `.summary`: `margin-bottom: var(--space-sm)`, que mantiene la separación mínima con el CTA cuando no sobra espacio.
+
+**Medido** (portada 280×350, bloque de 700 px): CTA a 0 px del borde inferior de la portada y a 0 px del borde derecho de la columna de texto. Con una portada 16:9 baja o un texto largo el bloque crece y el CTA queda debajo de la portada pero siempre alineado a la derecha. Sin portada: alineado a la derecha. Este cambio no empeora el solape con las recomendaciones (§2.23): en el caso 16:9 el bloque mide 190 px frente a 206 antes.
+
+El CTA queda pegado al borde derecho de la columna; si se quiere aire, un `margin-right` en `.cta`.
+
+### 2.26 Investigación (NO implementada): texto de la ficha limitado a una columna (2 oct)
+
+Objetivo: el texto de tools ocupa siempre **una columna de la retícula** (aunque sobre aire a la derecha) y nunca queda aplastado.
+
+**Diagnóstico.** Hoy el ancho del texto es «lo que sobra»: reservado − ancho de imagen − 16 px (`flex: 1 1 0`). La imagen se limita al **83 %** del ancho reservado (especificación §2, punto 2). Eso no garantiza ni un mínimo ni un máximo. Con la retícula vigente (2/3/4/6, 6 columnas desde 1200 de ancho de contenedor, §2.28), estimado con 64 px de menú y 32 de padding, el texto queda **aplastado (menos de una columna)** con imágenes **4:3 y 16:9**:
+
+| Viewport  | Columnas | Texto / columna (solo los casos < 1) |
+| --------- | -------- | ------------------------------------ |
+| 1280×720  | 4        | 4:3 → 0,80                           |
+| 1366×768  | 6        | 4:3 → 0,71, 16:9 → 0,81              |
+| 1440×800  | 6        | 4:3 → 0,77, 16:9 → 0,81              |
+| 1536×864  | 6        | 4:3 → 0,75, 16:9 → 0,82              |
+| 1920×1080 | 6        | 4:3 → 0,80, 16:9 → 0,82              |
+| 2560×1300 | 6        | ninguno                              |
+
+Las verticales (4:5, 3:4, 2:3, 9:16) dejan más de una columna, hasta ~2, es decir, texto demasiado ancho. Son cálculos, no mediciones en pantalla.
+
+**Propuesta (confirmada por Greener como primera solución a aplicar, aún sin implementar).** Dos piezas, que van juntas:
+
+1. **Máximo:** `.text` con ancho fijo igual a una columna (`flex: 0 0 auto` + `width` en píxeles). La columna la calcula `useRecommendationMasonry` (ya existe como `columnWidth` dentro del hook, pero no se devuelve) y la recibe `ToolInsightDetail` como estilo en línea, igual que ya hace con el ancho y el alto de la portada. Una sola fuente de verdad en JS, sin duplicar la fórmula en CSS.
+2. **Mínimo:** cambiar el tope de la imagen en `contentBlockImageDimensions` (dominio puro, `detailLayout.ts`) de `reservado × 0,83` a `min(reservado × 0,83, reservado − columna − 16)`. Así el texto siempre cabe en una columna completa; si la imagen no cabe, se recorta la **altura renderizada** y se respeta el ratio, igual que hoy. Es una función pura con tests de propiedades fáciles (texto ≥ 1 columna para todo ratio y viewport, ratio conservado).
+
+**Coste visual (cálculo):** solo se encogen las imágenes que hoy dejan menos de una columna: 4:3 entre un 6 % y un 9 % y 16:9 un 4 %; las demás no cambian.
+
+**Hay que validar con diseño:** el 83 % sale de medidas de diseño sobre capturas reales (especificación §2); este cambio lo sustituye por «una columna para el texto» en los casos en que el 83 % deja menos. Habría que actualizar el §2 de la especificación.
+
+**Alternativas descartadas:** (a) limitar con `max-width` en `ch` (como `summary`): no se alinea con la retícula y no arregla el texto aplastado; (b) CSS puro con `container-type` y variables `--cols`/`--gap`: duplica la fórmula de columnas en CSS y JS y no puede tocar el tope de la imagen, que es lo que causa el aplastamiento; (c) dejar encoger la portada con CSS: rompería el ratio.
+
+**Pendiente aparte (móvil):** por debajo de 640 px la imagen ocupa todo el ancho reservado y el texto, al ir a su lado, se queda sin espacio. Es el placeholder de móvil ya documentado (§2 de la especificación); una regla de «una columna» en móvil necesitaría apilar imagen y texto, y por tanto el rediseño móvil.
+
+### 2.27 Insights abiertos desde el detalle de una tool o un caso (2 oct)
+
+Aviso de Greener: al abrir un insight desde la página de detalle de una tool o de un caso se abría `/insights/{slug}` en vez de `/insights/{slug}/app`.
+
+**Qué se ha comprobado:** esos paneles de «recomendaciones» piden su sesión con `POST /api/feed/sessions { scope: 'home', excludeContentId }` y `PinCard` pinta tal cual el `destination` que devuelve la API; no hay ningún otro sitio que construya un enlace a un insight (revisado en todo `src`). Es el mismo camino que la home. En la versión fusionada el destino ya es `/insights/{slug}/app`.
+
+**Causa más probable:** el `getFeedSessionBatch.ts` del zip recibido había vuelto a la versión anterior a §2.21 (insight → `/insights/{slug}`), así que _cualquier_ pin de insight iba al detalle. Se corrigió en la fusión de §2.24. No he podido reproducir otro camino; si con la versión de este zip sigue pasando, habría que saber desde qué enlace exacto se hace clic.
+
+**Test nuevo** (`getFeedSessionBatch.test.ts`): una sesión de recomendaciones (`scope: home` + `excludeContentId`) devuelve para los insights `/insights/{slug}/app`, tanto al generar la ronda como al releerla ya guardada.
+
+### 2.28 Columnas (6 desde 1200), versión de referencia y test intermitente (2 oct)
+
+**Columnas.** Decisión de Greener: en escritorio, **6 columnas a partir de 1200**. `BREAKPOINTS` queda en `<640: 2`, `<900: 3`, `<1200: 4`, resto: 6. El umbral se compara con el **ancho del contenedor del feed** (viewport − 64 px de menú − 32 de padding), no con el del viewport: 6 columnas desde **~1300 px de viewport**, y un portátil de 1280 se queda en 4. Si «1200» se refería al viewport, el umbral correcto sería ~1104 (una sola cifra en `layout.ts`). Con 6 desde 1200 el tramo de 5 columnas no tiene hueco (es el mismo `layout.ts` que traía el zip recibido); si se quiere un escalón de 5 entre medias hay que mover los umbrales de 4. El §10.1 de la arquitectura sigue diciendo 5 columnas entre 1200 y 1599 y queda desactualizado. Test de breakpoints actualizado (1199 → 4, 1200 → 6).
+
+**Esta versión es la de referencia para los insights** (§2.21 y §2.27): los pines de insight apuntan a `/insights/{slug}/app` en home, subhome y recomendaciones, y hay tests que lo fijan.
+
+**Compilación.** Los fallos de build y tests de la versión anterior de Greener venían del desfase de versiones: `useFeed.ts` leía `batch.round` pero su `getFeedSessionBatch.ts` no lo tenía (error de TypeScript en el build y en 4 pruebas de humo), y había tests que esperaban la lógica nueva. Verificado en una **copia limpia del zip** con **Node 24.15.0** (el que fija `engines`): `npm ci`, ESLint y Prettier limpios, `next build` correcto (incluido el paso de tipos), `tsc` limpio y 3 ejecuciones seguidas de 803 tests en verde.
+
+**Test intermitente encontrado y corregido** (`generateRound.property.test.ts`, «seeds distintas producen, casi siempre, secuencias distintas»). Falló una vez en una ejecución completa y en ninguna de 40 ejecuciones sueltas. Medido: con universos pequeños dos seeds distintas **coinciden por casualidad ~1 de cada 10.000 universos** (p. ej. un único caso de 5 pines con fuerza 4), y el test generaba 100 por ejecución, así que fallaba en torno a 1 de cada 50 ejecuciones sin que hubiera ningún bug. Ahora compara cada secuencia con 4 seeds alternativas y exige que **al menos una** difiera. Comprobado: 0 fallos en 20.000 universos y, con una mutación (seed ignorada), el test sigue fallando como debe.
+
+### 2.29 Reconciliación de `supabaseFeedSource.ts`: insights + tools con dos líneas (2 oct)
+
+Comparado el `supabaseFeedSource.ts` actual de Greener con el nuestro. Diferencias reales (el resto del fichero —`getFeedDataset`, `getPinDirectoryByIds`, `getFeedConfig`— coincide): su versión **añade la rama de tools** y **no tiene la rama de insights** (§2.22) ni la constante `INSIGHT_PIN_SECONDARY_TEXT`; es decir, la rama de insights se había pisado sin querer. Ojo: el `supabaseFeedSource.ts` del zip anterior sí la tenía, así que este pisotón es posterior a ese zip y **puede haber afectado a más ficheros** de su copia (ver abajo).
+
+**Resultado fusionado en `derivedFeedText`:**
+
+| Tipo                  | Línea 1                                       | Línea 2 (negrita)                                      |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Case                  | título del caso                               | cliente                                                |
+| Episode               | título del episodio                           | `episode_kind`                                         |
+| **Insight** (nuestro) | título del insight                            | «Insights by Greener» (fijo)                           |
+| **Tool** (suyo)       | descripción del pin (`pin.label`, recortada)  | nombre de la tool (traducción según el idioma del pin) |
+| Other                 | rótulo del admin (`label`), sin segunda línea | —                                                      |
+
+Comentarios de `PinDirectoryEntry` fusionados para describir los cuatro casos.
+
+**Tests** (`feedPinText.test.ts`, de 4 a 7): insight (título + texto fijo, idioma del pin), tool (descripción arriba + nombre abajo; idioma del pin y recorte de espacios; sin descripción), case y other sin cambios. El test que fijaba el comportamiento anterior de tools («sigue usando el gancho») se ha sustituido. Comprobado con una mutación que quitar la rama de insights rompe 2 tests, así que otro pisotón se detectaría. 806 tests, build, ESLint y Prettier limpios.
+
+**Caso límite de tools (no tocado):** si el pin de una tool no tiene descripción, `displayTitle` es nulo y `PinCard` (`displayTitle || label`) no pinta nada, ni siquiera el nombre de la tool. El ABM exige la frase en tools, así que solo pasaría con datos antiguos o vacíos. Además, el campo del ABM sigue llamándose «Frase gancho» aunque ahora sea la descripción superior.
+
+**Ficheros donde viven nuestros cambios del 2 oct** (para comprobar que no se hayan pisado en otras copias): `getFeedSessionBatch.ts` (`round`, `feedPinDestination`, `?pin=`), `contentPath.ts`, `supabaseFeedSource.ts`, `NewPinForm.tsx`, `PinList.tsx`, `BulkPinUpload.tsx`, `ToolInsightDetail.module.css` (summary sin `line-clamp`, CTA abajo a la derecha), `textLimits.ts`, `layout.ts` (6 columnas desde 1200) y los tests `feedPinText`, `getFeedSessionBatch`, `contentPath`, `layout.property` y `generateRound.property`.
+
 ---
 
 ## 3. Cómo verificar todo esto tú mismo
@@ -384,7 +506,7 @@ npm run lint               # ESLint
 npm run format:check       # Prettier
 npx next build              # build de producción — genera también los tipos de ruta (.next/types). Necesita variables de entorno reales o de prueba (ver src/lib/env.ts); sin ellas falla en "Collecting page data", no antes.
 npx tsc --noEmit             # TypeScript — hazlo DESPUÉS de next build/dev, si no da falsos positivos de LayoutProps
-npm test                     # 802 tests (unit + property-based + smoke con jsdom)
+npm test                     # 806 tests (unit + property-based + smoke con jsdom)
 node scripts/generate-demo-data.mjs   # regenera el dataset (determinista) — incluye alt del carrusel de caso desde el 14 sep
 ```
 
@@ -438,10 +560,14 @@ Las referencias a «§4.8» que quedan dentro de §2 apuntan a la lista de pendi
 - [ ] **Primeras métricas reales de LCP/CLS** con contenido real (solo medido con el dataset de demo).
 - [~] **SEO**: hreflang verificado. Falta `<link rel="canonical">` autorreferente por versión de idioma, `x-default` y JSON-LD (`VideoObject`/`PodcastEpisode`, §18.1).
 - [~] **Analítica (§18.2)**: disparados `Pin Click`, `Case Open`, `Tool Open`, `Insight Open`, `Episode Play`, `Feed Depth` (ahora sí con `round` real, §2.20) y `Tool Used` (un solo mecanismo, §2.18: depende de que cada tool llame a `window.GreenerAnalytics.toolUsed(action)` o dispare `greener:tool-used`; una tool que no lo haga mostrará cero usos). Sin cablear: `Newsletter Signup`, porque no hay newsletter.
+- [x] CTA de la ficha de tool/insight anclado abajo a la derecha (§2.25).
 - [~] **Contacto**: formulario real cerrado. **Mailchimp** (doble opt-in) sigue fuera a propósito, es un flujo aparte; si se quiere en la V1.0 del lanzamiento hay que decidirlo ya, porque arrastra el evento `Newsletter Signup`.
 - [~] **Especificación de formatos para Greener (Anexo A.1)**: límites de caracteres cerrados (§2.3). Sin cerrar: ratios y dimensiones por breakpoint, códecs/bitrate de vídeo, contrato ZIP definitivo (`contrato-zip-tools-insights.md` cubre buena parte).
 - [ ] **Tests del login del ABM**: confirmar con quien lo llevó el estado real y añadir tests (único punto abierto del antiguo «housekeeping»).
 - [ ] **Masonry y diseño móvil con el diseño real**: en pausa por decisión de Greener (28 sep); ajustar `layout.ts` cuando llegue.
+
+- [ ] **Texto de la ficha de tool limitado a una columna** (§2.26): investigado, sin implementar; pendiente de decidir con diseño (cambia el tope del 83 % de la imagen).
+- [ ] **Tests de `?pin=`/`slide=`** de la ficha de tool (§2.24): `getToolPinCover` y el `slide` de `PinCard` no tienen cobertura.
 
 ### 4.4 Cerrado o descartado a propósito (no reabrir sin motivo)
 
@@ -459,7 +585,7 @@ Las referencias a «§4.8» que quedan dentro de §2 apuntan a la lista de pendi
 - [ ] Borrar `localPackageSource.ts` (y las dos referencias en comentarios).
 - [ ] Quitar de `package.json` `next-cloudinary`, `react-hook-form`, `@hookform/resolvers` y revisar `@types/adm-zip`; regenerar `package-lock.json`.
 - [ ] Implementar o eliminar `ADMIN_ALLOWED_DOMAIN_FALLBACK` (`env.ts` y `.env.local.example`).
-- [ ] Recuperar del repositorio `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md` (no vienen en el zip).
+- [x] `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md`: existen en el repositorio (solo faltan en los zips compartidos); no hay nada que recuperar.
 - [ ] Regenerar o eliminar `estructura-src.txt`; actualizar `supabase/README.md` y §1 de `contrato-zip-tools-insights.md`.
 - [ ] No incluir `__MACOSX/`, `.DS_Store`, `tsconfig.tsbuildinfo`, `next-env.d.ts` ni `supabase/.temp/` al empaquetar.
 
@@ -505,3 +631,8 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 - **2 oct 2026 (auditoría de lanzamiento)**: revisado el zip entero contra el código real. Encontrado y corregido un fallo que impedía desplegar: `next build` no compilaba porque `FeedBatchResult` no tenía el campo `round` que lee el evento «Feed Depth» (integración de la segunda rama del 29 sep, §2.17); añadido el campo, el valor en `getFeedSessionBatch` y un test. Reformateados 9 ficheros que incumplían `format:check`. Informe de carpetas vacías, código, dependencias y documentos sobrantes o ausentes en §2.20 (propuesto, sin borrar). Checklist de §4 reescrito por urgencia. 795 tests.
 - **2 oct 2026 (flujo de insights)**: el pin de un insight en el feed abre directamente `/insights/[slug]/app` en vez de su detalle (`feedPinDestination`, §2.21); el detalle se mantiene intacto. Tools sin cambios. Anotado que «Insight Open» ya no cuenta esos clics. 798 tests.
 - **2 oct 2026 (pie del pin de insight)**: el pin de un insight muestra ahora título + «Insights by Greener» en negrita (texto fijo), igual que un caso muestra título + cliente (`derivedFeedText`, §2.22). El ABM deja de pedir frase gancho en insights. 802 tests.
+- **2 oct 2026 (descripción de tools sin elipsis)**: quitado el `line-clamp: 3` de `.summary` en el detalle de tool/insight, que cortaba la descripción con «…» (§2.23). Anotado el riesgo de solape con las recomendaciones si un `summary` fuese largo. 802 tests.
+- **2 oct 2026 (integración, CTA e investigación)**: integrado el zip compartido (tools con portada desde el pin, CTA del pin arriba a la derecha, sin tramo de 5 columnas, `height: 100dvh` en el documento de tools) recuperando lo que ese zip había pisado de nuestra versión (`round`, destino `/app` de insights, summary sin truncar) y actualizando 2 tests (§2.24). CTA de la ficha anclado abajo a la derecha, verificado en Chromium (§2.25). Investigado, sin implementar, el ancho de una columna para el texto de tools (§2.26). 802 tests.
+- **2 oct 2026 (columnas e insights desde el detalle)**: restaurado el escalonado de columnas 2/3/4/5/6 (`layout.ts` original; el zip recibido lo había perdido) y revertido el test que se cambió; recalculados los números de §2.26 con ese escalonado; test de regresión de insights abiertos desde las recomendaciones (§2.27). 803 tests.
+- **2 oct 2026 (6 columnas desde 1200 y compilación)**: columnas a 2/3/4/6 con 6 desde 1200 de ancho de contenedor (§2.28); recalculados los números de §2.26; corregido un test de propiedades intermitente (~1 de cada 50 ejecuciones) y verificado todo en una copia limpia con Node 24.15.0. 803 tests.
+- **2 oct 2026 (reconciliación de supabaseFeedSource)**: fusionada la rama de tools de Greener (descripción del pin + nombre de la tool en negrita) con la de insights (título + «Insights by Greener»), que se había pisado; tests ampliados y comprobados con mutación (§2.29). 806 tests.

@@ -6,15 +6,18 @@
  * zod schemas por esto), solo avisan en el ABM mediante un contador. La
  * protección real del layout la da el truncado con elipsis en el
  * frontend público (`line-clamp` en los `*.module.css` de cada
- * plantilla de detalle), no esto — este módulo es la única fuente de
+ * plantilla de detalle; el `summary` de tool/insight es la excepción,
+ * ver más abajo), no esto — este módulo es la única fuente de
  * verdad para el número que se le muestra al editor, y el comentario en
  * cada CSS remite aquí para que el número de línea no se desincronice.
  *
  * - `title`, `highlight`: 2 líneas ≈ 40-55ch de medida.
  * - `body`: 8 líneas (un párrafo), 70ch de medida.
  * - `summary` (tool/insight/other — "para qué sirve/tema general", una
- *   mini introducción, no un cuerpo): 3 líneas, 70ch de medida. Más
- *   corto que `body` a propósito.
+ *   mini introducción, no un cuerpo): ~200 caracteres, 70ch de medida.
+ *   Más corto que `body` a propósito. Desde el 2 oct 2026 NO se trunca
+ *   en el frontend (sin line-clamp): el único freno es este aviso blando
+ *   del ABM, así que un summary largo ocupará las líneas que necesite.
  * - `client`: una sola línea, sin `line-clamp` (usa ellipsis simple).
  * - `seoTitle`/`seoDescription`: no dependen del layout — son la
  *   aproximación estándar de cuánto trunca Google el snippet.

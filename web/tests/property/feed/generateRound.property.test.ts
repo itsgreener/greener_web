@@ -98,12 +98,23 @@ describe('generateRound — determinismo', () => {
             snapshot.cases.length > 3,
         )
         const a = generateRound(snapshot, BASE_CONFIG, 'seed-A', roundIndex)
-        const b = generateRound(snapshot, BASE_CONFIG, 'seed-B', roundIndex)
-        // No exigimos que TODAS difieran (podría coincidir por casualidad en
-        // universos triviales), pero si hay más de un pin es extremadamente
-        // improbable que ambas secuencias completas coincidan.
+        // Con universos pequeños dos seeds distintas PUEDEN coincidir por
+        // casualidad (medido: ~1 de cada 10.000 universos, p. ej. un único
+        // caso de 5 pines con fuerza 4 → secuencia de 6). Comparar solo
+        // dos seeds hacía fallar este test ~1 de cada 50 ejecuciones. Se
+        // comparan cuatro seeds alternativas y basta con que UNA difiera:
+        // la probabilidad de que las cuatro coincidan a la vez es
+        // despreciable y el test sigue detectando un PRNG que ignorase la
+        // seed (en ese caso las cuatro coincidirían siempre).
+        const others = ['seed-B', 'seed-C', 'seed-D', 'seed-E'].map((seed) =>
+          generateRound(snapshot, BASE_CONFIG, seed, roundIndex),
+        )
         if (a.sequence.length > 3) {
-          expect(a.sequence).not.toEqual(b.sequence)
+          expect(
+            others.some(
+              (b) => JSON.stringify(b.sequence) !== JSON.stringify(a.sequence),
+            ),
+          ).toBe(true)
         }
       }),
       { numRuns: 100 },

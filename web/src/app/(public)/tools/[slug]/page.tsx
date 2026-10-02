@@ -32,7 +32,6 @@ async function getToolPreview(slug: string, previewToken: string | undefined) {
   return { content, client, isPreview }
 }
 
-
 type ToolPinCover = {
   media: PublicContentMedia
   ratio: PinRatioValue

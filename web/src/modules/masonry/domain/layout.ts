@@ -23,11 +23,18 @@ export function heightForRatio(ratio: PinRatio, columnWidth: number): number {
   return Math.round(columnWidth * RATIO_HEIGHT_FACTOR[ratio])
 }
 
-/** Columnas por breakpoint — arquitectura §10.1. Propuesta técnica, a validar por diseño. */
+/**
+ * Columnas por breakpoint — arquitectura §10.1. Propuesta técnica, a validar
+ * por diseño. El valor que se compara es el ANCHO DEL CONTENEDOR del feed
+ * (viewport − 64 px de menú − 32 de padding), no el del viewport.
+ */
 export const BREAKPOINTS = [
   { maxWidth: 640, columns: 2 },
   { maxWidth: 900, columns: 3 },
   { maxWidth: 1200, columns: 4 },
+  // Escritorio: 6 columnas a partir de 1200 (decisión de Greener, 2 oct
+  // 2026). Antes había un tramo intermedio de 5 columnas entre 1200 y 1600
+  // que ya no tiene hueco: ver PROGRESO §2.28.
   { maxWidth: Infinity, columns: 6 },
 ] as const
 

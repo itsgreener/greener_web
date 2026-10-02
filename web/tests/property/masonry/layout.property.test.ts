@@ -181,8 +181,10 @@ describe('columnsForViewport — coincide con la tabla de breakpoints de §10.1'
     expect(columnsForViewport(320)).toBe(2) // < 640
     expect(columnsForViewport(700)).toBe(3) // 640-899
     expect(columnsForViewport(1000)).toBe(4) // 900-1199
-    expect(columnsForViewport(1400)).toBe(5) // 1200-1599
-    expect(columnsForViewport(1920)).toBe(6) // >= 1600
+    expect(columnsForViewport(1199)).toBe(4) // 900-1199
+    expect(columnsForViewport(1200)).toBe(6) // >= 1200: escritorio
+    expect(columnsForViewport(1400)).toBe(6)
+    expect(columnsForViewport(1920)).toBe(6)
   })
 
   it('es monótono no decreciente al crecer el viewport', () => {

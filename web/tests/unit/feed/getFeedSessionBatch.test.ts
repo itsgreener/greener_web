@@ -218,11 +218,63 @@ describe('getFeedSessionBatch', () => {
     const insightItem = result.items.find((i) => i.pinId === 'pin-i')
 
     expect(toolItem?.cta).toBe('Use')
-    expect(toolItem?.destination).toBe('/tools/tool-1-slug')
+    // La ficha de Tool recibe el pin de origen (?pin=) para usar su medio
+    // como portada.
+    expect(toolItem?.destination).toBe('/tools/tool-1-slug?pin=pin-t')
     expect(insightItem?.cta).toBe('Read')
     // Los insights abren directamente el contenido real (/app), sin
     // pasar por su página de detalle; las tools siguen yendo al detalle.
     expect(insightItem?.destination).toBe('/insights/insight-1-slug/app')
+  })
+
+  it('sesión de recomendaciones (detalle de caso/tool/episodio, scope home + excludeContentId): el insight también abre /app', async () => {
+    // Las páginas de detalle piden su panel de recomendaciones con
+    // POST /api/feed/sessions { scope: 'home', excludeContentId } y pintan
+    // el destino que devuelve esta API tal cual (PinCard). Es el mismo
+    // camino que la home: un insight nunca debe apuntar a su detalle.
+    const recSession: FeedSessionRow = {
+      ...SESSION,
+      excludeContentId: 'case-actual',
+    }
+    deps.getSession = vi.fn(async () => recSession)
+    const insightDataset = {
+      snapshot: {
+        cases: [],
+        insights: [
+          { contentId: 'insight-1', pinIds: ['pin-i'], force: 1 },
+          { contentId: 'insight-2', pinIds: ['pin-i2'], force: 1 },
+        ],
+        tools: [],
+        channel: [],
+        other: [],
+      },
+      pinDirectory: {
+        'pin-i': entry('insight-1', 'insight'),
+        'pin-i2': entry('insight-2', 'insight'),
+      } as Record<string, PinDirectoryEntry>,
+    }
+    deps.getDataset = vi.fn(async () => insightDataset)
+
+    const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(deps.getDataset).toHaveBeenCalledWith('home', 'case-actual')
+    const insights = result.items.filter((i) => i.kind === 'insight')
+    expect(insights.length).toBeGreaterThan(0)
+    for (const item of insights) {
+      expect(item.destination).toMatch(/^\/insights\/[^/]+\/app$/)
+    }
+
+    // Y al releer la misma ronda ya guardada (otro camino de enrich),
+    // el destino sigue siendo /app.
+    deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+      Object.fromEntries(
+        ids.map((id) => [id, insightDataset.pinDirectory[id]]),
+      ),
+    )
+    const again = await getFeedSessionBatch(SESSION.id, null, deps)
+    for (const item of again.items.filter((i) => i.kind === 'insight')) {
+      expect(item.destination).toMatch(/^\/insights\/[^/]+\/app$/)
+    }
   })
 
   it('para una ronda nueva, pide el dataset con el scope de la sesión, no siempre "home"', async () => {
