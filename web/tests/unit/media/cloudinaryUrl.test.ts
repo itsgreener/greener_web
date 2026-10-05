@@ -5,7 +5,12 @@ import {
   buildVideoPosterUrl,
   buildVideoPreviewUrl,
   buildVideoFullUrl,
+  buildVideoDetailUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
+import {
+  IMAGE_DELIVERY,
+  pickDetailWidth,
+} from '@/modules/media/domain/mediaDelivery'
 
 // NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "test-cloud" viene de tests/setup.ts
 const PUBLIC_ID = 'greener/content/abc123'
@@ -71,5 +76,40 @@ describe('buildVideoFullUrl', () => {
     expect(url).toBe(
       `https://res.cloudinary.com/test-cloud/video/upload/q_auto,f_auto/${PUBLIC_ID}`,
     )
+  })
+})
+
+describe('vídeo de la ficha de una tool (5 oct 2026)', () => {
+  it('buildVideoDetailUrl limita el ancho (c_limit) y deja que f_auto elija WebM o MP4', () => {
+    expect(buildVideoDetailUrl(PUBLIC_ID, 960)).toBe(
+      `https://res.cloudinary.com/test-cloud/video/upload/q_auto,f_auto,w_960,c_limit/${PUBLIC_ID}`,
+    )
+  })
+
+  it('pickDetailWidth reutiliza los anchos de detalle de las imágenes, sin constantes nuevas', () => {
+    const widths = IMAGE_DELIVERY.detail.widths
+
+    for (const css of [100, 480, 700, 1000, 3000]) {
+      for (const dpr of [1, 2, 3]) {
+        expect(widths).toContain(pickDetailWidth(css, dpr))
+      }
+    }
+  })
+
+  it('elige el menor ancho que cubre la caja a la densidad del dispositivo', () => {
+    expect(pickDetailWidth(400, 1)).toBe(960)
+    expect(pickDetailWidth(480, 1)).toBe(960)
+    expect(pickDetailWidth(481, 2)).toBe(1440)
+    expect(pickDetailWidth(800, 2)).toBe(1920)
+  })
+
+  it('con densidad 3× no pasa de 2× (en vídeo cuesta ancho de banda y no se nota)', () => {
+    expect(pickDetailWidth(480, 3)).toBe(pickDetailWidth(480, 2))
+  })
+
+  it('una caja mayor que el mayor ancho usa el mayor, y una caja 0 o negativa el menor', () => {
+    expect(pickDetailWidth(5000, 2)).toBe(1920)
+    expect(pickDetailWidth(0, 1)).toBe(960)
+    expect(pickDetailWidth(-10, 1)).toBe(960)
   })
 })

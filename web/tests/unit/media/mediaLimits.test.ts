@@ -1,13 +1,20 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
   IMAGE_LIMITS,
   VIDEO_LIMITS,
   PIN_ANIMATION_LIMITS,
+  TOOL_PIN_VIDEO_LIMITS,
+  canAnimateInFeed,
+  pinVideoLimitsFor,
   validateImageFile,
   validateImageUpload,
   validateVideoUpload,
   validatePinAnimationUpload,
+  validatePinVideoUpload,
 } from '@/modules/media/domain/mediaLimits'
 
 function ascii(value: string): number[] {
@@ -282,6 +289,77 @@ describe('validateImageFile', () => {
   })
 })
 
+describe('límites de vídeo de pin por tipo de contenido (5 oct 2026)', () => {
+  it('los pines de una tool admiten 15 s y 15 MB', () => {
+    expect(pinVideoLimitsFor('tool')).toEqual({
+      maxDurationSeconds: 15,
+      maxSizeBytes: 15 * 1024 * 1024,
+    })
+
+    expect(validatePinVideoUpload('tool', 15 * 1024 * 1024, 15)).toBeNull()
+  })
+
+  it('el resto de pines mantienen 8 s y 100 MB', () => {
+    for (const type of ['case', 'insight', 'episode', 'other']) {
+      expect(pinVideoLimitsFor(type)).toEqual({
+        maxDurationSeconds: 8,
+        maxSizeBytes: VIDEO_LIMITS.maxSizeBytes,
+      })
+    }
+
+    expect(validatePinVideoUpload('case', 50 * 1024 * 1024, 8)).toBeNull()
+  })
+
+  it('rechaza un vídeo de tool por encima de 15 s o de 15 MB', () => {
+    expect(validatePinVideoUpload('tool', 1024, 16)).toEqual({
+      code: 'ANIMATION_TOO_LONG',
+      maxSeconds: 15,
+    })
+
+    expect(validatePinVideoUpload('tool', 15 * 1024 * 1024 + 1, 5)).toEqual({
+      code: 'VIDEO_TOO_LARGE',
+      maxBytes: 15 * 1024 * 1024,
+    })
+  })
+
+  it('un vídeo de 10 s vale en una tool pero no en un caso', () => {
+    expect(validatePinVideoUpload('tool', 1024, 10)).toBeNull()
+    expect(validatePinVideoUpload('case', 1024, 10)?.code).toBe(
+      'ANIMATION_TOO_LONG',
+    )
+  })
+
+  it('canAnimateInFeed: hasta 8 s se anima; más, solo poster; sin dato, como siempre (se anima)', () => {
+    expect(canAnimateInFeed(5)).toBe(true)
+    expect(canAnimateInFeed(8)).toBe(true)
+    expect(canAnimateInFeed(9)).toBe(false)
+    expect(canAnimateInFeed(15)).toBe(false)
+    expect(canAnimateInFeed(null)).toBe(true)
+    expect(canAnimateInFeed(undefined)).toBe(true)
+  })
+
+  it('las constantes TypeScript coinciden con las de la migración SQL attach_pin_video', () => {
+    const sql = readFileSync(
+      resolve(
+        __dirname,
+        '../../../supabase/migrations/20261005090000_pin_video_limits_by_content_type.sql',
+      ),
+      'utf8',
+    )
+
+    expect(sql).toContain(
+      `v_max_duration := ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds};`,
+    )
+    expect(sql).toContain(
+      `v_max_bytes := ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes};`,
+    )
+    expect(sql).toContain(
+      `v_max_duration := ${PIN_ANIMATION_LIMITS.maxDurationSeconds};`,
+    )
+    expect(sql).toContain(`v_max_bytes := ${VIDEO_LIMITS.maxSizeBytes};`)
+  })
+})
+
 describe('validateVideoUpload', () => {
   it('acepta un vídeo dentro de tamaño y duración', () => {
     expect(validateVideoUpload(10 * 1024 * 1024, 60)).toBeNull()
@@ -323,7 +401,7 @@ describe('validatePinAnimationUpload', () => {
     expect(validatePinAnimationUpload(2 * 1024 * 1024, 3)).toBeNull()
   })
 
-  it('acepta exactamente 5 segundos (PIN_ANIMATION_LIMITS.maxDurationSeconds)', () => {
+  it('acepta exactamente 8 segundos (PIN_ANIMATION_LIMITS.maxDurationSeconds)', () => {
     expect(
       validatePinAnimationUpload(
         2 * 1024 * 1024,
@@ -332,8 +410,8 @@ describe('validatePinAnimationUpload', () => {
     ).toBeNull()
   })
 
-  it('rechaza más de 5 segundos con ANIMATION_TOO_LONG, no VIDEO_TOO_LONG', () => {
-    const result = validatePinAnimationUpload(2 * 1024 * 1024, 6)
+  it('rechaza más de 8 segundos con ANIMATION_TOO_LONG, no VIDEO_TOO_LONG', () => {
+    const result = validatePinAnimationUpload(2 * 1024 * 1024, 9)
 
     expect(result).toEqual({
       code: 'ANIMATION_TOO_LONG',

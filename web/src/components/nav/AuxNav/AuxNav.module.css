@@ -9,7 +9,7 @@
   justify-content: flex-start;
   gap: var(--space-lg);
   list-style: none;
-  margin: 0;
+  margin: 12px 0 28px 0;
   padding: 0;
 }
 
@@ -33,5 +33,6 @@
   &[aria-current='page'] {
     opacity: 1;
     font-weight: 600;
+    border-bottom: black solid 2px;
   }
 }

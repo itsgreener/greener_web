@@ -204,14 +204,14 @@ describe('attachPinVideo', () => {
     expect(supabasePinMediaRepository.attachVideo).toHaveBeenCalledOnce()
   })
 
-  it('rechaza más de 5 segundos sin llamar al repositorio', async () => {
+  it('rechaza más de 15 segundos (techo absoluto, el de las tools) sin llamar al repositorio', async () => {
     const { attachPinVideo } =
       await import('@/modules/pin/application/attachPinVideo')
     const { supabasePinMediaRepository } =
       await import('@/modules/pin/infrastructure/supabasePinMediaRepository')
 
     await expect(
-      attachPinVideo({ ...validInput, durationSeconds: 10 }),
+      attachPinVideo({ ...validInput, durationSeconds: 16 }),
     ).rejects.toThrow()
 
     expect(supabasePinMediaRepository.attachVideo).not.toHaveBeenCalled()

@@ -597,6 +597,43 @@ Greener pidió revisar el formulario antes de probarlo en el sitio activo. Se mo
 
 **No se puede comprobar desde aquí (hay que hacerlo en vivo, ver §4.0):** que el correo llegue de verdad (bandeja o spam, SPF/DKIM/DMARC del dominio de `no-reply@`, y que el proveedor SMTP acepte ese remitente), la IP que entrega el proxy de Dinahosting, que la Server Action funcione tras el proxy, las variables y la migración de `contact_submission` en producción, y el enlace de privacidad (hoy un placeholder).
 
+### 2.36 Vídeos de demostración en las tools (5 oct)
+
+**Qué se pidió.** Poder enseñar en la ficha de una tool un vídeo corto que muestre cómo funciona. Tras un primer plan (tabla propia y fila de vídeos bajo el texto) Greener lo **descartó**: el funcionamiento de una tool no cambia — varios pines, el usuario abre uno desde la home y llega a `/tools/{slug}?pin=…` con ese pin cargado — y el vídeo debe **sustituir a la imagen** del bloque imagen + texto, entrando por el flujo de pines que ya existe. Sin tabla nueva, sin sección nueva en el ABM, sin carrusel, sin fila inferior.
+
+**Decisiones (Greener, 5 oct).**
+
+- **Límites.** Vídeo de pin de **tool: 15 s y 15 MB**. Resto de pines (caso, insight, episodio, other): **8 s** (antes 5; la mayoría de los vídeos duran 5-7 s) y 100 MB. 8 s es además el umbral de animación en el feed: un vídeo más largo **no se anima en la home**, se queda en su poster y solo se reproduce en la ficha.
+- **Formatos de entrada:** MP4, WebM y MOV (Cloudinary sirve WebM o MP4 con `f_auto`). **Ratios:** los 7 cerrados; el ABM avisa (sin bloquear) si el vídeo subido no encaja con el ratio de su pin, porque se recortaría con `object-fit: cover`.
+- **En la ficha:** mismo cuadro que la imagen (`computeContentBlockGeometry`, sin tocar la geometría); mudo, en bucle, con botón de pausa siempre visible y `alt` del pin (obligatorio, sin pie). El ancho que se pide a Cloudinary sale de los **mismos anchos de entrega de detalle que las imágenes** (`pickDetailWidth`), no de una constante nueva. Fuera del `videoPlaybackCoordinator`, **sin analítica** nueva, insights sin tocar, `/variety` (portada de vídeo con controles) sin cambios.
+- **`prefers-reduced-motion` y `save-data`/2G** (§9.3 de la arquitectura, que no existían en ninguna parte): módulo nuevo `src/lib/useMotionPreferences.ts`; con cualquiera de las dos el vídeo de la ficha no arranca solo (poster + «Play», sin precarga). Los pines del feed podrán adoptarlo después.
+- **Cloudinary Free: no se tolera basura.** Se revisaron todos los puntos de subida (ver abajo).
+
+**Qué se cambió.**
+
+- `mediaLimits.ts`: `PIN_ANIMATION_LIMITS` 5 → 8 s, `TOOL_PIN_VIDEO_LIMITS` (15 s / 15 MB), `pinVideoLimitsFor`, `validatePinVideoUpload`, `canAnimateInFeed`. `pinMediaSchema.ts` usa el techo absoluto (15 s); el límite por tipo lo aplica SQL.
+- **Migración `20261005090000_pin_video_limits_by_content_type.sql`**: `attach_pin_video` lee el tipo del contenido del pin y aplica 15 s/15 MB (tool) u 8 s/100 MB. Un test comprueba que las constantes TypeScript y SQL coinciden.
+- **Feed:** `supabaseFeedSource` lleva `duration_seconds` (solo vídeo) al cliente; `PinCard` no anima ni compite por hueco si `!canAnimateInFeed`.
+- **Ficha:** `ToolCoverVideo` (+ hook y CSS), usado por `ToolInsightDetail` solo si `content.type === 'tool'`; `page.tsx` de la tool lee el `alt` del pin y lo pasa como `coverAltOverride`.
+- **ABM:** `PinMediaManager` recibe `contentType` y `pinRatio` (límites por tipo, textos, aviso de ratio).
+
+**Limpieza de Cloudinary (revisión de todos los puntos de subida).** Antes ya borraban el archivo: sustituir portada, quitar un medio del carrusel de caso y desvincular un medio de pin. Dejaban basura y ahora **ya no**:
+
+- **Borrar un pin** (`delete_pin` dejaba los `media_asset` «deliberadamente»): migración `20261005091000_delete_pin_content_remove_orphan_media.sql` los borra en la misma transacción si nadie más los usa (otro pin, carrusel, portada u og); la Server Action lee los medios **antes**, y borra los archivos **después** (`cleanupMedia.ts`).
+- **Borrar un contenido (draft)**: igual, con portada, og, pines y carrusel.
+- **Fallo después de subir** (pin, carrusel, portada y carga masiva): `discardUploadedMediaAction` borra el archivo si no está registrado. Exige `is_admin()` (es un endpoint público) y solo actúa dentro de `greener/content/`. Cubre también que el admin cancele la sustitución de una portada de vídeo ya subida. Los mensajes de error ya no dicen «ya subido a Cloudinary».
+- **Todo lo demás** (pestaña cerrada a medias, restos históricos): `scripts/reconcile-cloudinary.mjs`. Simulación por defecto; solo borra con `--delete`; ignora archivos de menos de 1 h (subida en curso) y todo lo que esté fuera de `greener/content/`. Uso: `node --env-file=.env.local scripts/reconcile-cloudinary.mjs`.
+
+Todo es best-effort: un fallo de Cloudinary nunca deshace ni impide la operación de Postgres; si no se puede comprobar qué sigue en uso, **no se borra nada**.
+
+**`?? 10` de `verifyCloudinaryVideoAsset` (parche temporal de Greener, se mantiene).** Conflicto encontrado: si la Admin API no devuelve `duration`, todo vídeo de pin se guardaría con 10 s y, con el umbral de 8 s, **se quedaría en poster en el feed**. Solución sin tocar el parche: `verifyCloudinaryVideoAsset` devuelve `durationAssumed` y `attachPinVideoAction` usa en ese caso la duración real que Cloudinary entregó al navegador al subir (que el esquema ya exigía). **Candidato a solución definitiva, SIN verificar con Cloudinary real:** se añadió `image_metadata: true` a la llamada `api.resource` (el soporte de Cloudinary indica que la duración de un vídeo ya subido se obtiene así; el SDK 2.11.0 lo admite). Si funciona, el aviso «la Admin API no devolvió duration…» deja de salir en el log del servidor; si sigue saliendo, esa opción no basta y hay que probar otra vía (p. ej. la Search API). El `?? 10` no se ha quitado.
+
+**Cómo se verificó (y qué NO).**
+
+- 924 tests, **todos en verde**. El zip de partida traía 2 rojos en `contact.smoke.test.tsx` (el título de `/contact` se rediseñó y el test seguía buscando «Contact» en el `h1`); se corrigieron aquí: ahora busca «We should have a brand together», y el `<title>` de la pestaña sigue siendo «Contact». ESLint y `tsc` sin errores (`tsc` tras `next build`/dev, sin el falso positivo `LayoutProps`). `next build` limpio (con variables de prueba y **Node 22**, el del entorno de trabajo; el proyecto fija Node 24.15, conviene repetirlo allí). Prettier correcto sobre todos los ficheros tocados.
+- ~90 tests nuevos o ajustados: límites por tipo y su coherencia con el SQL, ratio, anchos de entrega, preferencias de movimiento, `PinCard` con vídeo largo, reproductor (arranque, reduced-motion, pausa manual, pausa fuera de pantalla), limpieza y reconciliador (incluido «nunca tocar fuera de `greener/content/`»), acciones de servidor (borrar pin/contenido, descartar subida con y sin sesión de admin).
+- **NO se ha comprobado:** (1) las dos migraciones **contra un Postgres/Supabase real** — hay que aplicarlas antes de desplegar; (2) la reproducción en un **navegador real** (los tests usan jsdom, que no reproduce vídeo); (3) `image_metadata: true` con Cloudinary real; (4) el reconciliador contra Cloudinary y Supabase reales (solo se ha probado su lógica pura).
+
 ---
 
 ## Historial de correcciones de `PROGRESO.md` (hasta el 2 de octubre)

@@ -75,15 +75,15 @@ describe('attachPinVideoSchema', () => {
     ).toBe(false)
   })
 
-  it('rechaza más de 5 segundos — límite propio de la animación de pin, no los 180s de un vídeo de caso', () => {
+  it('rechaza más de 15 segundos — techo absoluto de un vídeo de pin (el de las tools), no los 180s de un vídeo de caso', () => {
     expect(
-      attachPinVideoSchema.safeParse({ ...base, durationSeconds: 6 }).success,
+      attachPinVideoSchema.safeParse({ ...base, durationSeconds: 16 }).success,
     ).toBe(false)
   })
 
-  it('acepta exactamente 5 segundos', () => {
+  it('acepta exactamente 15 segundos (el límite por tipo de contenido lo aplica SQL)', () => {
     expect(
-      attachPinVideoSchema.safeParse({ ...base, durationSeconds: 5 }).success,
+      attachPinVideoSchema.safeParse({ ...base, durationSeconds: 15 }).success,
     ).toBe(true)
   })
 

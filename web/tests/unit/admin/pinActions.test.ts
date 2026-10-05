@@ -28,6 +28,11 @@ vi.mock('@/modules/pin/application/detachPinMedia', () => ({
   detachPinMedia: vi.fn(),
 }))
 
+vi.mock('@/modules/media/application/cleanupMedia', () => ({
+  snapshotPinMedia: vi.fn(),
+  purgeRemovedMedia: vi.fn(),
+}))
+
 vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
   class MockCloudinaryImageVerificationError extends Error {
     constructor(message: string) {
@@ -81,6 +86,11 @@ import { attachPinVideo } from '@/modules/pin/application/attachPinVideo'
 import { detachPinMedia } from '@/modules/pin/application/detachPinMedia'
 
 import {
+  purgeRemovedMedia,
+  snapshotPinMedia,
+} from '@/modules/media/application/cleanupMedia'
+
+import {
   CloudinaryImageVerificationError,
   CloudinaryVideoVerificationError,
   deleteCloudinaryAsset,
@@ -111,6 +121,18 @@ const mockAttachPinVideo = vi.mocked(attachPinVideo)
 const mockDetachPinMedia = vi.mocked(detachPinMedia)
 
 const mockDeleteCloudinaryAsset = vi.mocked(deleteCloudinaryAsset)
+
+const mockSnapshotPinMedia = vi.mocked(snapshotPinMedia)
+
+const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
+
+const PIN_MEDIA_REFS = [
+  {
+    mediaId: MEDIA_ID,
+    cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
+    kind: 'video' as const,
+  },
+]
 
 const mockVerifyCloudinaryImageAsset = vi.mocked(verifyCloudinaryImageAsset)
 
@@ -224,6 +246,10 @@ describe('pinActions', () => {
 
     mockDeleteCloudinaryAsset.mockResolvedValue(undefined)
 
+    mockSnapshotPinMedia.mockResolvedValue(PIN_MEDIA_REFS)
+
+    mockPurgeRemovedMedia.mockResolvedValue({ purged: 1, failed: 0 })
+
     mockVerifyCloudinaryImageAsset.mockImplementation(async (publicId) => ({
       cloudinaryPublicId: publicId,
 
@@ -317,6 +343,58 @@ describe('pinActions', () => {
       })
 
       expect(mockDeletePin).toHaveBeenCalledTimes(1)
+    })
+
+    it('lee los medios del pin ANTES de borrarlo y purga sus archivos de Cloudinary DESPUÉS', async () => {
+      const order: string[] = []
+
+      mockSnapshotPinMedia.mockImplementationOnce(async () => {
+        order.push('snapshot')
+
+        return PIN_MEDIA_REFS
+      })
+
+      mockDeletePin.mockImplementationOnce(async () => {
+        order.push('delete')
+
+        return PIN_ID
+      })
+
+      mockPurgeRemovedMedia.mockImplementationOnce(async () => {
+        order.push('purge')
+
+        return { purged: 1, failed: 0 }
+      })
+
+      await deletePinAction(PIN_ID, CONTENT_ID)
+
+      expect(order).toEqual(['snapshot', 'delete', 'purge'])
+
+      expect(mockSnapshotPinMedia).toHaveBeenCalledWith(PIN_ID)
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith(PIN_MEDIA_REFS)
+    })
+
+    it('si el borrado en Postgres falla, NO borra nada en Cloudinary', async () => {
+      mockDeletePin.mockRejectedValueOnce(new Error('boom'))
+
+      const result = await deletePinAction(PIN_ID, CONTENT_ID)
+
+      expect(result.formError).toBe('No se ha podido borrar el pin.')
+
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
+    })
+
+    it('si Cloudinary no puede borrar algún archivo, el pin se da por borrado y se devuelve un aviso', async () => {
+      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 2 })
+
+      const result = await deletePinAction(PIN_ID, CONTENT_ID)
+
+      expect(result.success).toBe(true)
+
+      expect(result.formError).toBeUndefined()
+
+      expect(result.warning).toContain('2 archivo(s)')
     })
   })
 
@@ -571,6 +649,67 @@ describe('pinActions', () => {
       })
     })
 
+    it('si la Admin API no devolvió duración (parche ?? 10), usa la duración REAL que Cloudinary dio al navegador, no el 10 supuesto', async () => {
+      mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
+        cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
+
+        format: 'mp4',
+
+        width: 1920,
+
+        height: 1080,
+
+        durationSeconds: 10,
+
+        bytes: 4096,
+
+        durationAssumed: true,
+      })
+
+      await attachPinVideoAction({
+        ...VALID_VIDEO_INPUT,
+
+        durationSeconds: 6.4,
+      })
+
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ durationSeconds: 7 }),
+      )
+
+      // La bandera es interna: no se propaga al caso de uso.
+      expect(mockAttachPinVideo.mock.calls[0][0]).not.toHaveProperty(
+        'durationAssumed',
+      )
+    })
+
+    it('si la duración sí viene de Cloudinary, manda la verificada, no la del navegador', async () => {
+      mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
+        cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
+
+        format: 'mp4',
+
+        width: 1920,
+
+        height: 1080,
+
+        durationSeconds: 4,
+
+        bytes: 4096,
+
+        durationAssumed: false,
+      })
+
+      await attachPinVideoAction({
+        ...VALID_VIDEO_INPUT,
+
+        durationSeconds: 1,
+      })
+
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ durationSeconds: 4 }),
+      )
+    })
+
     it('usa los metadatos verificados de Cloudinary en vez de confiar en los enviados por cliente', async () => {
       mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
         cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
@@ -649,7 +788,8 @@ describe('pinActions', () => {
       expect(result).toEqual({
         ok: false,
 
-        error: 'El vídeo no puede superar los 5 segundos.',
+        error:
+          'El vídeo supera la duración máxima de un pin (8 s; 15 s en las tools).',
       })
     })
   })

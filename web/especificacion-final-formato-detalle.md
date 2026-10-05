@@ -11,7 +11,7 @@
 | Contenidos                         | `tool`, `insight`                                                                                                | `case`, `episode`                                                            | Cualquier cosa suelta — sustituye por completo a `page` |
 | CTA en el pin (feed)               | Use (tool) / Read (insight)                                                                                      | Watch                                                                        | Watch                                                   |
 | CTA en el detalle                  | Use / Read (lleva al HTML real)                                                                                  | Ninguno (caso) / **Watch more** hacia la plataforma externa (episodio)       | Ninguno                                                 |
-| Medio del detalle                  | 1 imagen únicamente                                                                                              | Caso: carrusel 1-N mixto (imagen+vídeo) · Episodio: 1 vídeo externo, siempre | 1 imagen **o** 1 vídeo (nunca ambos, nunca carrusel)    |
+| Medio del detalle                  | 1 imagen (tool: 1 imagen **o** 1 vídeo, §8)                                                                      | Caso: carrusel 1-N mixto (imagen+vídeo) · Episodio: 1 vídeo externo, siempre | 1 imagen **o** 1 vídeo (nunca ambos, nunca carrusel)    |
 | Ancho del contenido (imagen+texto) | Variable, 3-5 columnas según ratio                                                                               | **Siempre 6/6**, fijo                                                        | Variable, 3-5 columnas, igual que tipo A                |
 | Recomendaciones                    | Derecha (1-3 columnas, el resto hasta 6) + debajo                                                                | Solo debajo (no hay hueco lateral)                                           | Derecha + debajo, igual que tipo A                      |
 | Editor de bloques libre            | No existe                                                                                                        | No existe                                                                    | No existe                                               |
@@ -80,13 +80,13 @@ Igual que caso, sustituyendo `client` por:
 
 ### Tipo A — Tool / Insight
 
-| Campo                           | Traducible | Notas                                                                       |
-| ------------------------------- | ---------- | --------------------------------------------------------------------------- |
-| `title`                         | Sí         | Nombre del contenido                                                        |
-| `summary`                       | Sí         | Campo libre: para qué sirve / tema general (reutiliza columna ya existente) |
-| `seo_title` / `seo_description` | Sí         |                                                                             |
-| `cover_media_id`                | —          | 1 imagen, WebP, máx. 5 MB                                                   |
-| **Paquete HTML**                | —          | **Obligatorio.** ZIP con `manifest.json`, servido aparte en `/tools         | insights/[slug]/app`. Sistema ya construido, sin cambios — contrato detallado en documento aparte (§5) |
+| Campo                           | Traducible | Notas                                                                                                     |
+| ------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------- |
+| `title`                         | Sí         | Nombre del contenido                                                                                      |
+| `summary`                       | Sí         | Campo libre: para qué sirve / tema general (reutiliza columna ya existente)                               |
+| `seo_title` / `seo_description` | Sí         |                                                                                                           |
+| `cover_media_id`                | —          | 1 imagen, WebP, máx. 5 MB (en una tool, el medio de la ficha es el del pin de origen, imagen o vídeo, §8) |
+| **Paquete HTML**                | —          | **Obligatorio.** ZIP con `manifest.json`, servido aparte en `/tools                                       | insights/[slug]/app`. Sistema ya construido, sin cambios — contrato detallado en documento aparte (§5) |
 
 ### Contenido libre (`other`)
 
@@ -94,13 +94,13 @@ Igual que tool/insight, **sin CTA, sin paquete HTML** — `cover_media_id` admit
 
 ### Pin (todos los tipos)
 
-| Campo      | Notas                                                                                               |
-| ---------- | --------------------------------------------------------------------------------------------------- |
-| `label`    | Gancho/título del pin. Obligatorio en tool/insight/libre, opcional (no se muestra) en caso/episodio |
-| Medios     | Hasta 8 (imagen o vídeo ≤5 s, mezclados) + flag "mostrar como carrusel"                             |
-| `ratio`    | Uno de los 7 ratios cerrados                                                                        |
-| `language` |                                                                                                     |
-| `alt`      |                                                                                                     |
+| Campo      | Notas                                                                                                                |
+| ---------- | -------------------------------------------------------------------------------------------------------------------- |
+| `label`    | Gancho/título del pin. Obligatorio en tool/insight/libre, opcional (no se muestra) en caso/episodio                  |
+| Medios     | Hasta 8 (imagen o vídeo, mezclados; vídeo ≤8 s, y ≤15 s / 15 MB en pines de tool, §8) + flag "mostrar como carrusel" |
+| `ratio`    | Uno de los 7 ratios cerrados                                                                                         |
+| `language` |                                                                                                                      |
+| `alt`      |                                                                                                                      |
 
 ---
 
@@ -142,5 +142,7 @@ Esta versión decía "no queda ninguna pregunta abierta sobre el formato en sí"
 - **El ratio del carrusel de un caso (tipo B) — no estaba resuelto en el punto 1 de §2.** El punto 1 dice "la imagen nunca se mide en columnas... altura fija × ratio, igual en tipo A, B y contenido libre" — pero un caso trae un carrusel de 1-N imágenes/vídeos mixtos (§3), no una única imagen: ¿qué ratio gobierna la reserva cuando cada diapositiva puede tener uno distinto? Resuelto el 21 de septiembre: se usa el ratio del medio **más ancho** de todo el carrusel para las N diapositivas por igual — el resto se encaja con barras negras (`object-fit: contain`) en vez de recortarse, y **sin recalcular nada al cambiar de diapositiva** (mover la caja de texto en tiempo real porque cada imagen tiene un ratio distinto no tiene sentido visual, se descartó a propósito).
 - **Móvil (<640px, fuera de la tabla del §2 a propósito) — placeholder acordado, no diseño final.** Mientras no exista el rediseño propio que menciona §2, el sitio no puede quedarse sin comportamiento por debajo de 640px: se acordó un interino el 21 de septiembre — sin panel lateral nunca (todo el ancho para el bloque de contenido), recomendaciones solo debajo, y la imagen a su ratio natural a ancho completo, **sin** la regla de 66,7vh del punto 1 (esa regla existe para coordinarse con un panel lateral que en móvil no existe). Construido y documentado como placeholder explícito, a sustituir cuando llegue el diseño real de móvil.
 - **Ruta de `other` — no estaba en la lista de §7 de esta v2.** Resuelto el 21 de septiembre, ver §7 arriba.
+
+- **Vídeos de demostración en las tools (5 de octubre).** Una tool puede enseñar un vídeo corto en lugar de la imagen de la ficha. **No hay tabla, carrusel ni fila nueva:** el vídeo es un medio más de un pin de la tool y, como ya ocurría con la imagen, `/tools/[slug]?pin=<pin>` toma el medio del pin de origen y lo pinta en el mismo cuadro y con la misma geometría (§2). Límites: vídeo de pin de tool **15 s y 15 MB**; en el resto de pines **8 s** (antes 5) y 100 MB. Un vídeo de más de 8 s no se anima en la home: muestra su poster. Entrada MP4/WebM/MOV, en los 7 ratios cerrados (el ABM avisa si no encaja con el del pin). En la ficha: mudo, en bucle, con botón de pausa, alt obligatorio, sin pie; no arranca solo con `prefers-reduced-motion` ni `save-data`. Sin analítica. Detalle en `historial-fase-5.md` §2.36.
 
 ---

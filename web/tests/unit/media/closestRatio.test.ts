@@ -2,8 +2,41 @@ import { describe, it, expect } from 'vitest'
 
 import {
   closestClosedRatio,
+  mediaMatchesRatio,
   widestCarouselRatio,
 } from '@/modules/media/domain/closestRatio'
+
+describe('mediaMatchesRatio — aviso de recorte de un vídeo en el ABM (5 oct 2026)', () => {
+  it.each([
+    ['1:1', 1080, 1080],
+    ['4:3', 1440, 1080],
+    ['4:5', 1080, 1350],
+    ['3:4', 1080, 1440],
+    ['2:3', 1080, 1620],
+    ['9:16', 1080, 1920],
+    ['16:9', 1920, 1080],
+  ] as const)('%s encaja con %i×%i', (ratio, w, h) => {
+    expect(mediaMatchesRatio(w, h, ratio)).toBe(true)
+  })
+
+  it('tolera diferencias de píxeles (1366×768 sigue siendo 16:9)', () => {
+    expect(mediaMatchesRatio(1366, 768, '16:9')).toBe(true)
+  })
+
+  it('no encaja un 16:10 (1440×900) con ninguno de los dos más cercanos', () => {
+    expect(mediaMatchesRatio(1440, 900, '16:9')).toBe(false)
+    expect(mediaMatchesRatio(1440, 900, '4:3')).toBe(false)
+  })
+
+  it('un vídeo vertical no encaja con un pin horizontal', () => {
+    expect(mediaMatchesRatio(1080, 1920, '16:9')).toBe(false)
+  })
+
+  it('dimensiones inválidas no encajan (no lanza)', () => {
+    expect(mediaMatchesRatio(100, 0, '1:1')).toBe(false)
+    expect(mediaMatchesRatio(Number.NaN, 100, '1:1')).toBe(false)
+  })
+})
 
 describe('closestClosedRatio — dimensiones exactas de cada uno de los 7 ratios', () => {
   it.each([

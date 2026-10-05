@@ -384,6 +384,9 @@ describe('cloudinaryServer', () => {
         resource_type: 'video',
 
         type: 'upload',
+
+        // Candidato a solución de la falta de `duration` (5 oct 2026).
+        image_metadata: true,
       })
 
       expect(mockValidateVideoUpload).toHaveBeenCalledWith(8192, 42.5)
@@ -400,7 +403,23 @@ describe('cloudinaryServer', () => {
         durationSeconds: 42.5,
 
         bytes: 8192,
+
+        durationAssumed: false,
       })
+    })
+
+    it('marca la duración como supuesta cuando la Admin API no la devuelve (parche temporal ?? 10)', async () => {
+      const { duration: _omitted, ...withoutDuration } = validVideoResource()
+
+      void _omitted
+
+      mockResource.mockResolvedValueOnce(withoutDuration)
+
+      const result = await verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)
+
+      expect(result.durationSeconds).toBe(10)
+
+      expect(result.durationAssumed).toBe(true)
     })
 
     it('rechaza un publicId fuera del directorio de vídeos permitido', async () => {

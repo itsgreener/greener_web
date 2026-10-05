@@ -16,7 +16,7 @@ Este documento (`PROGRESO.md`) sigue siendo el único sitio a mirar para saber �
 
 Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado.
 
-Última revisión: 5 de octubre de 2026 (reorganización de la documentación; el código y las cifras de §1 son los verificados el 2 de octubre ejecutando lint, `tsc`, tests, `next build`, `prettier` y `npm audit`).
+Última revisión: 5 de octubre de 2026 (vídeos de demostración en las tools, §2.36; antes, reorganización de la documentación; el código y las cifras de §1 son los verificados el 2 de octubre ejecutando lint, `tsc`, tests, `next build`, `prettier` y `npm audit`).
 
 ---
 
@@ -26,53 +26,54 @@ Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualí
 
 **Cifras actuales, verificadas el 2 de octubre:**
 
-- **835 tests automáticos, todos en verde** (`npm test`, 93 ficheros).
+- **924 tests automáticos, todos en verde** (`npm test`, 101 ficheros), verificado el 5 oct tras los vídeos de las tools. El zip que llegó el 5 oct traía 2 tests rojos en `tests/unit/contact/contact.smoke.test.tsx` (el título de `/contact` se rediseñó y el test seguía buscando «Contact» en el `h1`); corregidos el mismo día, el test ahora busca el título real del rediseño.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`) y **`npm audit` sin vulnerabilidades**.
-- **Next.js 16.3.8**, **Node 24.15.0** (`.nvmrc`), **40 migraciones SQL**.
+- **Next.js 16.3.8**, **Node 24.15.0** (`.nvmrc`), **42 migraciones SQL** (las 2 últimas, del 5 oct, **sin aplicar** todavía).
 
 ---
 
-## 2. Índice de lo hecho — Fase 5 (22 sep – 2 oct)
+## 2. Índice de lo hecho — Fase 5 (22 sep – 5 oct)
 
 Una fila por sección. **El detalle completo (qué, por qué, cómo se verificó) está en `historial-fase-5.md`, con el mismo número `§2.N`.**
 
-| §    | Fecha     | Qué se hizo                                                                                                         |
-| ---- | --------- | ------------------------------------------------------------------------------------------------------------------- |
-| 2.1  | 22 sep    | Dotfiles restaurados y formato normalizado en todo el repositorio.                                                  |
-| 2.2  | 22 sep    | El ABM redirige a la edición completa justo después de crear un contenido.                                          |
-| 2.3  | 22 sep    | Límites de caracteres Tipo A y Tipo B: contador blando en el ABM y recorte con elipsis en el frontend.              |
-| 2.4  | 22 sep    | Verificación server-side de vídeo en Cloudinary (trabajo externo integrado).                                        |
-| 2.5  | 22-23 sep | Auditoría de cookies: Vimeo sin `dnt` corregido y click-to-load para Vimeo y Spotify.                               |
-| 2.6  | 23 sep    | Preview firmado del ABM (token HMAC sin estado); cierra §15.3 de la arquitectura.                                   |
-| 2.7  | 23 sep    | Analítica Plausible («Pin Click») y resolución de un conflicto real de git.                                         |
-| 2.8  | 28 sep    | Caché de assets de tools/insights corregida (ya no `immutable` bajo una URL no versionada) y contrato ZIP ampliado. |
-| 2.9  | 28 sep    | Despliegue `standalone`, metadatos, páginas 404/error y normalización de `SITE_URL`.                                |
-| 2.10 | 28 sep    | Despliegue real con PM2 y cron, tope de copia del proxy, hreflang y decisión sobre las redirecciones.               |
-| 2.11 | 28 sep    | Cookies, opción A (sin banner); corregida una CSP que bloqueaba Plausible.                                          |
-| 2.12 | 29 sep    | Integración de cambios externos: bug real de assets, tipos MIME ampliados y analítica.                              |
-| 2.13 | 29 sep    | Escáner de dominios y validación estructural de `assets/` dentro del ZIP.                                           |
-| 2.14 | 29 sep    | Rutas de demo bloqueadas en producción y menú lateral real en `/tools                                               | insights/[slug]/app`. |
-| 2.15 | 29 sep    | «Tool Used» servidor a servidor (sustituido después, ver §2.18).                                                    |
-| 2.16 | 29 sep    | Límite de peticiones al feed público, por visitante (cookie técnica anónima).                                       |
-| 2.17 | 29 sep    | Integración de una segunda rama: ABM rediseñado, «Feed Depth» y un segundo «Tool Used».                             |
-| 2.18 | 29 sep    | «Tool Used»: un solo mecanismo (script del paquete + `/api/analytics/package`).                                     |
-| 2.19 | 30 sep    | Bug real: el límite de peticiones rompía el scroll de la home.                                                      |
-| 2.20 | 2 oct     | Auditoría de estado y limpieza del repositorio; arreglado el `next build`, que fallaba por el campo `round`.        |
-| 2.21 | 2 oct     | El pin de un insight abre directamente `/insights/{slug}/app`.                                                      |
-| 2.22 | 2 oct     | Pie del pin de insight: título + «Insights by Greener» en negrita.                                                  |
-| 2.23 | 2 oct     | El `summary` de tool/insight deja de truncarse con elipsis.                                                         |
-| 2.24 | 2 oct     | Integración del zip compartido por Greener (portada de tool desde el pin, CTA del pin, `layout.ts`).                |
-| 2.25 | 2 oct     | CTA de la ficha de tool/insight anclado abajo a la derecha.                                                         |
-| 2.26 | 2 oct     | Investigación: texto de la ficha limitado a una columna (implementada en §2.31).                                    |
-| 2.27 | 2 oct     | Insights abiertos desde el detalle de una tool o un caso: causa y test de regresión.                                |
-| 2.28 | 2 oct     | Columnas 2/3/4/6 (6 desde 1200), versión de referencia de insights y test intermitente corregido.                   |
-| 2.29 | 2 oct     | Reconciliación de `supabaseFeedSource.ts`: insights y tools con dos líneas en el pin.                               |
-| 2.30 | 2 oct     | Tipografías: Helvetica Neue (general) y Kinder (título de caso y de contacto).                                      |
-| 2.31 | 2 oct     | Texto de la ficha de tool/insight limitado a una columna.                                                           |
-| 2.32 | 2 oct     | Pin de episodio: segunda línea «programa + tipo».                                                                   |
-| 2.33 | 2 oct     | `npm audit fix`: Next.js 16.3.5 → 16.3.8, sin vulnerabilidades.                                                     |
-| 2.34 | 2 oct     | Clase global `.text-body` para texto corrido.                                                                       |
-| 2.35 | 2 oct     | Comprobación del formulario de contacto antes de publicar: 25 correctas y 3 problemas reales.                       |
+| §    | Fecha     | Qué se hizo                                                                                                          |
+| ---- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| 2.1  | 22 sep    | Dotfiles restaurados y formato normalizado en todo el repositorio.                                                   |
+| 2.2  | 22 sep    | El ABM redirige a la edición completa justo después de crear un contenido.                                           |
+| 2.3  | 22 sep    | Límites de caracteres Tipo A y Tipo B: contador blando en el ABM y recorte con elipsis en el frontend.               |
+| 2.4  | 22 sep    | Verificación server-side de vídeo en Cloudinary (trabajo externo integrado).                                         |
+| 2.5  | 22-23 sep | Auditoría de cookies: Vimeo sin `dnt` corregido y click-to-load para Vimeo y Spotify.                                |
+| 2.6  | 23 sep    | Preview firmado del ABM (token HMAC sin estado); cierra §15.3 de la arquitectura.                                    |
+| 2.7  | 23 sep    | Analítica Plausible («Pin Click») y resolución de un conflicto real de git.                                          |
+| 2.8  | 28 sep    | Caché de assets de tools/insights corregida (ya no `immutable` bajo una URL no versionada) y contrato ZIP ampliado.  |
+| 2.9  | 28 sep    | Despliegue `standalone`, metadatos, páginas 404/error y normalización de `SITE_URL`.                                 |
+| 2.10 | 28 sep    | Despliegue real con PM2 y cron, tope de copia del proxy, hreflang y decisión sobre las redirecciones.                |
+| 2.11 | 28 sep    | Cookies, opción A (sin banner); corregida una CSP que bloqueaba Plausible.                                           |
+| 2.12 | 29 sep    | Integración de cambios externos: bug real de assets, tipos MIME ampliados y analítica.                               |
+| 2.13 | 29 sep    | Escáner de dominios y validación estructural de `assets/` dentro del ZIP.                                            |
+| 2.14 | 29 sep    | Rutas de demo bloqueadas en producción y menú lateral real en `/tools                                                | insights/[slug]/app`. |
+| 2.15 | 29 sep    | «Tool Used» servidor a servidor (sustituido después, ver §2.18).                                                     |
+| 2.16 | 29 sep    | Límite de peticiones al feed público, por visitante (cookie técnica anónima).                                        |
+| 2.17 | 29 sep    | Integración de una segunda rama: ABM rediseñado, «Feed Depth» y un segundo «Tool Used».                              |
+| 2.18 | 29 sep    | «Tool Used»: un solo mecanismo (script del paquete + `/api/analytics/package`).                                      |
+| 2.19 | 30 sep    | Bug real: el límite de peticiones rompía el scroll de la home.                                                       |
+| 2.20 | 2 oct     | Auditoría de estado y limpieza del repositorio; arreglado el `next build`, que fallaba por el campo `round`.         |
+| 2.21 | 2 oct     | El pin de un insight abre directamente `/insights/{slug}/app`.                                                       |
+| 2.22 | 2 oct     | Pie del pin de insight: título + «Insights by Greener» en negrita.                                                   |
+| 2.23 | 2 oct     | El `summary` de tool/insight deja de truncarse con elipsis.                                                          |
+| 2.24 | 2 oct     | Integración del zip compartido por Greener (portada de tool desde el pin, CTA del pin, `layout.ts`).                 |
+| 2.25 | 2 oct     | CTA de la ficha de tool/insight anclado abajo a la derecha.                                                          |
+| 2.26 | 2 oct     | Investigación: texto de la ficha limitado a una columna (implementada en §2.31).                                     |
+| 2.27 | 2 oct     | Insights abiertos desde el detalle de una tool o un caso: causa y test de regresión.                                 |
+| 2.28 | 2 oct     | Columnas 2/3/4/6 (6 desde 1200), versión de referencia de insights y test intermitente corregido.                    |
+| 2.29 | 2 oct     | Reconciliación de `supabaseFeedSource.ts`: insights y tools con dos líneas en el pin.                                |
+| 2.30 | 2 oct     | Tipografías: Helvetica Neue (general) y Kinder (título de caso y de contacto).                                       |
+| 2.31 | 2 oct     | Texto de la ficha de tool/insight limitado a una columna.                                                            |
+| 2.32 | 2 oct     | Pin de episodio: segunda línea «programa + tipo».                                                                    |
+| 2.33 | 2 oct     | `npm audit fix`: Next.js 16.3.5 → 16.3.8, sin vulnerabilidades.                                                      |
+| 2.34 | 2 oct     | Clase global `.text-body` para texto corrido.                                                                        |
+| 2.35 | 2 oct     | Comprobación del formulario de contacto antes de publicar: 25 correctas y 3 problemas reales.                        |
+| 2.36 | 5 oct     | Vídeos de demostración en las tools (en el flujo de pines), límites 8/15 s, reduced-motion y limpieza de Cloudinary. |
 
 ---
 
@@ -105,10 +106,12 @@ Las referencias a «§4.8» que quedan en los historiales y en comentarios del c
 
 ### 4.0 PRIORITARIO (añadido el 2 oct)
 
-- [ ] **Vídeos cortos de demostración en `/tools/{slug}` (WebM o MP4).** Poder enseñar en la ficha de una tool vídeos breves que muestren cómo funciona.
-  - **Ya existe y se puede reutilizar:** `media_asset` con `kind = video` y subida firmada a Cloudinary desde el ABM; `VIDEO_LIMITS` (hoy 100 MB y 180 s, genéricos; los 5 s son solo de los pines animados); la entrega de Cloudinary con `f_auto` (sirve WebM o MP4 según el navegador desde una sola subida); la CSP (`media-src` ya admite Cloudinary); el patrón de `case_detail_media` (carrusel de imágenes y vídeos de la ficha de caso, con tabla propia, independiente de `pin_media`); y `videoPlaybackCoordinator`/`useVideoSlot` para limitar vídeos simultáneos.
-  - **Falta:** una tabla de medios de la tool (mismo patrón que `case_detail_media`, sin mezclarla con los pines), su sección en el ABM (subir, ordenar, borrar, poster) y el reproductor en la ficha.
-  - **A cerrar con Greener antes de construir:** cuántos vídeos por tool; en qué parte de la ficha van (portada, bajo el texto, galería); si se reproducen solos (mudos, en bucle) o con controles y sonido; si el poster es obligatorio; duración y peso máximos para estos vídeos; subtítulos o texto alternativo; y qué hacer con `prefers-reduced-motion` y `save-data`, que hoy **no están implementados en ninguna parte** del código.
+- [~] **Vídeos cortos de demostración en `/tools/{slug}`** (§2.36). **Implementado el 5 oct, pendiente de probar con datos reales.** El vídeo sustituye a la imagen de la ficha y entra por el flujo de pines (sin tabla ni sección nueva): 15 s / 15 MB en pines de tool, 8 s en el resto, no se anima en la home por encima de 8 s, mudo + bucle + botón de pausa, `reduced-motion`/`save-data`, `alt` obligatorio, sin analítica. Falta, por orden:
+  1. **Aplicar las dos migraciones nuevas** (`20261005090000_pin_video_limits_by_content_type.sql` y `20261005091000_delete_pin_content_remove_orphan_media.sql`) con `npx supabase db push` **antes de desplegar el código**: sin la primera, el SQL antiguo sigue rechazando vídeos de más de 5 s; sin la segunda, borrar un pin sigue dejando filas de `media_asset`.
+  2. **Probar en un navegador real** (no se ha hecho; jsdom no reproduce vídeo): subir un vídeo de ~6 s y otro de ~12 s a un pin de tool, ver que el de 6 s se anima en la home y el de 12 s se queda en poster, abrir ambos en `/tools/{slug}?pin=…` y comprobar autoplay mudo, bucle, botón de pausa, `prefers-reduced-motion`, un `.mov` y un vídeo con ratio que no encaje (debe salir el aviso del ABM).
+  3. **Comprobar `image_metadata: true`** (candidato a arreglar la falta de `duration` de la Admin API; sin verificar): tras subir un vídeo, mirar el log del servidor; si **no** aparece «la Admin API no devolvió duration…», funciona y se puede quitar el `?? 10`; si aparece, hay que buscar otra vía. El `?? 10` sigue puesto.
+  4. **Vigilar el consumo de Cloudinary Free** con las ~15 tools × ~3 vídeos: almacenamiento, ancho de banda de entrega y versiones derivadas de `f_auto`. Una mejora pendiente y barata: el feed reproduce hoy el original sin límite de ancho (`buildVideoFullUrl`); limitarlo con los anchos de feed reduciría el ancho de banda.
+- [ ] **Ejecutar el reconciliador de Cloudinary** (§2.36): `node --env-file=.env.local scripts/reconcile-cloudinary.mjs` (simulación) y, si la lista es la esperada, repetir con `--delete`. Limpia la basura histórica que ya se había acumulado y lo que deje una subida interrumpida; conviene pasarlo de vez en cuando. Aún no se ha ejecutado contra Cloudinary y Supabase reales.
 - [ ] **Probar el formulario de contacto con el sitio en activo.** Revisado de mi lado antes de publicar (§2.35: 25 comprobaciones correctas y 3 problemas reales). Pruebas a hacer en vivo, por orden:
   1. **Variables y base de datos de producción:** credenciales SMTP, `SUPABASE_SECRET_KEY`, `CONTACT_IP_HASH_SALT` propia y la migración `contact_submission` aplicada.
   2. **Un envío real de punta a punta:** que llegue a `hello@itsgreener.com` (en bandeja, no en spam), con el `Reply-To` del visitante y bien el remitente. Revisar SPF/DKIM/DMARC del dominio de `no-reply@itsgreener.com` y que el proveedor SMTP acepte ese remitente (muchos obligan a que coincida con la cuenta autenticada).
@@ -152,9 +155,9 @@ Las referencias a «§4.8» que quedan en los historiales y en comentarios del c
 
 ### 4.3 Calidad: lo que el brief exigía y no está
 
-- [ ] **Tests E2E de los criterios de aceptación críticos de §20.1** (misma seed → misma secuencia, recargar → seed nueva, volver desde un detalle conserva orden y posición…). Hoy hay 795 tests unitarios/de propiedad/de humo, ninguno de navegador.
+- [ ] **Tests E2E de los criterios de aceptación críticos de §20.1** (misma seed → misma secuencia, recargar → seed nueva, volver desde un detalle conserva orden y posición…). Hoy hay 924 tests unitarios/de propiedad/de humo, ninguno de navegador.
 - [ ] **Accesibilidad**: teclado, foco, contraste y menú solo-iconos con labels. `alt` de `case_detail_media` ya cerrado; falta el resto.
-- [ ] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: no existen en el código; el autoplay de vídeo y los carruseles no se desactivan.
+- [~] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: desde el 5 oct existe `useMotionPreferences` (§2.36) y lo usa **solo** el vídeo de la ficha de las tools. Siguen sin respetarlo el autoplay de los pines del feed y los carruseles.
 - [ ] **`<html lang="en">` fijo** aunque haya contenido en es/ca.
 - [ ] **`feed_config.video_limit_*` no se lee**: el límite 2/1 está fijo en `videoPlaybackCoordinator.ts` según el ancho (<640 px). O se conecta con la config, o se retiran las columnas y se dice en el ABM que no es editable.
 - [ ] **Primeras métricas reales de LCP/CLS** con contenido real (solo medido con el dataset de demo).
@@ -219,4 +222,5 @@ Decisiones ya cerradas: ver `historial-fases-0-2.md`, `historial-fases-3-4.md` e
 
 Más reciente primero. El registro anterior (22 sep – 2 oct, ~15 KB) está archivado en `historial-fase-5.md`, sección «Historial de correcciones de `PROGRESO.md`».
 
+- **5 oct 2026 (vídeos de las tools)**: añadida la fila §2.36 al índice y su detalle en `historial-fase-5.md`. §4.0: el ítem de vídeos pasa de `[ ]` a `[~]` con los 4 pasos que quedan (migraciones, navegador real, `image_metadata`, consumo de Cloudinary) y se añade el reconciliador; §4.3: `prefers-reduced-motion` pasa a `[~]`; §1: tests 835 → 924, todos en verde (corregido el test de `/contact`, que ya fallaba antes del cambio). La especificación de detalle (§1, §3 y §8) se corrige: una tool puede llevar un vídeo en lugar de la imagen.
 - **5 oct 2026 (reorganización)**: `PROGRESO.md` pasa de 134 KB a unos 35 KB. El relato de las secciones §2.1-§2.35 y el registro de correcciones anterior se mueven, **sin reescribirlos**, al nuevo `historial-fase-5.md`; aquí queda un índice con una fila por sección, el checklist, las decisiones y cómo verificar. Rescatados al checklist (§4.1 y §4.3) ocho pendientes que solo estaban en el relato (solape del `summary`, licencias de las tipografías, menú de los documentos `/app`, tipografía del admin, línea de episodio cortada, `text-body` en contacto, pin de tool sin descripción, §10.1 de la arquitectura) y la nota sobre «Insight Used».
