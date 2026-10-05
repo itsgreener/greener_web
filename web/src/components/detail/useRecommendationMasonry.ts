@@ -29,12 +29,16 @@ import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
  * - El scope lo decide la sección que abre el detalle: tools → tools,
  *   insights → insights, channel → channel, work → work y home → todo.
  *   El contenido actual se excluye siempre para no recomendarse a sí mismo.
- * - El masonry se siembra de forma asimétrica: las primeras
- *   `contentColumns` columnas arrancan a la altura real del bloque de
- *   contenido (+GAP), el resto a 0 — ver computeMasonryLayout,
- *   initialColumnHeights. Con contentColumns === totalColumns (tipo B,
- *   "solo debajo", o el placeholder de móvil) esto degenera solo en
- *   "todas las columnas arrancan igual", sin ningún caso especial.
+ * - Tipo A (tool/insight/other): el bloque de contenido va en absoluto
+ *   DENTRO del lienzo y el masonry se siembra de forma asimétrica: las
+ *   primeras `contentColumns` columnas arrancan a la altura de la imagen
+ *   (+GAP), el resto a 0 — ver computeMasonryLayout, initialColumnHeights.
+ * - Tipo B (caso/episodio, `fullWidthContent`): el bloque de contenido va
+ *   en flujo normal ENCIMA del lienzo y el lienzo solo contiene las
+ *   recomendaciones, sembradas a 0 (5 oct 2026). Las recomendaciones solo
+ *   pueden ir debajo, así que no hace falta posicionar el bloque a mano: el
+ *   navegador calcula su altura real (texto debajo del embed incluido) y el
+ *   margen entre bloque y recomendaciones es un `margin-bottom` de CSS.
  * - Sin virtualización ni prefetch por sentinel todavía (v1 de este
  *   panel) — con lotes de 40 pines el coste de montar todo no es el
  *   mismo problema que en el scroll infinito de home/subhomes; se añade
@@ -174,9 +178,12 @@ export function useRecommendationMasonry(
     // especificacion-final-formato-detalle.md §1: tipo B (caso/episodio)
     // siempre reserva 6/6, nunca panel lateral — a diferencia de tipo A,
     // el ratio no decide cuántas columnas se reservan, siempre son todas.
-    // Con esto activado, todas las columnas se siembran por igual tras
-    // el bloque de contenido: las recomendaciones solo pueden aparecer
-    // debajo, nunca al lado (recommendationColumns siempre 0).
+    // Con esto activado el bloque de contenido va EN FLUJO, fuera del
+    // lienzo (el componente lo renderiza antes de `containerRef`), y el
+    // lienzo solo contiene las recomendaciones, todas las columnas
+    // sembradas a 0: solo pueden aparecer debajo, nunca al lado
+    // (recommendationColumns siempre 0). `totalHeight` es entonces solo la
+    // altura del masonry.
     fullWidthContent?: boolean
     // Tipo A (tool/insight/other): el texto conserva como MÍNIMO una
     // columna de la retícula. Si la imagen deja más hueco dentro del bloque
@@ -296,6 +303,9 @@ export function useRecommendationMasonry(
 
   const textColumn = options?.textColumn ?? false
 
+  // Tipo B: el bloque de contenido NO está dentro del lienzo (ver arriba).
+  const contentInFlow = options?.fullWidthContent ?? false
+
   const contentBlock = useMemo(
     () =>
       computeContentBlockGeometry({
@@ -317,7 +327,10 @@ export function useRecommendationMasonry(
   )
 
   const layout = useMemo(() => {
-    if (containerWidth === 0 || contentBlock.imageHeight === 0) return null
+    if (containerWidth === 0) return null
+    // En tipo A la siembra depende de la altura de la imagen; en tipo B
+    // (en flujo) no depende de nada del bloque.
+    if (!contentInFlow && contentBlock.imageHeight === 0) return null
     const columnWidth =
       (containerWidth - GAP * (totalColumns - 1)) / totalColumns
 
@@ -326,18 +339,19 @@ export function useRecommendationMasonry(
       ratio: item.ratio as PinRatio,
       labelHeight: estimateLabelHeight(item, columnWidth),
     }))
-    // Límite conocido de esta primera versión: la siembra usa la altura
-    // de la IMAGEN (contentBlockImageDimensions, §2), no la altura real
-    // medida del bloque completo (imagen + texto) — si el texto es más
-    // alto que la imagen para un contenido con mucho summary, la primera
-    // fila de recomendaciones de esas columnas puede quedar ligeramente
-    // solapada. Medirlo con un ResizeObserver sobre el bloque real
-    // arreglaría esto del todo, pero añade un ciclo más de render
-    // (estimado → medido) — se deja fuera hasta que haya contenido real
-    // con el que confirmar si el caso llega a darse en la práctica.
-    const initialColumnHeights = new Array(totalColumns)
-      .fill(0)
-      .map((_, c) => (c < contentColumns ? contentBlock.imageHeight + GAP : 0))
+    // Límite conocido de TIPO A (tool/insight/other): la siembra usa la
+    // altura de la IMAGEN (contentBlockImageDimensions, §2), no la altura
+    // real medida del bloque completo (imagen + texto) — si el texto es
+    // más alto que la imagen, la primera fila de recomendaciones de esas
+    // columnas puede quedar ligeramente solapada. Tipo B no lo tiene: su
+    // bloque va en flujo y se siembra a 0.
+    const initialColumnHeights = contentInFlow
+      ? undefined
+      : new Array(totalColumns)
+          .fill(0)
+          .map((_, c) =>
+            c < contentColumns ? contentBlock.imageHeight + GAP : 0,
+          )
     return computeMasonryLayout(
       layoutItems,
       containerWidth,
@@ -350,6 +364,7 @@ export function useRecommendationMasonry(
     totalColumns,
     contentColumns,
     contentBlock.imageHeight,
+    contentInFlow,
   ])
 
   const positioned: PositionedRecommendation[] = useMemo(() => {
@@ -386,7 +401,9 @@ export function useRecommendationMasonry(
     contentBlockImageHeight: contentBlock.imageHeight,
     contentBlockReservedWidth: contentBlock.reservedWidth,
     contentBlockTextWidth: contentBlock.textColumnWidth,
-    totalHeight: Math.max(layout?.totalHeight ?? 0, contentBlock.imageHeight),
+    totalHeight: contentInFlow
+      ? (layout?.totalHeight ?? 0)
+      : Math.max(layout?.totalHeight ?? 0, contentBlock.imageHeight),
     recommendationColumns,
     positioned,
     isLoading,

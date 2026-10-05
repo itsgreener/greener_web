@@ -25,6 +25,8 @@ import {
   uploadVideoToCloudinary,
 } from '@/modules/media/infrastructure/cloudinaryUpload'
 
+import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocalVideoDuration'
+
 import {
   registerCoverImageAction,
   registerCoverVideoAction,
@@ -44,28 +46,6 @@ type Props = {
   allowVideo: boolean
 
   coverMedia: CoverMedia | null
-}
-
-function readVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-
-    video.preload = 'metadata'
-
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-
-      resolve(video.duration)
-    }
-
-    video.onerror = () => {
-      URL.revokeObjectURL(video.src)
-
-      reject(new Error('No se ha podido leer la duración del vídeo.'))
-    }
-
-    video.src = URL.createObjectURL(file)
-  })
 }
 
 type Dimensions = {
@@ -283,13 +263,11 @@ export default function CoverMediaUpload({
       // confirmar con el dato real de Cloudinary que el vídeo es válido,
       // no antes de subirlo. Si se borrara antes y el vídeo real
       // resultara demasiado largo, el caso se quedaría sin portada.
-      let localDuration: number | null = null
-
-      try {
-        localDuration = await readVideoDuration(file)
-      } catch {
-        localDuration = null
-      }
+      // `null` = el navegador no ha podido dar una duración fiable (vídeo
+      // no decodificable, duración `Infinity`/`NaN` de un WebM sin cabecera,
+      // o sin respuesta a tiempo): no se bloquea aquí, se valida después con
+      // la duración real de Cloudinary. Ver readLocalVideoDuration.
+      const localDuration = await readLocalVideoDuration(file)
 
       if (localDuration !== null) {
         const validation = validateVideoUpload(file.size, localDuration)

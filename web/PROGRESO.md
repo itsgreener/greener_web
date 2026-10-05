@@ -26,7 +26,7 @@ Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualí
 
 **Cifras actuales, verificadas el 2 de octubre:**
 
-- **924 tests automáticos, todos en verde** (`npm test`, 101 ficheros), verificado el 5 oct tras los vídeos de las tools. El zip que llegó el 5 oct traía 2 tests rojos en `tests/unit/contact/contact.smoke.test.tsx` (el título de `/contact` se rediseñó y el test seguía buscando «Contact» en el `h1`); corregidos el mismo día, el test ahora busca el título real del rediseño.
+- **985 tests automáticos, todos en verde** (`npm test`, 105 ficheros), verificado el 5 oct tras los vídeos de las tools. El zip que llegó el 5 oct traía 2 tests rojos en `tests/unit/contact/contact.smoke.test.tsx` (el título de `/contact` se rediseñó y el test seguía buscando «Contact» en el `h1`); corregidos el mismo día, el test ahora busca el título real del rediseño.
 - **0 errores de TypeScript**, **0 errores ni avisos de ESLint**, **build de producción limpio**, **formato limpio** (`format:check`) y **`npm audit` sin vulnerabilidades**.
 - **Next.js 16.3.8**, **Node 24.15.0** (`.nvmrc`), **42 migraciones SQL** (las 2 últimas, del 5 oct, **sin aplicar** todavía).
 
@@ -111,6 +111,7 @@ Las referencias a «§4.8» que quedan en los historiales y en comentarios del c
   2. **Probar en un navegador real** (no se ha hecho; jsdom no reproduce vídeo): subir un vídeo de ~6 s y otro de ~12 s a un pin de tool, ver que el de 6 s se anima en la home y el de 12 s se queda en poster, abrir ambos en `/tools/{slug}?pin=…` y comprobar autoplay mudo, bucle, botón de pausa, `prefers-reduced-motion`, un `.mov` y un vídeo con ratio que no encaje (debe salir el aviso del ABM).
   3. **Comprobar `image_metadata: true`** (candidato a arreglar la falta de `duration` de la Admin API; sin verificar): tras subir un vídeo, mirar el log del servidor; si **no** aparece «la Admin API no devolvió duration…», funciona y se puede quitar el `?? 10`; si aparece, hay que buscar otra vía. El `?? 10` sigue puesto.
   4. **Vigilar el consumo de Cloudinary Free** con las ~15 tools × ~3 vídeos: almacenamiento, ancho de banda de entrega y versiones derivadas de `f_auto`. Una mejora pendiente y barata: el feed reproduce hoy el original sin límite de ancho (`buildVideoFullUrl`); limitarlo con los anchos de feed reduciría el ancho de banda.
+- [ ] **Fijar el margen entre el bloque y las recomendaciones en caso y episodio** (§2.36): `--detail-block-gap` en `src/app/globals.css` vale `var(--space-xl)` (40 px) a falta del valor del documento de diseño; la distancia real es ese valor + 24 px del gap de `.article`. Un único sitio que cambiar para ambos.
 - [ ] **Ejecutar el reconciliador de Cloudinary** (§2.36): `node --env-file=.env.local scripts/reconcile-cloudinary.mjs` (simulación) y, si la lista es la esperada, repetir con `--delete`. Limpia la basura histórica que ya se había acumulado y lo que deje una subida interrumpida; conviene pasarlo de vez en cuando. Aún no se ha ejecutado contra Cloudinary y Supabase reales.
 - [ ] **Probar el formulario de contacto con el sitio en activo.** Revisado de mi lado antes de publicar (§2.35: 25 comprobaciones correctas y 3 problemas reales). Pruebas a hacer en vivo, por orden:
   1. **Variables y base de datos de producción:** credenciales SMTP, `SUPABASE_SECRET_KEY`, `CONTACT_IP_HASH_SALT` propia y la migración `contact_submission` aplicada.
@@ -155,7 +156,7 @@ Las referencias a «§4.8» que quedan en los historiales y en comentarios del c
 
 ### 4.3 Calidad: lo que el brief exigía y no está
 
-- [ ] **Tests E2E de los criterios de aceptación críticos de §20.1** (misma seed → misma secuencia, recargar → seed nueva, volver desde un detalle conserva orden y posición…). Hoy hay 924 tests unitarios/de propiedad/de humo, ninguno de navegador.
+- [ ] **Tests E2E de los criterios de aceptación críticos de §20.1** (misma seed → misma secuencia, recargar → seed nueva, volver desde un detalle conserva orden y posición…). Hoy hay 985 tests unitarios/de propiedad/de humo, ninguno de navegador.
 - [ ] **Accesibilidad**: teclado, foco, contraste y menú solo-iconos con labels. `alt` de `case_detail_media` ya cerrado; falta el resto.
 - [~] **`prefers-reduced-motion` y `save-data`/conexión lenta (§9.3)**: desde el 5 oct existe `useMotionPreferences` (§2.36) y lo usa **solo** el vídeo de la ficha de las tools. Siguen sin respetarlo el autoplay de los pines del feed y los carruseles.
 - [ ] **`<html lang="en">` fijo** aunque haya contenido en es/ca.
@@ -222,5 +223,7 @@ Decisiones ya cerradas: ver `historial-fases-0-2.md`, `historial-fases-3-4.md` e
 
 Más reciente primero. El registro anterior (22 sep – 2 oct, ~15 KB) está archivado en `historial-fase-5.md`, sección «Historial de correcciones de `PROGRESO.md`».
 
+- **5 oct 2026 (carga masiva con vídeo y caso/episodio en flujo)**: la carga masiva de pines acepta vídeo (MP4/WebM/MOV, lotes mixtos, `createPinWithVideoAction`); el bloque de contenido de caso y episodio pasa de `position: absolute` a flujo normal para poder darle margen (token `--detail-block-gap`, valor **provisional**: 40 px + el gap de 24 px de `.article`); tool/insight/other no cambian. Detalle en §2.36 del historial; 985 tests.
+- **5 oct 2026 (vídeo de 5 s rechazado)**: primera prueba real de los vídeos de las tools; un vídeo de 5 s se rechazaba con «supera los 15 segundos» porque el navegador daba `duration = Infinity` (WebM sin cabecera). Corregido con `readLocalVideoDuration` compartido por los tres formularios (detalle en §2.36 del historial); 952 tests.
 - **5 oct 2026 (vídeos de las tools)**: añadida la fila §2.36 al índice y su detalle en `historial-fase-5.md`. §4.0: el ítem de vídeos pasa de `[ ]` a `[~]` con los 4 pasos que quedan (migraciones, navegador real, `image_metadata`, consumo de Cloudinary) y se añade el reconciliador; §4.3: `prefers-reduced-motion` pasa a `[~]`; §1: tests 835 → 924, todos en verde (corregido el test de `/contact`, que ya fallaba antes del cambio). La especificación de detalle (§1, §3 y §8) se corrige: una tool puede llevar un vídeo en lugar de la imagen.
 - **5 oct 2026 (reorganización)**: `PROGRESO.md` pasa de 134 KB a unos 35 KB. El relato de las secciones §2.1-§2.35 y el registro de correcciones anterior se mueven, **sin reescribirlos**, al nuevo `historial-fase-5.md`; aquí queda un índice con una fila por sección, el checklist, las decisiones y cómo verificar. Rescatados al checklist (§4.1 y §4.3) ocho pendientes que solo estaban en el relato (solape del `summary`, licencias de las tipografías, menú de los documentos `/app`, tipografía del admin, línea de episodio cortada, `text-body` en contacto, pin de tool sin descripción, §10.1 de la arquitectura) y la nota sobre «Insight Used».

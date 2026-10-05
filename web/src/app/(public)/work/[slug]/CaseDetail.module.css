@@ -5,24 +5,30 @@
   width: 100%;
 }
 
-/* Mismo mecanismo que ToolInsightDetail.module.css .canvas: el bloque de
-   contenido y cada recomendación se posicionan en absoluto dentro de
-   este relative. Con fullWidthContent (tipo B) todas las columnas se
-   siembran igual, así que las recomendaciones solo pueden aparecer
-   después del bloque, nunca al lado. */
+/* Lienzo del masonry de recomendaciones: cada tarjeta se posiciona en
+   absoluto (transform) dentro de este relative. Con fullWidthContent
+   (tipo B) el bloque de contenido NO está aquí dentro sino encima, en
+   flujo (ver .contentBlock), y las columnas arrancan a 0. */
 .canvas {
   position: relative;
   width: 100%;
 }
 
+/* Tipo B (caso/episodio): el bloque de contenido va EN FLUJO, encima del
+   lienzo de recomendaciones (5 oct 2026). Antes era position: absolute
+   dentro del lienzo, y por eso un margin-bottom no hacía nada: un
+   elemento fuera de flujo no empuja a nadie y las recomendaciones se
+   colocaban por JS a la altura del embed/carrusel + 12 px, sin mirar el
+   texto. Ahora el navegador calcula la altura real del bloque y el hueco
+   con las recomendaciones es este margin-bottom, que se SUMA al gap de
+   .article (24 px). Un único token para caso y episodio: --detail-block-gap
+   (globals.css). Tool/insight/other no usan este margen. */
 .contentBlock {
-  position: absolute;
-  top: 0;
-  left: 0;
   display: flex;
   align-items: flex-start;
   gap: var(--space-lg);
   flex-wrap: wrap;
+  margin-bottom: var(--detail-block-gap);
 }
 
 .carousel {

@@ -143,71 +143,69 @@ export function EpisodeDetail({
   return (
     <article className={styles.article}>
       <div
+        className={styles.contentBlock}
+        style={{ width: contentBlockReservedWidth || '100%' }}
+      >
+        <div
+          className={styles.embedWrapper}
+          style={{
+            width: contentBlockImageWidth || '100%',
+            height: contentBlockImageHeight || undefined,
+          }}
+        >
+          {canRenderEmbed ? (
+            <iframe
+              src={embedUrl(episode)}
+              title={content.title}
+              className={styles.embed}
+              allow="autoplay; encrypted-media; picture-in-picture"
+              allowFullScreen
+              loading="lazy"
+            />
+          ) : (
+            <div className={styles.embedConsent}>
+              <p className={styles.embedConsentTitle}>{provider} content</p>
+              <p className={styles.embedConsentText}>
+                This content is served by {provider}. Nothing is loaded from{' '}
+                {provider} until you choose to. If you load it, your browser
+                connects to {provider}, which receives your IP address and uses
+                cookies and similar technologies of its own to deliver the
+                player and for its own purposes, as described in its privacy
+                policy.
+              </p>
+              <p className={styles.embedConsentText}>
+                We do not store your choice, so you will be asked again for each
+                video.{' '}
+                <Link href="/privacy" target="_blank" rel="noopener">
+                  Privacy &amp; Cookies
+                </Link>
+              </p>
+              <button
+                type="button"
+                className={styles.embedConsentButton}
+                onClick={handlePlay}
+              >
+                Load {provider} content
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className={styles.text}>
+          <p className={styles.kind}>{episodeKindLabel(episode.episodeKind)}</p>
+          <h1 className={styles.title}>{content.title}</h1>
+          {content.highlight && (
+            <p className={styles.highlight}>{content.highlight}</p>
+          )}
+          {content.body && <p className={styles.body}>{content.body}</p>}
+        </div>
+      </div>
+
+      <div
         ref={containerRef}
         className={styles.canvas}
         style={{ height: totalHeight || undefined }}
       >
-        <div
-          className={styles.contentBlock}
-          style={{ width: contentBlockReservedWidth || '100%' }}
-        >
-          <div
-            className={styles.embedWrapper}
-            style={{
-              width: contentBlockImageWidth || '100%',
-              height: contentBlockImageHeight || undefined,
-            }}
-          >
-            {canRenderEmbed ? (
-              <iframe
-                src={embedUrl(episode)}
-                title={content.title}
-                className={styles.embed}
-                allow="autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-                loading="lazy"
-              />
-            ) : (
-              <div className={styles.embedConsent}>
-                <p className={styles.embedConsentTitle}>{provider} content</p>
-                <p className={styles.embedConsentText}>
-                  This content is served by {provider}. Nothing is loaded from{' '}
-                  {provider} until you choose to. If you load it, your browser
-                  connects to {provider}, which receives your IP address and
-                  uses cookies and similar technologies of its own to deliver
-                  the player and for its own purposes, as described in its
-                  privacy policy.
-                </p>
-                <p className={styles.embedConsentText}>
-                  We do not store your choice, so you will be asked again for
-                  each video.{' '}
-                  <Link href="/privacy" target="_blank" rel="noopener">
-                    Privacy &amp; Cookies
-                  </Link>
-                </p>
-                <button
-                  type="button"
-                  className={styles.embedConsentButton}
-                  onClick={handlePlay}
-                >
-                  Load {provider} content
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div className={styles.text}>
-            <p className={styles.kind}>
-              {episodeKindLabel(episode.episodeKind)}
-            </p>
-            <h1 className={styles.title}>{content.title}</h1>
-            {content.highlight && (
-              <p className={styles.highlight}>{content.highlight}</p>
-            )}
-            {content.body && <p className={styles.body}>{content.body}</p>}
-          </div>
-        </div>
-
         {positioned.map((p) => (
           <PinCard
             key={p.item.pinId}

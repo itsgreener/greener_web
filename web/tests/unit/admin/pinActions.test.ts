@@ -68,6 +68,7 @@ import {
   updatePinAction,
   deletePinAction,
   createPinWithImageAction,
+  createPinWithVideoAction,
   attachPinImageAction,
   attachPinVideoAction,
   detachPinMediaAction,
@@ -395,6 +396,160 @@ describe('pinActions', () => {
       expect(result.formError).toBeUndefined()
 
       expect(result.warning).toContain('2 archivo(s)')
+    })
+  })
+
+  describe('createPinWithVideoAction (carga masiva con vídeo, 5 oct 2026)', () => {
+    const VALID_PIN_WITH_VIDEO = {
+      ...VALID_PIN_INPUT,
+
+      cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
+
+      format: 'mp4',
+
+      width: 1920,
+
+      height: 1080,
+
+      durationSeconds: 5,
+
+      bytes: 1024,
+    }
+
+    it('verifica el vídeo, crea el pin y lo adjunta, y devuelve ambos ids', async () => {
+      const result = await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+      expect(result).toEqual({ ok: true, pinId: PIN_ID, mediaId: MEDIA_ID })
+
+      expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
+        VIDEO_CLOUDINARY_PUBLIC_ID,
+      )
+
+      expect(mockCreatePin).toHaveBeenCalledTimes(1)
+
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ pinId: PIN_ID, slideOrder: 0 }),
+      )
+
+      expect(mockDeletePin).not.toHaveBeenCalled()
+    })
+
+    it('verifica el vídeo ANTES de crear el pin: si Cloudinary lo rechaza, no queda ningún pin', async () => {
+      mockVerifyCloudinaryVideoAsset.mockRejectedValueOnce(
+        new CloudinaryVideoVerificationError(
+          'El vídeo no existe en Cloudinary.',
+        ),
+      )
+
+      const result = await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+      expect(result).toEqual({
+        ok: false,
+        error: 'El vídeo no existe en Cloudinary.',
+      })
+
+      expect(mockCreatePin).not.toHaveBeenCalled()
+    })
+
+    it('datos de vídeo inválidos (más de 15 s): se rechaza sin crear el pin', async () => {
+      const result = await createPinWithVideoAction({
+        ...VALID_PIN_WITH_VIDEO,
+        durationSeconds: 16,
+      })
+
+      expect(result).toEqual({
+        ok: false,
+        error: 'Los datos del vídeo no son válidos.',
+      })
+
+      expect(mockCreatePin).not.toHaveBeenCalled()
+
+      expect(mockVerifyCloudinaryVideoAsset).not.toHaveBeenCalled()
+    })
+
+    it('datos de pin inválidos (sin alt): se rechaza sin tocar Cloudinary ni crear nada', async () => {
+      const result = await createPinWithVideoAction({
+        ...VALID_PIN_WITH_VIDEO,
+        alt: '',
+      })
+
+      expect(result.ok).toBe(false)
+
+      expect(mockVerifyCloudinaryVideoAsset).not.toHaveBeenCalled()
+
+      expect(mockCreatePin).not.toHaveBeenCalled()
+    })
+
+    it('si el SQL rechaza el vídeo (límite por tipo de contenido), BORRA el pin recién creado y explica el límite', async () => {
+      mockAttachPinVideo.mockRejectedValueOnce(
+        new Error('Animation is too long'),
+      )
+
+      const result = await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+      expect(result).toEqual({
+        ok: false,
+        error:
+          'El vídeo supera la duración máxima de un pin (8 s; 15 s en las tools).',
+      })
+
+      expect(mockDeletePin).toHaveBeenCalledWith({ id: PIN_ID })
+    })
+
+    it('si además falla el borrado del pin, devuelve igualmente el error original', async () => {
+      mockAttachPinVideo.mockRejectedValueOnce(new Error('Video is too large'))
+
+      mockDeletePin.mockRejectedValueOnce(new Error('db caída'))
+
+      const result = await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+      expect(result.ok).toBe(false)
+
+      expect(result.ok === false && result.error).toContain('peso máximo')
+    })
+
+    it('si no se puede crear el pin, devuelve el error y no adjunta nada', async () => {
+      mockCreatePin.mockRejectedValueOnce(new Error('db down'))
+
+      const result = await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+      expect(result).toEqual({
+        ok: false,
+        error: 'No se ha podido crear el pin.',
+      })
+
+      expect(mockAttachPinVideo).not.toHaveBeenCalled()
+    })
+
+    it('si la Admin API no devolvió duración (parche ?? 10), usa la real que dio Cloudinary al navegador', async () => {
+      mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
+        cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
+
+        format: 'mp4',
+
+        width: 1920,
+
+        height: 1080,
+
+        durationSeconds: 10,
+
+        bytes: 4096,
+
+        durationAssumed: true,
+      })
+
+      await createPinWithVideoAction({
+        ...VALID_PIN_WITH_VIDEO,
+        durationSeconds: 6.4,
+      })
+
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ durationSeconds: 7 }),
+      )
+
+      expect(mockAttachPinVideo.mock.calls[0][0]).not.toHaveProperty(
+        'durationAssumed',
+      )
     })
   })
 

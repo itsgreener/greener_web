@@ -9,14 +9,31 @@ import {
   type PinCsvRow,
 } from '@/modules/pin/domain/pinCsv'
 
-import { validateImageUpload } from '@/modules/media/domain/mediaLimits'
+import {
+  pinVideoLimitsFor,
+  validateImageUpload,
+  validatePinVideoUpload,
+} from '@/modules/media/domain/mediaLimits'
+
+import {
+  closestClosedRatio,
+  isPinRatioValue,
+  mediaMatchesRatio,
+} from '@/modules/media/domain/closestRatio'
 
 import {
   getSignedImageUpload,
+  getSignedVideoUpload,
   uploadImageToCloudinary,
+  uploadVideoToCloudinary,
 } from '@/modules/media/infrastructure/cloudinaryUpload'
 
-import { createPinWithImageAction } from './pinActions'
+import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocalVideoDuration'
+
+import {
+  createPinWithImageAction,
+  createPinWithVideoAction,
+} from './pinActions'
 import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 
 type Props = {
@@ -26,9 +43,12 @@ type Props = {
 
 type RowStatus = 'pending' | 'uploading' | 'ok' | 'error'
 
+type RowKind = 'image' | 'video'
+
 type Row = {
   key: string
   file: File
+  kind: RowKind
   label: string
   ratio: string
   language: string
@@ -36,10 +56,23 @@ type Row = {
   queueOrder: string
   status: RowStatus
   error?: string
+  // Aviso no bloqueante de una fila ya subida (p. ej. ratio del vídeo).
+  note?: string
 }
 
 const RATIOS = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
 const LANGUAGES = ['es', 'en', 'ca']
+
+// MP4, WebM y MOV (decisión del 5 oct 2026). Se mira el tipo MIME y, como
+// respaldo, la extensión: algunos sistemas no informan del MIME de un .mov.
+const VIDEO_EXTENSION = /\.(mp4|webm|mov|m4v)$/i
+
+function detectKind(file: File): RowKind {
+  return file.type.toLowerCase().startsWith('video/') ||
+    VIDEO_EXTENSION.test(file.name)
+    ? 'video'
+    : 'image'
+}
 
 function labelFromFilename(filename: string): string {
   return filename.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
@@ -54,6 +87,7 @@ function buildRow(
   return {
     key: `${file.name}-${index}`,
     file,
+    kind: detectKind(file),
     label: csvRow?.label || labelFromFilename(file.name),
     ratio: csvRow?.ratio || defaults.ratio,
     language: csvRow?.language || defaults.language,
@@ -75,6 +109,12 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
   const [defaultRatio, setDefaultRatio] = useState('1:1')
   const [defaultLanguage, setDefaultLanguage] = useState('es')
   const [queueOrderStart, setQueueOrderStart] = useState(0)
+  // Cómo se reproducen en el feed los pines de vídeo del lote (los de
+  // imagen no usan este valor). Un vídeo de más de 8 s se queda en poster
+  // aunque aquí se elija «viewport»: lo decide la duración (canAnimateInFeed).
+  const [videoAutoplay, setVideoAutoplay] = useState<'viewport' | 'hover'>(
+    'viewport',
+  )
   const [uploading, setUploading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -126,6 +166,142 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
     )
   }
 
+  // Sube una imagen y crea su pin. Devuelve un aviso (o undefined).
+  async function uploadImageRow(
+    row: Row,
+    track: (asset: UploadedAssetRef) => void,
+  ): Promise<string | undefined> {
+    const validation = validateImageUpload(row.file.size)
+
+    if (validation && validation.code === 'IMAGE_TOO_LARGE') {
+      throw new Error(
+        `La imagen supera el límite de ${validation.maxBytes / 1024 / 1024} MB.`,
+      )
+    }
+
+    const signed = await getSignedImageUpload()
+    const uploaded = await uploadImageToCloudinary(row.file, signed)
+
+    track({ publicId: uploaded.public_id, kind: 'image' })
+
+    const result = await createPinWithImageAction({
+      contentId,
+      ratio: row.ratio,
+      // En Case/Episode el feed nunca usa un texto escrito a mano.
+      // Se deriva de título + cliente / tipo de episodio.
+      label: derivedLabel ? null : row.label,
+      showAsCarousel: true,
+      language: row.language,
+      autoplayMode: null,
+      speedMs: null,
+      queueOrder: Number(row.queueOrder) || 0,
+      alt: row.alt,
+      cloudinaryPublicId: uploaded.public_id,
+      format: uploaded.format,
+      width: uploaded.width,
+      height: uploaded.height,
+      bytes: uploaded.bytes,
+    })
+
+    if (!result.ok) throw new Error(result.error)
+
+    return undefined
+  }
+
+  // Sube un vídeo y crea su pin (carga masiva con vídeo, 5 oct 2026). Los
+  // límites dependen del tipo de contenido: 15 s / 15 MB en tools, 8 s en el
+  // resto. Mismas reglas y mensajes que PinMediaManager.
+  async function uploadVideoRow(
+    row: Row,
+    track: (asset: UploadedAssetRef) => void,
+  ): Promise<string | undefined> {
+    const limits = pinVideoLimitsFor(contentType)
+    const maxMb = limits.maxSizeBytes / 1024 / 1024
+
+    // `null` = el navegador no ha podido dar una duración fiable (WebM sin
+    // cabecera, .mov/HEVC…): no se bloquea aquí, se valida después con la
+    // duración real de Cloudinary. Ver readLocalVideoDuration.
+    const localDuration = await readLocalVideoDuration(row.file)
+
+    if (localDuration !== null) {
+      const validation = validatePinVideoUpload(
+        contentType,
+        row.file.size,
+        localDuration,
+      )
+
+      if (validation?.code === 'ANIMATION_TOO_LONG') {
+        throw new Error(
+          `El vídeo no puede superar los ${validation.maxSeconds} segundos.`,
+        )
+      }
+
+      if (validation?.code === 'VIDEO_TOO_LARGE') {
+        throw new Error(
+          `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
+        )
+      }
+    } else if (row.file.size > limits.maxSizeBytes) {
+      throw new Error(`El vídeo supera los ${maxMb} MB.`)
+    }
+
+    const signed = await getSignedVideoUpload()
+    const uploaded = await uploadVideoToCloudinary(row.file, signed)
+
+    track({ publicId: uploaded.public_id, kind: 'video' })
+
+    const finalValidation = validatePinVideoUpload(
+      contentType,
+      uploaded.bytes,
+      uploaded.duration,
+    )
+
+    if (finalValidation?.code === 'ANIMATION_TOO_LONG') {
+      throw new Error(
+        `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos para un pin (el archivo subido se ha descartado y no se ha guardado).`,
+      )
+    }
+
+    if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
+      throw new Error(
+        `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (el archivo subido se ha descartado y no se ha guardado).`,
+      )
+    }
+
+    const result = await createPinWithVideoAction({
+      contentId,
+      ratio: row.ratio,
+      label: derivedLabel ? null : row.label,
+      showAsCarousel: true,
+      language: row.language,
+      autoplayMode: videoAutoplay,
+      speedMs: null,
+      queueOrder: Number(row.queueOrder) || 0,
+      alt: row.alt,
+      cloudinaryPublicId: uploaded.public_id,
+      format: uploaded.format,
+      width: uploaded.width,
+      height: uploaded.height,
+      durationSeconds: uploaded.duration,
+      bytes: uploaded.bytes,
+    })
+
+    if (!result.ok) throw new Error(result.error)
+
+    // Los vídeos deben venir en uno de los 7 ratios: no se bloquea (ya está
+    // guardado), se avisa de que se recortará si no encaja con el del pin.
+    if (
+      isPinRatioValue(row.ratio) &&
+      !mediaMatchesRatio(uploaded.width, uploaded.height, row.ratio)
+    ) {
+      const suggested = closestClosedRatio(uploaded.width, uploaded.height)
+
+      return `Su ratio real (${uploaded.width}×${uploaded.height}, parecido a ${suggested}) no es el del pin (${row.ratio}) y se verá recortado.`
+    }
+
+    return undefined
+  }
+
   async function handleUploadAll() {
     setFormError(null)
 
@@ -160,43 +336,18 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       let uploadedAsset: UploadedAssetRef | null = null
 
       try {
-        const validation = validateImageUpload(row.file.size)
-
-        if (validation && validation.code === 'IMAGE_TOO_LARGE') {
-          throw new Error(
-            `La imagen supera el límite de ${validation.maxBytes / 1024 / 1024} MB.`,
-          )
+        const track = (asset: UploadedAssetRef) => {
+          uploadedAsset = asset
         }
 
-        const signed = await getSignedImageUpload()
-        const uploaded = await uploadImageToCloudinary(row.file, signed)
+        const note =
+          row.kind === 'video'
+            ? await uploadVideoRow(row, track)
+            : await uploadImageRow(row, track)
 
-        uploadedAsset = { publicId: uploaded.public_id, kind: 'image' }
-
-        const result = await createPinWithImageAction({
-          contentId,
-          ratio: row.ratio,
-          // En Case/Episode el feed nunca usa un texto escrito a mano.
-          // Se deriva de título + cliente / tipo de episodio.
-          label: derivedLabel ? null : row.label,
-          showAsCarousel: true,
-          language: row.language,
-          autoplayMode: null,
-          speedMs: null,
-          queueOrder: Number(row.queueOrder) || 0,
-          alt: row.alt,
-          cloudinaryPublicId: uploaded.public_id,
-          format: uploaded.format,
-          width: uploaded.width,
-          height: uploaded.height,
-          bytes: uploaded.bytes,
-        })
-
-        if (!result.ok) throw new Error(result.error)
-
-        updateRow(row.key, { status: 'ok' })
+        updateRow(row.key, { status: 'ok', note })
       } catch (error) {
-        // Imagen ya subida que no llegó a registrarse: se descarta para no
+        // Archivo ya subido que no llegó a registrarse: se descarta para no
         // dejar basura en Cloudinary (el servidor comprueba que no esté en
         // media_asset antes de borrar nada).
         await discardUploadQuietly(uploadedAsset)
@@ -230,11 +381,11 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
         </p>
       )}
 
-      <label htmlFor="bulk-files">Imágenes (varias)</label>
+      <label htmlFor="bulk-files">Imágenes y vídeos (varios)</label>
       <input
         id="bulk-files"
         type="file"
-        accept="image/*"
+        accept="image/*,video/*,.mov,.mp4,.webm"
         multiple
         disabled={uploading}
         onChange={(event) => handleFilesChange(event.target.files)}
@@ -289,6 +440,20 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
               {language}
             </option>
           ))}
+        </select>
+
+        <label htmlFor="bulk-video-autoplay">
+          Reproducción de los vídeos en el feed
+        </label>
+        <select
+          id="bulk-video-autoplay"
+          value={videoAutoplay}
+          onChange={(event) =>
+            setVideoAutoplay(event.target.value as 'viewport' | 'hover')
+          }
+        >
+          <option value="viewport">Al entrar en pantalla</option>
+          <option value="hover">Al pasar el ratón</option>
         </select>
 
         <label htmlFor="bulk-queue-start">Orden en cola inicial</label>
@@ -395,7 +560,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
                 <td>
                   {row.status === 'pending' && 'Pendiente'}
                   {row.status === 'uploading' && 'Subiendo...'}
-                  {row.status === 'ok' && 'Hecho'}
+                  {row.status === 'ok' &&
+                    (row.note ? `Hecho. Aviso: ${row.note}` : 'Hecho')}
                   {row.status === 'error' && `Error: ${row.error}`}
                 </td>
               </tr>

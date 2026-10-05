@@ -421,6 +421,37 @@ export async function attachPinImageAction(
   }
 }
 
+/**
+ * Mensaje para el admin cuando adjuntar un vídeo a un pin falla. Compartido
+ * por attachPinVideoAction y createPinWithVideoAction para que ambos digan
+ * lo mismo.
+ */
+function videoAttachErrorMessage(error: unknown): string {
+  if (error instanceof CloudinaryVideoVerificationError) {
+    return error.message
+  }
+
+  if (
+    error instanceof Error &&
+    error.message.includes('Animation is too long')
+  ) {
+    return `El vídeo supera la duración máxima de un pin (${PIN_ANIMATION_LIMITS.maxDurationSeconds} s; ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} s en las tools).`
+  }
+
+  if (error instanceof Error && error.message.includes('Video is too large')) {
+    return `El vídeo supera el peso máximo de un pin (${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB; ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB en las tools).`
+  }
+
+  if (
+    error instanceof Error &&
+    error.message.includes('admite hasta 8 medios')
+  ) {
+    return error.message
+  }
+
+  return 'No se ha podido adjuntar el vídeo.'
+}
+
 export async function attachPinVideoAction(
   input: unknown,
 ): Promise<PinMediaActionResult> {
@@ -461,57 +492,134 @@ export async function attachPinVideoAction(
   } catch (error) {
     console.error(error)
 
-    if (error instanceof CloudinaryVideoVerificationError) {
-      return {
-        ok: false,
-        error: error.message,
-      }
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.includes('Animation is too long')
-    ) {
-      return {
-        ok: false,
-        error: `El vídeo supera la duración máxima de un pin (${PIN_ANIMATION_LIMITS.maxDurationSeconds} s; ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} s en las tools).`,
-      }
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.includes('Video is too large')
-    ) {
-      return {
-        ok: false,
-        error: `El vídeo supera el peso máximo de un pin (${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB; ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB en las tools).`,
-      }
-    }
-
-    if (
-      error instanceof Error &&
-      error.message.includes('admite hasta 8 medios')
-    ) {
-      return {
-        ok: false,
-        error: error.message,
-      }
-    }
-
     return {
       ok: false,
-      error: 'No se ha podido adjuntar el vídeo.',
+      error: videoAttachErrorMessage(error),
     }
   }
 }
 
 /**
- * Primero se desvincula el medio en Postgres.
+ * Crea el pin y le adjunta un vídeo en una sola llamada (carga masiva de
+ * pines con vídeo, 5 oct 2026). Misma idea que createPinWithImageAction,
+ * con dos diferencias deliberadas:
  *
- * Solo después se intenta borrar el archivo real de
- * Cloudinary. Si el borrado físico falla, no se revierte
- * la operación de Postgres: se devuelve un warning.
+ * 1. El vídeo se valida y se verifica contra Cloudinary ANTES de crear el
+ *    pin: lo normal es que un vídeo fuera de límites falle aquí y no deje
+ *    nada creado.
+ * 2. Si aun así el adjuntado falla (p. ej. el SQL, que es la barrera
+ *    autoritativa del límite por tipo de contenido, lo rechaza), se BORRA
+ *    el pin recién creado: un pin sin medios no sirve para nada y en una
+ *    carga de cientos de archivos acumularía pines vacíos. Es best-effort:
+ *    si el borrado también fallara, el error original es el que se
+ *    devuelve. El archivo ya subido a Cloudinary lo descarta el cliente.
  */
+export type CreatePinWithVideoInput = CreatePinInput & {
+  cloudinaryPublicId: string
+  format?: string
+  width: number
+  height: number
+  durationSeconds: number
+  bytes: number
+}
+
+export type CreatePinWithVideoResult =
+  { ok: true; pinId: string; mediaId: string } | { ok: false; error: string }
+
+export async function createPinWithVideoAction(
+  input: unknown,
+): Promise<CreatePinWithVideoResult> {
+  const pinResult = createPinSchema.safeParse(input)
+
+  if (!pinResult.success) {
+    return {
+      ok: false,
+      error:
+        pinResult.error.issues[0]?.message ??
+        'Los datos del pin no son válidos.',
+    }
+  }
+
+  const videoInput = input as Partial<CreatePinWithVideoInput>
+
+  // El esquema del vídeo lleva `pinId`, que aún no existe: se valida aquí
+  // con uno provisional y se vuelve a validar con el real al adjuntar.
+  const clientVideo = attachPinVideoSchema.safeParse({
+    pinId: '00000000-0000-4000-8000-000000000000',
+    cloudinaryPublicId: videoInput.cloudinaryPublicId,
+    format: videoInput.format,
+    width: videoInput.width,
+    height: videoInput.height,
+    durationSeconds: videoInput.durationSeconds,
+    bytes: videoInput.bytes,
+    slideOrder: 0,
+  })
+
+  if (!clientVideo.success) {
+    return { ok: false, error: 'Los datos del vídeo no son válidos.' }
+  }
+
+  let verified
+
+  try {
+    verified = await verifyCloudinaryVideoAsset(
+      clientVideo.data.cloudinaryPublicId,
+    )
+  } catch (error) {
+    console.error(error)
+
+    return {
+      ok: false,
+      error:
+        error instanceof CloudinaryVideoVerificationError
+          ? error.message
+          : 'No se ha podido verificar el vídeo.',
+    }
+  }
+
+  let pinId: string
+
+  try {
+    pinId = await createPin(pinResult.data)
+  } catch (error) {
+    console.error(error)
+
+    return { ok: false, error: 'No se ha podido crear el pin.' }
+  }
+
+  const { durationAssumed, ...verifiedAsset } = verified
+
+  try {
+    const mediaId = await attachPinVideo({
+      ...clientVideo.data,
+      ...verifiedAsset,
+      pinId,
+      // Misma regla que attachPinVideoAction: si la Admin API no dio
+      // duración (parche `?? 10`), vale la que Cloudinary dio al navegador.
+      durationSeconds: durationAssumed
+        ? clientVideo.data.durationSeconds
+        : verifiedAsset.durationSeconds,
+      slideOrder: 0,
+    })
+
+    revalidateContent(pinResult.data.contentId)
+
+    return { ok: true, pinId, mediaId }
+  } catch (error) {
+    console.error(error)
+
+    try {
+      await deletePin({ id: pinId })
+    } catch (cleanupError) {
+      console.error(cleanupError)
+    }
+
+    revalidateContent(pinResult.data.contentId)
+
+    return { ok: false, error: videoAttachErrorMessage(error) }
+  }
+}
+
 export async function detachPinMediaAction(
   input: unknown,
 ): Promise<DetachPinMediaActionResult> {

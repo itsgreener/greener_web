@@ -21,6 +21,10 @@
   --space-md: 16px;
   --space-lg: 24px;
   --space-xl: 40px;
+  /* Margen entre el bloque de contenido y las recomendaciones en las fichas
+     de caso y episodio (tipo B). Se suma al gap de 24 px de su .article.
+     Valor provisional hasta fijar el del documento de diseño. */
+  --detail-block-gap: var(--space-xl);
 
   /* Breakpoints de referencia (documentales — arquitectura §10.1) */
   /* < 640px: 2 columnas · 640-899: 3 · 900-1199: 4 · 1200-1599: 5 · >=1600: 6 */

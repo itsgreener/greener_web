@@ -11,9 +11,8 @@ import {
 
 import {
   closestClosedRatio,
+  isPinRatioValue,
   mediaMatchesRatio,
-  RATIO_DECIMAL_VALUE,
-  type PinRatioValue,
 } from '@/modules/media/domain/closestRatio'
 
 import {
@@ -27,6 +26,8 @@ import {
   uploadImageToCloudinary,
   uploadVideoToCloudinary,
 } from '@/modules/media/infrastructure/cloudinaryUpload'
+
+import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocalVideoDuration'
 
 import {
   attachPinImageAction,
@@ -51,28 +52,6 @@ type Props = {
   // Ratio cerrado del pin, para avisar si el vídeo subido tiene otro.
   pinRatio: string
   media: PinMedia[]
-}
-
-function readVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-
-    video.preload = 'metadata'
-
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-
-      resolve(video.duration)
-    }
-
-    video.onerror = () => {
-      URL.revokeObjectURL(video.src)
-
-      reject(new Error('No se ha podido leer la duración del vídeo.'))
-    }
-
-    video.src = URL.createObjectURL(file)
-  })
 }
 
 function MediaThumb({
@@ -101,10 +80,6 @@ function MediaThumb({
       </button>
     </div>
   )
-}
-
-function isClosedRatio(value: string): value is PinRatioValue {
-  return value in RATIO_DECIMAL_VALUE
 }
 
 export default function PinMediaManager({
@@ -242,13 +217,11 @@ export default function PinMediaManager({
       // .mov/HEVC), no se bloquea aquí — se valida solo el tamaño y se
       // sube. La duración real se valida después con el dato de
       // Cloudinary, la fuente de verdad.
-      let localDuration: number | null = null
-
-      try {
-        localDuration = await readVideoDuration(file)
-      } catch {
-        localDuration = null
-      }
+      // `null` = el navegador no ha podido dar una duración fiable (vídeo
+      // no decodificable, duración `Infinity`/`NaN` de un WebM sin cabecera,
+      // o sin respuesta a tiempo): no se bloquea aquí, se valida después con
+      // la duración real de Cloudinary. Ver readLocalVideoDuration.
+      const localDuration = await readLocalVideoDuration(file)
 
       if (localDuration !== null) {
         const validation = validatePinVideoUpload(
@@ -329,7 +302,7 @@ export default function PinMediaManager({
       // ficha se recortará con `object-fit: cover`. En ese caso no se
       // recarga sola la página para que el aviso se pueda leer.
       if (
-        isClosedRatio(pinRatio) &&
+        isPinRatioValue(pinRatio) &&
         !mediaMatchesRatio(uploaded.width, uploaded.height, pinRatio)
       ) {
         const suggested = closestClosedRatio(uploaded.width, uploaded.height)

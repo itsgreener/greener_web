@@ -21,6 +21,8 @@ import {
   uploadVideoToCloudinary,
 } from '@/modules/media/infrastructure/cloudinaryUpload'
 
+import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocalVideoDuration'
+
 import {
   addCaseCarouselImageAction,
   addCaseCarouselVideoAction,
@@ -40,28 +42,6 @@ type CarouselItem = {
 type Props = {
   contentId: string
   items: CarouselItem[]
-}
-
-function readVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const video = document.createElement('video')
-
-    video.preload = 'metadata'
-
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(video.src)
-
-      resolve(video.duration)
-    }
-
-    video.onerror = () => {
-      URL.revokeObjectURL(video.src)
-
-      reject(new Error('No se ha podido leer la duración del vídeo.'))
-    }
-
-    video.src = URL.createObjectURL(file)
-  })
 }
 
 export default function CaseCarouselManager({ contentId, items }: Props) {
@@ -212,13 +192,11 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       // sube. La duración real, la que de verdad importa, se valida más
       // abajo con el dato que devuelve Cloudinary tras la subida — que es
       // la fuente de verdad, no una lectura local best-effort.
-      let localDuration: number | null = null
-
-      try {
-        localDuration = await readVideoDuration(file)
-      } catch {
-        localDuration = null
-      }
+      // `null` = el navegador no ha podido dar una duración fiable (vídeo
+      // no decodificable, duración `Infinity`/`NaN` de un WebM sin cabecera,
+      // o sin respuesta a tiempo): no se bloquea aquí, se valida después con
+      // la duración real de Cloudinary. Ver readLocalVideoDuration.
+      const localDuration = await readLocalVideoDuration(file)
 
       if (localDuration !== null) {
         const validation = validateVideoUpload(file.size, localDuration)

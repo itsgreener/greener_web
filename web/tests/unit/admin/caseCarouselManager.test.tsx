@@ -140,6 +140,41 @@ describe('CaseCarouselManager — subida de vídeo cuando el navegador no sabe l
     ).not.toBeInTheDocument()
   })
 
+  it.each([Infinity, Number.NaN])(
+    'un WebM sin cabecera de duración (el navegador responde %s) NO se rechaza como «demasiado largo»: se sube y se valida con la duración real de Cloudinary',
+    async (reported) => {
+      mockVideoElement('succeed', reported)
+      getSignedVideoUpload.mockResolvedValue({
+        timestamp: 1,
+        signature: 's',
+        folder: 'f',
+        apiKey: 'k',
+        cloudName: 'demo',
+      })
+      uploadVideoToCloudinary.mockResolvedValue({
+        public_id: 'videos/clip',
+        format: 'webm',
+        width: 1920,
+        height: 1080,
+        duration: 5,
+        bytes: 1024 * 1024,
+      })
+      addCaseCarouselVideoAction.mockResolvedValue({ ok: true })
+
+      render(<CaseCarouselManager contentId="content-1" items={[]} />)
+      selectAndUpload(SMALL_VIDEO_FILE)
+
+      await waitFor(() => {
+        expect(uploadVideoToCloudinary).toHaveBeenCalledOnce()
+      })
+      await waitFor(() => {
+        expect(addCaseCarouselVideoAction).toHaveBeenCalledWith(
+          expect.objectContaining({ durationSeconds: 5 }),
+        )
+      })
+    },
+  )
+
   it('si tras subir, la duración REAL de Cloudinary supera el límite, se rechaza sin guardar en el caso (no antes, por las buenas)', async () => {
     mockVideoElement('fail')
     getSignedVideoUpload.mockResolvedValue({
