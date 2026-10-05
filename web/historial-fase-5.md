@@ -1,0 +1,641 @@
+# Greener — Historial detallado, Fase 5: cookies, preview, despliegue, auditoría y cambios de lanzamiento (22 sep – 2 oct) (completada)
+
+Archivo de detalle, separado de `PROGRESO.md` el 5 de octubre de 2026 para aligerar ese documento (pasó de 134 KB a unos 35 KB) — mismo criterio que se aplicó con `historial-fases-0-2.md` (9 de septiembre) e `historial-fases-3-4.md` (23 de septiembre). Contiene el relato completo, sección a sección, del trabajo hecho entre el 22 de septiembre y el 2 de octubre, **tal y como estaba en `PROGRESO.md`: el texto se ha movido sin reescribirlo**.
+
+**Nada de esto está pendiente.** Si buscas qué queda por hacer, está en `PROGRESO.md` (§4), no aquí. Este archivo es para cuando haga falta el porqué de una decisión ya tomada, el detalle de un bug ya cerrado o cómo se verificó algo.
+
+**Numeración.** Las referencias `§2.N` de este archivo conservan el número que tenían en `PROGRESO.md` y **no se han renumerado**, porque el código (comentarios como «PROGRESO §2.16») y otros documentos las citan. Ojo: `historial-fases-0-2.md` e `historial-fases-3-4.md` tienen su propia numeración `§2.N`; cuando se cite una sección conviene indicar el archivo. Las referencias `§X` sin más contexto apuntan al documento de arquitectura técnica V1.3. Las citas «§4.8» son de la lista de pendientes del 28 de septiembre, que ya no existe como tal (sus puntos se redistribuyeron en el checklist de `PROGRESO.md`).
+
+---
+
+## 2. Sesiones de trabajo — 22 de septiembre a 2 de octubre
+
+### 2.1 Dotfiles y formato (22 sep)
+
+Mismo problema de siempre: el zip compartido para esta sesión no traía `.gitignore`, `.nvmrc`, `.prettierrc`, `.prettierignore` ni `.env.local.example` (Finder no comprime ficheros ocultos por defecto — ya documentado varias veces en el historial de Fases 0-2). Restaurados con el contenido exacto que Greener confirmó tener en local. Con el `.prettierrc` real puesto, `format:check` pasó de fallar en 262 ficheros (sin config, Prettier usaba sus valores por defecto) a solo 31 — investigado a fondo: no eran violaciones reales de las reglas (nunca aparece un punto y coma, una comilla cambiada o una coma final), es reflow puro de línea por una décima de versión de Prettier (`^3.9.6` fijado en `package.json`, `3.9.8` instalado — Prettier no garantiza output idéntico entre versiones aunque sea el mismo major). `npm run format` sobre todo el repo, sin tocar lógica.
+
+### 2.2 Redirect tras crear contenido (22 sep)
+
+`createContentAction` (`app/admin/contents/actions.ts`) descartaba el id devuelto por `createDraft` y redirigía siempre a la lista. Ahora captura ese id y redirige a `/admin/contents/{id}/edit` — el formulario de creación se queda mínimo (tipo, título, slug, idioma), pero el editor completo (textos largos, SEO, medios) es lo primero que se ve tras crear, no un paso aparte que haya que recordar terminar. Decisión tomada explícitamente por el usuario en vez de duplicar el formulario de creación con todos los campos.
+
+### 2.3 Límites de caracteres — Tipo A y Tipo B (22 sep)
+
+Decididos con el usuario campo por campo, con el ancho de página, el comportamiento de overflow y las convenciones SEO estándar como criterios — no cifras arbitrarias. Mecanismo: **límite blando** en el ABM (contador, nunca bloquea el guardado) + **truncado con elipsis real** en el frontend público (`-webkit-line-clamp`), que es la protección de verdad del layout. Los `max-width` del texto se fijan en unidades `ch` (no `px`), a propósito: la medida de línea así no depende de cuánto ancho deje libre el medio (que varía mucho según el ratio del carrusel, §2 de la especificación de formato) ni del tamaño de fuente final, que todavía no está cerrado.
+
+| Campo                                      | Líneas         | Límite blando                                                                             |
+| ------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------- |
+| `title` (caso/episodio/tool/insight/other) | 2              | 80 caracteres                                                                             |
+| `highlight` (caso/episodio)                | 2              | 110 caracteres                                                                            |
+| `body` (caso/episodio)                     | 8 (un párrafo) | 560 caracteres                                                                            |
+| `client` (caso, no traducible)             | 1              | 60 caracteres                                                                             |
+| `summary` (tool/insight/other)             | 3              | 200 caracteres — más corto que `body` a propósito: es una mini introducción, no un cuerpo |
+| `seo_title`                                | —              | 60 caracteres (convención de truncado de Google, no depende del layout)                   |
+| `seo_description`                          | —              | 160 caracteres (idem)                                                                     |
+
+Implementado: `modules/content/domain/textLimits.ts` (fuente única de los números), `components/admin/CharCounter.tsx` + `useCharCount.ts` (contador en vivo sobre inputs no controlados, sin pelearse con el `FormData` del envío), cableado en `TranslationForm.tsx` y `CaseDetailForm.tsx`; `line-clamp` con los `max-width` en `ch` en `CaseDetail.module.css`, `EpisodeDetail.module.css` y `ToolInsightDetail.module.css`. `title` y `seo_title` (y `summary`/`seo_description`) son dos usos del mismo campo con propósitos distintos — `buildContentMetadata`/`buildWorkMetadata` ya usaban `seoTitle ?? title` como fallback, así que un título largo sin `seo_title` propio se trunca en Google aunque no se trunque en pantalla; documentado, no resuelto con un aviso en el ABM todavía.
+
+### 2.4 Verificación server-side de vídeo en Cloudinary (22 sep, trabajo externo integrado)
+
+Llegó como cambio externo al hilo de esta sesión — un compañero cerró la asimetría anotada el 22 de septiembre por la mañana ("la verificación es solo de imagen"). `verifyCloudinaryVideoAsset` (nueva, en `cloudinaryServer.ts`) consulta la Admin API real de Cloudinary, valida que el `public_id` pertenece al directorio permitido de vídeos, y comprueba formato/ancho/alto/duración/peso contra `validateVideoUpload` (que ya existía en `mediaLimits.ts`, solo le faltaba quien la llamara desde el lado servidor). Integrada en los tres caminos de vídeo que quedaban sin verificar: `mediaActions.ts` (portada), `pinActions.ts` (vídeo de pin), `caseCarouselActions.ts` (vídeo de carrusel de caso) — mismo patrón que la verificación de imagen del 22 sep, con `CloudinaryVideoVerificationError` propio. Integrado sobre la copia de sesión sin conflicto (ningún fichero tocado por las otras seis piezas de esta sesión se solapaba). Dos tests nuevos (`cloudinaryServer.test.ts`, 554 líneas; `caseCarouselActions.test.ts`, 390 líneas) más reescritura sustancial de `mediaActions.test.ts`/`pinActions.test.ts`.
+
+### 2.5 Auditoría de cookies — hallazgos reales y primeras mitigaciones (22-23 sep)
+
+**Alcance real comprobado con grep, no supuesto**: solo Channel/episodio tiene contenido de terceros vivo hoy (YouTube, Vimeo, Spotify vía `<iframe>` en `EpisodeDetail.tsx`). Plausible y Mailchimp no estaban implementados todavía a esa fecha (Plausible se cerró parcialmente el mismo 23 sep, ver §2.7).
+
+Contrastado contra el estado actual real de cada proveedor (no contra guías de hace un año):
+
+- **YouTube** (`youtube-nocookie.com`, ya en uso): reduce el problema, no lo elimina — escribe en Local Storage un identificador de dispositivo al cargar, y planta cookie real al pulsar Play, consentimiento o no. Sin cambios de código, documentado.
+- **Vimeo**: hallazgo real y corregido — el código no añadía `?dnt=1` a la URL del embed, así que Vimeo plantaba la cookie `vuid` (persistente, dos años) desde la carga. Arreglo de una línea en `embedUrl()`, con test actualizado.
+- **Spotify**: sin mitigación técnica de una línea — planta varias cookies desde la carga (`sp_t`, `sp_ab`, `sp_landing`...), sin parámetro equivalente a `dnt`.
+
+**Click-to-load construido para Vimeo y Spotify** (llegó como trabajo externo paralelo, integrado por resolución de un conflicto de git real — ver §2.7): el iframe no se monta hasta que el usuario pulsa "Cargar contenido de {proveedor}"; YouTube se sirve directo, su mitigación ya es la más fuerte de las tres. Nuevas clases `.embedConsent*` en `EpisodeDetail.module.css`, funciones `providerLabel`/`requiresClickToLoad` en `EpisodeDetail.tsx`.
+
+**Decisión de fondo, explícitamente aplazada por el usuario** ("de momento no es algo que te pueda decir ni resolver"): el nivel de rigor a asumir — si con `dnt=1` + click-to-load basta, o si hace falta un banner/CMP real de consentimiento antes de cargar nada (que hoy no existe en el proyecto). Sigue en §5.
+
+### 2.6 Preview firmado del ABM — construido (23 sep), cierra §15.3
+
+Decisión pendiente desde el 7 de septiembre, aplazada entonces "hasta que exista una plantilla pública real" — ya existían las cuatro. Diseño: token **autocontenido y sin estado**, mismo mecanismo HMAC-SHA256 que el cursor firmado del feed (`modules/feed/infrastructure/cursor.ts`) — el propio token lleva firmados `contentId` y `expiresAt`, sin tabla ni migración nueva. Caduca a los **7 días** (decisión de sesión de trabajo). Contrapartida asumida a propósito: no se puede revocar un token antes de que caduque.
+
+- `modules/content/infrastructure/previewToken.ts` — codifica/decodifica el token.
+- `modules/content/domain/contentPath.ts` — resuelve la ruta pública (`/work`, `/tools`, `/insights`, `/variety`) según `content.type`.
+- `modules/content/application/resolvePreviewContext.ts` — el resolver central: valida el token contra el slug pedido y, si coincide, usa `createServiceClient()` (salta RLS — `content` en `draft`/`scheduled` está completamente bloqueado para lectura pública) para leer el contenido; si no, cae al camino público normal. `getContentBySlug`, `getPublicCaseDetail`, `getPublicCaseCarousel` y `getPublicEpisode` ganaron un parámetro `client` opcional para que el carrusel y el embed de un episodio en preview también se lean con privilegios.
+- Las cuatro páginas de detalle leen `?preview=<token>` y marcan `noindex` en la metadata cuando el preview es válido.
+- Botón "Generar link de preview" en `PublishControls.tsx` (solo visible si el contenido no está publicado) — muestra la URL en un campo copiable para compartir a mano; no se envía por ningún canal automáticamente.
+- Docstring de `serviceClient.ts` ampliado con este nuevo uso legítimo (antes solo documentaba `feed_session`/`feed_round`).
+
+Preview es para revisar contenido **antes** de que pase por primera vez a `published` — no hay concepto de "borrador sobre lo publicado" (arquitectura §19.1: "no habrá staging persistente de contenido"), así que el botón no aparece una vez publicado. 15 tests nuevos: `previewToken.test.ts` (firma, manipulación, caducidad exacta a los 7 días con timers falsos), `contentPath.test.ts`, `resolvePreviewContext.test.ts` (token válido, token de otro contenido, token corrupto, contenido inexistente) — estos dos últimos revelaron un fallo real de estrechamiento de tipos de TypeScript y un descuido propio de mocks sin limpiar entre tests, ambos corregidos antes de dar el bloque por cerrado.
+
+### 2.7 Analítica Plausible y resolución de un conflicto de git real (23 sep)
+
+El usuario compartió un zip con trabajo de un compañero hecho en paralelo, más un conflicto de merge sin resolver (`<<<<<<< Updated upstream` / `>>>>>>> Stashed changes`) en `episodeDetail.smoke.test.tsx`, entre el test de Vimeo `dnt=1` de esta sesión y los tests nuevos de click-to-load del compañero. Resuelto reconstruyendo el fichero a mano: el test de YouTube ("Updated upstream") más los tests de click-to-load ya limpios del compañero — el `it.each` original quedó redundante, cubierto con más detalle por los suyos.
+
+**Integrado del compañero**: `modules/analytics/analytics.ts` + `AnalyticsProvider.tsx` — integración real con `@plausible-analytics/tracker` (nueva dependencia), evento **"Pin Click"** disparado desde `PinCard` con `section`/`destinationType`/`pinType`, ya cableado en los cuatro sitios donde se pinta un pin (feed principal con `section: scope`, recomendaciones de caso/episodio/tool-insight con `section: 'recommendations'`). Solo producción, excluye `/admin` y `/auth` del tracking. Aplicado a mano sobre `PinCard/index.tsx` y las tres plantillas de detalle en vez de sobrescribir con la copia del compañero, para no perder los comentarios ya existentes que su copia no traía (partía de un snapshot distinto, sin git real de por medio que lo hubiera evitado).
+
+**Hallazgo real corregido al integrar**: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` se leía en `layout.tsx` pero no estaba declarada en `env.ts` — rompía la propia convención del proyecto (§24.5, fallar explícito si falta una variable). Añadida al schema (opcional) y a `.env.local.example`.
+
+**Aviso honesto, no una crítica**: de los siete eventos que define `AnalyticsEventMap` (§18.2), solo **"Pin Click"** se dispara de verdad hoy. "Case Open", "Tool Open", "Tool Used", "Insight Open", "Episode Play", "Newsletter Signup" y "Feed Depth" existen como tipos pero nadie los llama todavía — la plomería está lista, falta cablear el resto.
+
+También descartado un `Archivo.zip` suelto dentro del zip recibido (backup accidental del propio proyecto, no algo real que integrar), y copiados `package.json`/`package-lock.json` con la dependencia nueva.
+
+**Verificación final de toda la sesión**: ESLint 0, `next build` y `tsc --noEmit` limpios, **65 ficheros / 611 tests** en verde, `format:check` limpio.
+
+### 2.8 Caché de assets de tools/insights y ampliación del contrato ZIP (28 sep)
+
+**Bug real corregido.** Los assets de un paquete (`/tools|insights/[slug]/app/assets/...`) se servían con `Cache-Control: public, max-age=31536000, immutable`, pero **su URL no lleva la versión del paquete**: la de la v1 y la de la v2 es la misma. Tras publicar una versión nueva (o hacer un rollback) los visitantes habrían seguido viendo el JS/CSS antiguo hasta un año. Una caché «para siempre» solo es correcta si la URL cambia cuando cambia el contenido.
+
+Arreglo, sin migración ni cambio de esquema: **revalidación con ETag** usando el `checksum` de contenido que ya guarda `html_package_version` (inmutable por versión). `Cache-Control: public, no-cache` + `ETag`; con `If-None-Match` coincidente se responde **304 sin descargar nada de Storage**. Una versión nueva o un rollback cambian el checksum, y el navegador recibe el asset correcto en su siguiente carga. Sin necesidad de renombrar archivos (`main.v2.js`).
+
+- `modules/packages/domain/assetCaching.ts` — dominio puro: `ASSET_CACHE_CONTROL`, `buildAssetEtag`, `isNotModified` (comparación débil `W/`, listas y `*`, RFC 9110).
+- `modules/packages/infrastructure/assetResponse.ts` — `buildAssetResponse` (200/304 con cabeceras) y `contentTypeFor` (movido aquí sin cambios desde las rutas).
+- `supabaseStorageSource.getStoragePackageAsset` ahora devuelve `{ notModified, etag, data? }` y acepta `ifNoneMatch`. Las dos rutas de assets quedan como capas finas (ADR-15) que solo delegan.
+
+**Contrato `contrato-zip-tools-insights.md` ampliado** con las aclaraciones que se le dieron a quien prepara los paquetes, y con dos correcciones a lo que decía el propio contrato:
+
+- **Todo recurso debe ir bajo `assets/`** — el contrato decía «subcarpetas libres», pero el servidor solo entrega lo que cuelga de `assets/`; un `style.css` en la raíz **pasa la subida y da 404**. Solo `.js/.css/.json/.png/.svg` tienen Content-Type propio.
+- **Las rutas relativas escritas dentro del JS cuentan desde el `<base href>`, no desde el archivo**: `new Worker('./worker.js')` apuntaba a `/tools/{slug}/app/worker.js` (404). **La tool de ejemplo `fixtures/tools/pixel-palette` tenía exactamente ese fallo** y se ha corregido a `./assets/worker.js`.
+- Qué cuenta el escáner de dominios (todo `http(s)://`, sin distinguir `href`/recurso/texto/comentario, dominio exacto, se declara el dominio y no cada enlace), y que `externalDomains` **no habilita** cargar nada de ese origen — solo permite que la subida pase y que los enlaces `<a href>` funcionen.
+- Cómo se monta el HTML (se conserva el `<head>`; del `<body>` solo el interior; se pierden sus atributos y los de `<html>`; `body {}` afecta al body del sitio) y tabla de qué permite y qué no la CSP (scripts inline y `onclick=` no se ejecutan, `blob:` no vale para imágenes, fuentes `data:` bloqueadas…). Checklist ampliado.
+
+**47 tests nuevos** (611 → 658): ETag y `If-None-Match`; resolución contra un Supabase simulado (incluido que un 304 **no descarga** de Storage, y que versión nueva y rollback invalidan la caché); las dos rutas con sus cabeceras reales; y **dos ficheros que fijan las afirmaciones del contrato contra el código** (`zipValidationContract.test.ts`, `composeToolDocumentContract.test.ts`) — si el validador o la composición cambian, el contrato deja de ser cierto y el test lo dice.
+
+**Límite del ZIP: 10 MB, cerrado el mismo día.** El contrato decía 10 MB y el código admitía 20, y la decisión estaba abierta. Se cierra en **10 MB** por una razón técnica, no de preferencia: el ZIP entero se envía tal cual a Cloudmersive (§12.5) y su cuenta gratuita solo escanea ficheros de hasta 10 MB («requires paid account for >10MB»); como el escaneo es bloqueante, un ZIP mayor tampoco se podría publicar. Con un plan de pago de Cloudmersive el tope sube mucho, así que la cifra puede revisarse si hiciera falta. Detalles:
+
+- **10 MB decimales (10.000.000 bytes), no MiB**: coincide con lo que muestra el Finder de macOS a quien prepare el ZIP, y queda bajo el tope del antivirus se cuente como se cuente (su documentación no aclara cuál de las dos).
+- `PACKAGE_LIMITS.maxZipSizeBytes` baja a esa cifra y el mensaje de rechazo dice «10 MB».
+- **Guarda nueva en `scanZipForViruses`** (`CLOUDMERSIVE_MAX_FILE_BYTES`): si un ZIP mayor llegara hasta ahí, se rechaza con mensaje claro y **sin enviarlo**, en vez de recibir un error opaco del servicio. Sigue siendo bloqueante.
+- **`next.config.ts` se queda en `bodySizeLimit: '20mb'` a propósito**: tiene que ser igual o mayor que el límite (el cuerpo lleva el ZIP más los campos del formulario), y siendo más grande un ZIP de 10-20 MB llega al validador y recibe el mensaje claro en vez del error genérico de Next por cuerpo demasiado grande.
+- `packageSizeLimits.test.ts` (7 tests) ata las tres cifras: falla si el límite del ZIP supera el del antivirus o si el cuerpo de la Server Action baja de ese límite. Comprobado a propósito forzando ambos desalineamientos.
+
+### 2.9 Despliegue standalone, metadatos, 404/error y normalización de `SITE_URL` (28 sep)
+
+**`output: 'standalone'`** activado en `next.config.ts` y **probado ejecutando `node server.js`** en un sandbox (Node 22), contrastado con la documentación oficial de Next. Verificado: `public/` va junto a `server.js` y `.next/static/` dentro de la carpeta `.next` del standalone (ninguna de las dos se copia sola); `.env.local` se lee cuando está junto a `server.js`, y sin él la app falla con el error de validación de `env.ts`; los estáticos y `public` se sirven (200) tras la copia manual. Guía completa en **`despliegue.md`**; la versión inicial incluía una plantilla de Nginx y de las redirecciones 301 que **se retiró después**, porque en Dinahosting el proxy no es editable (ver §2.10).
+
+**Metadatos.** `metadataBase` en el layout raíz (desde `NEXT_PUBLIC_SITE_URL`), favicon, `src/app/sitemap.ts` y `src/app/robots.ts`, ambos dinámicos a propósito (dependen del contenido publicado y del entorno de ejecución, no del del build). El sitemap incluye las páginas fijas, el contenido publicado por su ruta pública y, para casos y episodios con varias traducciones, `/work/[slug]/[locale]` con hreflang; se lee con paginación para no truncarse en las 1.000 filas por defecto de PostgREST. `robots.txt` bloquea `/admin`, `/api/`, `/auth` y `/preview`. Probado contra el servidor real con un Supabase falso local: XML válido, dominio correcto y consulta con la forma esperada.
+
+**`NEXT_PUBLIC_SITE_URL`.** Con una barra final (`https://itsgreener.com/`) el link de preview salía con `//`. `env.ts` la recorta ahora una sola vez, y en producción, si la variable falta, avisa en voz alta en vez de caer a localhost sin decir nada (no se hace obligatoria: rompería builds que hoy funcionan).
+
+**404 y error básicos.** `StatusPage` (componente compartido, sin `<main>` porque el Shell ya lo aporta), `NotFoundPage` y `ErrorPage`; `not-found.tsx`, `error.tsx` y `global-error.tsx` en la raíz, y `not-found.tsx` y `error.tsx` en `(public)` para que dentro del Shell se mantenga el menú lateral. En inglés (§2.4: interfaz global en inglés), aunque los textos actuales del feed («Cargando…») están en español.
+
+**Hallazgo: el 404 de una página pública llega con el `<body>` vacío** (ver §4.8). Se aisló con una serie de experimentos de compilación y, al final, con una aplicación Next mínima creada desde cero: reproduce lo mismo, así que no es del proyecto.
+
+**Pruebas.** 34 tests nuevos (`tests/unit/seo`, `tests/unit/status`), con roturas deliberadas para comprobar que detectan la normalización de la URL, la paginación, el hreflang y el `robots`. Total: 692 tests en 75 ficheros.
+
+**Dos fallos de método propios, anotados para no repetirlos:** (1) una prueba sirvió una copia antigua del build porque mis comandos con `pkill -f "node server.js"` se mataban a sí mismos antes de copiar; se detectó comparando los `BUILD_ID`. (2) Tras `npm run build` con `output: 'standalone'`, `next start` ya no vale: hay que usar `node .next/standalone/server.js`.
+
+### 2.10 Despliegue real (PM2 + cron), tope de copia del proxy, hreflang y redirecciones (28 sep)
+
+**Un error mío de partida, corregido.** La ayuda de Dinahosting que se consultó («Utilizar versión personalizada de NodeJs») describe «Otras aplicaciones» con Passenger, y la tomé como el modelo de despliegue. **No lo es: no sirve para Next.** El despliegue real, que el usuario ya había descrito antes y que contradije, es **PM2 manual + un cron de vigilancia**, con un proxy Nginx que gestiona Dinahosting y que no se puede modificar (solo se enciende y se espera al puerto que asigna). `despliegue.md` se ha reescrito **dos veces**: la primera versión asumía un Nginx editable, la segunda Passenger; la actual parte de lo que el usuario describe y solo afirma lo que se ha probado. Se retira la plantilla de Nginx y el plan de 301 en Nginx.
+
+**PM2, verificado con PM2 7.0.4 y una release real del proyecto.** Un `ecosystem.config.cjs` con `PORT`, `cwd` por el enlace simbólico e `interpreter` por ruta absoluta arranca la app; lee el `.env.local` aunque sea un enlace simbólico a un fichero compartido; PM2 la levanta tras un `kill -9`; y con varias releases, cambiar el enlace `current` **no** cambia el proceso en marcha hasta `pm2 restart` (tras lo cual sí sale de la release nueva). El `PATH` mínimo del cron es una trampa real: `pm2` empieza por `#!/usr/bin/env node` y falla sin Node en el `PATH` (`env: 'node': No such file or directory`), así que el vigilante lo fija.
+
+**Fallo real encontrado en mi propio vigilante.** La primera versión no funcionaba en el caso para el que existe: con el daemon de PM2 muerto, `pm2 pid` lo arranca y escribe su aviso («[PM2] Spawning PM2 daemon…») en la salida estándar; mi script lo leía como un PID válido y no hacía nada. Corregido aceptando solo una línea numérica y **reprobado en cinco escenarios** bajo un entorno mínimo tipo cron: daemon muerto (la app responde en unos 2 s), app en marcha (no toca nada), parada, borrada de PM2 y proceso que muere. Lección de método: la primera prueba dio resultados ambiguos porque medía con un tiempo fijo; el fallo solo quedó claro esperando a que el puerto respondiera y leyendo qué imprimía `pm2 pid`.
+
+**Redirecciones de las apps antiguas: descartadas (28 sep).** Se llegó a construir un redirector de 95 líneas (y se probó con 9 tests) como alternativa a tocar las apps viejas, porque las redirecciones del panel de Dinahosting solo admiten subdominio o dominio entero. **Se ha eliminado** al decidirse que no hacen falta: `tools.itsgreener.com` e `insight.itsgreener.com` eran pruebas de un proyecto que no llegó a terminarse, sin visitas, y sus contenidos no tienen equivalente en la web nueva (ninguna de las 9 tools antiguas coincide con las 12 nuevas; de los 4 insights, 3 tienen equivalente). Un redirector sin uso era código muerto, contra el principio de §3 de la arquitectura. Queda anotado en `despliegue.md` §7, junto con el matiz de que `permanent: true` de Next devuelve un 308, no un 301.
+
+**Defecto propio encontrado y corregido.** Al leer el config serializado de `server.js` apareció `proxyClientMaxBodySize: 10485760`. Confirmado con la documentación de Next y varios casos reales, y **reproducido**: con `src/proxy.ts` cuyo matcher cubre las Server Actions, Next copia en memoria el cuerpo de cada petición no-GET con un tope de 10 MiB y por encima trunca en silencio. Sonda con `POST /api/feed/sessions`: 5 MB llegaba entero, 12 y 18 MB llegaban cortados a 10 MB («Request body exceeded 10MB… Only the first 10MB will be available»). Con `proxyClientMaxBodySize: '25mb'`, 12 y 18 MB llegan enteros y el aviso desaparece. `packageSizeLimits.test.ts` amplía la guarda: el tope del proxy debe ser ≥ el de las Server Actions y dejar sitio a un ZIP de 10 MB más la cabecera multipart.
+
+**hreflang verificado.** Con un Supabase falso local que imita PostgREST y `SITE_URL` con barra final a propósito, `/work/destroyer`, `/work/destroyer/en` y `/work/destroyer/ca` emiten los tres `<link rel="alternate" hreflang>` con el dominio completo y consistentes entre sí. Se observa además que **no se emite `canonical`** (anotado en §4.8).
+
+**Pruebas.** 694 tests en 75 ficheros. Las roturas deliberadas del tope del proxy se detectan.
+
+### 2.11 Cookies: opción A construida, y una CSP que bloqueaba Plausible (28 sep)
+
+**Decisión.** Opción A, sin banner: ningún embed de tercero se carga hasta que el visitante pulsa, **YouTube incluido** (antes se servía directo). Aviso **en inglés** (§2.4), sin recordar la elección, con enlace a «Privacy & Cookies». La preocupación de que sea repetitivo (un clic por vídeo) queda asumida por ahora; a futuro puede sustituirse por un banner global. Base: guía de la AEPD de mayo de 2024, que reconoce pedir el consentimiento justo antes de descargar un vídeo (§3.2.3 d).
+
+**Qué se hizo.** `EpisodeDetail` deja de tener una excepción para YouTube y muestra un aviso concreto: nombra al proveedor, dice qué ocurre al cargarlo (IP, cookies y tecnologías propias del tercero, sus propios fines) y evita el lenguaje vago que la guía desaconseja («puede», «podría»). Un icono «Privacy & Cookies» en el menú lateral (siempre visible: un pie de página no serviría con el feed infinito), la casilla del formulario de contacto enlaza a la política, y `cookies-inventario.md` reúne los hechos técnicos para que el asesor legal redacte la política y señala lo que necesita su criterio.
+
+**Fallo real encontrado al preparar el inventario.** El tracker de Plausible publica cada evento con `fetch` en `https://plausible.io/api/event`, y la CSP (añadida el 22 sep, un día antes que Plausible) no lo permitía en `connect-src`: **en producción el navegador habría descartado todos los eventos en silencio**. Ahora `connect-src` abre ese origen solo si `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` está definida (mínimo privilegio), con test. Además, se comprobó que el tracker no escribe cookies ni almacenamiento (0 apariciones de `cookie`; solo lee `localStorage.plausible_ignore`).
+
+**Corrección a mi propia guía de despliegue.** Al probar con y sin la variable descubrí que `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` **se lee en tiempo de ejecución** del `.env.local` del servidor, no del build: con la variable solo en el build, el cliente no recibía dominio y la CSP no abría `plausible.io`. Lo mismo vale para `NEXT_PUBLIC_SITE_URL`. Solo **tres** `NEXT_PUBLIC_*` se incrustan al compilar (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` y `CLOUDINARY_CLOUD_NAME`, las únicas referenciadas de forma literal). Yo había escrito, en la guía y en el `.env.local.example`, que las cinco se fijaban en el build; corregido en `despliegue.md` §2 y §6 y en el ejemplo.
+
+**Pruebas.** Cuatro roturas deliberadas fallan como deben: YouTube cargando directo, guardar la elección, lenguaje vago en el aviso y quitar Plausible de la CSP. Hay tests que fijan que no se persiste nada (ni cookies ni `setItem`) y que un nuevo montaje vuelve a preguntar.
+
+**Sin comprobar.** El comportamiento real de los proveedores hoy: los hechos de YouTube/Vimeo/Spotify son de la auditoría del 22-23 sep y no se pudieron repetir sin un navegador (`cookies-inventario.md` §6). Tampoco se ha podido ver la CSP actuando en un navegador.
+
+### 2.12 Integración de cambios externos del 28 sep — bug real de assets, MIME y analítica (29 sep)
+
+El usuario pasó un zip con cambios hechos por otra persona del equipo el 28 de septiembre, sobre una copia mía **anterior a la sesión de cookies** (sin `.env.local.example`, sin `cookies-inventario.md`, sin el enlace a `/privacy`). Antes de tocar nada se comparó ese zip contra mi entrega para separar "diferencias porque su base es más vieja que la mía" de "cambios reales que hay que traer" — evitando así revertir por accidente mi propio trabajo de cookies al fusionar.
+
+**El hallazgo importante: un bug real, presente desde el primer zip.** Las rutas `/tools|insights/[slug]/app/assets/[...file]` pedían a Storage el fichero sin el prefijo `assets/`, porque Next.js ya consume ese segmento como parte fija de la ruta antes de pasar el resto como parámetro `file` — pero en Storage el fichero SÍ vive bajo `assets/`, ya que el ZIP se sube conservando su estructura interna (`assets/main.js` en el ZIP → `<storage_path>/assets/main.js` en Storage). Con esto, **todo asset de toda tool o insight habría dado 404** contra Storage real. Nunca lo detectaron mis tests porque mockean Storage directamente y no comprueban qué ruta exacta se pide. El equipo lo encontró y arregló anteponiendo `'assets'` en la ruta; aquí se ha integrado, reescrito el comentario explicando el porqué, corregido el test que sin querer daba por buena la ruta rota (`assetRoutes.test.ts` esperaba la llamada SIN el prefijo), y **verificado contra un servidor real**: con un Storage simulado (servidor HTTP propio, no un mock de Vitest) y el build real servido con `node server.js`, se confirmó que la petición HTTP que sale ahora del servidor lleva `/assets/` en la ruta, para una tool y para un insight, incluida una fuente `.woff2`.
+
+**Tipos MIME ampliados.** `assetResponse.ts` ahora sirve `.woff`, `.woff2`, `.jpg`, `.jpeg` y `.webp` con su Content-Type real (antes, `application/octet-stream`), con normalización a minúsculas. Los insights reales llegaron con tipografía Coolvetica en WOFF2, que sin esto no se habría aplicado en el navegador. Pendiente: `contrato-zip-tools-insights.md` §1 sigue sin actualizar con la lista ampliada.
+
+**Cuatro eventos de analítica nuevos, cableados de verdad:** `Case Open`, `Tool Open`, `Insight Open` (vía un componente nuevo, `ContentOpenTracker`, montado en `ToolInsightDetail.tsx` y en `work/[slug]/page.tsx` para el caso) y `Episode Play` (en `EpisodeDetail.tsx`). Incluyen atribución de la sección de origen: `PinCard` guarda en `sessionStorage` (30 min, consumido una sola vez, atado a la ruta de destino) desde qué sección se hizo clic, vía un módulo nuevo `navigationAttribution.ts`; el detalle la recupera al montarse. Los previews firmados (`?preview=`) quedan excluidos de todas las métricas. `Episode Play` se fusionó a mano con el rediseño de cookies del 28 sep (aviso en inglés, clic también en YouTube): el equipo lo había escrito sobre la versión anterior, en español y sin ese clic para YouTube — el resultado final lleva el texto y el gate nuevos, más el `?autoplay=1` (en YouTube y Vimeo) y el tracking que ellos añadieron, ya que con el gate delante, pulsar "cargar" ya es la intención explícita de reproducir. Añadido el campo `program` a `PublicEpisode` (`publicEpisodeSource.ts`), que necesita el evento.
+
+**Un retroceso que no se adoptó.** El fixture `pixel-palette/assets/main.js` había vuelto a `new Worker('./worker.js')`, la ruta rota que ya se había corregido a `'./assets/worker.js'` en la sesión del 28 de septiembre (§2.8). Se mantiene la versión corregida; queda avisado al usuario, no aplicado en silencio.
+
+**Pruebas.** Todo lo integrado se reescribió con tests propios en vez de adoptar los suyos tal cual (llegaban con un formato muy distinto al del proyecto, sin salto de línea final, y en el caso de `assetRoutes.test.ts` con una aserción que ocultaba el propio bug). 25 tests nuevos, con roturas deliberadas comprobadas para: el prefijo `assets/` en las rutas, y la exclusión de `Episode Play` durante un preview. Un fichero de test duplicado que llegó en una ubicación incorrecta (`tests/packages/`, fuera de `tests/unit/`) no se adoptó.
+
+### 2.13 Escáner de dominios y validación estructural de assets/ (29 sep)
+
+Dos de los puntos que llevaban tiempo en la lista de pendientes (§4.8), abordados juntos porque viven en el mismo validador (`zipValidation.ts`):
+
+**1. Falso positivo del namespace SVG, corregido.** `xmlns="http://www.w3.org/2000/svg"` (y el resto de namespaces XML estándar: XLink, XHTML, `xmlns:xmlns`, `xml:` y MathML) ya no cuenta como dominio externo. El escaneo reconoce esas cadenas exactas y las ignora, con un límite de palabra al final (`(?![A-Za-z0-9.-])`): sin ese límite, una URL genuinamente distinta como `http://www.w3.org/2000/svgx/otra-cosa` se habría colado también como "namespace conocido", por ser el namespace un prefijo textual suyo — hay un test que fija justo ese caso. **Las cabeceras de licencia de librerías (`threejs.org`, `github.com`…) siguen sin resolverse**, a propósito: no hay ninguna forma fiable de distinguir por texto "esto es un comentario de licencia" de "esto es una referencia real" sin analizar JS de verdad, y una heurística de comentarios sería frágil y podría ocultar referencias genuinas. Sigue documentado en el contrato como limitación conocida.
+
+**2. Ficheros fuera de `assets/`, ahora rechazados al subir.** Antes, un archivo mal colocado en la raíz del ZIP (por ejemplo `style.css` en vez de `assets/style.css`) pasaba la validación sin avisar y solo se descubría como 404 en la página publicada — justo el mismo tipo de fallo silencioso que el bug de las rutas de assets (§2.12), aunque de origen distinto (aquí es la validación de subida la que no comprobaba nada, no el servido). Ahora se rechaza con un mensaje que dice qué archivo está mal y qué debería pasar.
+
+**3. Deduplicación de avisos.** Un dominio sin declarar que aparece muchas veces en un mismo archivo (citas repetidas a la misma fuente en un insight) antes generaba un aviso por cada aparición — cien enlaces a un dominio no declarado producían cien líneas casi idénticas, capaces de ahogar cualquier otro problema real en la lista. Ahora es un aviso por (archivo, dominio).
+
+**Pruebas.** 8 tests nuevos y 3 reescritos (los que construían un ZIP con un archivo en la raíz para probar otra cosa — el escaneo de Service Worker y de dominios — tuvieron que moverlo a `assets/` para seguir probando lo que probaban, no la regla nueva). Cuatro roturas deliberadas comprobadas: quitar el límite de palabra del namespace, quitar la regla estructural, y quitar la deduplicación — las tres detectadas por tests existentes o añadidos para la ocasión.
+
+### 2.14 Rutas de demo bloqueadas en producción y menú lateral real en tools/insights (29 sep)
+
+Dos de los puntos de mayor visibilidad de la lista de pendientes (§4.8), priorizados porque son justo lo que se ve al probar las tools reales estos días.
+
+**1. `/api/feed/demo` y `/preview/masonry`, bloqueadas.** Eran rutas públicas del prototipo de Fase 1 (Anexo E.2), sin ninguna guarda, sirviendo un dataset falso sin relación con el contenido real. Ahora ambas responden con 404 (la API) o `notFound()` (la página) cuando `NODE_ENV=production`, con el mismo patrón que ya usa `analytics.ts` para lo mismo. Siguen funcionando en desarrollo, que es donde de verdad sirven.
+
+**2. Menú lateral de `/tools|insights/[slug]/app`, sustituido por el real.** Hasta ahora era una mini-nav aparte: cinco enlaces con solo la inicial como icono, "Contacto" en español, `lang="es"` fijo — visualmente distinta del resto del sitio en cada página de tool e insight, justo las páginas que se están probando ahora. `composeToolDocument.ts` ahora replica el Shell real (`components/shell/Shell`): los mismos nueve iconos y el mismo orden que `useShell.ts` (We did it, Podcasts, Insights, Tools / Contact, Instagram, YouTube, LinkedIn, Privacy & Cookies), los mismos ficheros SVG, el mismo hover con la pastilla del nombre, y `lang="en"` en vez de `es`. No puede compartir el componente React en sí: esta ruta compone un documento HTML aparte a mano con cheerio, no una página de Next. Queda un riesgo real, anotado en el propio código: si `useShell.ts` cambia el día de mañana, esta copia no se actualiza sola y ambas listas pueden divergir otra vez.
+
+**Hallazgo relacionado, encontrado al revisar por qué estas rutas se saltan el proxy central.** `proxy.ts` las excluye enteras a propósito, con un comentario que explica el motivo real: su propia CSP (pensada para el contrato del ZIP) no debe mezclarse con la CSP global, porque dos cabeceras `Content-Security-Policy` en la misma respuesta se combinan, no se sustituyen. Pero ese salto dejaba fuera **también** HSTS y Referrer-Policy, que no chocan con nada y no tenían motivo para faltar. Añadidas directamente en las dos rutas, con los mismos valores que `securityHeaders.ts`.
+
+**Pruebas.** 12 tests nuevos, sin ningún test previo para ninguna de las cuatro rutas tocadas. Roturas deliberadas comprobadas: quitar cada una de las dos guardas de producción, y quitar la cabecera HSTS de una de las rutas `/app`.
+
+### 2.15 "Tool Used" servidor a servidor (29 sep)
+
+Decisión del usuario, distinta de lo que proponía el contrato: `Tool Used` se dispara al **entrar** en `/tools/[slug]/app` (la tool en sí), no por algo que la tool reporte desde dentro. Tiene sentido además de ser la única vía que funciona: la CSP de esa ruta (`script-src 'self'; connect-src 'self'`) impide que el JS de la tool hable con Plausible o ejecute un script de seguimiento inline — la vía que proponía §12.3 del contrato nunca iba a funcionar sin abrir esa política.
+
+**Cómo se hizo.** `serverAnalytics.ts`, nuevo módulo servidor (no `'use client'`): llama directamente a la API de eventos de Plausible (`POST https://plausible.io/api/event`) desde `route.ts`, sin pasar por el navegador. Cableado solo en `tools/[slug]/app/route.ts`, sin awaitar (no debe retrasar la respuesta al visitante; seguro porque la app corre como proceso Node persistente bajo PM2, no serverless), y solo en el camino de éxito (nunca en el 404 — entrar en una tool que no existe no es "usarla").
+
+**Trampa real de la API de Plausible, documentada por ellos mismos: siempre responde 202, incluso cuando descarta el evento por su filtro antibot** — y ese filtro descarta casi cualquier petición sin un `User-Agent` de navegador real. Sin reenviar el `User-Agent` y la IP originales del visitante, el evento habría parecido funcionar (202) sin registrarse nunca — la misma clase de fallo silencioso que ya costó una sesión entera con la CSP bloqueando al tracker del navegador (§2.11). `serverAnalytics.ts` exige recibir ambos y los reenvía tal cual.
+
+**Dos huecos que quedan abiertos, no decisiones mías:**
+
+1. **Solo tools, no insights.** `AnalyticsEventMap` no define «Insight Used» — la misma razón (CSP) aplica igual a `insights/[slug]/app`, pero no se ha añadido un evento nuevo sin que el usuario lo confirme (afecta a qué hay que dar de alta como objetivo en el dashboard de Plausible).
+2. **`toolId` es el slug, no el UUID de `content`.** `route.ts` solo conoce el paquete en Storage, no la fila de `content` — cruzar «Tool Open» (UUID) con «Tool Used» (slug) en el dashboard de Plausible no funciona directamente sin un mapeo aparte. Resolverlo del todo exigiría una consulta extra a Supabase en cada carga de tool; no se ha añadido por el coste en un camino tan caliente.
+
+**Pruebas.** 6 tests de `serverAnalytics.ts` y 3 más en `appRoutes.test.ts` (payload correcto, reenvío de User-Agent/IP/referrer, fallback a `x-real-ip`, nada en el 404). Dos roturas deliberadas comprobadas: mandar un User-Agent falso en vez del real, y disparar el evento también en el 404 — ambas detectadas.
+
+### 2.16 Límite de peticiones al feed público (29 sep)
+
+Discutido y decidido con el usuario antes de construirlo, ronda por ronda: qué endpoints limitar, cómo identificar al visitante, qué pasa al superar el límite, y memoria o base de datos — con desacuerdos explícitos resueltos antes de escribir código (ver el historial de la conversación, no repetido aquí).
+
+**Decisiones finales.** Dos límites independientes, por visitante (cookie anónima, no IP — evita que varias personas detrás del mismo NAT compartan cupo): **12 creaciones de sesión por minuto** (`POST /api/feed/sessions`) y **50 lotes por minuto** (`GET /api/feed/{sessionId}`) — números distintos a propósito, porque generar un lote cuesta más (una ronda completa del algoritmo de cuotas, §8) pero también es lo que dispara el scroll rápido, que necesita más margen. Todo en memoria de proceso, no en Supabase: evita una consulta a la base de datos en cada visita a la home, a cambio de no compartirse entre procesos ni sobrevivir a un reinicio — aceptado a propósito, es para amortiguar ruido, no una defensa real contra abuso deliberado.
+
+**Qué pasa al superar cada límite, sin ningún error visible:**
+
+- **Creación de sesión:** se devuelve la sesión más reciente de ese visitante en vez de crear una nueva (200 en vez de 201). Efecto secundario asumido: esa recarga concreta repite la secuencia anterior, en vez de una nueva — contradice, solo en ese caso límite, "home distinta en cada carga completa" (arquitectura §1). Solo le pasa a quien supera 12 creaciones en un minuto, muy por encima del uso normal.
+- **Lotes:** se responde como si el catálogo se hubiera agotado (`hasMore: false`, sin pines) — reutiliza un comportamiento que el cliente (`useFeed.ts`) ya sabía manejar, cero cambios en el frontend.
+
+**La cookie (`greener_visitor`, `visitorCookie.ts`).** httpOnly, SameSite=Lax, 24h renovables en cada respuesta (no una fecha fija desde la primera visita). Es una cookie técnica de seguridad — la guía de la AEPD pone justo este caso (detectar/limitar abuso) como ejemplo de lo exento de consentimiento bajo el art. 22.2 LSSI. **Pendiente:** añadirla a `cookies-inventario.md`, exenta o no de consentimiento, sigue habiendo que mencionarla.
+
+**Fallo real encontrado y corregido al construir el limitador genérico.** La primera versión de `inMemoryRateLimiter.ts` reiniciaba la ventana en cada petición aceptada dentro de ella (no solo en la primera), lo que en el caso límite de un visitante con un ritmo bajo pero constante (una petición cada pocos segundos, sin hueco nunca de duración completa) lo habría dejado bloqueado para siempre en cuanto el contador llegara al máximo. El primer test que se escribió para probar justamente esto **no lo detectó** — pasaba igual con el fallo presente; hizo falta un segundo test, más preciso, que fija el instante exacto en que debe reabrirse la ventana, para que la mutación deliberada del comportamiento fallara donde debía.
+
+**Pruebas.** 30 tests nuevos: el limitador genérico (incluida la ventana fija de verdad), la cookie, el módulo de feed (límites y "recordar sesión"), y las dos rutas HTTP completas — con `NextRequest`/`NextResponse` reales, no simulados: cabeceras `Set-Cookie` reales, conteo real hasta el límite, reinicio real pasado el minuto. Un intento de probarlo además contra un Supabase simulado real (como se hizo con el bug de `assets/`, §2.12) se abandonó por inestabilidad del entorno de pruebas, no del código — la cobertura de ruta ya ejercita los mecanismos reales de cookies y conteo, solo sin una base de datos de verdad detrás.
+
+### 2.17 Integración de una segunda rama de trabajo: ABM rediseñado, Feed Depth y un segundo "Tool Used" (29 sep)
+
+El usuario pasó un zip nuevo con cambios hechos en paralelo por otra parte del equipo, sobre una base anterior a la sesión de hoy (sin el límite de peticiones, sin el menú lateral real de tools/insights, sin "Tool Used" servidor). Mismo método que en la integración del 28-29 sep (§2.12): separar qué es solo diferencia de base de qué es trabajo real nuevo, antes de tocar nada.
+
+**Integrado sin conflicto, adoptado tal cual:**
+
+- **Rediseño completo del ABM**: `admin/layout.tsx` (nuevo, menú lateral propio), y los 9 ficheros del dashboard, listado y editor de contenidos reescritos, más ~1.700 líneas de CSS en `globals.css` (fusionado a mano para conservar mis propios comentarios de cabecera, no sobrescrito). Nunca se había tocado esta parte en esta sesión, así que no había nada que fusionar más allá de copiar.
+- **`greener-package-analytics.js` + `POST /api/analytics/package`**: un segundo mecanismo para "Tool Used" (ver más abajo — no se activó en exclusiva, convive con el existente).
+- **Evento "Feed Depth"**, cableado en `useFeed.ts`: se dispara con `{ section, round, batch: 0 }` al recibir un lote con pines; no en uno vacío (fin de catálogo real, o límite de peticiones superado — §2.16 — no cuentan como profundidad alcanzada). Necesitó añadir `round: number` a `FeedBatchResult` (`getFeedSessionBatch.ts`) y propagarlo también a la respuesta de mi propio límite de peticiones, que hasta entonces no lo llevaba.
+
+**Descartado, regresión ya vista antes:** el fixture `pixel-palette/assets/main.js` volvía a traer la ruta rota del Worker (`./worker.js` en vez de `./assets/worker.js`, corregida el 28 sep, §2.8). Se mantiene la versión corregida.
+
+**La decisión que queda abierta: dos mecanismos para "Tool Used".** El construido ayer en esta sesión (servidor, automático, en `route.ts`) y el integrado hoy (`greener-package-analytics.js`, disparado por la propia tool tras una interacción real) resuelven el mismo problema de formas distintas, con una diferencia real: el nuevo usa el UUID de `content` como `toolId` (resuelto server-side por slug+tipo+estado en `POST /api/analytics/package`), así que SÍ es cruzable con "Tool Open" — algo que el mecanismo de ayer no conseguía sin una consulta extra que no se quiso pagar en un camino tan caliente. A cambio, depende de que cada tool decida llamarlo; el de ayer se dispara siempre, lo use alguien o no. Ninguno de los dos se ha desactivado a propósito: la decisión es del usuario, no mía, sobre todo porque el mecanismo de ayer se construyó siguiendo una instrucción explícita suya. Anotado en el propio código (`composeToolDocument.ts`), no solo aquí.
+
+**Pruebas.** Suite completa recorrida tras cada paso de la integración, no solo al final: 2 tests nuevos para el runtime de analítica en `composeToolDocument.test.ts` (presente en tools, ausente en insights), los tests ya existentes `feedDepth.test.tsx` y `packageAnalyticsRoute.test.ts` adoptados sin cambios, y los 10 tests ya existentes de `tests/unit/admin/` (lógica de Server Actions, no de las vistas) re-ejecutados para confirmar que el rediseño de las vistas no rompió nada por debajo.
+
+### 2.18 "Tool Used": un solo mecanismo, decidido (29 sep)
+
+Decisión del usuario sobre lo planteado en §2.17: quedarse con el mecanismo que SÍ cruza con «Tool Open» — `greener-package-analytics.js` + `POST /api/analytics/package`, con el UUID real de `content` como toolId. Retirado el otro: `serverAnalytics.ts` y su test eliminados, la llamada en `tools/[slug]/app/route.ts` quitada (el parámetro `request` vuelve a `_request`, sin uso), y el comentario de `composeToolDocument.ts` actualizado para dejar de hablar de una decisión pendiente.
+
+Coste aceptado, con los ojos abiertos: a diferencia del mecanismo retirado (que se disparaba siempre, sin depender de nada), este exige que cada una de las tools llame explícitamente a `window.GreenerAnalytics.toolUsed(action)` o dispare `greener:tool-used`. Una tool que nunca lo haga —por lo que sea, un olvido al construirla— mostrará cero uso en Plausible aunque reciba visitas reales. No hay nada que avise de eso: es un silencio, no un error. Merece la pena tenerlo presente cuando se audite la analítica con las 30 tools ya construidas.
+
+**Pruebas.** 9 tests menos (785, antes 794): los propios de `serverAnalytics.ts` y los tres del describe `"Tool Used"` en `appRoutes.test.ts`, todos retirados porque probaban un mecanismo que ya no existe. `packageAnalyticsRoute.test.ts` y `feedDepth.test.tsx` (del mecanismo que se queda) no cambian.
+
+**`contrato-zip-tools-insights.md` actualizado el 30 sep** (se había quedado sin ninguna mención a esto): nueva sección "Reportar uso real (solo Tools): `window.GreenerAnalytics.toolUsed()`" en §6, con el patrón exacto de `action` verificado contra el regex real del script (`^[a-z0-9][a-z0-9:_-]{0,63}$`), y un punto nuevo en el checklist de §8. Documentado sin suavizarlo: una Tool que nunca llame a esto muestra cero uso sin ningún aviso.
+
+### 2.19 Bug real: el límite de peticiones rompía el scroll de la home (30 sep)
+
+Aviso del usuario: "el scroll de la home se rompió un poco... solo muestra una línea de casos... en tools e insights funciona bien". Las tres páginas usan el mismo componente (`<Feed scope="...">`), así que el fallo tenía que estar en algo que distinguiera home de las subhomes — o en algo que SOLO se manifestara con el patrón de tráfico de home.
+
+**La causa real: una interacción entre dos piezas que no se conocían entre sí.** `appendBatch` (`FeedProvider.tsx`) ya tenía, de antes, una regla: un lote vacío (`items.length === 0`) corta `hasMore` a `false` **para siempre** — pensada para que una subhome sin contenido todavía (insights/tools al principio) no siga pidiendo rondas sin parar, ya que `generateRound` es determinista: si el pool de un tipo está vacío, toda ronda futura también lo estará. Es un corte permanente, a propósito.
+
+El límite de peticiones del 29 sep (§2.16) **reutilizaba exactamente esa misma forma de respuesta** (lote vacío) para decir "espera, no ahora mismo" — algo temporal, no permanente. `appendBatch` no tenía forma de distinguir los dos casos: a sus ojos, un lote vacío por límite de peticiones superado era indistinguible de una subhome sin contenido, así que lo trataba igual — cortaba `hasMore` para siempre, en memoria **y en `sessionStorage`**.
+
+Por qué solo se notaba en home: `useFeed.ts` auto-carga rondas mientras el sentinel de `IntersectionObserver` esté cerca del final (§10.3) — pero el observador solo reacciona a un **cambio** de intersección, no re-chequea solo porque pase el tiempo. Home mezcla tipos por cuota (§8.2) en vez de servir un único tipo denso como tools/insights, así que arrancar necesita más rondas seguidas para llenar la pantalla — más probable agotar el cupo (50/min) durante esa ráfaga inicial, sobre todo recargando varias veces seguidas en poco tiempo, que es justo lo que se estaba haciendo al cargar contenido. Una vez cortado, nada volvía a intentarlo solo: hacía falta un scroll manual para que el sentinel recalculara su posición y el observador volviera a dispararse — pero `hasMore` ya estaba en `false` para siempre, así que ni el scroll manual servía de nada, salvo que diera la casualidad de coincidir con una recarga completa (nuevo `pageLoadId`, estado limpio) fuera ya de la ventana de un minuto.
+
+**La corrección, en dos sitios:**
+
+1. `api/feed/[sessionId]/route.ts`: la respuesta de límite superado ahora dice la verdad — `hasMore: true` (sí hay más, solo que no ahora) — y añade `rateLimited: true` como señal explícita.
+2. `appendBatch`: si `batch.rateLimited` es verdadero, no toca el estado en absoluto — ni pines, ni cursor, ni `hasMore`. El siguiente intento (el próximo scroll, o el propio sentinel si hay ocasión) vuelve a probar con normalidad.
+
+El comportamiento de "corte permanente para una subhome sin contenido real" **no cambia** — sigue intacto, solo ahora distinguible del caso temporal.
+
+**Pruebas.** 6 tests nuevos en `feedProvider.test.tsx`, el primer test que existe para `appendBatch` (no tenía ninguno). Reproducida la mutación exacta del bug original (quitar la guarda de `rateLimited`) y confirmado que los tests la detectan — 2 de 6 fallan exactamente como deberían. Actualizada la aserción de `sessionBatchRoute.test.ts`, que yo mismo había fijado con el comportamiento incorrecto el día anterior.
+
+### 2.20 Auditoría de estado y limpieza del repositorio (2 oct, día de lanzamiento)
+
+Revisión completa del zip contra el código real: `npm ci`, ESLint, `tsc`, Vitest, `next build`, Prettier y una pasada con `knip` (código, ficheros y dependencias sin usar) más revisión a mano de carpetas, esquema y documentación.
+
+**Hallazgo bloqueante, ya corregido: `next build` fallaba.** `useFeed.ts` lee `batch.round` para el evento «Feed Depth» (§2.17), pero `FeedBatchResult` (`getFeedSessionBatch.ts`) no tenía el campo ni el servicio lo devolvía. Las cuatro pruebas de humo que lo simulaban tampoco compilaban. Consecuencias: el paso de tipos del build fallaba (`TS2339`) y, aun forzándolo, el evento habría enviado `round: undefined` a Plausible. Se añade `round: number` al tipo, `getFeedSessionBatch` devuelve `round: roundIndex` y hay un test nuevo que lo fija (ronda 0 y ronda 1). Tras el arreglo: build limpio, `tsc` sin errores (salvo el falso positivo conocido de `LayoutProps` si se ejecuta antes del build, §3), ESLint a 0, 795 tests en verde. El zip del 1 oct, tal cual, **no desplegaba**: el «build limpio» anotado en §2.17-§2.19 no se re-comprobó tras integrar la segunda rama.
+
+**Formato.** `format:check` fallaba en 9 ficheros reales (`BulkPinUpload.tsx`, `edit/page.tsx`, `PinList.tsx`, `login/page.tsx`, `globals.css`, `useMasonryPositions.ts`, `cloudinaryServer.ts`, `securityHeaders.test.ts`, `greener-package-analytics.js`), procedentes sobre todo del rediseño del ABM integrado el 29 sep. Reformateados con el `.prettierrc` real, sin cambios de lógica. Solo queda `next-env.d.ts`, que es generado y está en `.gitignore`.
+
+**Carpetas vacías o con marcadores sin sentido** (propuestos para borrar, no se ha borrado nada):
+
+| Ruta                                                                                                | Qué es                                                                                                                                                  |
+| --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/(public)/tools/[slug]/assets/[...file]/` y `insights/[slug]/assets/[...file]/`             | Directorios vacíos, resto de la ruta antigua. Las rutas reales viven en `.../[slug]/app/assets/[...file]/route.ts`.                                     |
+| `supabase/policies/`                                                                                | Vacía: las políticas RLS están dentro de las migraciones (`20260806090700_rls_policies.sql`). El documento de arquitectura (Anexo B) la preveía.        |
+| `src/components/case-blocks/`                                                                       | Solo `.gitkeep`. El editor de bloques se descartó (migración `drop_content_block_editor`).                                                              |
+| `src/lib/auth/`, `src/lib/validation/`, `src/lib/security/`, `src/modules/admin/`                   | Solo `.gitkeep`: estructura del Anexo B que nunca se llegó a usar (la auth vive en `lib/supabase/` y `proxy.ts`; los schemas zod, junto a cada módulo). |
+| `.gitkeep` en `modules/analytics/`, `modules/content/infrastructure/`, `modules/media/application/` | Carpetas que ya tienen ficheros: el marcador sobra.                                                                                                     |
+
+**Código y ficheros sin uso:**
+
+- `src/modules/packages/infrastructure/localPackageSource.ts`: nada lo importa (solo lo citan dos comentarios). Es el origen de paquetes desde disco de la época de los spikes; hoy todo va por `supabaseStorageSource.ts`. El fixture `fixtures/tools/pixel-palette/` **sí** se usa (`pixelPaletteWorker.test.ts`), así que se queda.
+- Dependencias que nadie importa: `next-cloudinary`, `react-hook-form` y `@hookform/resolvers` (el §24.5 las preveía; los formularios del ABM usan Server Actions con zod directamente) y `@types/adm-zip` en devDependencies (revisar: `adm-zip` sí se usa).
+- `ADMIN_ALLOWED_DOMAIN_FALLBACK`: está en `env.ts` y en `.env.local.example`, pero ningún código la lee. O se implementa el respaldo o se retira de ambos.
+- Iconos: **todos** los SVG de `public/icons/` se usan (el Shell los compone por nombre). `shop.svg` va con el item «Shop» oculto a propósito.
+- Exports que solo se usan dentro de su propio fichero (`getVideoSlotLimit`, `buildFeedUnitsForPin`, `RATE_LIMIT_WINDOW_MS`, `pinLocaleSchema`…) y 33 tipos exportados sin importador: ruido, sin impacto; no merece tocarlos hoy.
+- Se conservan a propósito, aunque nada de producción los use: `scripts/generate-demo-data.mjs`, `data/demo/feed-snapshot.json`, `supabase/seed_demo_data.sql` y las rutas `/api/feed/demo` y `/preview/masonry` (404 en producción, §2.14) — son el entorno de pruebas del feed.
+- Tablas sin uso en el código, conservadas por decisión: `redirect_301`, `tag`/`content_tag` (filtros fuera de V1), `admin_profile`. `audit_log` y `admin_allowed_domain` solo las tocan las funciones SQL, no el código TypeScript — correcto, pero no hay visor (§4).
+- `feed_config.video_limit_*` existe en el esquema pero no se lee (ver §4).
+
+**Basura que no debería viajar en el zip:** `.DS_Store` (7 ficheros), `tsconfig.tsbuildinfo` (224 KB, ignorado por git), `next-env.d.ts` (generado), y `supabase/.temp/` (incluye `linked-project.json` y `pooler-url`, ya en `.gitignore`). El zip llega con la carpeta `__MACOSX/`, que además hace fallar ESLint (318 «errores» de parseo): hay que borrarla antes de lintar.
+
+**Documentación desactualizada o ausente:**
+
+- ~~Faltan en el zip `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md`.~~ **Aclarado el 2 oct (§2.24): existen en el repositorio**; solo faltaban en los zips compartidos.
+- `estructura-src.txt` está obsoleto (le faltan 20 o más ficheros, entre ellos todo lo de preview, rate limit, sitemap y analítica); `estructura-migrations.txt` sí coincide (40). Son volcados generados: o se regeneran o se eliminan.
+- `supabase/README.md` lista migraciones antiguas (ya anotado en §3).
+- `contrato-zip-tools-insights.md` §1 sigue diciendo «solo js/css/json/png/svg» pese a la ampliación del 29 sep.
+
+---
+
+### 2.21 Insights: el pin del feed abre directamente `/insights/[slug]/app` (2 oct)
+
+Cambio de flujo pedido por Greener, **solo para insights**: home → clic en el pin → `/insights/{slug}/app` (contenido real), sin pasar por la página de detalle. Por prisa, la página `/insights/{slug}` **se mantiene tal cual** (sigue existiendo, es la URL canónica del sitemap, la del preview firmado y la que se comparte); solo cambia a dónde apunta el pin.
+
+**Dónde:** `feedPinDestination()` (nuevo, `modules/content/domain/contentPath.ts`) devuelve `${publicContentPath}/app` para `insight` y `publicContentPath` para el resto; `destinationFor` de `getFeedSessionBatch.ts` delega en ella. `publicContentPath` no se toca, así que sitemap, preview y enlaces del ABM siguen apuntando al detalle. Las tools **no** cambian (siguen yendo a `/tools/[slug]`).
+
+**Alcance real:** el cambio vive en la API del feed, así que afecta a **todo pin de insight**: home, subhome `/insights` y los feeds de «relacionados» de las páginas de detalle (casos, episodios, tools, insights). Se decidió así para que un insight se comporte igual venga de donde venga. Si Greener quisiera solo la home, habría que filtrar por `scope` en `getFeedSessionBatch`.
+
+**Pruebas:** 3 tests nuevos en `contentPath.test.ts` y actualizada la aserción de `getFeedSessionBatch.test.ts` (insight → `/insights/insight-1-slug/app`, tool sigue en `/tools/tool-1-slug`). 798 tests, build, ESLint, `tsc` y Prettier limpios.
+
+**Efectos colaterales conocidos (no se han tocado):**
+
+1. **«Insight Open» deja de contarse para los clics del feed.** Lo dispara `ContentOpenTracker` dentro de la página de detalle, y `/app` es un documento HTML autónomo con CSP `script-src 'self'` y sin el tracker del sitio. «Pin Click» con `destinationType: insight` y `section` sí sigue disparándose desde el pin, así que el interés por insights se sigue midiendo, pero «Insight Open» solo contará a quien llegue al detalle por URL directa. Arreglo posible: enviarlo desde el servidor en `insights/[slug]/app/route.ts` (como «Tool Used» antes de §2.18), con cuidado de no duplicar cuando el visitante venga del detalle.
+2. **El CTA del pin sigue diciendo «Read»** (`ctaFor`); sigue siendo coherente.
+3. **Sin preview de borrador en `/app`** (ya anotado en §4.2): un insight en preview firmado se abre en su detalle, pero el pin del feed solo existe si está publicado, así que no hay 404 por esto (la migración `block_publish_tool_insight_without_package` impide publicar un insight sin paquete).
+
+### 2.22 Insights: nuevo pie del pin en el feed — título + «Insights by Greener» (2 oct)
+
+Petición de Greener (solo insights): bajo la imagen del pin se muestra el **título del insight** y, debajo, **«Insights by Greener» en negrita**, en vez de la frase gancho. Es el mismo formato que un caso (título + cliente), con la diferencia de que el texto en negrita es **fijo** para todos los insights.
+
+**Cómo se renderiza un pin de caso (y por qué bastó con una rama nueva):** `derivedFeedText()` (`supabaseFeedSource.ts`) rellena `displayTitle` (título de la traducción, según el idioma del pin) y `displaySecondary` (cliente) → `getFeedSessionBatch` los pasa tal cual al cliente → `PinCard` pinta `labelPrimary` (regular, 2 líneas) y `labelSecondary` (negrita, 1 línea) → `useMasonryPositions` y `useRecommendationMasonry` estiman el alto del pie a partir de `displayTitle`. Todo ese camino es genérico, así que para insights solo hacía falta que `derivedFeedText` devolviera esos dos campos.
+
+**Cambios:**
+
+1. `derivedFeedText`: rama nueva para `insight` con `label: null`, `displayTitle` = título y `displaySecondary` = constante `INSIGHT_PIN_SECONDARY_TEXT` (`'Insights by Greener'`, exportada). La frase gancho antigua (`pin.label`) queda ignorada para insights, como ya ocurría con casos y episodios.
+2. ABM: en `NewPinForm`, `PinList` y `BulkPinUpload` los insights pasan a `derivedLabel` — ya no piden «Frase gancho» (ni en alta, ni en edición, ni en carga masiva, ni en el CSV) y muestran un aviso de que el texto es automático. Antes el campo era obligatorio y no tenía efecto, lo cual era engañoso.
+3. Tests: `tests/unit/feed/feedPinText.test.ts` (nuevo, 4 tests): insight → título + texto fijo y sin gancho; título según idioma del pin con caída al idioma por defecto; caso sin cambios; tool conserva su gancho. 802 tests, build, ESLint, `tsc` y Prettier limpios.
+
+**Alcance:** solo insights. Tools y «other» siguen usando la frase gancho. Al salir de la API del feed, el nuevo pie se ve en la home, en `/insights` y en los «relacionados» de las páginas de detalle. No se ha comprobado en navegador: el alto del pie se calcula con la misma estimación que los casos (título hasta 2 líneas + 1 línea de negrita).
+
+**Efectos colaterales:**
+
+- El texto está **hardcodeado en inglés** (la interfaz global lo está, §2.4); no es editable desde el ABM ni varía por idioma. Si algún día debe cambiar, es una constante en un solo sitio.
+- Las `label` ya guardadas en pines de insight quedan en base de datos sin uso. No molestan, y se podrían limpiar con un `update pin set label = null` sobre pines de insight si se quiere ordenar.
+- **El título pasa a ser obligatorio en la práctica:** si un insight no tuviera traducción con título, el pie saldría vacío. El ABM ya exige la traducción por defecto, así que no debería pasar.
+
+### 2.23 Tools/insights: la descripción (`summary`) deja de truncarse con elipsis (2 oct)
+
+Hallazgo con captura de la página de detalle de una tool («Cubicator»): la descripción acababa en «Sigue generando hast…». **Causa:** `.summary` en `ToolInsightDetail.module.css` llevaba `line-clamp: 3` + `overflow: hidden`, decidido el 22 sep (§2.3) como protección de layout; con el ancho real de la columna de texto, una frase legítima de la tool ocupaba más de 3 líneas y se cortaba. La misma plantilla sirve tools e insights, así que afectaba a los dos.
+
+**Cambio:** quitado el `line-clamp` y el `overflow` de `.summary`; se conserva `max-width: 70ch`. El título (`.title`) sigue limitado a 2 líneas. Actualizados los comentarios del CSS y de `textLimits.ts` (el `summary` es ahora la excepción a «protección real del layout = elipsis»). El aviso blando de ~200 caracteres del ABM se mantiene como guía para el editor.
+
+**Alcance:** solo `summary` de la página de detalle de tool/insight. No tocados: `body` de casos/episodios (8 líneas), títulos, ni el pie de los pines del feed. 802 tests, build, ESLint y Prettier limpios; sin test nuevo (es un cambio de CSS, y los tests con jsdom no calculan estilos). No comprobado en navegador.
+
+**Riesgo conocido, no tocado:** el panel de recomendaciones se siembra con la altura de la IMAGEN, no con la del bloque imagen+texto (límite ya anotado en `useRecommendationMasonry.ts`). Con el recorte, el texto tenía un tope de alto; ahora, si un `summary` es largo y la imagen es baja (por ejemplo 16:9 con la columna de texto estrecha), el texto podría solaparse con la primera fila de recomendaciones. Con descripciones cortas, como las actuales, no debería darse; si apareciera, la solución es medir el bloque con un `ResizeObserver`.
+
+### 2.24 Integración del zip compartido (2 oct)
+
+Se comparó el zip recibido con la versión de trabajo, fichero a fichero, y se fusionó. Resultado:
+
+**Cambios del zip recibido, adoptados tal cual** (no construidos aquí; revisados y compilados, pero **no vistos en navegador**):
+
+- **Tools: la ficha usa como portada el medio del pin desde el que se abrió.** `getFeedSessionBatch` añade `?pin=<unitId>` al destino de los pines de tool; `PinCard` añade `&slide=<n>` si el pin es un carrusel y se pulsa en un slide concreto; `tools/[slug]/page.tsx` resuelve ese pin (filtrado por `content_id`, así que no se puede usar `?pin=` para colar el medio de otra tool) y se lo pasa a `ToolInsightDetail` como `coverMediaOverride`/`coverRatioOverride`. Insights y «other» no cambian.
+- **El CTA del pin** (`PinCard.module.css`, `.cta`) pasa de la esquina inferior izquierda a la **superior derecha** del medio.
+- **Masonry:** el `layout.ts` del zip recibido eliminaba el tramo de 5 columnas (2/3/4/6). Se restauró el original (2/3/4/5/6) y, después, Greener decidió **6 columnas a partir de 1200** (ver §2.28), que deja el escalonado en 2/3/4/6. Hubo cambios de criterio entre 5 y 6 en el pasado; no se ha investigado, a petición de Greener.
+- `composeToolDocument.ts`: `.greener-shell` pasa de `min-height: 100dvh` a `height: 100dvh`. No consta el motivo.
+
+**Cosas de nuestra versión que el zip recibido había pisado y se han recuperado:**
+
+- `getFeedSessionBatch.ts` volvía a la versión anterior a nuestros cambios: sin el campo `round` (otra vez rompía `next build`, §2.20) y con el insight apuntando a `/insights/{slug}` en vez de `/insights/{slug}/app` (§2.21). Fusionado: se conserva su lógica de `?pin=` para tools, `round`, y `feedPinDestination` para insights.
+- `textLimits.ts` y `ToolInsightDetail.module.css` volvían a tener el `line-clamp: 3` del `summary` (§2.23): se mantiene nuestra versión sin truncar.
+- `tests/unit/feed/feedPinText.test.ts` (§2.22) no venía en el zip: se mantiene.
+- `public/greener-package-analytics.js`: solo difería en el salto de línea final (Prettier): se mantiene la versión formateada.
+- `PROGRESO.md` del zip recibido terminaba en §2.22: se mantiene el nuestro.
+
+**Test que fallaba por los cambios del zip y se ha actualizado** (la lógica es la nueva, el test era el viejo): `getFeedSessionBatch.test.ts` (el destino de la tool es `/tools/tool-1-slug?pin=pin-t`). `layout.property.test.ts` se tocó un momento y se ha revertido al original (ver arriba). Prettier reformateó 3 ficheros del zip recibido (`tools/[slug]/page.tsx`, `ToolInsightDetail.tsx`, `PinCard.module.css`).
+
+**Sin cubrir por tests:** la resolución de `?pin=`/`slide=` (`getToolPinCover`, no exportada) y el `slide` de `PinCard` no tienen test. Pendiente.
+
+**Aclaración sobre los historiales:** `historial-fases-0-2.md`, `historial-fases-3-4.md`, `CLAUDE.md` e `INFORME_INCONSISTENCIAS.md` **sí existen en el repositorio** (solo faltaban en los zips compartidos). Se retira el aviso de §2.20 y el punto correspondiente de §4.5.
+
+### 2.25 CTA de la ficha de tool/insight anclado abajo a la derecha (2 oct)
+
+**Causa real del problema.** No era que el contenedor esté en `position: absolute`: un elemento absoluto sigue siendo un contenedor flex normal, y `margin-top: auto` / `margin-left: auto` funcionan igual, sin necesidad de `width: 100%`. El bloqueo era que `.contentBlock` tenía `align-items: flex-start`, así que la columna de texto (`.text`) medía solo lo que ocupaba su contenido y **no había espacio libre en vertical** que repartir; el CTA se quedaba justo debajo del texto y pegado a la izquierda.
+
+**Solución (verificada midiendo en Chromium con el CSS real del proyecto, no solo razonada):**
+
+- `.contentBlock`: `align-items: stretch`, para que `.text` mida como mínimo lo que la portada, que tiene alto fijo en línea.
+- `.cover`: `align-self: flex-start`, para que la portada conserve su comportamiento anterior.
+- `.cta`: `margin-top: auto; margin-left: auto` en lugar de `margin-top: var(--space-sm)`.
+- `.summary`: `margin-bottom: var(--space-sm)`, que mantiene la separación mínima con el CTA cuando no sobra espacio.
+
+**Medido** (portada 280×350, bloque de 700 px): CTA a 0 px del borde inferior de la portada y a 0 px del borde derecho de la columna de texto. Con una portada 16:9 baja o un texto largo el bloque crece y el CTA queda debajo de la portada pero siempre alineado a la derecha. Sin portada: alineado a la derecha. Este cambio no empeora el solape con las recomendaciones (§2.23): en el caso 16:9 el bloque mide 190 px frente a 206 antes.
+
+El CTA queda pegado al borde derecho de la columna; si se quiere aire, un `margin-right` en `.cta`.
+
+### 2.26 Investigación: texto de la ficha limitado a una columna (2 oct) — implementada en §2.31
+
+Objetivo: el texto de tools ocupa siempre **una columna de la retícula** (aunque sobre aire a la derecha) y nunca queda aplastado.
+
+**Diagnóstico.** Hoy el ancho del texto es «lo que sobra»: reservado − ancho de imagen − 16 px (`flex: 1 1 0`). La imagen se limita al **83 %** del ancho reservado (especificación §2, punto 2). Eso no garantiza ni un mínimo ni un máximo. Con la retícula vigente (2/3/4/6, 6 columnas desde 1200 de ancho de contenedor, §2.28), estimado con 64 px de menú y 32 de padding, el texto queda **aplastado (menos de una columna)** con imágenes **4:3 y 16:9**:
+
+| Viewport  | Columnas | Texto / columna (solo los casos < 1) |
+| --------- | -------- | ------------------------------------ |
+| 1280×720  | 4        | 4:3 → 0,80                           |
+| 1366×768  | 6        | 4:3 → 0,71, 16:9 → 0,81              |
+| 1440×800  | 6        | 4:3 → 0,77, 16:9 → 0,81              |
+| 1536×864  | 6        | 4:3 → 0,75, 16:9 → 0,82              |
+| 1920×1080 | 6        | 4:3 → 0,80, 16:9 → 0,82              |
+| 2560×1300 | 6        | ninguno                              |
+
+Las verticales (4:5, 3:4, 2:3, 9:16) dejan más de una columna, hasta ~2, es decir, texto demasiado ancho. Son cálculos, no mediciones en pantalla.
+
+**Propuesta (confirmada por Greener como primera solución a aplicar, aún sin implementar).** Dos piezas, que van juntas:
+
+1. **Máximo:** `.text` con ancho fijo igual a una columna (`flex: 0 0 auto` + `width` en píxeles). La columna la calcula `useRecommendationMasonry` (ya existe como `columnWidth` dentro del hook, pero no se devuelve) y la recibe `ToolInsightDetail` como estilo en línea, igual que ya hace con el ancho y el alto de la portada. Una sola fuente de verdad en JS, sin duplicar la fórmula en CSS.
+2. **Mínimo:** cambiar el tope de la imagen en `contentBlockImageDimensions` (dominio puro, `detailLayout.ts`) de `reservado × 0,83` a `min(reservado × 0,83, reservado − columna − 16)`. Así el texto siempre cabe en una columna completa; si la imagen no cabe, se recorta la **altura renderizada** y se respeta el ratio, igual que hoy. Es una función pura con tests de propiedades fáciles (texto ≥ 1 columna para todo ratio y viewport, ratio conservado).
+
+**Coste visual (cálculo):** solo se encogen las imágenes que hoy dejan menos de una columna: 4:3 entre un 6 % y un 9 % y 16:9 un 4 %; las demás no cambian.
+
+**Hay que validar con diseño:** el 83 % sale de medidas de diseño sobre capturas reales (especificación §2); este cambio lo sustituye por «una columna para el texto» en los casos en que el 83 % deja menos. Habría que actualizar el §2 de la especificación.
+
+**Alternativas descartadas:** (a) limitar con `max-width` en `ch` (como `summary`): no se alinea con la retícula y no arregla el texto aplastado; (b) CSS puro con `container-type` y variables `--cols`/`--gap`: duplica la fórmula de columnas en CSS y JS y no puede tocar el tope de la imagen, que es lo que causa el aplastamiento; (c) dejar encoger la portada con CSS: rompería el ratio.
+
+**Pendiente aparte (móvil):** por debajo de 640 px la imagen ocupa todo el ancho reservado y el texto, al ir a su lado, se queda sin espacio. Es el placeholder de móvil ya documentado (§2 de la especificación); una regla de «una columna» en móvil necesitaría apilar imagen y texto, y por tanto el rediseño móvil.
+
+### 2.27 Insights abiertos desde el detalle de una tool o un caso (2 oct)
+
+Aviso de Greener: al abrir un insight desde la página de detalle de una tool o de un caso se abría `/insights/{slug}` en vez de `/insights/{slug}/app`.
+
+**Qué se ha comprobado:** esos paneles de «recomendaciones» piden su sesión con `POST /api/feed/sessions { scope: 'home', excludeContentId }` y `PinCard` pinta tal cual el `destination` que devuelve la API; no hay ningún otro sitio que construya un enlace a un insight (revisado en todo `src`). Es el mismo camino que la home. En la versión fusionada el destino ya es `/insights/{slug}/app`.
+
+**Causa más probable:** el `getFeedSessionBatch.ts` del zip recibido había vuelto a la versión anterior a §2.21 (insight → `/insights/{slug}`), así que _cualquier_ pin de insight iba al detalle. Se corrigió en la fusión de §2.24. No he podido reproducir otro camino; si con la versión de este zip sigue pasando, habría que saber desde qué enlace exacto se hace clic.
+
+**Test nuevo** (`getFeedSessionBatch.test.ts`): una sesión de recomendaciones (`scope: home` + `excludeContentId`) devuelve para los insights `/insights/{slug}/app`, tanto al generar la ronda como al releerla ya guardada.
+
+### 2.28 Columnas (6 desde 1200), versión de referencia y test intermitente (2 oct)
+
+**Columnas.** Decisión de Greener: en escritorio, **6 columnas a partir de 1200**. `BREAKPOINTS` queda en `<640: 2`, `<900: 3`, `<1200: 4`, resto: 6. El umbral se compara con el **ancho del contenedor del feed** (viewport − 64 px de menú − 32 de padding), no con el del viewport: 6 columnas desde **~1300 px de viewport**, y un portátil de 1280 se queda en 4. Si «1200» se refería al viewport, el umbral correcto sería ~1104 (una sola cifra en `layout.ts`). Con 6 desde 1200 el tramo de 5 columnas no tiene hueco (es el mismo `layout.ts` que traía el zip recibido); si se quiere un escalón de 5 entre medias hay que mover los umbrales de 4. El §10.1 de la arquitectura sigue diciendo 5 columnas entre 1200 y 1599 y queda desactualizado. Test de breakpoints actualizado (1199 → 4, 1200 → 6).
+
+**Esta versión es la de referencia para los insights** (§2.21 y §2.27): los pines de insight apuntan a `/insights/{slug}/app` en home, subhome y recomendaciones, y hay tests que lo fijan.
+
+**Compilación.** Los fallos de build y tests de la versión anterior de Greener venían del desfase de versiones: `useFeed.ts` leía `batch.round` pero su `getFeedSessionBatch.ts` no lo tenía (error de TypeScript en el build y en 4 pruebas de humo), y había tests que esperaban la lógica nueva. Verificado en una **copia limpia del zip** con **Node 24.15.0** (el que fija `engines`): `npm ci`, ESLint y Prettier limpios, `next build` correcto (incluido el paso de tipos), `tsc` limpio y 3 ejecuciones seguidas de 803 tests en verde.
+
+**Test intermitente encontrado y corregido** (`generateRound.property.test.ts`, «seeds distintas producen, casi siempre, secuencias distintas»). Falló una vez en una ejecución completa y en ninguna de 40 ejecuciones sueltas. Medido: con universos pequeños dos seeds distintas **coinciden por casualidad ~1 de cada 10.000 universos** (p. ej. un único caso de 5 pines con fuerza 4), y el test generaba 100 por ejecución, así que fallaba en torno a 1 de cada 50 ejecuciones sin que hubiera ningún bug. Ahora compara cada secuencia con 4 seeds alternativas y exige que **al menos una** difiera. Comprobado: 0 fallos en 20.000 universos y, con una mutación (seed ignorada), el test sigue fallando como debe.
+
+### 2.29 Reconciliación de `supabaseFeedSource.ts`: insights + tools con dos líneas (2 oct)
+
+Comparado el `supabaseFeedSource.ts` actual de Greener con el nuestro. Diferencias reales (el resto del fichero —`getFeedDataset`, `getPinDirectoryByIds`, `getFeedConfig`— coincide): su versión **añade la rama de tools** y **no tiene la rama de insights** (§2.22) ni la constante `INSIGHT_PIN_SECONDARY_TEXT`; es decir, la rama de insights se había pisado sin querer. Ojo: el `supabaseFeedSource.ts` del zip anterior sí la tenía, así que este pisotón es posterior a ese zip y **puede haber afectado a más ficheros** de su copia (ver abajo).
+
+**Resultado fusionado en `derivedFeedText`:**
+
+| Tipo                  | Línea 1                                       | Línea 2 (negrita)                                      |
+| --------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| Case                  | título del caso                               | cliente                                                |
+| Episode               | título del episodio                           | `episode_kind`                                         |
+| **Insight** (nuestro) | título del insight                            | «Insights by Greener» (fijo)                           |
+| **Tool** (suyo)       | descripción del pin (`pin.label`, recortada)  | nombre de la tool (traducción según el idioma del pin) |
+| Other                 | rótulo del admin (`label`), sin segunda línea | —                                                      |
+
+Comentarios de `PinDirectoryEntry` fusionados para describir los cuatro casos.
+
+**Tests** (`feedPinText.test.ts`, de 4 a 7): insight (título + texto fijo, idioma del pin), tool (descripción arriba + nombre abajo; idioma del pin y recorte de espacios; sin descripción), case y other sin cambios. El test que fijaba el comportamiento anterior de tools («sigue usando el gancho») se ha sustituido. Comprobado con una mutación que quitar la rama de insights rompe 2 tests, así que otro pisotón se detectaría. 806 tests, build, ESLint y Prettier limpios.
+
+**Caso límite de tools (no tocado):** si el pin de una tool no tiene descripción, `displayTitle` es nulo y `PinCard` (`displayTitle || label`) no pinta nada, ni siquiera el nombre de la tool. El ABM exige la frase en tools, así que solo pasaría con datos antiguos o vacíos. Además, el campo del ABM sigue llamándose «Frase gancho» aunque ahora sea la descripción superior.
+
+**Ficheros donde viven nuestros cambios del 2 oct** (para comprobar que no se hayan pisado en otras copias): `getFeedSessionBatch.ts` (`round`, `feedPinDestination`, `?pin=`), `contentPath.ts`, `supabaseFeedSource.ts`, `NewPinForm.tsx`, `PinList.tsx`, `BulkPinUpload.tsx`, `ToolInsightDetail.module.css` (summary sin `line-clamp`, CTA abajo a la derecha), `textLimits.ts`, `layout.ts` (6 columnas desde 1200) y los tests `feedPinText`, `getFeedSessionBatch`, `contentPath`, `layout.property` y `generateRound.property`.
+
+### 2.30 Tipografías: Helvetica Neue (general) y Kinder (títulos de caso y de contacto) (2 oct)
+
+**Pesos necesarios (comprobado en el código):** el CSS público usa `font-weight` **400, 600 y 700**; no hay cursivas. Basta con **Regular (400) y Bold (700)**: el 600 (CTA, botones, etiquetas de formulario…) no tiene cara propia y el navegador lo resuelve al Bold. Medium, Light, Italic, etc. del zip no se usan y no se incluyen. El panel de admin usa pesos intermedios (650, 750, 800, 850, 900) que ahora también se resuelven todos a Bold, es decir, **se aplanan visualmente** porque el admin hereda la fuente del `body` (no se ha aislado; si no se quiere, es una línea en el layout del admin).
+
+**Cómo se cargan:** `next/font/local` en `src/lib/fonts.ts` (autoalojadas, URL con hash e `immutable`, tipografía de respaldo con métricas ajustadas contra el CLS, y `font-src 'self'` ya estaba en la CSP). Ficheros en `src/fonts/` (con `README.md` y los comandos para regenerarlos). Los OTF originales no están en el repo.
+
+- **Tamaño:** los OTF de Helvetica Neue pesaban **615 KB (Regular) y 595 KB (Bold)** por traer 2340 glifos; se convirtieron a WOFF2 con el juego latino (ASCII, Latin-1, Latin Extended-A, puntuación tipográfica, €, ™, flechas): **31 KB y 24 KB**. Kinder (39 KB) se convirtió a WOFF2 sin recortar: 26 KB. Verificado que no falta ningún carácter del español, catalán o inglés. Kinder no trae `ŀ` (U+0140) ni `ª º`; el catalán normal usa `·`, que sí está.
+- **Kinder con `preload: false`:** la home no descarga una fuente que solo usan los casos y contacto.
+
+**CSS (convención §24.1):** variables en `:root` de `globals.css`: `--font-body` (Helvetica Neue + respaldos) y `--font-display` (Kinder + respaldos); `body` usa `--font-body`. **Clase global `.text-display`** (Kinder, `font-weight: 400`, `font-synthesis: none`): Kinder solo existe en Regular y un `h1` es negrita por defecto, así que sin esa clase el navegador fabricaría una negrita falsa. Los módulos CSS no escriben nombres de fuente (hay un test que lo vigila).
+
+**Aplicado en:** el `h1` de `CaseDetail` (título de la ficha de caso) y el `h1` de `/contact`. **No** en: título de episodios (`EpisodeDetail`), ni el texto de los pines del feed (incluido el título de un pin de caso), ni nada más. Si «título de los casos» incluía el pin del feed, hay que añadir `text-display` a `PinCard`.
+
+**Verificado** en Chromium real contra el servidor de producción (`/contact`): las 3 fuentes se piden (200, `font/woff2`) y quedan `loaded`, sin avisos de CSP, `h1` en Kinder 400 sin síntesis, resto en Helvetica Neue. El título de la ficha de caso no se pudo ver renderizado (necesita datos de Supabase); sí está cubierto por test (lleva `text-display`) y comparte la misma clase.
+
+**Pendiente / a tener en cuenta:**
+
+- **Licencias:** los metadatos de los OTF no traen texto de licencia (Helvetica Neue: `fsType` 0; Kinder: `fsType` 8). Conviene confirmar que cubren uso web autoalojado, y que convertirlas a WOFF2 y recortarlas está permitido.
+- **Documentos HTML de tools/insights (`composeToolDocument.ts`, `/app`):** el menú lateral que replica el Shell **no** usa estas fuentes (no define `font-family`), así que sus etiquetas flotantes no coinciden tipográficamente con las del Shell. Habría que servir las fuentes con URL estable (`public/fonts`) porque las de `next/font` llevan hash. No tocado.
+- **Fuera de alcance de hoy:** rediseño de la página de contacto (se hablará luego) y texto de la ficha de tool en una columna (pospuesto).
+
+**Tests nuevos (2 + 5), y un doble de `next/font/local` en `tests/setup.ts`** (esa función solo funciona con la transformación de Next, y `siteMetadata.test.ts` importa el layout raíz): el título de caso y el de contacto llevan `text-display`; `typographyCss.test.ts` fija en `globals.css` que `.text-display` fuerza peso 400 y sin síntesis (comprobado con mutación), que `body` y las variables parten de Helvetica Neue y Kinder, que los 3 WOFF2 existen y que ningún módulo CSS escribe nombres de fuente.
+
+### 2.31 Texto de la ficha de tool/insight limitado a una columna — implementado (2 oct)
+
+Implementada la primera solución de §2.26 (ancho fijo precalculado), en dos piezas que van juntas:
+
+1. **Máximo — una columna de la retícula.** `.text` (`ToolInsightDetail.module.css`) tiene `max-width: var(--text-column-width, none)`. La variable la pone `ToolInsightDetail` con el ancho de una columna que calcula el hook. Se usa `max-width` y no un ancho fijo: `.text` sigue ocupando «lo que sobra» (`flex: 1 1 0`) con ese techo, así que nunca desborda el bloque.
+2. **Mínimo — la imagen cede sitio.** `contentBlockImageDimensions` admite un cuarto parámetro `textReserve`; con él, el tope de la imagen es el **menor** entre el 83 % y «ancho útil − columna − 16 px». Se respeta el ratio y se recorta la altura renderizada, como siempre.
+
+**Refactor necesario:** la fórmula del bloque (ancho reservado, imagen, columna) vivía dentro de un `useMemo` del hook; ahora es la función pura `computeContentBlockGeometry` en `detailLayout.ts` (con `CONTENT_BLOCK_TEXT_GAP_PX = 16`), probada sin React. El hook solo la llama y devuelve `contentBlockTextWidth`. Opt-in por `options.textColumn`: **solo `ToolInsightDetail` lo activa.**
+
+**Alcance:** la ficha de tool, la de insight (aunque hoy el flujo salte a `/app`, §2.21) y la de contenido libre (`/variety`), porque comparten componente. **Casos y episodios no cambian** (hay un test que lo fija y otro de equivalencia con la fórmula antigua). **Móvil (<3 columnas) no se toca.**
+
+**Verificado en Chromium real** (CSS real de la ficha + geometría real del proyecto, 9 tamaños de pantalla × 7 ratios × texto corto y largo = 252 casos): con ≥3 columnas el texto mide **exactamente una columna en 56 de 56 casos**, con texto corto y largo, y **cero desbordes**. Con las capturas a la vista, el CTA queda abajo a la derecha de la columna. No se ha visto con una ficha real (necesita datos de Supabase).
+
+**Coste visual (la imagen se encoge solo donde el texto quedaba aplastado):**
+
+| Viewport         | Columnas | Cambio de la imagen                                                             |
+| ---------------- | -------- | ------------------------------------------------------------------------------- |
+| 1280×720         | 4        | 4:3 −9 %                                                                        |
+| 1366–1920        | 6        | 4:3 −6/−8 %, 16:9 −4 %; el resto sin cambio                                     |
+| 2560×1300        | 6        | ninguno                                                                         |
+| 1000×800         | 4        | 16:9 −11 %, 1:1 −17 %, 4:3 −21 %                                                |
+| 800×900 (tablet) | 3        | 16:9, 1:1 y 4:3 −21 %; verticales −34 % a −42 % (la imagen queda de ~1 columna) |
+
+En **tablet** (640–899 de contenedor) el bloque de contenido solo reserva 2 columnas con ratios verticales, así que «texto = 1 columna» deja a la imagen otra columna: es el precio de la regla. Si no gusta, la salida es no aplicarla por debajo de 4 columnas.
+
+**Hallazgo (ya existía, no lo introduce este cambio):** en **móvil** (<640 de contenedor, ~736 px de viewport) la imagen ocupa el 100 % del bloque y el texto queda con **0 px de ancho**; midiendo con el CSS y la geometría reales, el texto de tool/insight no se ve en un móvil (7 de 7 casos). Es el «placeholder de móvil» ya documentado, pero con ese efecto. Pendiente del rediseño móvil (lo razonable es apilar imagen y texto).
+
+**Tests (+12):** propiedades con fast-check sobre todos los ratios/viewports/anchos (imagen + hueco + texto ≤ ancho útil; ratio conservado; la imagen nunca crece frente a la regla antigua; sin `textReserve` el resultado es el de siempre), equivalencia con la fórmula original sin `textColumn`, el texto mide exactamente una columna con `textColumn`, móvil intacto, y guardas de CSS (el `gap` real de `.contentBlock` coincide con la constante; `.text` usa la variable). Comprobado con mutaciones: quitar el tope de la imagen o activar la columna también en casos/episodios rompe tests. Smoke de la ficha: recibe `--text-column-width` (190 px con un contenedor de 1200); smoke de caso: no la recibe.
+
+**Especificación actualizada:** `especificacion-final-formato-detalle.md` §2, punto 2 (excepción para tipo A).
+
+### 2.32 Pin de episodio: «programa + tipo» en la segunda línea (2 oct)
+
+Petición de Greener: en el pin de un episodio, la línea en negrita bajo el título pasa de «tipo de episodio» a **«<programa> <tipo>»**, p. ej. «Carlos Lledó nos cuenta su visión del mercado» / **«Brand the Future Podcast»**. El programa es el campo **«Programa»** del ABM (`episode.program`); el tipo sigue siendo «Tipo de episodio» (`episode.episode_kind`), al final.
+
+**Cambios:**
+
+- `modules/content/domain/episodeLabels.ts` (nuevo): única fuente de los nombres legibles — `EPISODE_PROGRAM_LABEL` («Brand the Future», «Brand into Europe», «Brand to Table»), `EPISODE_KIND_LABEL` («Podcast») y `episodePinSecondaryText(program, kind)`. Si falta uno de los dos, sale solo el otro; si faltan ambos, no hay segunda línea; un valor desconocido se muestra tal cual en vez de romper.
+- `supabaseFeedSource.ts`: las **dos** consultas del feed piden ahora `episode ( program, episode_kind )` — la de ronda nueva (`getFeedDataset`) y la de ronda ya guardada (`getPinDirectoryByIds`); `derivedFeedText` usa `episodePinSecondaryText`.
+- Dedup: el desplegable «Programa» del ABM (`EpisodeDetailForm`) y la ficha pública (`EpisodeDetail`, que tenía su propio `episodeKindLabel`) usan ahora esas mismas etiquetas; antes los nombres estaban duplicados en privado.
+
+**Efecto colateral:** el pin mostraba el valor crudo del tipo (**«podcast»**, en minúscula); ahora sale **«Podcast»**, como en la ficha del episodio y en el ejemplo de Greener.
+
+**Tests (+9):** etiquetas (hay una para cada programa y tipo del esquema; nombres iguales a los del ABM), pin de episodio (cada programa), y dos pruebas con un cliente de Supabase falso que captura el `select` de cada consulta — comprobado con mutaciones: olvidar `program` en cualquiera de las dos las rompe (importante: si faltara en la de rondas guardadas, esas rondas mostrarían solo «Podcast»). 834 tests.
+
+**Límite conocido (medido con Helvetica Neue Bold real y el CSS real del pin):** la segunda línea es de **una sola línea con puntos suspensivos** (`white-space: nowrap`). La más larga, «Brand into Europe Podcast», ocupa ~168 px: cabe en escritorio y tablet, **salvo** una rendija de viewport de ~1296–1307 px (6 columnas recién activadas) y los **móviles** (columnas de ~141 px), donde las tres combinaciones se cortan («Brand the Future Po…»). No se ha tocado el CSS (la misma clase sirve para el cliente de los casos). Si molesta, la salida es dejar esa línea en 2 líneas para episodios (CSS + estimación de altura en `useMasonryPositions` y `useRecommendationMasonry`).
+
+### 2.33 `npm audit fix`: Next.js 16.3.5 → 16.3.8 (2 oct)
+
+Greener ejecutó `npm audit fix` tras detectar una vulnerabilidad crítica y compartió el `package-lock.json` resultante. **Integrado y verificado.**
+
+**Qué cambia exactamente:** solo **`next` 16.3.5 → 16.3.8** y sus 9 binarios nativos (`@next/env` y `@next/swc-*`). No se añade ni se elimina ningún paquete, `package.json` no cambia (el rango `^16.3.0` ya lo cubre) y la sección raíz del lock es idéntica. Además el lock nuevo trae el campo `libc` (glibc/musl) en los binarios de Linux: npm instala solo el que corresponde (507 paquetes en vez de 508 en un Linux glibc). Es una mejora, no un riesgo.
+
+**Verificado en una copia limpia con Node 24.15.0 y Next 16.3.8:**
+
+- `npm audit`: **0 vulnerabilidades** (todas las dependencias).
+- `npm ci`, ESLint, Prettier, `tsc` y `next build` limpios (el build sigue avisando de los dos experimentos, `proxyClientMaxBodySize: 25mb` y `serverActions`); 834 tests en verde, tres ejecuciones seguidas.
+- Servidor **`standalone`** (como se despliega, con Next 16.3.8 dentro de `.next/standalone`): `/contact` 200, `/privacy` 200, `/robots.txt` 200, `/api/feed/demo` y `/preview/masonry` 404 en producción; cabeceras de seguridad (CSP con **nonce distinto por petición**, HSTS, nosniff, Referrer-Policy) presentes.
+- **Comparado con la versión anterior de Next bajo las mismas condiciones** (con un Supabase falso mínimo): los 404 de `/work`, `/tools` e `/insights` y los tamaños de respuesta son **idénticos byte a byte**. El comportamiento del 404 de las páginas públicas documentado en §4.8 (cuerpo vacío en el HTML del servidor, la página de `not-found` pintada por el cliente) **no ha cambiado** con 16.3.8.
+- En Chromium: `/contact` con las 3 fuentes cargadas (200), sin errores ni avisos de CSP, y `/work/no-existe` pinta «Page not found» dentro del Shell.
+
+**No verificado aquí:** el despliegue real en Dinahosting (proxy, PM2, tamaño de subida de ZIP y las tres comprobaciones de `despliegue.md` §6), que siguen pendientes. Al subir la carpeta `standalone` nueva, esta ya lleva Next 16.3.8.
+
+**Notas:** `despliegue.md` menciona «Next 16.3.5» como versión con la que se verificó la guía (sigue siendo cierto en lo que dice, solo es una versión anterior). Conviene ejecutar `npm audit` de vez en cuando; hoy sale limpio.
+
+### 2.34 Clase global `.text-body` para texto corrido (2 oct)
+
+Petición de Greener (párrafo de introducción del **rediseño de `/contact`**, que no está en esta copia): que tenga los estilos de un texto normal, como el de las tarjetas de la home.
+
+**Causa:** un `<p>` sin clase hereda de `body` solo la familia y el color; el tamaño es el del navegador (16 px), el interlineado `normal` y lleva márgenes de 1em, así que se ve más grande y apretado que el texto de las tarjetas (`PinCard.module.css`: `font-size: 0.8rem`, `line-height: 1.3`, peso 400).
+
+**Solución:** clase global **`.text-body`** en `globals.css` (junto a `.text-display`, sección «TIPOGRAFÍA»): Helvetica Neue Regular (`var(--font-body)`), `0.8rem`, `line-height: 1.3`, color de texto y `margin: 0`. Sin ancho máximo: el espaciado y la medida son del layout de cada página (en un contenedor ancho, a 0.8rem la línea sale larga; conviene limitarla con `max-width` en el módulo de la página). Uso: `<p className="text-body">…</p>`; se mantiene el `{`…`}` con plantilla del párrafo, que evita el error de ESLint `react/no-unescaped-entities` con los apóstrofos.
+
+**Verificado** en Chromium (CSS real + fuentes reales): con la clase, familia, tamaño, interlineado, peso y color **coinciden con el texto de una tarjeta de la home**. **Test** (`typographyCss.test.ts`): `.text-body` toma de `PinCard.module.css` el mismo tamaño, interlineado y peso, y no lleva `max-width`; comprobado con mutación (cambiar el tamaño rompe el test). 835 tests.
+
+**Pendiente:** el párrafo en sí vive en el rediseño de contacto de Greener; basta con añadirle la clase. Si el texto de tarjetas cambia de tamaño en el futuro, el test avisa de que hay que actualizar `.text-body`.
+
+### 2.35 Comprobación del formulario de contacto antes de publicar (2 oct)
+
+Greener pidió revisar el formulario antes de probarlo en el sitio activo. Se montó un **banco de pruebas** con el servidor de producción (`standalone`, Next 16.3.8, Node 24) + un **SMTP falso** (`aiosmtpd`, guarda cada correo recibido) + un **Supabase falso** que emula `contact_submission` (insertar y contar con `count=exact`) y se atacó con Chromium: 12 escenarios y 37 comprobaciones. El banco no está en el repositorio (vive fuera, en `/tmp`); se puede añadir si se quiere repetir.
+
+**Resultado: 25 correctas, 4 fallos reales (3 problemas distintos) y 8 observaciones.**
+
+**Lo que funciona (verificado):**
+
+- **Camino feliz:** el visitante ve el mensaje de éxito; llega **exactamente un correo** con `From`/`To` correctos y `Reply-To` = email del visitante; cuerpo con todos los datos, con acentos, ñ, emoji y «€» bien codificados; el HTML del correo **escapa** `<script>` y `<b>`, y conserva los saltos de línea.
+- **Registro:** una fila `sent` con `ip_hash` SHA-256; no guarda ni la IP en crudo ni nombre, email, teléfono o mensaje.
+- **Validación:** el navegador bloquea el formulario vacío (campos `required`); si se salta, el servidor devuelve un error por campo (incluido el consentimiento) y no sale ningún correo; nombre, teléfono y mensaje fuera de límite se rechazan.
+- **Honeypot:** relleno → el bot ve «éxito», no sale correo y se registra `honeypot`.
+- **Límite por IP:** los 5 primeros envíos salen, el 6º se bloquea sin correo y se registra `rate_limited`.
+- **SMTP caído:** el visitante ve un error claro, se registra `failed` con el motivo y, al volver el SMTP, reenviar funciona. Con **Supabase caído no se envía correo** (falla cerrado, a propósito).
+- **Doble clic** en «Send»: un solo correo. **Inyección de cabeceras:** un nombre con saltos de línea (`Bcc:`, `X-Injected:`) no añade cabeceras ni destinatarios; nodemailer los neutraliza.
+- **Navegador:** ni un solo error o aviso en la consola (CSP incluida) durante todas las pruebas.
+
+**Lo que falla o conviene arreglar (no se ha tocado código):**
+
+1. **El formulario se vacía tras cualquier error.** React 19 reinicia los campos de un `<form action>` al terminar la acción, aunque haya fallado: si el SMTP falla, el email es inválido o el mensaje pasa de 5000 caracteres, **el visitante pierde todo lo escrito**. Es el fallo con más impacto de cara al usuario. Arreglo: devolver los valores enviados en el estado de la acción y pintarlos como `defaultValue`.
+2. **El límite por IP se puede esquivar falsificando `X-Forwarded-For`.** `clientIp.ts` toma el **primer** valor de la cabecera, que controla el cliente si el proxy añade su valor al final (el comportamiento por defecto de nginx). En la prueba, 8 de 8 envíos desde la misma IP real pasaron con límite 5. Si el proxy de Dinahosting **sobrescribe** la cabecera, no hay problema; **hay que comprobarlo en vivo**. Arreglo: leer el valor que añadió el proxy de confianza (el último, o contar saltos).
+3. **Sin `X-Forwarded-For`, el límite es de todo el sitio** (ya anotado en `despliegue.md` §6, punto 3, ahora confirmado): tras 5 envíos de una persona, otra distinta queda bloqueada.
+
+**Observaciones (menores):**
+
+- **Con Supabase caído el visitante lee «Has enviado demasiados mensajes»**, que es engañoso (es una avería, no un abuso); el comportamiento de fallar cerrado es correcto, el texto no.
+- **Idiomas mezclados:** etiquetas y botón en inglés (§2.4), pero éxito y errores en español; y el error de «nombre de más de 200 caracteres» sale en **inglés** por el mensaje por defecto de zod («Too big: expected string…»).
+- Los campos **no llevan `autocomplete`** (`name`, `tel`, `email`) ni `maxlength` (el visitante solo se entera del límite al enviar, y entonces pierde el texto: ver 1). Por lectura del código (no probado con lector de pantalla), éxito y errores no usan `role="alert"` ni `aria-live`.
+- El campo trampa está fuera de pantalla (`x: -9999`), con `tabIndex=-1` y `aria-hidden`: correcto.
+
+**No se puede comprobar desde aquí (hay que hacerlo en vivo, ver §4.0):** que el correo llegue de verdad (bandeja o spam, SPF/DKIM/DMARC del dominio de `no-reply@`, y que el proveedor SMTP acepte ese remitente), la IP que entrega el proxy de Dinahosting, que la Server Action funcione tras el proxy, las variables y la migración de `contact_submission` en producción, y el enlace de privacidad (hoy un placeholder).
+
+---
+
+## Historial de correcciones de `PROGRESO.md` (hasta el 2 de octubre)
+
+Registro fechado de las correcciones y cambios que se fueron anotando en `PROGRESO.md` mientras se escribían las secciones anteriores. Se archivó aquí el 5 de octubre; a partir de esa fecha, los cambios nuevos se anotan en el «Registro de cambios» de `PROGRESO.md`.
+
+Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.md`) y, desde el 23 de septiembre, también las Fases 3-4 (`historial-fases-3-4.md` — incluye su propio historial de correcciones, con todas las entradas del 9 al 22 de septiembre). Lo que sigue aquí es lo de esta sesión; en cuanto quede "viejo", se archiva igual.
+
+- **22 sep 2026 (inicio de esta sesión)**: revisión exhaustiva del estado real del repositorio contra un zip nuevo — dotfiles restaurados (mismo problema de Finder de siempre), `format:check` corregido de 262 a 0 ficheros tras identificar que era deriva de versión de Prettier, no violación de reglas (§2.1). Redirect tras crear contenido: el ABM ya no deja la creación como un paso a medias (§2.2).
+- **22 sep 2026 (continuación)**: decididos e implementados los límites de caracteres de Tipo A y Tipo B — contador blando en el ABM + `line-clamp`/elipsis en frontend, `max-width` en `ch` para no depender del ancho real disponible ni de la tipografía final (§2.3). Integrado trabajo externo que cierra la verificación server-side de vídeo en Cloudinary, cerrando la asimetría con imagen anotada horas antes (§2.4).
+- **22-23 sep 2026**: auditoría de cookies iniciada — contrastado el estado real de YouTube/Vimeo/Spotify (no las guías de hace un año), hallazgo real corregido (Vimeo sin `dnt=1`), y click-to-load construido para Vimeo/Spotify vía integración de trabajo externo (§2.5). Decisión de fondo (nivel de rigor, banner/CMP) explícitamente aplazada por el usuario — ver §5.
+- **23 sep 2026**: preview firmado del ABM construido de cero (§2.6) — cierra la decisión pendiente desde el 7 de septiembre. Token autocontenido sin estado (mismo mecanismo que el cursor del feed), caduca a los 7 días, `resolvePreviewContext` como único punto de entrada para las cuatro plantillas públicas. 15 tests nuevos, dos fallos propios corregidos antes de cerrar el bloque (estrechamiento de tipos, mocks sin limpiar entre tests).
+- **23 sep 2026 (cierre de la sesión)**: resuelto un conflicto de git real entre el trabajo de esta sesión y el de un compañero en paralelo (`episodeDetail.smoke.test.tsx`), e integrada su analítica Plausible real — evento "Pin Click" disparado desde `PinCard`, cableado en los cuatro sitios donde se pinta un pin. Hallazgo real corregido al integrar: `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` no estaba en el schema de `env.ts` pese a usarse en `layout.tsx`. Descartado un `Archivo.zip` suelto (backup accidental, no algo a integrar). **611 tests en verde (65 ficheros), `eslint` a 0, build y `tsc` limpios, `format:check` limpio.** Este mismo cierre incluyó archivar las antiguas §2/§3 (rediseño de detalle + construcción del sitio público, ambas confirmadas y completas) en `historial-fases-3-4.md`, reorganizando este documento para que vuelva a quedarse centrado en el estado actual — mismo criterio que el archivado del 9 de septiembre.
+- **28 sep 2026**: corregido un fallo real de caché — los assets de tools/insights se servían `immutable` durante un año bajo una URL sin versión, así que una versión nueva o un rollback no habrían llegado a los visitantes; ahora revalidan con ETag a partir del checksum de la versión (§2.8). Contrato ZIP ampliado y dos afirmaciones suyas corregidas (estructura bajo `assets/`, rutas de `Worker`/`fetch` relativas a la base); la tool de ejemplo tenía ese mismo fallo del Worker y se ha corregido. 40 tests nuevos, 651 en total. Añadida §4.8 con los pendientes detectados en la auditoría del día.
+- **28 sep 2026 (después)**: cerrado el límite del ZIP en **10 MB** (decimales) por el tope del antivirus — guarda nueva en el escaneo y un test que ata el límite, el del antivirus y el `bodySizeLimit` de Next (§2.8). Restaurados los dotfiles del proyecto (`.gitignore`, `.nvmrc`, `.prettierrc`, `.prettierignore`, `.env.local.example`); con el `.prettierrc` real, `format:check` completo pasa limpio. 658 tests.
+- **28 sep 2026 (tercera parte)**: activado `output: 'standalone'` y verificada su estructura real (§2.9, `despliegue.md`); `metadataBase`, `sitemap.xml`, `robots.txt` y favicon; 404 y error básicos; `SITE_URL` normalizada. Decidido que las redirecciones 301 sean reglas estáticas y sin módulo en el ABM, conservando la tabla sin uso (el «cómo» se corrigió después: no hay Nginx editable, ver la cuarta parte). Aislado con una aplicación Next mínima que el `<body>` vacío en el 404 de páginas públicas es comportamiento de Next 16.3.5, no del proyecto. 692 tests.
+- **28 sep 2026 (cuarta parte)**: corregido un error de método mío: se tomó la ayuda de Dinahosting sobre Passenger («Otras aplicaciones») como el modelo de despliegue, y no sirve para Next; el real es PM2 manual + cron con un Nginx no editable. `despliegue.md` reescrito con lo verificado con PM2 real, incluido un fallo propio del vigilante (el aviso de arranque del daemon se leía como PID). Defecto propio corregido: `proxyClientMaxBodySize` (10 MiB por defecto) truncaba en silencio los ZIP de 10-20 MB. Hreflang verificado en el HTML real. Confirmado por el usuario en navegador que el 404 de páginas públicas se ve bien. 694 tests.
+- **28 sep 2026 (quinta parte)**: decidido no redirigir las apps antiguas `tools.` e `insight.` (pruebas sin visitas y sin contenido equivalente en la web nueva); eliminado el redirector que se había construido para ello, por ser código muerto. Anotado que `permanent: true` de Next da un 308, no un 301. 694 tests.
+- **28 sep 2026 (sexta parte)**: cerrado definitivamente el tema de las redirecciones 301: no se harán tampoco para el sitio corporativo actual (demasiadas URLs y desaparece por completo el viernes 2 de octubre, sustituido en el mismo dominio). Se asume que sus URLs darán 404 tras el cambio. Sin cambios de código.
+- **28 sep 2026 (séptima parte)**: decididas las pendientes de Greener: filtros por etiquetas fuera de la V1, despublicar inmediato, diseño móvil y masonry en pausa, traducción por IA tras publicar y **cookies: opción A sin banner, con clic también en YouTube y aviso en inglés** (§2.11). Encontrado y corregido un fallo real: la CSP bloqueaba los eventos de Plausible en producción. `/privacy` pasa a estar enlazada. Añadido `cookies-inventario.md` para el asesor legal. 704 tests.
+- **29 sep 2026**: integrados los cambios del 28 sep hechos por otra persona del equipo sobre una copia anterior a mi sesión de cookies. Corregido un bug real presente desde el primer zip (las rutas de assets de tools/insights daban 404 contra Storage real por faltarles el prefijo `assets/`), verificado contra un servidor y un Storage simulados de verdad, no solo con mocks. Tipos MIME ampliados (WOFF2/WOFF/JPEG/WebP). Cuatro eventos de analítica nuevos cableados (`Case Open`, `Tool Open`, `Insight Open`, `Episode Play`), fusionando `Episode Play` a mano con el rediseño de cookies. Descartado un retroceso del fixture de ejemplo. 729 tests.
+- **29 sep 2026 (después de la integración)**: corregido el falso positivo del namespace SVG en el escáner de dominios (con límite de palabra para no colar URLs reales parecidas) y añadida la validación que rechaza al subir cualquier fichero fuera de `assets/` (antes pasaba y daba 404 en la página publicada). Deduplicados los avisos repetidos del mismo dominio sin declarar. Las cabeceras de licencia de librerías siguen sin poder distinguirse por texto, documentado como limitación conocida. 736 tests.
+- **29 sep 2026 (después de la integración, continuación)**: bloqueadas en producción `/api/feed/demo` y `/preview/masonry` (404/notFound según `NODE_ENV`). Sustituido el menú lateral hecho a mano de `/tools|insights/[slug]/app` por una réplica fiel del Shell real (mismos iconos, mismo orden, inglés). Añadidas HSTS y Referrer-Policy a esas dos rutas, que se saltaban enteras el proxy central sin motivo para perder esas dos cabeceras en concreto. 748 tests.
+- **29 sep 2026 (continuación, Tool Used)**: cableado el evento "Tool Used" servidor a servidor, disparado desde `tools/[slug]/app/route.ts` al servir la tool (no desde la tool misma: su CSP lo impide). Reenvía User-Agent e IP reales del visitante — sin ellos, la API de Plausible responde 202 pero descarta el evento en silencio. Sin resolver: falta "Insight Used" y el toolId no es cruzable con "Tool Open" (slug vs UUID). 757 tests.
+- **29 sep 2026 (continuación, límite de peticiones)**: cerrado el límite de POST /api/feed/sessions (12/min) y GET /api/feed/{sessionId} (50/min) por visitante (cookie anónima, en memoria de proceso), con degradación silenciosa en los dos casos (repite la última sesión / hasMore:false). Corregido un fallo real propio en el limitador genérico (la ventana se prolongaba en vez de ser fija) detectado solo tras escribir un segundo test más preciso que el primero. 787 tests.
+- **29 sep 2026 (integración de una segunda rama de trabajo)**: integrado un zip con cambios paralelos — rediseño completo del ABM (dashboard, listado y editor de contenidos, ~1.700 líneas de CSS), evento "Feed Depth" cableado en useFeed.ts (campo `round` nuevo en FeedBatchResult), y un SEGUNDO mecanismo para "Tool Used" (`greener-package-analytics.js` + `POST /api/analytics/package`) que resuelve el UUID real de content, cruzable con "Tool Open" — a diferencia del mecanismo servidor de ayer. Los dos conviven bajo el mismo nombre de evento; decisión pendiente del usuario sobre cuál mantener. Descartada de nuevo la regresión del fixture pixel-palette (ruta del Worker). 794 tests.
+- **29 sep 2026 (decisión «Tool Used»)**: elegido un único mecanismo para «Tool Used» — el que dispara la propia tool y cruza con «Tool Open» por UUID (`greener-package-analytics.js` + `POST /api/analytics/package`). Retirado el mecanismo servidor del día anterior (`serverAnalytics.ts`, sus tests, y la llamada en `tools/[slug]/app/route.ts`). 785 tests.
+- **30 sep 2026 (scroll de la home roto)**: encontrado y corregido un bug real — el límite de peticiones del feed (29 sep, §2.16) reutilizaba la misma forma de respuesta que "esta sección no tiene contenido", y appendBatch cortaba hasMore para siempre en ambos casos sin distinguirlos. Solo se notaba en home (mezcla tipos, necesita más rondas para llenar la pantalla) y no en tools/insights (un único tipo denso). Corregido con una marca explícita rateLimited que appendBatch ahora respeta sin tocar el estado. 794 tests.
+- **2 oct 2026 (auditoría de lanzamiento)**: revisado el zip entero contra el código real. Encontrado y corregido un fallo que impedía desplegar: `next build` no compilaba porque `FeedBatchResult` no tenía el campo `round` que lee el evento «Feed Depth» (integración de la segunda rama del 29 sep, §2.17); añadido el campo, el valor en `getFeedSessionBatch` y un test. Reformateados 9 ficheros que incumplían `format:check`. Informe de carpetas vacías, código, dependencias y documentos sobrantes o ausentes en §2.20 (propuesto, sin borrar). Checklist de §4 reescrito por urgencia. 795 tests.
+- **2 oct 2026 (flujo de insights)**: el pin de un insight en el feed abre directamente `/insights/[slug]/app` en vez de su detalle (`feedPinDestination`, §2.21); el detalle se mantiene intacto. Tools sin cambios. Anotado que «Insight Open» ya no cuenta esos clics. 798 tests.
+- **2 oct 2026 (pie del pin de insight)**: el pin de un insight muestra ahora título + «Insights by Greener» en negrita (texto fijo), igual que un caso muestra título + cliente (`derivedFeedText`, §2.22). El ABM deja de pedir frase gancho en insights. 802 tests.
+- **2 oct 2026 (descripción de tools sin elipsis)**: quitado el `line-clamp: 3` de `.summary` en el detalle de tool/insight, que cortaba la descripción con «…» (§2.23). Anotado el riesgo de solape con las recomendaciones si un `summary` fuese largo. 802 tests.
+- **2 oct 2026 (integración, CTA e investigación)**: integrado el zip compartido (tools con portada desde el pin, CTA del pin arriba a la derecha, sin tramo de 5 columnas, `height: 100dvh` en el documento de tools) recuperando lo que ese zip había pisado de nuestra versión (`round`, destino `/app` de insights, summary sin truncar) y actualizando 2 tests (§2.24). CTA de la ficha anclado abajo a la derecha, verificado en Chromium (§2.25). Investigado, sin implementar, el ancho de una columna para el texto de tools (§2.26). 802 tests.
+- **2 oct 2026 (columnas e insights desde el detalle)**: restaurado el escalonado de columnas 2/3/4/5/6 (`layout.ts` original; el zip recibido lo había perdido) y revertido el test que se cambió; recalculados los números de §2.26 con ese escalonado; test de regresión de insights abiertos desde las recomendaciones (§2.27). 803 tests.
+- **2 oct 2026 (6 columnas desde 1200 y compilación)**: columnas a 2/3/4/6 con 6 desde 1200 de ancho de contenedor (§2.28); recalculados los números de §2.26; corregido un test de propiedades intermitente (~1 de cada 50 ejecuciones) y verificado todo en una copia limpia con Node 24.15.0. 803 tests.
+- **2 oct 2026 (reconciliación de supabaseFeedSource)**: fusionada la rama de tools de Greener (descripción del pin + nombre de la tool en negrita) con la de insights (título + «Insights by Greener»), que se había pisado; tests ampliados y comprobados con mutación (§2.29). 806 tests.
+- **2 oct 2026 (tipografías)**: Helvetica Neue Regular/Bold como fuente general y Kinder en el título de caso y de contacto (clase global `.text-display`), con `next/font/local` y WOFF2 recortados (de ~1,2 MB a ~56 KB en Helvetica); aviso de licencias y de los pesos del admin (§2.30).
+- **2 oct 2026 (texto a una columna)**: el texto de la ficha de tool/insight/contenido libre mide una columna de la retícula (`max-width` por variable CSS) y la imagen cede sitio (`textReserve`); geometría extraída a `computeContentBlockGeometry`; verificado en Chromium (56/56) y con tests de propiedades; hallazgo del texto a 0 px en móvil (§2.31).
+- **2 oct 2026 (pin de episodio)**: la segunda línea del pin de un episodio pasa a «<programa> <tipo>» (p. ej. «Brand the Future Podcast»), con etiquetas compartidas entre feed, ABM y ficha pública; las dos consultas de Supabase piden `program`; límite de una línea medido en móvil (§2.32). 834 tests.
+- **2 oct 2026 (npm audit fix)**: integrado el `package-lock.json` de Greener: Next.js 16.3.5 → 16.3.8 (solo `next` y sus binarios), `npm audit` a 0 vulnerabilidades; verificado en copia limpia con Node 24 (build, 834 tests, servidor standalone, CSP, 404 idéntico a la versión anterior) (§2.33).
+- **2 oct 2026 (texto corrido de contacto)**: clase global `.text-body` (mismos valores que el texto de las tarjetas de la home) para el párrafo del rediseño de contacto, con test de coherencia con `PinCard` (§2.34). 835 tests.
+- **2 oct 2026 (prioridades y formulario de contacto)**: añadidas al checklist (§4.0) dos tareas prioritarias: vídeos cortos de demostración en `/tools/{slug}` y prueba del formulario de contacto con el sitio activo. Revisión previa del formulario con un banco de pruebas (servidor de producción + SMTP y Supabase falsos + Chromium): 25 comprobaciones correctas, 3 problemas reales (el formulario se vacía tras un error, el límite por IP se esquiva falsificando `X-Forwarded-For`, y es global si el proxy no envía la IP) y 8 observaciones (§2.35). Sin cambios de código.
