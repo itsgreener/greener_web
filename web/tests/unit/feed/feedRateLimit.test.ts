@@ -96,3 +96,58 @@ describe('rememberSession / getLastSession', () => {
     expect(getLastSession('visitor-1')).toBeNull()
   })
 })
+
+describe('rememberSession / getLastSession — por visitante Y scope (5 oct 2026)', () => {
+  it('no reutiliza la sesión de un scope al pedir otro: la de home no sirve para tools', async () => {
+    const { rememberSession, getLastSession } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    rememberSession('visitor-1', 'session-home', 'home')
+    rememberSession('visitor-1', 'session-tools', 'tools')
+
+    expect(getLastSession('visitor-1', 'home')).toBe('session-home')
+    expect(getLastSession('visitor-1', 'tools')).toBe('session-tools')
+    expect(getLastSession('visitor-1', 'channel')).toBeNull()
+  })
+
+  it('sin scope usa home, compatible con las llamadas antiguas de dos argumentos', async () => {
+    const { rememberSession, getLastSession } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    rememberSession('visitor-1', 'session-1')
+
+    expect(getLastSession('visitor-1')).toBe('session-1')
+    expect(getLastSession('visitor-1', 'home')).toBe('session-1')
+    expect(getLastSession('visitor-1', 'work')).toBeNull()
+  })
+
+  it('cada scope recuerda solo su última sesión', async () => {
+    const { rememberSession, getLastSession } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    rememberSession('visitor-1', 'a', 'insights')
+    rememberSession('visitor-1', 'b', 'insights')
+
+    expect(getLastSession('visitor-1', 'insights')).toBe('b')
+  })
+
+  it('el mismo scope de visitantes distintos no se mezcla', async () => {
+    const { rememberSession, getLastSession } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    rememberSession('visitor-1', 'a', 'tools')
+
+    expect(getLastSession('visitor-2', 'tools')).toBeNull()
+  })
+
+  it('una sesión recordada hace más de 24h ya no se devuelve, en ningún scope', async () => {
+    const { rememberSession, getLastSession } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    rememberSession('visitor-1', 'a', 'tools')
+
+    vi.setSystemTime(new Date('2026-09-30T10:00:01Z'))
+
+    expect(getLastSession('visitor-1', 'tools')).toBeNull()
+  })
+})

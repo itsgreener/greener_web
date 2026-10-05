@@ -27,6 +27,8 @@ import {
   removeCaseCarouselMediaAction,
 } from './caseCarouselActions'
 
+import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
+
 type CarouselItem = {
   mediaId: string
   kind: 'image' | 'video'
@@ -131,10 +133,14 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
     setError(null)
     setWarning(null)
 
+    let uploadedAsset: UploadedAssetRef | null = null
+
     try {
       const signed = await getSignedImageUpload()
 
       const uploaded = await uploadImageToCloudinary(file, signed)
+
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'image' }
 
       const result = await addCaseCarouselImageAction({
         contentId,
@@ -163,6 +169,8 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -189,6 +197,8 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
     setUploading(true)
     setError(null)
     setWarning(null)
+
+    let uploadedAsset: UploadedAssetRef | null = null
 
     try {
       // Parche urgente (30 sep): leer la duración en el propio navegador
@@ -234,6 +244,8 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
       const uploaded = await uploadVideoToCloudinary(file, signed)
 
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'video' }
+
       // Validación real, con la duración que ha calculado Cloudinary — no
       // la del navegador. Cubre tanto el caso en que no se pudo leer en
       // local como, por prudencia, el caso en que sí se pudo (para que la
@@ -245,13 +257,13 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
       if (finalValidation?.code === 'VIDEO_TOO_LONG') {
         throw new Error(
-          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (ya subido a Cloudinary, pero no se ha guardado en el caso).`,
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (el archivo subido se ha descartado y no se ha guardado en el caso).`,
         )
       }
 
       if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
         throw new Error(
-          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero no se ha guardado en el caso).`,
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (el archivo subido se ha descartado y no se ha guardado en el caso).`,
         )
       }
 
@@ -284,6 +296,8 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message

@@ -3,7 +3,7 @@ import { z } from 'zod'
 import {
   IMAGE_LIMITS,
   VIDEO_LIMITS,
-  PIN_ANIMATION_LIMITS,
+  TOOL_PIN_VIDEO_LIMITS,
 } from '@/modules/media/domain/mediaLimits'
 
 // Antes había un slideOrder distinto según pin_type (0-7 para carrusel,
@@ -49,12 +49,16 @@ export const attachPinVideoSchema = z.object({
 
   height: z.number().int().positive(),
 
+  // Techo ABSOLUTO (el de los pines de tools). El límite real depende del
+  // tipo de contenido del pin (8 s en el resto, ver pinVideoLimitsFor) y lo
+  // aplica `attach_pin_video` en SQL, que sí conoce el pin; el ABM avisa
+  // antes de subir con validatePinVideoUpload.
   durationSeconds: z
     .number()
     .positive()
     .max(
-      PIN_ANIMATION_LIMITS.maxDurationSeconds,
-      `La animación no puede superar ${PIN_ANIMATION_LIMITS.maxDurationSeconds} segundos`,
+      TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds,
+      `El vídeo no puede superar ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} segundos`,
     )
     .transform((value) => Math.ceil(value)),
 

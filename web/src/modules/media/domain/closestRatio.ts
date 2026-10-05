@@ -60,6 +60,32 @@ export function closestClosedRatio(
 }
 
 /**
+ * ¿Las dimensiones reales de un medio encajan con el ratio cerrado de un
+ * pin? Se compara en escala logarítmica (misma razón que en
+ * closestClosedRatio) con una tolerancia del 5 %: 1920×1080 encaja con
+ * 16:9, 1080×1350 con 4:5, y 1440×900 (16:10) no encaja con ninguno. Lo usa
+ * el ABM para AVISAR (nunca bloquear) de que el vídeo se va a recortar con
+ * `object-fit: cover` si su ratio real no es el del pin.
+ */
+export const RATIO_MATCH_TOLERANCE = 0.05
+
+export function mediaMatchesRatio(
+  width: number,
+  height: number,
+  ratio: PinRatioValue,
+): boolean {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || height <= 0) {
+    return false
+  }
+
+  const distance = Math.abs(
+    Math.log(width / height) - Math.log(RATIO_DECIMAL_VALUE[ratio]),
+  )
+
+  return distance <= RATIO_MATCH_TOLERANCE
+}
+
+/**
  * Ratio fijo de todo el carrusel de detalle de un caso (tipo B —
  * especificacion-final-formato-detalle.md §1, §3), decidido en la sesión
  * del 21 de septiembre: se usa el ratio de la imagen/vídeo MÁS ANCHO del

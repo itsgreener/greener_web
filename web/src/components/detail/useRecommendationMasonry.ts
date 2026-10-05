@@ -42,11 +42,7 @@ import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
  */
 
 export type RecommendationScope =
-  | 'home'
-  | 'work'
-  | 'insights'
-  | 'tools'
-  | 'channel'
+  'home' | 'work' | 'insights' | 'tools' | 'channel'
 
 async function openRecommendationSession(
   excludeContentId: string,
@@ -231,12 +227,19 @@ export function useRecommendationMasonry(
     let cancelled = false
 
     // Si navegamos entre detalles sin desmontar el componente, no deben
-    // sobrevivir pines ni cursor de la sección anterior.
-    setSessionId(null)
-    setItems([])
-    setCursor(null)
-    setHasMore(true)
-    setError(null)
+    // sobrevivir pines ni cursor de la sección anterior. Diferido con
+    // queueMicrotask para no llamar a setState de forma síncrona en el
+    // cuerpo del efecto (react-hooks/set-state-in-effect; mismo patrón que
+    // useFeed.ts y useVideoSlot.ts). Corre antes de que vuelva el fetch de
+    // abajo, así que nunca pisa la sesión nueva.
+    queueMicrotask(() => {
+      if (cancelled) return
+      setSessionId(null)
+      setItems([])
+      setCursor(null)
+      setHasMore(true)
+      setError(null)
+    })
 
     openRecommendationSession(excludeContentId, scope)
       .then((id) => {

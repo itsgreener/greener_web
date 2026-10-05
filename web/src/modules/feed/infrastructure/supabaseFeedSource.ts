@@ -11,6 +11,10 @@ import type {
 export interface FeedItemMedia {
   kind: 'image' | 'video'
   cloudinaryPublicId: string
+  // Solo vídeo. Decide si se anima en el feed (canAnimateInFeed): por
+  // encima de PIN_ANIMATION_LIMITS.maxDurationSeconds solo se enseña el
+  // poster. Ausente/null = se desconoce y se trata como animable.
+  durationSeconds?: number | null
 }
 
 export interface PinDirectoryEntry {
@@ -135,6 +139,7 @@ interface PinRow {
     media_asset: {
       kind: 'image' | 'video'
       cloudinary_public_id: string
+      duration_seconds?: number | null
     } | null
   }[]
 }
@@ -144,7 +149,7 @@ const PIN_SELECT = `
   pin_media (
     media_id,
     slide_order,
-    media_asset ( kind, cloudinary_public_id )
+    media_asset ( kind, cloudinary_public_id, duration_seconds )
   )
 `
 
@@ -256,6 +261,7 @@ export function buildFeedUnitsForPin(
       mediaId: pm.media_id,
       kind: pm.media_asset!.kind,
       cloudinaryPublicId: pm.media_asset!.cloudinary_public_id,
+      durationSeconds: pm.media_asset!.duration_seconds ?? null,
     }))
 
   if (media.length === 0) return []
@@ -281,10 +287,7 @@ export function buildFeedUnitsForPin(
         unitId: pin.id,
         entry: {
           ...base,
-          media: media.map((m) => ({
-            kind: m.kind,
-            cloudinaryPublicId: m.cloudinaryPublicId,
-          })),
+          media: media.map((m) => toFeedItemMedia(m)),
         },
       },
     ]
@@ -294,9 +297,24 @@ export function buildFeedUnitsForPin(
     unitId: `${pin.id}::${m.mediaId}`,
     entry: {
       ...base,
-      media: [{ kind: m.kind, cloudinaryPublicId: m.cloudinaryPublicId }],
+      media: [toFeedItemMedia(m)],
     },
   }))
+}
+
+function toFeedItemMedia(m: {
+  kind: 'image' | 'video'
+  cloudinaryPublicId: string
+  durationSeconds: number | null
+}): FeedItemMedia {
+  // La duración solo viaja en vídeo: en imagen no significa nada.
+  return m.kind === 'video'
+    ? {
+        kind: m.kind,
+        cloudinaryPublicId: m.cloudinaryPublicId,
+        durationSeconds: m.durationSeconds,
+      }
+    : { kind: m.kind, cloudinaryPublicId: m.cloudinaryPublicId }
 }
 
 /**

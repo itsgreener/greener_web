@@ -25,6 +25,25 @@ export const IMAGE_DELIVERY = {
   },
 } as const
 
+/**
+ * Ancho de entrega de un medio de detalle (imagen o vídeo) para una caja de
+ * `cssWidthPx` píxeles CSS: el menor de los anchos de IMAGE_DELIVERY.detail
+ * que cubre la caja a la densidad del dispositivo (con tope de 2×: más
+ * densidad no se nota y en vídeo cuesta ancho de banda). Si la caja es más
+ * ancha que el mayor, se usa el mayor. Reutiliza los anchos ya existentes en
+ * vez de inventar una constante para el vídeo.
+ */
+export function pickDetailWidth(
+  cssWidthPx: number,
+  devicePixelRatio = 1,
+): number {
+  const widths = IMAGE_DELIVERY.detail.widths
+  const density = Math.min(Math.max(devicePixelRatio || 1, 1), 2)
+  const needed = Math.max(0, cssWidthPx) * density
+
+  return widths.find((w) => w >= needed) ?? widths[widths.length - 1]
+}
+
 export const VIDEO_DELIVERY = {
   feed: {
     // En el feed nunca se sirve el vídeo completo: poster/preview corto.

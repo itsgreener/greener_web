@@ -14,6 +14,7 @@ import type {
 import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { PinCard } from '@/components/pin/PinCard'
+import { ToolCoverVideo } from './ToolCoverVideo'
 import { useRecommendationMasonry } from './useRecommendationMasonry'
 import styles from './ToolInsightDetail.module.css'
 
@@ -47,6 +48,7 @@ export function ToolInsightDetail({
   appHref,
   coverMediaOverride,
   coverRatioOverride,
+  coverAltOverride,
 }: {
   content: PublicContent
   ctaLabel?: string
@@ -56,6 +58,9 @@ export function ToolInsightDetail({
   // Insights/Other no pasan estos props y conservan el comportamiento actual.
   coverMediaOverride?: PublicContentMedia | null
   coverRatioOverride?: PinRatioValue | null
+  // Alt del pin de origen. Hoy solo lo usa el vídeo de una tool (alt
+  // obligatorio, 5 oct 2026); la imagen conserva su alt de siempre.
+  coverAltOverride?: string | null
 }) {
   const coverMedia = coverMediaOverride ?? content.coverMedia
   const ratio = coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO
@@ -113,13 +118,25 @@ export function ToolInsightDetail({
               }}
             >
               {coverMedia.kind === 'video' ? (
-                <video
-                  src={buildVideoFullUrl(coverMedia.cloudinaryPublicId)}
-                  poster={buildVideoPosterUrl(coverMedia.cloudinaryPublicId)}
-                  controls
-                  aria-label={content.title}
-                  className={styles.coverImage}
-                />
+                content.type === 'tool' ? (
+                  // Vídeo de demostración de una tool: sustituye a la
+                  // imagen en la MISMA caja (mudo, bucle, botón de pausa).
+                  <ToolCoverVideo
+                    publicId={coverMedia.cloudinaryPublicId}
+                    alt={coverAltOverride || content.title}
+                    boxWidthPx={contentBlockImageWidth}
+                  />
+                ) : (
+                  // Portada de vídeo de contenido libre (`other`): sin
+                  // cambios, con controles nativos.
+                  <video
+                    src={buildVideoFullUrl(coverMedia.cloudinaryPublicId)}
+                    poster={buildVideoPosterUrl(coverMedia.cloudinaryPublicId)}
+                    controls
+                    aria-label={content.title}
+                    className={styles.coverImage}
+                  />
+                )
               ) : (
                 // URL ya transformada por
                 // modules/media/infrastructure/cloudinaryUrl.ts

@@ -126,7 +126,7 @@ describe('CaseDetail — prueba de humo', () => {
     expect(global.fetch).toHaveBeenCalledWith(
       '/api/feed/sessions',
       expect.objectContaining({
-        body: JSON.stringify({ scope: 'home', excludeContentId: 'content-1' }),
+        body: JSON.stringify({ scope: 'work', excludeContentId: 'content-1' }),
       }),
     )
   })

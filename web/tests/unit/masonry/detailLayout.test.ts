@@ -325,7 +325,7 @@ describe('computeContentBlockGeometry', () => {
     )
   })
 
-  it('CON textColumn en escritorio: el texto mide exactamente una columna y siempre cabe a su lado', () => {
+  it('CON textColumn en escritorio: el texto mide como MÍNIMO una columna, se queda con todo el resto del bloque y siempre cabe a su lado', () => {
     fc.assert(
       fc.property(
         ratioArb,
@@ -348,7 +348,18 @@ describe('computeContentBlockGeometry', () => {
 
           const columnWidth =
             (containerWidth - 12 * (totalColumns - 1)) / totalColumns
-          expect(geo.textColumnWidth).toBeCloseTo(columnWidth, 6)
+          // Nunca menos de una columna…
+          expect(geo.textColumnWidth).toBeGreaterThanOrEqual(columnWidth - 1e-6)
+          // …y, si la imagen deja más hueco dentro del bloque reservado,
+          // el texto ocupa todo ese resto (el CTA queda en la esquina
+          // inferior derecha REAL de la caja de texto).
+          expect(geo.textColumnWidth).toBeCloseTo(
+            Math.max(
+              columnWidth,
+              geo.reservedWidth - geo.imageWidth - CONTENT_BLOCK_TEXT_GAP_PX,
+            ),
+            6,
+          )
           // El texto, a ancho completo, cabe junto a la imagen dentro del bloque.
           expect(
             geo.imageWidth + CONTENT_BLOCK_TEXT_GAP_PX + geo.textColumnWidth,
@@ -360,6 +371,44 @@ describe('computeContentBlockGeometry', () => {
       ),
       { numRuns: 1000 },
     )
+  })
+
+  it('un 1:1 que deja casi dos columnas libres: el texto las usa (más de una columna), no se queda en una', () => {
+    // 1200 px → 6 columnas de 190 px; un 1:1 reserva 4 columnas
+    // (796 px). A 800 px de alto la imagen mide 533,6 px: quedan
+    // 796 − 533,6 − 16 = 246,4 px para el texto, más de una columna.
+    const geo = computeContentBlockGeometry({
+      containerWidth: 1200,
+      viewportHeight: 800,
+      ratio: '1:1',
+      totalColumns: 6,
+      contentColumns: 4,
+      textColumn: true,
+    })
+
+    const columnWidth = (1200 - 12 * 5) / 6
+
+    expect(geo.reservedWidth).toBeCloseTo(796, 6)
+    expect(geo.imageWidth).toBeCloseTo(533.6, 6)
+    expect(geo.textColumnWidth).toBeCloseTo(246.4, 6)
+    expect(geo.textColumnWidth).toBeGreaterThan(columnWidth)
+  })
+
+  it('cuando la imagen ocupa casi todo el bloque, el texto conserva su columna mínima', () => {
+    // 16:9 en un contenedor estrecho: la imagen cede espacio y el texto
+    // queda exactamente en una columna, nunca por debajo.
+    const geo = computeContentBlockGeometry({
+      containerWidth: 1200,
+      viewportHeight: 1400,
+      ratio: '16:9',
+      totalColumns: 6,
+      contentColumns: 5,
+      textColumn: true,
+    })
+
+    const columnWidth = (1200 - 12 * 5) / 6
+
+    expect(geo.textColumnWidth).toBeGreaterThanOrEqual(columnWidth - 1e-6)
   })
 
   it('móvil (<3 columnas): placeholder intacto, sin regla de una columna', () => {
@@ -390,11 +439,22 @@ describe('computeContentBlockGeometry', () => {
     expect(Number(value![1])).toBe(CONTENT_BLOCK_TEXT_GAP_PX)
   })
 
-  it('el CSS de .text usa --text-column-width como max-width', () => {
+  it('el CSS de .text usa --text-column-width como ancho (width y flex-basis), no como tope', () => {
     const css = readFileSync(
       join(process.cwd(), 'src/components/detail/ToolInsightDetail.module.css'),
       'utf8',
     )
-    expect(css).toMatch(/\.text\s*\{[^}]*max-width:\s*var\(--text-column-width/)
+    // `width` y `flex` toman el ancho real que calcula el JS…
+    expect(css).toMatch(
+      /\.text\s*\{[^}]*[\s;{]width:\s*var\(--text-column-width/,
+    )
+    expect(css).toMatch(
+      /\.text\s*\{[^}]*[\s;{]flex:\s*0 0 var\(--text-column-width/,
+    )
+    // …y ya no es un max-width de una columna (dejaba una franja vacía y
+    // adelantaba el CTA).
+    expect(css).not.toMatch(
+      /\.text\s*\{[^}]*max-width:\s*var\(--text-column-width/,
+    )
   })
 })

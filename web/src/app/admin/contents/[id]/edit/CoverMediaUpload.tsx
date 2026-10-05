@@ -31,6 +31,8 @@ import {
   deleteCoverMediaAction,
 } from './mediaActions'
 
+import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
+
 type CoverMedia = {
   id: string
   kind: 'image' | 'video'
@@ -196,6 +198,8 @@ export default function CoverMediaUpload({
     setError(null)
     setWarning(null)
 
+    let uploadedAsset: UploadedAssetRef | null = null
+
     try {
       const replaced = await replaceExistingIfAny()
 
@@ -206,6 +210,8 @@ export default function CoverMediaUpload({
       const signed = await getSignedImageUpload()
 
       const uploaded = await uploadImageToCloudinary(file, signed)
+
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'image' }
 
       const result = await registerCoverImageAction({
         contentId,
@@ -232,6 +238,8 @@ export default function CoverMediaUpload({
 
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -258,6 +266,8 @@ export default function CoverMediaUpload({
     setUploading(true)
     setError(null)
     setWarning(null)
+
+    let uploadedAsset: UploadedAssetRef | null = null
 
     try {
       // Mismo parche urgente que CaseCarouselManager.tsx (30 sep): si el
@@ -305,6 +315,8 @@ export default function CoverMediaUpload({
 
       const uploaded = await uploadVideoToCloudinary(file, signed)
 
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'video' }
+
       // Validación real con la duración de Cloudinary, ANTES de tocar la
       // portada existente.
       const finalValidation = validateVideoUpload(
@@ -314,19 +326,23 @@ export default function CoverMediaUpload({
 
       if (finalValidation?.code === 'VIDEO_TOO_LONG') {
         throw new Error(
-          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (ya subido a Cloudinary, pero la portada anterior no se ha tocado).`,
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos (el archivo subido se ha descartado y la portada anterior no se ha tocado).`,
         )
       }
 
       if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
         throw new Error(
-          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero la portada anterior no se ha tocado).`,
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (el archivo subido se ha descartado y la portada anterior no se ha tocado).`,
         )
       }
 
       const replaced = await replaceExistingIfAny()
 
       if (!replaced) {
+        // El vídeo nuevo ya está en Cloudinary pero no se va a usar (el
+        // admin canceló o falló la sustitución): se descarta.
+        await discardUploadQuietly(uploadedAsset)
+
         return
       }
 
@@ -357,6 +373,8 @@ export default function CoverMediaUpload({
 
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message

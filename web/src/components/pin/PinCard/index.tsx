@@ -7,6 +7,7 @@ import {
   buildVideoFullUrl,
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { canAnimateInFeed } from '@/modules/media/domain/mediaLimits'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import { useVideoSlot } from '../useVideoSlot'
 import styles from './PinCard.module.css'
@@ -14,6 +15,10 @@ import styles from './PinCard.module.css'
 export interface PinCardMedia {
   kind: 'image' | 'video'
   cloudinaryPublicId: string
+  // Solo vídeo. Un vídeo más largo que PIN_ANIMATION_LIMITS (p. ej. los de
+  // demostración de una tool, hasta 15 s) no se anima en el feed: se queda
+  // en su poster. Ausente/null = se desconoce, se anima como siempre.
+  durationSeconds?: number | null
 }
 
 export interface PinCardData {
@@ -119,15 +124,21 @@ export function PinCard({
   const current = media[index]
   const isVideoSlide = current?.kind === 'video'
 
+  // Un vídeo largo (> PIN_ANIMATION_LIMITS) sigue siendo un vídeo — se
+  // pinta con su poster —, pero NO se anima ni compite por un hueco: solo
+  // se reproduce en el detalle. Así el feed nunca descarga uno entero.
+  const isAnimatable =
+    isVideoSlide && canAnimateInFeed(current?.durationSeconds)
+
   // El slide activo de un carrusel siempre compite por un hueco global;
   // un pin de un único vídeo solo lo hace en modo 'viewport' — 'hover' no
   // compite (arriba, en el docstring, se explica el porqué).
   const wantsGlobalSlot =
-    isVideoSlide && (isCarousel || pin.autoplayMode === 'viewport')
+    isAnimatable && (isCarousel || pin.autoplayMode === 'viewport')
   const hasSlot = useVideoSlot(pin.pinId, cardRef, wantsGlobalSlot)
 
   const isPlaying =
-    isVideoSlide &&
+    isAnimatable &&
     (isCarousel
       ? hasSlot
       : pin.autoplayMode === 'viewport'

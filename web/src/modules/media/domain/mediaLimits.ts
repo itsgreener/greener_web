@@ -29,9 +29,32 @@ export const VIDEO_LIMITS = {
   recommendedCodec: 'h264',
 } as const
 
+/**
+ * Límite de un vídeo de pin «normal» (casos, insights, episodios, other) y,
+ * a la vez, umbral por debajo del cual un vídeo se anima en el feed.
+ * Pasó de 5 a 8 s el 5 oct 2026: la mayoría de los vídeos que se cargan
+ * duran entre 5 y 7 s. Un vídeo de pin de una tool puede durar más (ver
+ * TOOL_PIN_VIDEO_LIMITS), pero por encima de este umbral en el feed solo
+ * se enseña su poster — el vídeo completo se descarga solo en el detalle.
+ */
 export const PIN_ANIMATION_LIMITS = {
-  maxDurationSeconds: 5,
+  maxDurationSeconds: 8,
 } as const
+
+/**
+ * Vídeos de demostración de una tool (5 oct 2026): viajan en el flujo de
+ * pines existente y sustituyen a la imagen de la ficha `/tools/{slug}?pin=`.
+ * Más estrictos en peso que el vídeo genérico (100 MB) porque el plan Free
+ * de Cloudinary no admite derroche, y más largos que una animación de pin
+ * porque en el detalle se ven enteros.
+ */
+export const TOOL_PIN_VIDEO_LIMITS = {
+  maxDurationSeconds: 15,
+  maxSizeBytes: 15 * 1024 * 1024,
+} as const
+
+/** Tipo de contenido al que pertenece el pin (solo importa si es una tool). */
+export type PinContentKind = 'case' | 'insight' | 'tool' | 'episode' | 'other'
 
 export type MediaValidationError =
   | {
@@ -303,4 +326,67 @@ export function validatePinAnimationUpload(
   }
 
   return null
+}
+
+/**
+ * Límites de un vídeo de pin según el tipo de contenido del pin: los de una
+ * tool son TOOL_PIN_VIDEO_LIMITS, el resto los de siempre (VIDEO_LIMITS en
+ * peso, PIN_ANIMATION_LIMITS en duración). La misma regla vive en SQL
+ * (`attach_pin_video`), que es la autoritativa; esto es lo que usa el ABM
+ * para avisar antes de subir y para redactar los mensajes.
+ */
+export function pinVideoLimitsFor(contentType: PinContentKind | string): {
+  maxDurationSeconds: number
+  maxSizeBytes: number
+} {
+  if (contentType === 'tool') {
+    return {
+      maxDurationSeconds: TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds,
+      maxSizeBytes: TOOL_PIN_VIDEO_LIMITS.maxSizeBytes,
+    }
+  }
+
+  return {
+    maxDurationSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
+    maxSizeBytes: VIDEO_LIMITS.maxSizeBytes,
+  }
+}
+
+export function validatePinVideoUpload(
+  contentType: PinContentKind | string,
+  sizeBytes: number,
+  durationSeconds: number,
+): MediaValidationError | null {
+  const limits = pinVideoLimitsFor(contentType)
+
+  if (sizeBytes > limits.maxSizeBytes) {
+    return {
+      code: 'VIDEO_TOO_LARGE',
+
+      maxBytes: limits.maxSizeBytes,
+    }
+  }
+
+  if (durationSeconds > limits.maxDurationSeconds) {
+    return {
+      code: 'ANIMATION_TOO_LONG',
+
+      maxSeconds: limits.maxDurationSeconds,
+    }
+  }
+
+  return null
+}
+
+/**
+ * ¿Un vídeo de pin de esta duración se anima en el feed? Si no se conoce la
+ * duración (filas antiguas sin dato) se asume que sí, que es lo que pasaba
+ * antes de existir este umbral.
+ */
+export function canAnimateInFeed(
+  durationSeconds: number | null | undefined,
+): boolean {
+  if (durationSeconds === null || durationSeconds === undefined) return true
+
+  return durationSeconds <= PIN_ANIMATION_LIMITS.maxDurationSeconds
 }

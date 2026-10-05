@@ -17,6 +17,7 @@ import {
 } from '@/modules/media/infrastructure/cloudinaryUpload'
 
 import { createPinWithImageAction } from './pinActions'
+import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 
 type Props = {
   contentId: string
@@ -156,6 +157,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
       updateRow(row.key, { status: 'uploading', error: undefined })
 
+      let uploadedAsset: UploadedAssetRef | null = null
+
       try {
         const validation = validateImageUpload(row.file.size)
 
@@ -167,6 +170,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
         const signed = await getSignedImageUpload()
         const uploaded = await uploadImageToCloudinary(row.file, signed)
+
+        uploadedAsset = { publicId: uploaded.public_id, kind: 'image' }
 
         const result = await createPinWithImageAction({
           contentId,
@@ -191,6 +196,11 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
         updateRow(row.key, { status: 'ok' })
       } catch (error) {
+        // Imagen ya subida que no llegó a registrarse: se descarta para no
+        // dejar basura en Cloudinary (el servidor comprueba que no esté en
+        // media_asset antes de borrar nada).
+        await discardUploadQuietly(uploadedAsset)
+
         updateRow(row.key, {
           status: 'error',
           error: error instanceof Error ? error.message : 'Error al subir.',

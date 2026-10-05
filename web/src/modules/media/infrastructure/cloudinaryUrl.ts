@@ -58,3 +58,14 @@ export function buildVideoPreviewUrl(publicId: string) {
 export function buildVideoFullUrl(publicId: string) {
   return `${baseUrl('video')}/q_auto,f_auto/${publicId}`
 }
+
+/**
+ * Vídeo de la ficha de una tool: mismo q_auto/f_auto que el resto, pero
+ * limitado al ancho de entrega que corresponde a la caja del bloque
+ * imagen + texto (pickDetailWidth, los mismos anchos que las imágenes de
+ * detalle) — nunca el original, que en una grabación de pantalla puede ser
+ * 4K. `c_limit` evita ampliar un vídeo más pequeño que ese ancho.
+ */
+export function buildVideoDetailUrl(publicId: string, width: number) {
+  return `${baseUrl('video')}/q_auto,f_auto,w_${width},c_limit/${publicId}`
+}

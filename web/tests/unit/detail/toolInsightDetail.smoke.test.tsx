@@ -113,13 +113,33 @@ describe('ToolInsightDetail — prueba de humo', () => {
       '/api/feed/sessions',
       expect.objectContaining({
         method: 'POST',
+        // Una tool recomienda solo tools (scope por sección, 5 oct 2026).
         body: JSON.stringify({
-          scope: 'home',
+          scope: 'tools',
           excludeContentId: 'content-1',
         }),
       }),
     )
   })
+
+  it.each([
+    ['insight', 'insights'],
+    ['other', 'home'],
+  ] as const)(
+    'el scope de las recomendaciones sigue a la sección: %s → %s',
+    async (type, scope) => {
+      render(<ToolInsightDetail content={{ ...BASE_CONTENT, type }} />)
+
+      await waitFor(() =>
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/feed/sessions',
+          expect.objectContaining({
+            body: JSON.stringify({ scope, excludeContentId: 'content-1' }),
+          }),
+        ),
+      )
+    },
+  )
 
   it('el texto queda limitado a una columna: recibe --text-column-width con el ancho de una columna de la retícula', async () => {
     // Contenedor simulado de 1200 px → 6 columnas, hueco de 12 px:

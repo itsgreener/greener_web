@@ -376,7 +376,7 @@ describe('EpisodeDetail — prueba de humo', () => {
         '/api/feed/sessions',
         expect.objectContaining({
           body: JSON.stringify({
-            scope: 'home',
+            scope: 'channel',
             excludeContentId: 'content-1',
           }),
         }),

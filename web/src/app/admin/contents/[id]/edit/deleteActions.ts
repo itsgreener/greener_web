@@ -7,6 +7,11 @@ import { deleteContentSchema } from '@/modules/content/domain/contentSchema'
 
 import { deleteContent } from '@/modules/content/application/deleteContent'
 
+import {
+  purgeRemovedMedia,
+  snapshotContentMedia,
+} from '@/modules/media/application/cleanupMedia'
+
 export type DeleteContentActionState = {
   error?: string
 }
@@ -24,6 +29,10 @@ export async function deleteContentAction(
       error: 'El identificador del contenido no es válido.',
     }
   }
+
+  // Medios del contenido (portada, og, pines, carrusel) leídos ANTES de
+  // borrarlo, para poder borrar después sus archivos en Cloudinary.
+  const mediaRefs = await snapshotContentMedia(result.data.id)
 
   try {
     await deleteContent(result.data)
@@ -48,6 +57,18 @@ export async function deleteContentAction(
     return {
       error: 'No se ha podido eliminar el contenido.',
     }
+  }
+
+  // delete_content ya borró en Postgres los media_asset que se quedaron sin
+  // referencias; aquí se borran los archivos reales. Tras esto hay un
+  // redirect, así que un fallo no se puede mostrar: queda en el log y lo
+  // recoge el reconciliador.
+  const purge = await purgeRemovedMedia(mediaRefs)
+
+  if (purge.failed > 0) {
+    console.error(
+      `deleteContentAction: ${purge.failed} archivo(s) sin borrar de Cloudinary (contenido ${result.data.id}).`,
+    )
   }
 
   revalidatePath('/admin/contents')

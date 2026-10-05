@@ -5,9 +5,16 @@ import { useState } from 'react'
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 
 import {
-  VIDEO_LIMITS,
-  validatePinAnimationUpload,
+  pinVideoLimitsFor,
+  validatePinVideoUpload,
 } from '@/modules/media/domain/mediaLimits'
+
+import {
+  closestClosedRatio,
+  mediaMatchesRatio,
+  RATIO_DECIMAL_VALUE,
+  type PinRatioValue,
+} from '@/modules/media/domain/closestRatio'
 
 import {
   IMAGE_FILE_ACCEPT,
@@ -27,6 +34,8 @@ import {
   detachPinMediaAction,
 } from './pinActions'
 
+import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
+
 type PinMedia = {
   id: string
   kind: 'image' | 'video'
@@ -36,6 +45,11 @@ type PinMedia = {
 
 type Props = {
   pinId: string
+  // Tipo del contenido al que pertenece el pin: decide el límite de vídeo
+  // (tools: 15 s / 15 MB; el resto: 8 s / 100 MB).
+  contentType: string
+  // Ratio cerrado del pin, para avisar si el vídeo subido tiene otro.
+  pinRatio: string
   media: PinMedia[]
 }
 
@@ -89,7 +103,19 @@ function MediaThumb({
   )
 }
 
-export default function PinMediaManager({ pinId, media }: Props) {
+function isClosedRatio(value: string): value is PinRatioValue {
+  return value in RATIO_DECIMAL_VALUE
+}
+
+export default function PinMediaManager({
+  pinId,
+  contentType,
+  pinRatio,
+  media,
+}: Props) {
+  const videoLimits = pinVideoLimitsFor(contentType)
+  const maxVideoMb = videoLimits.maxSizeBytes / 1024 / 1024
+
   const [uploading, setUploading] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
@@ -152,10 +178,14 @@ export default function PinMediaManager({ pinId, media }: Props) {
     setError(null)
     setWarning(null)
 
+    let uploadedAsset: UploadedAssetRef | null = null
+
     try {
       const signed = await getSignedImageUpload()
 
       const uploaded = await uploadImageToCloudinary(file, signed)
+
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'image' }
 
       const result = await attachPinImageAction({
         pinId,
@@ -181,6 +211,8 @@ export default function PinMediaManager({ pinId, media }: Props) {
 
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -202,6 +234,8 @@ export default function PinMediaManager({ pinId, media }: Props) {
     setError(null)
     setWarning(null)
 
+    let uploadedAsset: UploadedAssetRef | null = null
+
     try {
       // Mismo parche urgente que CaseCarouselManager.tsx (30 sep): si el
       // navegador no puede leer la duración localmente (típico con
@@ -217,7 +251,11 @@ export default function PinMediaManager({ pinId, media }: Props) {
       }
 
       if (localDuration !== null) {
-        const validation = validatePinAnimationUpload(file.size, localDuration)
+        const validation = validatePinVideoUpload(
+          contentType,
+          file.size,
+          localDuration,
+        )
 
         if (validation?.code === 'ANIMATION_TOO_LONG') {
           throw new Error(
@@ -230,33 +268,34 @@ export default function PinMediaManager({ pinId, media }: Props) {
             `El vídeo supera los ${validation.maxBytes / 1024 / 1024} MB.`,
           )
         }
-      } else if (file.size > VIDEO_LIMITS.maxSizeBytes) {
-        throw new Error(
-          `El vídeo supera los ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB.`,
-        )
+      } else if (file.size > videoLimits.maxSizeBytes) {
+        throw new Error(`El vídeo supera los ${maxVideoMb} MB.`)
       }
 
       const signed = await getSignedVideoUpload()
 
       const uploaded = await uploadVideoToCloudinary(file, signed)
 
-      // Validación real con la duración de Cloudinary — los pines son
-      // animaciones de como mucho 5 s, así que aquí sí importa rechazar
-      // con claridad si el vídeo real resulta más largo de lo permitido.
-      const finalValidation = validatePinAnimationUpload(
+      uploadedAsset = { publicId: uploaded.public_id, kind: 'video' }
+
+      // Validación real con la duración de Cloudinary — aquí sí importa
+      // rechazar con claridad si el vídeo real resulta más largo (o más
+      // pesado) de lo permitido para ESTE tipo de pin.
+      const finalValidation = validatePinVideoUpload(
+        contentType,
         uploaded.bytes,
         uploaded.duration,
       )
 
       if (finalValidation?.code === 'ANIMATION_TOO_LONG') {
         throw new Error(
-          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos para un pin (ya subido a Cloudinary, pero no se ha guardado).`,
+          `El vídeo dura más de los ${finalValidation.maxSeconds} segundos permitidos para un pin (el archivo subido se ha descartado y no se ha guardado).`,
         )
       }
 
       if (finalValidation?.code === 'VIDEO_TOO_LARGE') {
         throw new Error(
-          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (ya subido a Cloudinary, pero no se ha guardado).`,
+          `El vídeo supera los ${finalValidation.maxBytes / 1024 / 1024} MB (el archivo subido se ha descartado y no se ha guardado).`,
         )
       }
 
@@ -284,8 +323,28 @@ export default function PinMediaManager({ pinId, media }: Props) {
 
       setFile(null)
 
+      // Los vídeos deben venir en uno de los 7 ratios cerrados, igual que
+      // las imágenes. No se bloquea (el vídeo ya está guardado): si su
+      // ratio real no es el del pin, se avisa, porque en el feed y en la
+      // ficha se recortará con `object-fit: cover`. En ese caso no se
+      // recarga sola la página para que el aviso se pueda leer.
+      if (
+        isClosedRatio(pinRatio) &&
+        !mediaMatchesRatio(uploaded.width, uploaded.height, pinRatio)
+      ) {
+        const suggested = closestClosedRatio(uploaded.width, uploaded.height)
+
+        setWarning(
+          `El vídeo se ha guardado, pero su ratio real (${uploaded.width}×${uploaded.height}, parecido a ${suggested}) no es el del pin (${pinRatio}) y se verá recortado. Cambia el ratio del pin a ${suggested} o sustituye el vídeo por uno en ${pinRatio}. Recarga la página para ver la lista actualizada.`,
+        )
+
+        return
+      }
+
       window.location.reload()
     } catch (uploadError) {
+      await discardUploadQuietly(uploadedAsset)
+
       setError(
         uploadError instanceof Error
           ? uploadError.message
@@ -327,7 +386,9 @@ export default function PinMediaManager({ pinId, media }: Props) {
           >
             <option value="image">Imagen</option>
 
-            <option value="video">Vídeo (máx. 5 s)</option>
+            <option value="video">
+              Vídeo (máx. {videoLimits.maxDurationSeconds} s)
+            </option>
           </select>
 
           <input
@@ -342,7 +403,14 @@ export default function PinMediaManager({ pinId, media }: Props) {
           />
 
           {kind === 'video' ? (
-            <p>Vídeo, máximo 5 s.</p>
+            <p>
+              Vídeo MP4, WebM o MOV, máximo {videoLimits.maxDurationSeconds} s y{' '}
+              {maxVideoMb} MB, en uno de los 7 ratios (1:1, 4:3, 4:5, 3:4, 2:3,
+              9:16, 16:9).
+              {contentType === 'tool'
+                ? ' Por encima de 8 s, en el feed solo se verá el poster; el vídeo completo se ve en la ficha de la tool.'
+                : ''}
+            </p>
           ) : (
             <p>JPG, PNG, WebP o AVIF. Máximo 5 MB. Sin animaciones.</p>
           )}

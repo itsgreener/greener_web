@@ -16,6 +16,16 @@ cloudinary.config({
 const IMAGE_FOLDER = 'greener/content'
 const VIDEO_FOLDER = 'greener/content/videos'
 
+/**
+ * ¿Es este public id de un archivo subido por el ABM de Greener
+ * (`greener/content/**`, incluidos los vídeos)? Cualquier borrado
+ * automático en Cloudinary pasa antes por aquí: nunca se toca nada fuera
+ * de esa carpeta, aunque el navegador mande otro identificador.
+ */
+export function isManagedPublicId(publicId: string): boolean {
+  return publicId.startsWith(`${IMAGE_FOLDER}/`)
+}
+
 export type SignedMediaUpload = {
   timestamp: number
   signature: string
@@ -39,6 +49,13 @@ export type VerifiedCloudinaryVideoAsset = {
   height: number
   durationSeconds: number
   bytes: number
+  /**
+   * true cuando la Admin API no devolvió `duration` y `durationSeconds` es
+   * el valor supuesto (10) del parche temporal de abajo. Quien necesite la
+   * duración REAL (los pines: de ella depende si el vídeo se anima en el
+   * feed) debe usar la que Cloudinary entregó al navegador al subir.
+   */
+  durationAssumed?: boolean
 }
 
 export class CloudinaryImageVerificationError extends Error {
@@ -343,6 +360,13 @@ export async function verifyCloudinaryVideoAsset(
     rawResource = await cloudinary.api.resource(publicId, {
       resource_type: 'video',
       type: 'upload',
+      // 5 oct 2026 — CANDIDATO A SOLUCIÓN del `?? 10` de abajo, por
+      // verificar con Cloudinary real: según el soporte de Cloudinary, la
+      // duración de un vídeo ya subido se obtiene por Admin API pidiendo
+      // `image_metadata` (sin él, la respuesta no trae `duration`). Si
+      // funciona, el aviso «duración supuesta» de abajo deja de salir en el
+      // log del servidor y el parche ya no se usa.
+      image_metadata: true,
     })
   } catch (error) {
     console.error(error)
@@ -355,6 +379,17 @@ export async function verifyCloudinaryVideoAsset(
   const resource = rawResource as CloudinaryVideoResource
 
   const duration = resource.duration ?? 10
+  const durationAssumed =
+    resource.duration === undefined || resource.duration === null
+
+  if (durationAssumed) {
+    // Si este aviso sale con `image_metadata: true` activo, esa opción NO
+    // soluciona la falta de `duration` y hay que buscar otra vía (p. ej. la
+    // Search API, que sí permite filtrar por `duration`).
+    console.warn(
+      `verifyCloudinaryVideoAsset: la Admin API no devolvió duration para ${publicId}; se usa el valor supuesto (10 s).`,
+    )
+  }
 
   if (
     typeof resource.public_id !== 'string' ||
@@ -397,6 +432,7 @@ export async function verifyCloudinaryVideoAsset(
     height: resource.height,
     durationSeconds: duration,
     bytes: resource.bytes,
+    durationAssumed,
   }
 }
 

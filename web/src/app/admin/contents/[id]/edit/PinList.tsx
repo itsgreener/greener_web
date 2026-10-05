@@ -174,6 +174,12 @@ function DeletePinButton({
       return
     }
 
+    if (result.warning) {
+      setError(result.warning)
+      setPending(false)
+      return
+    }
+
     window.location.reload()
   }
 
@@ -255,7 +261,12 @@ export default function PinList({ contentId, contentType, pins }: Props) {
               derivedLabel={derivedLabel}
             />
 
-            <PinMediaManager pinId={pin.id} media={pin.media} />
+            <PinMediaManager
+              pinId={pin.id}
+              contentType={contentType}
+              pinRatio={pin.ratio}
+              media={pin.media}
+            />
           </div>
         ))}
     </div>

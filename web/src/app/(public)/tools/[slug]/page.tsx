@@ -35,12 +35,15 @@ async function getToolPreview(slug: string, previewToken: string | undefined) {
 type ToolPinCover = {
   media: PublicContentMedia
   ratio: PinRatioValue
+  // alt del pin de origen (obligatorio): lo usa el vídeo de la ficha.
+  alt: string
 }
 
 type ToolPinRow = {
   id: string
   content_id: string
   ratio: PinRatioValue
+  alt: string
   pin_media: Array<{
     media_id: string
     slide_order: number
@@ -81,6 +84,7 @@ async function getToolPinCover(
       id,
       content_id,
       ratio,
+      alt,
       pin_media (
         media_id,
         slide_order,
@@ -117,6 +121,7 @@ async function getToolPinCover(
 
   return {
     ratio: pin.ratio,
+    alt: pin.alt,
     media: {
       kind: selected.media_asset.kind,
       cloudinaryPublicId: selected.media_asset.cloudinary_public_id,
@@ -159,6 +164,7 @@ export default async function ToolPage({ params, searchParams }: Props) {
         appHref={`/tools/${slug}/app`}
         coverMediaOverride={pinCover?.media}
         coverRatioOverride={pinCover?.ratio}
+        coverAltOverride={pinCover?.alt}
       />
     </div>
   )

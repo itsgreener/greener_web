@@ -31,10 +31,23 @@ import {
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
 
+import {
+  PIN_ANIMATION_LIMITS,
+  TOOL_PIN_VIDEO_LIMITS,
+  VIDEO_LIMITS,
+} from '@/modules/media/domain/mediaLimits'
+
+import {
+  purgeRemovedMedia,
+  snapshotPinMedia,
+} from '@/modules/media/application/cleanupMedia'
+
 export type PinFormState = {
   fieldErrors?: Record<string, string[]>
   formError?: string
   success?: boolean
+  // El pin se borró bien, pero algún archivo no se pudo borrar de Cloudinary.
+  warning?: string
 }
 
 export type PinMediaActionResult =
@@ -186,6 +199,10 @@ export async function deletePinAction(
     }
   }
 
+  // Los medios del pin se leen ANTES de borrarlo: después ya no hay forma
+  // de saber qué archivos de Cloudinary eran suyos.
+  const mediaRefs = await snapshotPinMedia(result.data.id)
+
   try {
     await deletePin(result.data)
   } catch (error) {
@@ -196,7 +213,19 @@ export async function deletePinAction(
     }
   }
 
+  // Postgres ya borró los media_asset que quedaron sin referencias
+  // (delete_pin); aquí se borra el archivo real en Cloudinary. Best-effort:
+  // si falla, el pin ya no existe y solo se avisa.
+  const purge = await purgeRemovedMedia(mediaRefs)
+
   revalidateContent(contentId)
+
+  if (purge.failed > 0) {
+    return {
+      success: true,
+      warning: `Se ha borrado el pin, pero ${purge.failed} archivo(s) no se han podido borrar de Cloudinary. Se limpiarán con el reconciliador (scripts/reconcile-cloudinary.mjs). Recarga la página.`,
+    }
+  }
 
   return {
     success: true,
@@ -409,9 +438,20 @@ export async function attachPinVideoAction(
       result.data.cloudinaryPublicId,
     )
 
+    const { durationAssumed, ...verifiedAsset } = verified
+
     const mediaId = await attachPinVideo({
       ...result.data,
-      ...verified,
+      ...verifiedAsset,
+      // Si la Admin API no devolvió duración (parche temporal `?? 10` de
+      // verifyCloudinaryVideoAsset), `verifiedAsset.durationSeconds` es un
+      // 10 inventado: usarlo haría que TODO vídeo de pin pasara por «más
+      // de 8 s» y se quedara en poster en el feed. En ese caso se usa la
+      // duración que Cloudinary dio al navegador en la respuesta de la
+      // propia subida (ya validada por el esquema), que es real.
+      durationSeconds: durationAssumed
+        ? result.data.durationSeconds
+        : verifiedAsset.durationSeconds,
     })
 
     return {
@@ -434,7 +474,7 @@ export async function attachPinVideoAction(
     ) {
       return {
         ok: false,
-        error: 'El vídeo no puede superar los 5 segundos.',
+        error: `El vídeo supera la duración máxima de un pin (${PIN_ANIMATION_LIMITS.maxDurationSeconds} s; ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} s en las tools).`,
       }
     }
 
@@ -444,7 +484,7 @@ export async function attachPinVideoAction(
     ) {
       return {
         ok: false,
-        error: 'El vídeo supera los 100 MB.',
+        error: `El vídeo supera el peso máximo de un pin (${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB; ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB en las tools).`,
       }
     }
 
