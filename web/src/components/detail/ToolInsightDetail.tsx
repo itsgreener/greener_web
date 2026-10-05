@@ -28,8 +28,8 @@ const FALLBACK_RATIO = '4:5' as const
  * Plantilla de detalle tipo A (especificacion-final-formato-detalle.md
  * §1, §2, §7): portada a altura fija × ratio (nunca medida en columnas),
  * bloque de contenido reservando 3-5 columnas según el grupo de ratio, y
- * panel de recomendaciones aleatorias (scope='home', excluyendo este
- * mismo contenido) a la derecha + debajo, un único masonry sembrado de
+ * panel de recomendaciones de la misma sección (Tool → Tools,
+ * Insight → Insights; Other conserva Home), excluyendo este mismo contenido) a la derecha + debajo, un único masonry sembrado de
  * forma asimétrica (useRecommendationMasonry) — no dos retículas
  * separadas.
  *
@@ -59,6 +59,12 @@ export function ToolInsightDetail({
 }) {
   const coverMedia = coverMediaOverride ?? content.coverMedia
   const ratio = coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO
+  const recommendationScope =
+    content.type === 'tool'
+      ? 'tools'
+      : content.type === 'insight'
+        ? 'insights'
+        : 'home'
 
   const {
     containerRef,
@@ -73,7 +79,10 @@ export function ToolInsightDetail({
     hasMore,
     error,
     sentinelId,
-  } = useRecommendationMasonry(content.id, ratio, { textColumn: true })
+  } = useRecommendationMasonry(content.id, ratio, {
+    textColumn: true,
+    scope: recommendationScope,
+  })
 
   return (
     <article className={styles.article}>
@@ -135,9 +144,9 @@ export function ToolInsightDetail({
             style={
               contentBlockTextWidth
                 ? ({
-                    // Una columna de la retícula como máximo (ver
-                    // computeContentBlockGeometry): el CSS lo usa como
-                    // `max-width` de .text.
+                    // Ancho real que queda para el texto (ver
+                    // computeContentBlockGeometry): nunca menos de una
+                    // columna y puede ocupar más si la imagen deja hueco.
                     '--text-column-width': `${contentBlockTextWidth}px`,
                   } as React.CSSProperties)
                 : undefined

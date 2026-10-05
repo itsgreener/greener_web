@@ -39,8 +39,8 @@ const FALLBACK_RATIO = '16:9' as const
 /**
  * Plantilla de detalle tipo B para un caso (especificacion-final-formato-
  * detalle.md §1, §2, §3): contenido siempre a 6/6 (fullWidthContent),
- * sin panel lateral — las recomendaciones (aleatorias, scope='home',
- * excluyéndose a sí mismo) solo pueden aparecer debajo.
+ * sin panel lateral — las recomendaciones usan scope='work' (solo Cases),
+ * excluyéndose a sí mismo, y solo pueden aparecer debajo.
  */
 export function CaseDetail({
   content,
@@ -72,6 +72,7 @@ export function CaseDetail({
     sentinelId,
   } = useRecommendationMasonry(content.id, carouselRatio, {
     fullWidthContent: true,
+    scope: 'work',
   })
 
   return (

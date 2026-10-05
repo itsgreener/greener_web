@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       : undefined
 
   if (!canCreateSession(visitorId)) {
-    const lastSessionId = getLastSession(visitorId)
+    const lastSessionId = getLastSession(visitorId, scope)
 
     // Con algo que devolver, se devuelve en vez de crear una sesión
     // nueva (§2.16). Sin nada que devolver — un visitante que agota el
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       filter: parsedFilter,
       excludeContentId,
     })
-    rememberSession(visitorId, result.sessionId)
+    rememberSession(visitorId, result.sessionId, scope)
     return respond(result, {
       status: 201,
       headers: { 'Cache-Control': 'no-store' },

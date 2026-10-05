@@ -25,35 +25,43 @@ export function canFetchBatch(visitorId: string): boolean {
   return batchFetchLimiter.check(visitorId)
 }
 
-// Sesión más reciente de cada visitante — solo para poder devolverla en
-// vez de crear una nueva cuando se supera SESSION_CREATION_LIMIT (§2.16:
-// "repetir la sesión más reciente es razonable"). Efecto secundario
-// asumido a propósito: si eso ocurre, esa recarga muestra la misma
-// secuencia que la anterior, en vez de una nueva (arquitectura §1, "home
-// distinta en cada carga completa") — solo le pasa a quien supera 12
-// creaciones de sesión en un minuto, muy por encima del uso normal.
+// Sesión más reciente de cada visitante Y scope. Es importante no reutilizar
+// una sesión de `home` al pedir `tools`, ni una de `channel` al pedir
+// `insights`: si el visitante alcanza el límite, el fallback debe conservar
+// exactamente el universo solicitado.
 //
 // TTL propio de 24h (igual que la cookie y que feed_session), con purga
-// perezosa igual que el limitador: sin esto, cada visitante nuevo deja
-// una entrada que nunca se borraría sola.
+// perezosa igual que el limitador.
 const SESSION_MEMORY_TTL_MS = 60 * 60 * 24 * 1000
 const SWEEP_EVERY_CALLS = 1000
 
-const lastSessionByVisitor = new Map<
+const lastSessionByVisitorAndScope = new Map<
   string,
   { sessionId: string; rememberedAt: number }
 >()
 let callsSinceSweep = 0
 
+function memoryKey(visitorId: string, scope: string): string {
+  return `${visitorId}::${scope}`
+}
+
 function sweepExpiredSessions(now: number): void {
-  for (const [visitorId, entry] of lastSessionByVisitor) {
+  for (const [key, entry] of lastSessionByVisitorAndScope) {
     if (now - entry.rememberedAt >= SESSION_MEMORY_TTL_MS) {
-      lastSessionByVisitor.delete(visitorId)
+      lastSessionByVisitorAndScope.delete(key)
     }
   }
 }
 
-export function rememberSession(visitorId: string, sessionId: string): void {
+/**
+ * `scope` queda al final y con default 'home' para mantener compatibilidad
+ * con los tests/llamadas antiguas de dos argumentos.
+ */
+export function rememberSession(
+  visitorId: string,
+  sessionId: string,
+  scope: string = 'home',
+): void {
   const now = Date.now()
 
   callsSinceSweep += 1
@@ -62,18 +70,25 @@ export function rememberSession(visitorId: string, sessionId: string): void {
     sweepExpiredSessions(now)
   }
 
-  lastSessionByVisitor.set(visitorId, { sessionId, rememberedAt: now })
+  lastSessionByVisitorAndScope.set(memoryKey(visitorId, scope), {
+    sessionId,
+    rememberedAt: now,
+  })
 }
 
-export function getLastSession(visitorId: string): string | null {
-  const entry = lastSessionByVisitor.get(visitorId)
+export function getLastSession(
+  visitorId: string,
+  scope: string = 'home',
+): string | null {
+  const key = memoryKey(visitorId, scope)
+  const entry = lastSessionByVisitorAndScope.get(key)
 
   if (!entry) {
     return null
   }
 
   if (Date.now() - entry.rememberedAt >= SESSION_MEMORY_TTL_MS) {
-    lastSessionByVisitor.delete(visitorId)
+    lastSessionByVisitorAndScope.delete(key)
     return null
   }
 

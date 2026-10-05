@@ -26,9 +26,9 @@ import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
  * - Sin persistencia entre navegaciones (decisión del 21 sep): cada
  *   entrada a un detalle pide una feedSession nueva, no hay scope que
  *   guardar en sessionStorage ni scroll que restaurar.
- * - scope siempre 'home' + excludeContentId siempre el propio contenido
- *   (§6: "aleatorias, igual que la home"; el contenido no se recomienda
- *   a sí mismo, arquitectura del 21 sep en getFeedDataset).
+ * - El scope lo decide la sección que abre el detalle: tools → tools,
+ *   insights → insights, channel → channel, work → work y home → todo.
+ *   El contenido actual se excluye siempre para no recomendarse a sí mismo.
  * - El masonry se siembra de forma asimétrica: las primeras
  *   `contentColumns` columnas arrancan a la altura real del bloque de
  *   contenido (+GAP), el resto a 0 — ver computeMasonryLayout,
@@ -41,13 +41,21 @@ import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
  *   si hace falta cuando haya contenido real con el que medirlo.
  */
 
+export type RecommendationScope =
+  | 'home'
+  | 'work'
+  | 'insights'
+  | 'tools'
+  | 'channel'
+
 async function openRecommendationSession(
   excludeContentId: string,
+  scope: RecommendationScope,
 ): Promise<string> {
   const res = await fetch('/api/feed/sessions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scope: 'home', excludeContentId }),
+    body: JSON.stringify({ scope, excludeContentId }),
   })
   if (!res.ok) {
     throw new Error(
@@ -174,12 +182,18 @@ export function useRecommendationMasonry(
     // el bloque de contenido: las recomendaciones solo pueden aparecer
     // debajo, nunca al lado (recommendationColumns siempre 0).
     fullWidthContent?: boolean
-    // Tipo A (tool/insight/other): el texto ocupa una columna de la
-    // retícula con ancho fijo y la imagen cede espacio para garantizarlo
-    // (ver computeContentBlockGeometry). Casos y episodios no lo activan.
+    // Tipo A (tool/insight/other): el texto conserva como MÍNIMO una
+    // columna de la retícula. Si la imagen deja más hueco dentro del bloque
+    // reservado, el texto aprovecha todo ese resto (ver
+    // computeContentBlockGeometry). Casos y episodios no lo activan.
     textColumn?: boolean
+    // Universo de recomendaciones. 'home' mezcla todo; cada subhome
+    // restringe a su tipo de contenido.
+    scope?: RecommendationScope
   },
 ) {
+  const scope = options?.scope ?? 'home'
+
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [containerWidth, setContainerWidth] = useState(0)
   const [viewportHeight, setViewportHeight] = useState(0)
@@ -215,7 +229,16 @@ export function useRecommendationMasonry(
 
   useEffect(() => {
     let cancelled = false
-    openRecommendationSession(excludeContentId)
+
+    // Si navegamos entre detalles sin desmontar el componente, no deben
+    // sobrevivir pines ni cursor de la sección anterior.
+    setSessionId(null)
+    setItems([])
+    setCursor(null)
+    setHasMore(true)
+    setError(null)
+
+    openRecommendationSession(excludeContentId, scope)
       .then((id) => {
         if (!cancelled) setSessionId(id)
       })
@@ -231,7 +254,7 @@ export function useRecommendationMasonry(
     return () => {
       cancelled = true
     }
-  }, [excludeContentId])
+  }, [excludeContentId, scope])
 
   const loadMore = useCallback(async () => {
     if (!sessionId || loadingRef.current || !hasMore) return

@@ -82,7 +82,8 @@ function providerLabel(provider: PublicEpisode['provider']): string {
 /**
  * Plantilla de detalle tipo B para un episodio — mismo mecanismo que
  * CaseDetail (fullWidthContent, sin panel lateral, recomendaciones solo
- * debajo), con el embed externo en vez de un carrusel propio.
+ * debajo), con scope='channel' para recomendar únicamente episodios y
+ * con el embed externo en vez de un carrusel propio.
  */
 export function EpisodeDetail({
   content,
@@ -110,6 +111,7 @@ export function EpisodeDetail({
     sentinelId,
   } = useRecommendationMasonry(content.id, EPISODE_RATIO, {
     fullWidthContent: true,
+    scope: 'channel',
   })
 
   /**

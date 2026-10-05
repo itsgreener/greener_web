@@ -102,10 +102,11 @@ export const CONTENT_BLOCK_TEXT_GAP_PX = 16
  * contenido — si el ancho natural supera ese tope, se recorta la ALTURA
  * renderizada (nunca el ratio, que se respeta siempre).
  *
- * Con `textReserve` (tipo A, texto limitado a una columna — 2 oct 2026) el
- * tope pasa a ser el MENOR entre ese 83% y «ancho útil − texto − hueco»:
- * así el texto siempre dispone, como mínimo, de su ancho completo y nunca
- * queda aplastado. Sin `textReserve` el resultado es el de siempre.
+ * Con `textReserve` (tipo A) el tope pasa a ser el MENOR entre ese 83% y
+ * «ancho útil − ancho mínimo de texto − hueco». La columna indicada aquí
+ * es un MÍNIMO, no un máximo: si la imagen natural es más estrecha, todo el
+ * espacio sobrante se entrega al texto. Sin `textReserve` el resultado es
+ * el de siempre.
  */
 export function contentBlockImageDimensions(
   ratio: PinRatioValue,
@@ -157,9 +158,10 @@ export interface ContentBlockGeometryInput {
   totalColumns: number
   contentColumns: number
   /**
-   * Tipo A (tool / insight / other): el texto ocupa UNA columna de la
-   * retícula, con ancho fijo, y la imagen cede el espacio que haga falta
-   * para garantizarlo. Casos y episodios (tipo B) no lo activan.
+   * Tipo A (tool / insight / other): el texto debe conservar COMO MÍNIMO
+   * una columna de la retícula. Si la imagen deja más espacio libre dentro
+   * del bloque reservado, el texto ocupa todo ese resto. Casos y episodios
+   * (tipo B) no lo activan.
    */
   textColumn?: boolean
 }
@@ -169,8 +171,9 @@ export interface ContentBlockGeometry {
   imageHeight: number
   reservedWidth: number
   /**
-   * Ancho de una columna de la retícula, a aplicar como tope del texto.
-   * 0 = no aplica (sin medir, tipo B, o móvil).
+   * Ancho REAL disponible para el texto dentro del bloque reservado.
+   * En tipo A nunca será menor que una columna; puede ser mayor cuando la
+   * imagen natural deje espacio. 0 = no aplica (sin medir, tipo B, o móvil).
    */
   textColumnWidth: number
 }
@@ -184,7 +187,7 @@ const EMPTY_GEOMETRY: ContentBlockGeometry = {
 
 /**
  * Geometría completa del bloque de contenido de una página de detalle:
- * ancho reservado, imagen y (tipo A) ancho de la columna de texto. Es la
+ * ancho reservado, imagen y (tipo A) ancho real restante para el texto. Es la
  * fórmula que antes vivía dentro de `useRecommendationMasonry`, sacada al
  * dominio para poder probarla sin React.
  *
@@ -229,10 +232,24 @@ export function computeContentBlockGeometry(
       : undefined,
   )
 
+  // El requisito de diseño es "nunca menos de una columna", no
+  // "exactamente una columna". `contentBlockImageDimensions` ya ha
+  // garantizado el mínimo reservando `columnWidth`; ahora entregamos al
+  // texto TODO el espacio que realmente queda entre la imagen y el borde
+  // derecho del bloque. Así, por ejemplo, un 1:1 que deja casi dos columnas
+  // libres usa ambas, y el CTA queda en la esquina inferior derecha REAL de
+  // la caja de texto en vez de adelantarse una columna.
+  const textWidth = textColumn
+    ? Math.max(
+        columnWidth,
+        reservedWidth - image.width - CONTENT_BLOCK_TEXT_GAP_PX,
+      )
+    : 0
+
   return {
     imageWidth: image.width,
     imageHeight: image.height,
     reservedWidth,
-    textColumnWidth: textColumn ? columnWidth : 0,
+    textColumnWidth: textWidth,
   }
 }
