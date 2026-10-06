@@ -42,7 +42,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--space-md);
   min-width: 0;
 
   /* El diseño pide que la caja de texto tenga COMO MÍNIMO una columna,
@@ -64,7 +64,8 @@
    ~200 caracteres, aviso blando en el ABM) y el line-clamp: 3 cortaba
    con elipsis frases legítimas. Solo se limita la medida (70ch). */
 .title {
-  font-size: 1.75rem;
+  font-weight: bold;
+  margin-top: var(--space-md);
   max-width: 40ch;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -89,6 +90,8 @@
   padding: 0.5rem 1.5rem;
   margin-top: auto;
   margin-left: auto;
+  margin-bottom: var(--space-md);
+  margin-right: var(--space-md);
   border-radius: var(--radius-cta);
   background: var(--color-cta);
   color: var(--color-cta-text);

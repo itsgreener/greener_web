@@ -21,7 +21,10 @@
    (globals.css). Tool/insight/other no usan este margen. */
 .contentBlock {
   display: flex;
-  align-items: flex-start;
+  /* stretch: la columna de texto mide lo mismo que el embed, así el CTA
+     (margin-top: auto) queda abajo a la derecha, a la altura del borde
+     inferior del vídeo. */
+  align-items: stretch;
   gap: var(--space-lg);
   flex-wrap: wrap;
   margin-bottom: var(--detail-block-gap);
@@ -101,33 +104,65 @@
   outline-offset: 3px;
 }
 
+/* Columna de texto (diseño del 5 oct 2026). Dos grupos: .heading (tipo de
+   episodio + título) y .details (highlight + cuerpo), con un hueco entre
+   grupos algo mayor que el interior de cada uno; el CTA cierra la columna
+   abajo a la derecha. Los dos huecos son variables locales para ajustarlos
+   en un solo sitio.
+   `container-type: inline-size` convierte a esta columna en contenedor: el
+   título se dimensiona con `cqw` (% del ANCHO DE LA COLUMNA, no de la
+   ventana), porque esa columna es la que sobra junto al embed y varía
+   mucho; un título enorme en una columna estrecha se partiría palabra a
+   palabra. */
 .text {
+  --episode-gap-inner: var(--space-md);
+  --episode-gap-groups: calc(var(--space-sm) + var(--space-lg));
+
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--episode-gap-groups);
   flex: 1 1 240px;
   min-width: 0;
 }
 
+.heading,
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--episode-gap-inner);
+}
+
+/* Tipo de episodio: en negrita (Helvetica Neue 700, existe de verdad). */
 .kind {
   font-size: 0.85rem;
-  opacity: 0.7;
+  font-weight: 700;
 }
 
-/* Ver comentario equivalente en CaseDetail.module.css — mismos límites
-   (área "límites de caracteres", textLimits.ts), mismo mecanismo. */
+/* Título: Kinder (clase global text-display, igual que en caso). Kinder
+   solo existe en peso 400 y text-display ya impide la negrita sintética,
+   así que el título destaca por TAMAÑO, no por peso. Hasta 4 líneas (antes
+   2): con este cuerpo, un título largo del límite blando (80 caracteres)
+   necesita más, y ya no protege a nadie de un solape — el bloque va en
+   flujo y crece con su contenido. */
 .title {
-  font-size: 1.75rem;
-  max-width: 40ch;
+  font-size: 2rem; /* respaldo si el navegador no soporta cqw */
+  font-size: clamp(2rem, 16cqw, 3.75rem);
+  line-height: 1.05;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
+/* Highlight: en negrita. Ver comentario equivalente en
+   CaseDetail.module.css — mismos límites (área "límites de caracteres",
+   textLimits.ts), mismo mecanismo. */
 .highlight {
   font-size: 1.1rem;
+  font-weight: 700;
   opacity: 0.85;
   max-width: 55ch;
   display: -webkit-box;
@@ -145,6 +180,38 @@
   -webkit-line-clamp: 8;
   line-clamp: 8;
   overflow: hidden;
+}
+
+/* Segundo CTA «Watch more» → episodio en su plataforma. Mismo aspecto que
+   el CTA de tool/insight (ToolInsightDetail.module.css .cta): medidas de
+   diseño de 74×42 px sobre base de 16 px, abajo a la derecha de la columna
+   (margin-top/left: auto). */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.625rem;
+  min-height: 2.625rem;
+  padding: 0.5rem 1.5rem;
+  margin-top: auto;
+  margin-left: auto;
+  margin-bottom: var(--space-md);
+  margin-right: var(--space-md);
+  border-radius: var(--radius-cta);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-cta);
+    outline-offset: 3px;
+  }
 }
 
 .sentinel {

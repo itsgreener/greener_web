@@ -1,6 +1,10 @@
 'use client'
 
 import { episodeKindLabel } from '@/modules/content/domain/episodeLabels'
+import {
+  EPISODE_CTA_LABEL,
+  episodeExternalUrl,
+} from '@/modules/content/domain/episodeLinks'
 import { useState } from 'react'
 import Link from 'next/link'
 
@@ -192,12 +196,38 @@ export function EpisodeDetail({
         </div>
 
         <div className={styles.text}>
-          <p className={styles.kind}>{episodeKindLabel(episode.episodeKind)}</p>
-          <h1 className={styles.title}>{content.title}</h1>
-          {content.highlight && (
-            <p className={styles.highlight}>{content.highlight}</p>
+          {/* Dos grupos (diseño, 5 oct 2026): arriba tipo de episodio y
+              título; debajo highlight y cuerpo, algo más separados entre
+              sí que los elementos de cada grupo. El CTA va al final,
+              abajo a la derecha de la columna. */}
+          <div className={styles.heading}>
+            <p className={styles.kind}>
+              {episodeKindLabel(episode.episodeKind)}
+            </p>
+            <h1 className={`${styles.title} text-display`}>{content.title}</h1>
+          </div>
+
+          {(content.highlight || content.body) && (
+            <div className={styles.details}>
+              {content.highlight && (
+                <p className={styles.highlight}>{content.highlight}</p>
+              )}
+              {content.body && <p className={styles.body}>{content.body}</p>}
+            </div>
           )}
-          {content.body && <p className={styles.body}>{content.body}</p>}
+
+          {/* Segundo CTA (spec §1/§7, hasta hoy sin implementar): lleva al
+              episodio en su plataforma. Enlace externo en pestaña nueva;
+              no carga nada de terceros en esta página. */}
+          <a
+            href={episodeExternalUrl(episode.provider, episode.embedId)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={styles.cta}
+            aria-label={`${EPISODE_CTA_LABEL} on ${provider} (opens in a new tab)`}
+          >
+            {EPISODE_CTA_LABEL}
+          </a>
         </div>
       </div>
 

@@ -169,7 +169,7 @@ export function ToolInsightDetail({
                 : undefined
             }
           >
-            <h1 className={styles.title}>{content.title}</h1>
+            <p className={styles.title}>{content.title}</p>
             {content.summary && (
               <p className={styles.summary}>{content.summary}</p>
             )}
