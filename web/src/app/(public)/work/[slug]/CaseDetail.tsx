@@ -62,7 +62,6 @@ export function CaseDetail({
     containerRef,
     contentBlockImageWidth,
     contentBlockImageHeight,
-    contentBlockReservedWidth,
     totalHeight,
     positioned,
     isLoading,
@@ -77,10 +76,7 @@ export function CaseDetail({
 
   return (
     <article className={styles.article}>
-      <div
-        className={styles.contentBlock}
-        style={{ width: contentBlockReservedWidth || '100%' }}
-      >
+      <div className={styles.contentBlock}>
         {carousel.length > 0 && (
           <div
             className={styles.carousel}

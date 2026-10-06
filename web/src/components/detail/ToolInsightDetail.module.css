@@ -64,7 +64,7 @@
    ~200 caracteres, aviso blando en el ABM) y el line-clamp: 3 cortaba
    con elipsis frases legítimas. Solo se limita la medida (70ch). */
 .title {
-  font-weight: bold;
+  font-size: 1rem;
   margin-top: var(--space-md);
   max-width: 40ch;
   display: -webkit-box;

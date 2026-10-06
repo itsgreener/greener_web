@@ -105,7 +105,6 @@ export function EpisodeDetail({
     containerRef,
     contentBlockImageWidth,
     contentBlockImageHeight,
-    contentBlockReservedWidth,
     totalHeight,
     positioned,
     isLoading,
@@ -146,10 +145,7 @@ export function EpisodeDetail({
 
   return (
     <article className={styles.article}>
-      <div
-        className={styles.contentBlock}
-        style={{ width: contentBlockReservedWidth || '100%' }}
-      >
+      <div className={styles.contentBlock}>
         <div
           className={styles.embedWrapper}
           style={{

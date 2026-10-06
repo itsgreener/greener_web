@@ -121,4 +121,11 @@
 
 .content {
   padding: var(--space-md);
+  /* Un hijo de grid con pista 1fr es minmax(auto, 1fr): no baja de su ancho
+     mínimo de contenido. Sin esto, cualquier hijo en flujo con un ancho
+     rígido (el vídeo/carrusel de caso y episodio, medido por JS en píxeles)
+     impedía que la columna se encogiera al aparecer la barra de scroll al
+     cargar las recomendaciones; el ancho medido se quedaba viejo y las
+     tarjetas del masonry se salían hacia el padding derecho (6 oct 2026). */
+  min-width: 0;
 }

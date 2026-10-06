@@ -43,6 +43,8 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
   }
 }
 
+// Desde el 6 oct 2026 (ajuste de diseño de Greener) el título de la ficha es un
+// <p>, no un <h1>: los tests lo buscan por texto, no por rol heading.
 describe('ToolInsightDetail — prueba de humo', () => {
   beforeEach(() => {
     // Mismo stub que Feed.smoke.test.tsx: ResizeObserver no existe en
@@ -103,7 +105,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+    expect(screen.getByText('Mi tool')).toBeInTheDocument()
     expect(screen.getByText('Resumen de la tool')).toBeInTheDocument()
 
     const cta = screen.getByRole('link', { name: 'Use' })
@@ -146,7 +148,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
     // (1200 − 5 × 12) / 6 = 190 px por columna.
     render(<ToolInsightDetail content={BASE_CONTENT} />)
 
-    const text = screen.getByRole('heading', { name: 'Mi tool' }).parentElement
+    const text = screen.getByText('Mi tool').parentElement
     await waitFor(() =>
       expect(text?.style.getPropertyValue('--text-column-width')).toBe('190px'),
     )
@@ -204,7 +206,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
       />,
     )
 
-    expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+    expect(screen.getByText('Mi tool')).toBeInTheDocument()
   })
 
   it('sin ctaLabel/appHref (contenido libre, /variety/[slug]), no pinta ningún CTA', () => {
@@ -257,7 +259,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
 
     // No revienta al montar ni al calcular el layout — sigue mostrando
     // el título y, con el tiempo, las recomendaciones.
-    expect(screen.getByRole('heading', { name: 'Mi tool' })).toBeInTheDocument()
+    expect(screen.getByText('Mi tool')).toBeInTheDocument()
     await waitFor(() => {
       expect(screen.getAllByText(/^Recomendación/).length).toBeGreaterThan(0)
     })

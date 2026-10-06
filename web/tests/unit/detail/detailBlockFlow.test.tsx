@@ -75,7 +75,9 @@ function css(path: string): string {
 
 // Cuerpo de la regla `.contentBlock { … }` (la primera del fichero).
 function contentBlockRule(source: string): string {
-  const match = source.match(/\.contentBlock\s*\{([^}]*)\}/)
+  // Sin comentarios: pueden contener llaves y cortar la regla antes de tiempo.
+  const clean = source.replace(/\/\*[\s\S]*?\*\//g, '')
+  const match = clean.match(/\.contentBlock\s*\{([^}]*)\}/)
 
   expect(match).not.toBeNull()
 
@@ -244,5 +246,57 @@ describe('detalle tipo A (tool): se queda como estaba', () => {
     expect(rule).toMatch(/position:\s*absolute/)
     expect(rule).not.toMatch(/--detail-block-gap/)
     expect(rule).not.toMatch(/margin-bottom/)
+  })
+})
+
+describe('margen derecho del masonry en caso y episodio (6 oct 2026)', () => {
+  // Bug real (reproducido en Chromium): el bloque de caso/episodio, ya en
+  // flujo, llevaba `style={{ width: <px medidos por JS> }}`. Ese ancho fijaba
+  // el ancho mínimo de contenido de la columna del Shell (pista 1fr); al
+  // aparecer la barra de scroll al cargar las recomendaciones (−15 px) la
+  // columna no podía encogerse, el lienzo seguía midiendo el ancho viejo y
+  // las tarjetas se salían hacia el padding derecho (1 px de margen en vez
+  // de 16, y scroll horizontal). La tool no lo sufría: su bloque va en
+  // absoluto. Estos tests fijan las dos piezas del arreglo; el
+  // comportamiento de layout real solo se puede comprobar en un navegador.
+
+  it.each([
+    [
+      'caso',
+      () => (
+        <CaseDetail content={content('case')} caseDetail={null} carousel={[]} />
+      ),
+    ],
+    [
+      'episodio',
+      () => <EpisodeDetail content={content('episode')} episode={EPISODE} />,
+    ],
+  ])(
+    '%s: el bloque NO lleva un ancho en píxeles inline (no fija el ancho mínimo de la columna)',
+    (_name, view) => {
+      const { container } = render(view())
+
+      const { block } = parts(container)
+
+      expect(block.getAttribute('style') ?? '').not.toMatch(/width/)
+    },
+  )
+
+  it.each([
+    'src/app/(public)/work/[slug]/CaseDetail.module.css',
+    'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+  ])('%s: .contentBlock mide el 100 %% del contenedor por CSS', (path) => {
+    expect(contentBlockRule(css(path))).toMatch(/(^|[\s;])width:\s*100%/)
+  })
+
+  it('el Shell deja que su columna 1fr se encoja: .content lleva min-width: 0', () => {
+    const shell = css('src/components/shell/Shell/Shell.module.css').replace(
+      /\/\*[\s\S]*?\*\//g,
+      '',
+    )
+    const rule = shell.match(/\.content\s*\{([^}]*)\}/)
+
+    expect(rule).not.toBeNull()
+    expect(rule![1]).toMatch(/min-width:\s*0/)
   })
 })

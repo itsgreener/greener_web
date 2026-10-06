@@ -20,6 +20,15 @@
    .article (24 px). Un único token para caso y episodio: --detail-block-gap
    (globals.css). Tool/insight/other no usan este margen. */
 .contentBlock {
+  /* Ancho por CSS, NO en píxeles desde JS: este bloque está EN FLUJO y un
+     width en px medido por el hook (antes `style={{ width: reservedWidth }}`)
+     fijaba el ancho mínimo de contenido de toda la columna. Con la barra de
+     scroll apareciendo al cargar las recomendaciones (−15 px), la pista 1fr
+     del grid de Shell no podía encogerse, `main` se quedaba ancho, el lienzo
+     seguía midiendo el ancho viejo y las tarjetas se salían hacia el padding
+     derecho. En tipo B el ancho reservado es siempre el 100 % del
+     contenedor, así que 100 % es exacto. */
+  width: 100%;
   display: flex;
   /* stretch: la columna de texto mide lo mismo que el embed, así el CTA
      (margin-top: auto) queda abajo a la derecha, a la altura del borde
@@ -165,11 +174,6 @@
   font-weight: 700;
   opacity: 0.85;
   max-width: 55ch;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
 }
 
 .body {

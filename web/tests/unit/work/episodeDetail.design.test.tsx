@@ -52,14 +52,17 @@ function episode(
 }
 
 function css(): string {
-  // Normalizado a LF: el repo puede venir con CRLF (Windows).
+  // Normalizado a LF (el repo puede venir con CRLF) y sin comentarios: un
+  // comentario con llaves rompería la búsqueda de la regla.
   return readFileSync(
     join(
       process.cwd(),
       'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
     ),
     'utf8',
-  ).replace(/\r\n/g, '\n')
+  )
+    .replace(/\r\n/g, '\n')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
 }
 
 // Cuerpo de la regla `.selector { … }` de un fichero CSS.
@@ -244,10 +247,11 @@ describe('EpisodeDetail — grupos de texto y tipografía', () => {
     const source = css()
     const text = rule(source, '.text')
 
-    // Dentro de un grupo: 4 px (--space-xs); entre grupos: 8 + 4 = 12 px.
-    expect(text).toMatch(/--episode-gap-inner:\s*var\(--space-xs\)/)
+    // Dentro de un grupo: 16 px (--space-md); entre grupos: 8 + 24 = 32 px
+    // (ajuste de diseño de Greener, 6 oct 2026; antes 4 y 12 px).
+    expect(text).toMatch(/--episode-gap-inner:\s*var\(--space-md\)/)
     expect(text).toMatch(
-      /--episode-gap-groups:\s*calc\(var\(--space-sm\)\s*\+\s*var\(--space-xs\)\)/,
+      /--episode-gap-groups:\s*calc\(var\(--space-sm\)\s*\+\s*var\(--space-lg\)\)/,
     )
     expect(text).toMatch(/gap:\s*var\(--episode-gap-groups\)/)
     expect(rule(source, '.heading,\n.details')).toMatch(
