@@ -300,3 +300,22 @@ describe('margen derecho del masonry en caso y episodio (6 oct 2026)', () => {
     expect(rule![1]).toMatch(/min-width:\s*0/)
   })
 })
+
+describe('el highlight no se recorta (6 oct 2026)', () => {
+  // El highlight es la frase más importante de la ficha: no puede quedar
+  // capado. Con line-clamp: 2 se cortaba incluso con textos muy por debajo
+  // del límite blando de 110 caracteres, porque la columna de texto junto al
+  // embed mide solo ~250-350 px y 50-60 caracteres ya ocupan tres líneas.
+  it.each([
+    'src/app/(public)/work/[slug]/CaseDetail.module.css',
+    'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+  ])('%s: .highlight no lleva line-clamp ni overflow: hidden', (path) => {
+    const source = css(path).replace(/\/\*[\s\S]*?\*\//g, '')
+    const rule = source.match(/\.highlight\s*\{([^}]*)\}/)
+
+    expect(rule).not.toBeNull()
+    expect(rule![1]).not.toMatch(/line-clamp/)
+    expect(rule![1]).not.toMatch(/overflow:\s*hidden/)
+    expect(rule![1]).not.toMatch(/-webkit-box/)
+  })
+})

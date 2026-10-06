@@ -43,8 +43,6 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
   }
 }
 
-// Desde el 6 oct 2026 (ajuste de diseño de Greener) el título de la ficha es un
-// <p>, no un <h1>: los tests lo buscan por texto, no por rol heading.
 describe('ToolInsightDetail — prueba de humo', () => {
   beforeEach(() => {
     // Mismo stub que Feed.smoke.test.tsx: ResizeObserver no existe en
@@ -195,6 +193,15 @@ describe('ToolInsightDetail — prueba de humo', () => {
     )
 
     expect(screen.getByAltText('Mi tool')).toBeInTheDocument()
+  })
+
+  it('el título es el <h1> de la página (accesibilidad y SEO): único y de nivel 1', () => {
+    render(<ToolInsightDetail content={BASE_CONTENT} />)
+
+    const headings = screen.getAllByRole('heading', { level: 1 })
+
+    expect(headings).toHaveLength(1)
+    expect(headings[0]).toHaveTextContent('Mi tool')
   })
 
   it('sin summary, no revienta y simplemente lo omite', () => {
