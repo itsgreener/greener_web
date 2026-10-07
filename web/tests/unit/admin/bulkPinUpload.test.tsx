@@ -434,3 +434,167 @@ describe('BulkPinUpload — quitar un archivo del lote antes de subir (7 oct 202
     expect(screen.queryByRole('columnheader', { name: 'Orden' })).toBeNull()
   })
 })
+
+describe('BulkPinUpload — ratio leído del nombre del archivo', () => {
+  function ratioSelectOf(filename: string) {
+    const row = screen.getByText(filename).closest('tr') as HTMLElement
+
+    return row.querySelectorAll('select')[0] as HTMLSelectElement
+  }
+
+  it('aplica la proporción del nombre y lo indica en la fila', () => {
+    renderBulk()
+
+    selectFiles([image('flap-4x5-img.webp'), image('glitch-916-video.webp')])
+
+    expect(ratioSelectOf('flap-4x5-img.webp').value).toBe('4:5')
+    expect(ratioSelectOf('glitch-916-video.webp').value).toBe('9:16')
+    expect(screen.getAllByText('detectado del nombre')).toHaveLength(2)
+  })
+
+  it('si el nombre no trae proporción legible no aplica nada: queda el ratio por defecto', () => {
+    renderBulk()
+
+    fireEvent.change(screen.getByLabelText('Ratio por defecto'), {
+      target: { value: '4:3' },
+    })
+    selectFiles([image('IMG_2034.webp'), image('flap-5x7-img.webp')])
+
+    expect(ratioSelectOf('IMG_2034.webp').value).toBe('4:3')
+    expect(ratioSelectOf('flap-5x7-img.webp').value).toBe('4:3')
+    expect(screen.queryByText('detectado del nombre')).toBeNull()
+  })
+
+  it('el ratio del nombre gana al valor por defecto aunque este cambie después', () => {
+    renderBulk()
+
+    selectFiles([image('flap-2x3-img.webp'), image('suelto.webp')])
+    fireEvent.change(screen.getByLabelText('Ratio por defecto'), {
+      target: { value: '16:9' },
+    })
+
+    expect(ratioSelectOf('flap-2x3-img.webp').value).toBe('2:3')
+    expect(ratioSelectOf('suelto.webp').value).toBe('16:9')
+  })
+
+  it('el CSV manda sobre el nombre del archivo', async () => {
+    renderBulk()
+
+    const csv = new File(
+      ['filename,ratio\nflap-4x5-img.webp,1:1\n'],
+      'plantilla.csv',
+      { type: 'text/csv' },
+    )
+
+    selectFiles([image('flap-4x5-img.webp')])
+    fireEvent.change(document.getElementById('bulk-csv') as HTMLInputElement, {
+      target: { files: [csv] },
+    })
+
+    await waitFor(() =>
+      expect(ratioSelectOf('flap-4x5-img.webp').value).toBe('1:1'),
+    )
+    expect(screen.queryByText('detectado del nombre')).toBeNull()
+  })
+
+  it('el admin puede corregirlo a mano y se sube el valor corregido', async () => {
+    renderBulk()
+
+    selectFiles([image('flap-4x5-img.webp')])
+    fireEvent.change(ratioSelectOf('flap-4x5-img.webp'), {
+      target: { value: '3:4' },
+    })
+
+    expect(screen.queryByText('detectado del nombre')).toBeNull()
+
+    clickUpload(1)
+
+    await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+    expect(createPinWithImageAction).toHaveBeenCalledWith(
+      expect.objectContaining({ ratio: '3:4' }),
+    )
+  })
+
+  it('se sube con la proporción leída del nombre', async () => {
+    renderBulk()
+
+    selectFiles([image('flap-169-img.webp')])
+    clickUpload(1)
+
+    await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+    expect(createPinWithImageAction).toHaveBeenCalledWith(
+      expect.objectContaining({ ratio: '16:9' }),
+    )
+  })
+})
+
+describe('BulkPinUpload — aviso si el ratio no encaja con la imagen subida', () => {
+  it('avisa cuando el nombre indica un ratio distinto al real, sin bloquear', async () => {
+    renderBulk()
+
+    uploadImageToCloudinary.mockResolvedValue({
+      public_id: 'greener/content/foto',
+      format: 'webp',
+      width: 1080,
+      height: 1080,
+      bytes: 1024,
+    })
+
+    selectFiles([image('flap-4x5-img.webp')])
+    clickUpload(1)
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/Hecho\. Aviso: El nombre del archivo indica 4:5/),
+      ).toBeInTheDocument(),
+    )
+    expect(createPinWithImageAction).toHaveBeenCalledWith(
+      expect.objectContaining({ ratio: '4:5' }),
+    )
+  })
+
+  it('no avisa cuando el nombre y la imagen coinciden', async () => {
+    renderBulk()
+
+    selectFiles([image('flap-1x1-img.webp')])
+    clickUpload(1)
+
+    await waitFor(() => expect(screen.getByText('Hecho')).toBeInTheDocument())
+    expect(screen.queryByText(/Aviso/)).toBeNull()
+  })
+
+  it('con ratio por defecto o del CSV usa el aviso genérico del pin', async () => {
+    renderBulk()
+
+    fireEvent.change(screen.getByLabelText('Ratio por defecto'), {
+      target: { value: '4:5' },
+    })
+
+    selectFiles([image('suelto.webp')])
+    clickUpload(1)
+
+    await waitFor(() =>
+      expect(screen.getByText(/no es el del pin \(4:5\)/)).toBeInTheDocument(),
+    )
+  })
+
+  it('funciona igual en un contenido de tipo other', async () => {
+    renderBulk('other')
+
+    selectFiles([image('banner-916-img.webp')])
+
+    const row = screen.getByText('banner-916-img.webp').closest('tr')!
+
+    expect((row.querySelectorAll('select')[0] as HTMLSelectElement).value).toBe(
+      '9:16',
+    )
+
+    clickUpload(1)
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(/El nombre del archivo indica 9:16/),
+      ).toBeInTheDocument(),
+    )
+  })
+})

@@ -17,17 +17,16 @@ import {
 } from '@/modules/media/domain/mediaLimits'
 
 import {
-  closestClosedRatio,
-  isPinRatioValue,
-  mediaMatchesRatio,
-} from '@/modules/media/domain/closestRatio'
-
-import {
   getSignedImageUpload,
   getSignedVideoUpload,
   uploadImageToCloudinary,
   uploadVideoToCloudinary,
 } from '@/modules/media/infrastructure/cloudinaryUpload'
+
+import {
+  ratioFromFilename,
+  ratioMismatchMessage,
+} from '@/modules/media/domain/ratioFromFilename'
 
 import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocalVideoDuration'
 
@@ -55,6 +54,9 @@ type Row = {
   kind: RowKind
   label: string
   ratio: string
+  // De dónde sale el ratio: el CSV, el nombre del archivo
+  // (`[nombre]-[proporción]-[tipo].ext`), el valor por defecto o el admin.
+  ratioSource: 'csv' | 'filename' | 'default' | 'manual'
   language: string
   alt: string
   status: RowStatus
@@ -87,12 +89,25 @@ function buildRow(
   csvRow: PinCsvRow | undefined,
   defaults: { ratio: string; language: string },
 ): Row {
+  // Prioridad: CSV > nombre del archivo > ratio por defecto. Si el nombre no
+  // trae una proporción legible no se aplica nada (queda el valor por defecto).
+  const filenameRatio = ratioFromFilename(file.name)
+
+  const ratio = csvRow?.ratio || filenameRatio || defaults.ratio
+
+  const ratioSource: Row['ratioSource'] = csvRow?.ratio
+    ? 'csv'
+    : filenameRatio
+      ? 'filename'
+      : 'default'
+
   return {
     key: `${file.name}-${index}`,
     file,
     kind: detectKind(file),
     label: csvRow?.label || labelFromFilename(file.name),
-    ratio: csvRow?.ratio || defaults.ratio,
+    ratio,
+    ratioSource,
     language: csvRow?.language || defaults.language,
     alt: csvRow?.alt || labelFromFilename(file.name),
     status: 'pending',
@@ -120,10 +135,16 @@ export default function BulkPinUpload({
   const [uploading, setUploading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
-  function regenerateRows(nextFiles: File[], nextCsvRows: PinCsvRow[]) {
+  function regenerateRows(
+    nextFiles: File[],
+    nextCsvRows: PinCsvRow[],
+    // El valor recién elegido: el estado de React aún no se ha actualizado
+    // cuando se llama desde el onChange de los selects por defecto.
+    overrides: Partial<{ ratio: string; language: string }> = {},
+  ) {
     const defaults = {
-      ratio: defaultRatio,
-      language: defaultLanguage,
+      ratio: overrides.ratio ?? defaultRatio,
+      language: overrides.language ?? defaultLanguage,
     }
 
     setRows(
@@ -226,7 +247,16 @@ export default function BulkPinUpload({
 
     if (!result.ok) throw new Error(result.error)
 
-    return undefined
+    // No se bloquea (el pin ya está creado): se avisa de que se recortará
+    // si el ratio no encaja con la imagen real (p. ej. un nombre mal puesto).
+    return (
+      ratioMismatchMessage(
+        row.ratio,
+        uploaded.width,
+        uploaded.height,
+        row.ratioSource === 'filename' ? 'filename' : 'other',
+      ) ?? undefined
+    )
   }
 
   // Sube un vídeo y crea su pin (carga masiva con vídeo, 5 oct 2026). Los
@@ -308,16 +338,14 @@ export default function BulkPinUpload({
 
     // Los vídeos deben venir en uno de los 7 ratios: no se bloquea (ya está
     // guardado), se avisa de que se recortará si no encaja con el del pin.
-    if (
-      isPinRatioValue(row.ratio) &&
-      !mediaMatchesRatio(uploaded.width, uploaded.height, row.ratio)
-    ) {
-      const suggested = closestClosedRatio(uploaded.width, uploaded.height)
-
-      return `Su ratio real (${uploaded.width}×${uploaded.height}, parecido a ${suggested}) no es el del pin (${row.ratio}) y se verá recortado.`
-    }
-
-    return undefined
+    return (
+      ratioMismatchMessage(
+        row.ratio,
+        uploaded.width,
+        uploaded.height,
+        row.ratioSource === 'filename' ? 'filename' : 'other',
+      ) ?? undefined
+    )
   }
 
   async function handleUploadAll() {
@@ -432,7 +460,7 @@ export default function BulkPinUpload({
           value={defaultRatio}
           onChange={(event) => {
             setDefaultRatio(event.target.value)
-            regenerateRows(files, csvRows)
+            regenerateRows(files, csvRows, { ratio: event.target.value })
           }}
         >
           {RATIOS.map((ratio) => (
@@ -441,6 +469,10 @@ export default function BulkPinUpload({
             </option>
           ))}
         </select>
+        <small>
+          Solo se usa si el CSV y el nombre del archivo no indican proporción
+          (nombre esperado: nombre-1x1-tipo.jpg).
+        </small>
 
         <label htmlFor="bulk-default-language">Idioma por defecto</label>
         <select
@@ -448,7 +480,7 @@ export default function BulkPinUpload({
           value={defaultLanguage}
           onChange={(event) => {
             setDefaultLanguage(event.target.value)
-            regenerateRows(files, csvRows)
+            regenerateRows(files, csvRows, { language: event.target.value })
           }}
         >
           {LANGUAGES.map((language) => (
@@ -511,7 +543,10 @@ export default function BulkPinUpload({
                     value={row.ratio}
                     disabled={uploading}
                     onChange={(event) =>
-                      updateRow(row.key, { ratio: event.target.value })
+                      updateRow(row.key, {
+                        ratio: event.target.value,
+                        ratioSource: 'manual',
+                      })
                     }
                   >
                     {RATIOS.map((ratio) => (
@@ -520,6 +555,9 @@ export default function BulkPinUpload({
                       </option>
                     ))}
                   </select>
+                  {row.ratioSource === 'filename' && (
+                    <small> detectado del nombre</small>
+                  )}
                 </td>
 
                 <td>

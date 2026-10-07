@@ -6,19 +6,16 @@ import { episodeSchema } from '@/modules/content/domain/episodeSchema'
 
 import { upsertEpisode } from '@/modules/content/application/upsertEpisode'
 
+import { getEpisode } from '@/modules/content/application/getEpisode'
+
+import { getContent } from '@/modules/content/application/getContent'
+
 export type EpisodeActionState = {
   fieldErrors?: {
     contentId?: string[]
     program?: string[]
-    number?: string[]
-    guest?: string[]
-    role?: string[]
-    company?: string[]
-    episodeDate?: string[]
-    durationSeconds?: string[]
     provider?: string[]
     embedId?: string[]
-    language?: string[]
     episodeKind?: string[]
   }
 
@@ -26,56 +23,62 @@ export type EpisodeActionState = {
   success?: boolean
 }
 
-function nullableText(value: FormDataEntryValue | null): string | null {
-  if (typeof value !== 'string') {
-    return null
-  }
-
-  const trimmed = value.trim()
-
-  if (!trimmed) {
-    return null
-  }
-
-  return trimmed
-}
-
-function nullableNumber(value: FormDataEntryValue | null): number | null {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return null
-  }
-
-  const parsed = Number(value)
-
-  return Number.isFinite(parsed) ? parsed : null
-}
-
 export async function saveEpisodeAction(
   _previousState: EpisodeActionState,
   formData: FormData,
 ): Promise<EpisodeActionState> {
+  const contentId = formData.get('contentId')
+
+  // Campos ocultos del formulario (número, invitado, cargo, empresa, fecha,
+  // duración, idioma): no se editan, pero el upsert reemplaza la fila entera,
+  // así que se reenvían tal cual para no borrar nada que ya estuviera en BBDD.
+  let existing = null
+  let defaultLocale = null
+
+  if (typeof contentId === 'string') {
+    try {
+      existing = await getEpisode(contentId)
+
+      if (!existing) {
+        defaultLocale = (await getContent(contentId))?.defaultLocale ?? null
+      }
+    } catch (error) {
+      console.error(error)
+
+      return {
+        formError: 'No se han podido guardar los datos del episodio.',
+      }
+    }
+  }
+
+  if (!existing && !defaultLocale) {
+    return {
+      formError: 'El contenido ya no existe.',
+    }
+  }
+
   const result = episodeSchema.safeParse({
-    contentId: formData.get('contentId'),
+    contentId,
 
     program: formData.get('program'),
 
-    number: nullableNumber(formData.get('number')),
+    number: existing?.number ?? null,
 
-    guest: nullableText(formData.get('guest')),
+    guest: existing?.guest ?? null,
 
-    role: nullableText(formData.get('role')),
+    role: existing?.role ?? null,
 
-    company: nullableText(formData.get('company')),
+    company: existing?.company ?? null,
 
-    episodeDate: nullableText(formData.get('episodeDate')),
+    episodeDate: existing?.episodeDate ?? null,
 
-    durationSeconds: nullableNumber(formData.get('durationSeconds')),
+    durationSeconds: existing?.durationSeconds ?? null,
 
     provider: formData.get('provider'),
 
     embedId: formData.get('embedId'),
 
-    language: formData.get('language'),
+    language: existing?.language ?? defaultLocale,
 
     episodeKind: formData.get('episodeKind'),
   })

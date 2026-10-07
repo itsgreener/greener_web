@@ -275,7 +275,7 @@ Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDurati
 ### 10.1 Qué recibe Claude
 
 1. Los ficheros (por lotes o en zip; no se conoce el límite de subida del chat: empezar por un lote pequeño).
-2. Por fichero: **frase gancho** (obligatoria en pines de tool), **alt** (obligatorio), **idioma** y, si importa, el orden en cola.
+2. Por fichero: **frase gancho** (obligatoria en pines de tool), **alt** (obligatorio) e **idioma**. El orden en cola ya no se indica: el ABM lo asigna solo según llegan los pines (§2.43 del historial).
 3. La política de recorte por defecto y el escalón de vídeo (M por defecto).
 
 ### 10.2 Qué hace
@@ -285,13 +285,29 @@ Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDurati
 3. **Decidir el ratio** como el más cercano de los 7 (`closestClosedRatio`: comparación logarítmica). Si la diferencia con el ratio real supera ~5 % (`mediaMatchesRatio`), **marcar el fichero**: hay que elegir entre recortar y rellenar. En capturas de interfaz un recorte puede cortar contenido, así que **no recortar sin permiso**.
 4. **Elegir el tamaño** por ratio y uso (§5): pin de tool = columna «portada de ficha» en imágenes y escalón M en vídeos.
 5. **Convertir** (Anexo A) y **verificar** el resultado: medidas, fps, ausencia de audio, `faststart`, peso ≤ 15 MB, duración ≤ 15 s (≤ 8 s para que se anime en el feed).
-6. **Entregar** un zip con los ficheros renombrados (minúsculas, guiones, sin espacios), un **informe** antes/después por fichero y las **marcas** de lo que se sale de límites, y un **CSV de carga masiva** con las columnas del ABM: `filename,label,ratio,language,alt,queueOrder` (alias aceptados: `lang`, `queue_order`; el `filename` debe coincidir con el nombre del fichero; sin CSV, el ABM deriva etiqueta y alt del nombre). En casos, episodios e insights la etiqueta no se usa (se deriva del título).
+6. **Entregar** un zip con los ficheros renombrados según la convención de §10.4, un **informe** antes/después por fichero y las **marcas** de lo que se sale de límites, y un **CSV de carga masiva** con las columnas del ABM: `filename,label,ratio,language,alt` (alias aceptado: `lang`; el `filename` debe coincidir con el nombre del fichero; sin CSV, el ABM deriva etiqueta y alt del nombre). En casos, episodios e insights la etiqueta no se usa (se deriva del título).
 
 ### 10.3 Advertencias
 
 1. Recodificar **pierde calidad**: Greener conserva los originales y revisa los resultados, sobre todo el texto pequeño de las grabaciones de pantalla.
 2. Los pesos de los clips de prueba sintéticos de la verificación (de 12,9 a 1,2 MB) **no son representativos** de grabaciones reales.
 3. Si algún día se crea un script reutilizable para esto (por ejemplo `scripts/prepare-media.py`), documéntalo aquí y en `PROGRESO.md`.
+
+### 10.4 Convención de nombres de archivo
+
+Todo archivo que se sube al ABM se nombra así: **`[nombre]-[proporción]-[tipo de medio].ext`**, en minúsculas, con guiones y sin espacios. Ejemplos: `flap-4x5-img.webp`, `glitch-916-video.mp4`, `brand-the-future-11-img.jpg`.
+
+1. **nombre**: la tool, el episodio, el insight, el caso o el contenido al que pertenece el archivo. Puede tener guiones.
+2. **proporción**: una de las 7 cerradas, escrita con `x` (`1x1`, `4x3`, `4x5`, `3x4`, `2x3`, `9x16`, `16x9`) o compacta, sin separador (`11`, `43`, `45`, `34`, `23`, `916`, `169`).
+3. **tipo de medio**: lo que quiera Greener para identificar el archivo (`img`, `video`, `hero`…). El ABM no lo lee; solo ocupa el último bloque para que la proporción quede siempre en el penúltimo.
+
+El ABM lee la proporción del nombre y precarga el ratio de cada archivo en la **carga masiva de pines** y en la **portada de los contenidos de tipo `other`** (`ratioFromFilename.ts`, §2.46 del historial). Reglas:
+
+- La forma compacta solo se lee en el penúltimo bloque; la forma con `x` vale en cualquier posición. Así `caso-11-hero.jpg` se lee como 1:1 y un número suelto del nombre (`2023`, `caso-11.jpg`) no se confunde con una proporción.
+- Si el nombre no trae una proporción legible, o no es una de las 7 cerradas (`5x7`, `21x9`), **no se aplica nada**: queda el ratio por defecto (carga masiva) o la sugerencia por las dimensiones (portada de `other`).
+- Prioridad en la carga masiva: CSV, nombre del archivo, ratio por defecto. El admin puede corregir el ratio a mano antes de subir.
+- **Aviso, nunca bloqueo:** si el ratio no encaja con las dimensiones reales del archivo (tolerancia del 5 %, `mediaMatchesRatio`), el ABM avisa de que se verá recortado y de que probablemente el nombre está mal puesto. En la portada de `other` el aviso sale antes de subir; en la carga masiva, al terminar cada fila.
+- Quien prepara los archivos (§10.2) tiene que **medir antes de nombrar**: el nombre afirma una proporción y el ABM se fía de él.
 
 ## 11. Fórmulas útiles
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
 import { ADMIN_THUMBNAIL_WIDTH } from '@/modules/media/domain/mediaDelivery'
@@ -11,6 +11,11 @@ import {
 } from '@/modules/media/domain/mediaLimits'
 
 import { closestClosedRatio } from '@/modules/media/domain/closestRatio'
+
+import {
+  ratioFromFilename,
+  ratioMismatchMessage,
+} from '@/modules/media/domain/ratioFromFilename'
 
 import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
 
@@ -126,6 +131,30 @@ export default function CoverMediaUpload({
     (typeof pinRatioSchema.options)[number] | ''
   >('')
 
+  // De dónde sale el ratio del <select>: el nombre del archivo
+  // (`[nombre]-[proporción]-[tipo].ext`), sus dimensiones o el admin.
+  const [ratioSource, setRatioSource] = useState<
+    'filename' | 'dimensions' | 'manual' | null
+  >(null)
+
+  const [dimensions, setDimensions] = useState<Dimensions | null>(null)
+
+  // Evita que la lectura de dimensiones de un archivo anterior pise la
+  // selección actual si el admin cambia de archivo rápido.
+  const selectionId = useRef(0)
+
+  // Si el ratio vino del nombre y no encaja con el archivo real, se avisa
+  // ANTES de subir (aquí las dimensiones ya se leen al elegir el archivo).
+  const filenameMismatch =
+    ratioSource === 'filename' && ratio && dimensions
+      ? ratioMismatchMessage(
+          ratio,
+          dimensions.width,
+          dimensions.height,
+          'filename',
+        )
+      : null
+
   async function replaceExistingIfAny() {
     if (!coverMedia) {
       return true
@@ -216,6 +245,8 @@ export default function CoverMediaUpload({
 
       setFile(null)
       setRatio('')
+      setRatioSource(null)
+      setDimensions(null)
 
       window.location.reload()
     } catch (uploadError) {
@@ -349,6 +380,8 @@ export default function CoverMediaUpload({
 
       setFile(null)
       setRatio('')
+      setRatioSource(null)
+      setDimensions(null)
 
       window.location.reload()
     } catch (uploadError) {
@@ -402,6 +435,8 @@ export default function CoverMediaUpload({
               setFile(null)
               setError(null)
               setRatio('')
+              setRatioSource(null)
+              setDimensions(null)
             }}
           >
             <option value="image">Imagen</option>
@@ -422,17 +457,37 @@ export default function CoverMediaUpload({
 
           setError(null)
           setRatio('')
+          setRatioSource(null)
+          setDimensions(null)
+
+          const current = ++selectionId.current
 
           if (!selected) {
             return
+          }
+
+          // El nombre manda si trae una proporción legible; si no, se
+          // sugiere la más parecida a las dimensiones reales.
+          const fromName = ratioFromFilename(selected.name)
+
+          if (fromName) {
+            setRatio(fromName)
+            setRatioSource('filename')
           }
 
           const readDimensions =
             kind === 'video' ? readVideoDimensions : readImageDimensions
 
           readDimensions(selected)
-            .then((dimensions) => {
-              setRatio(closestClosedRatio(dimensions.width, dimensions.height))
+            .then((read) => {
+              if (current !== selectionId.current) return
+
+              setDimensions(read)
+
+              if (!fromName) {
+                setRatio(closestClosedRatio(read.width, read.height))
+                setRatioSource('dimensions')
+              }
             })
             .catch(() => {
               // Sin sugerencia disponible: el admin sigue pudiendo
@@ -454,6 +509,7 @@ export default function CoverMediaUpload({
           setRatio(
             event.target.value as (typeof pinRatioSchema.options)[number],
           )
+          setRatioSource('manual')
         }}
       >
         <option value="">— Selecciona un ratio —</option>
@@ -464,6 +520,10 @@ export default function CoverMediaUpload({
           </option>
         ))}
       </select>
+
+      {ratioSource === 'filename' && <small>detectado del nombre</small>}
+
+      {filenameMismatch && <p>{filenameMismatch}</p>}
 
       <p>
         {kind === 'video'

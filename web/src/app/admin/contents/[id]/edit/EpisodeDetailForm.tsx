@@ -10,8 +10,6 @@ import {
   type Episode,
 } from '@/modules/content/domain/episodeSchema'
 
-import { localeSchema } from '@/modules/content/domain/contentSchema'
-
 import { saveEpisodeAction, type EpisodeActionState } from './episodeActions'
 
 type Props = {
@@ -21,6 +19,12 @@ type Props = {
 
 const initialState: EpisodeActionState = {}
 
+/**
+ * Solo se muestran los campos que la ficha pública, el feed o la analítica
+ * leen de verdad (programa, tipo, proveedor, embed). Número, invitado, cargo,
+ * empresa, fecha, duración e idioma siguen en BBDD pero no se editan aquí:
+ * `saveEpisodeAction` conserva lo que ya hubiera guardado.
+ */
 export default function EpisodeDetailForm({ contentId, episode }: Props) {
   const [state, formAction, pending] = useActionState(
     saveEpisodeAction,
@@ -48,92 +52,6 @@ export default function EpisodeDetailForm({ contentId, episode }: Props) {
 
         {state.fieldErrors?.program?.[0] && (
           <p>{state.fieldErrors.program[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="number">Número de episodio</label>
-
-        <input
-          id="number"
-          name="number"
-          type="number"
-          min={1}
-          defaultValue={episode?.number ?? ''}
-        />
-
-        {state.fieldErrors?.number?.[0] && <p>{state.fieldErrors.number[0]}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="guest">Invitado</label>
-
-        <input
-          id="guest"
-          name="guest"
-          type="text"
-          defaultValue={episode?.guest ?? ''}
-        />
-
-        {state.fieldErrors?.guest?.[0] && <p>{state.fieldErrors.guest[0]}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="role">Cargo del invitado</label>
-
-        <input
-          id="role"
-          name="role"
-          type="text"
-          defaultValue={episode?.role ?? ''}
-        />
-
-        {state.fieldErrors?.role?.[0] && <p>{state.fieldErrors.role[0]}</p>}
-      </div>
-
-      <div>
-        <label htmlFor="company">Empresa del invitado</label>
-
-        <input
-          id="company"
-          name="company"
-          type="text"
-          defaultValue={episode?.company ?? ''}
-        />
-
-        {state.fieldErrors?.company?.[0] && (
-          <p>{state.fieldErrors.company[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="episodeDate">Fecha del episodio</label>
-
-        <input
-          id="episodeDate"
-          name="episodeDate"
-          type="date"
-          defaultValue={episode?.episodeDate ?? ''}
-        />
-
-        {state.fieldErrors?.episodeDate?.[0] && (
-          <p>{state.fieldErrors.episodeDate[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="durationSeconds">Duración (segundos)</label>
-
-        <input
-          id="durationSeconds"
-          name="durationSeconds"
-          type="number"
-          min={1}
-          defaultValue={episode?.durationSeconds ?? ''}
-        />
-
-        {state.fieldErrors?.durationSeconds?.[0] && (
-          <p>{state.fieldErrors.durationSeconds[0]}</p>
         )}
       </div>
 
@@ -171,26 +89,6 @@ export default function EpisodeDetailForm({ contentId, episode }: Props) {
 
         {state.fieldErrors?.embedId?.[0] && (
           <p>{state.fieldErrors.embedId[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="language">Idioma</label>
-
-        <select
-          id="language"
-          name="language"
-          defaultValue={episode?.language ?? localeSchema.options[0]}
-        >
-          {localeSchema.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
-
-        {state.fieldErrors?.language?.[0] && (
-          <p>{state.fieldErrors.language[0]}</p>
         )}
       </div>
 

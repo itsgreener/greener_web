@@ -852,3 +852,27 @@ Tests: bloque de la migración y del ABM en `singleMediaPins.test.ts`, `bulkPinU
 La conversión del 6 oct deformó 23 de los 63 vídeos de tools: sus WebM originales cambian de resolución a mitad de fichero (la grabación se hizo mientras se redimensionaba la ventana) y la conversión fijó el tamaño con el primer fotograma. Se rehicieron cortando por tramos de tamaño constante y quedándose solo con los que encajan con una de las 6 proporciones (aviso nuevo en el Anexo A de `contrato-medios-fase-1.md`: medir fotograma a fotograma antes de convertir).
 
 Se eliminaron además todos los vídeos de 2 s o menos, que Greener no puede usar: `flowbars` 4:3, `halo` 4:5, `lyrics` 3:4, `slabs` 16:9 y `slabs` 3:4. Resultado: 68 vídeos, 45 MB. **Proporciones de tools sin vídeo**: `lyrics` 16:9 y 3:4, `flowbars` 4:3, `halo` 4:5, `slabs` 16:9 y 3:4. Con un único vídeo corto (menos de 3 s): `flap` 4:5, `glitch` 4:3 y `slabs` 4:5. Sin cambios de código.
+
+### 2.45 Formulario de episodio reducido a lo que se usa (7 oct)
+
+Auditoría de los 11 campos de «Datos del episodio»: solo programa, tipo, proveedor e ID del embed los lee algo (ficha, texto del pin en el feed, analítica «Episode Play», embed y enlace «Watch more»). Número, invitado, cargo, empresa, fecha, duración e idioma no los lee ninguna página; `publicEpisodeSource` los dejaba sin leer pensando en un listado de Channel que no existe (`/channel` es un feed de pines).
+
+Se ocultan del ABM, sin tocar la BBDD ni el RPC `upsert_episode`: `saveEpisodeAction` carga el episodio guardado y reenvía esos siete valores tal cual, porque el upsert reemplaza la fila entera y, si no, los pisaría con `null`. En un episodio nuevo los opcionales van a `null` y el idioma (NOT NULL en BBDD) toma el `default_locale` del contenido. Si el contenido ya no existe, la acción avisa. Pendiente: decidir qué hacer con `episode.language` cuando se plantee el multiidioma de la web.
+
+Tests: `tests/unit/admin/episodeActions.test.ts`.
+
+### 2.46 Ratio leído del nombre del archivo en la carga masiva (7 oct)
+
+La carga masiva de pines lee ahora la proporción del nombre del archivo, siguiendo la convención `[nombre]-[proporción]-[tipo de medio].ext` (`ratioFromFilename.ts`). Formas válidas: `1x1`, `4x3`, `4x5`, `3x4`, `2x3`, `9x16`, `16x9` (mayúsculas o `×` también) y la compacta `11`, `43`, `45`, `34`, `23`, `916`, `169`. La compacta solo se acepta en el penúltimo bloque del nombre (la posición de la convención), para que un número del nombre (`caso-11-...`) no se lea como proporción fuera de ahí; la forma con `x` vale en cualquier posición.
+
+Prioridad: CSV, nombre del archivo, ratio por defecto. Si el nombre no trae una proporción legible, o no es una de las 7 cerradas (`5x7`, `21x9`), no se aplica nada y queda el ratio por defecto. La fila indica «detectado del nombre» y el admin puede corregirlo a mano antes de subir. Aplica a imágenes y vídeos, y el aviso de recorte de los vídeos compara con el ratio resultante.
+
+Ampliación del mismo día:
+
+1. **Aviso de proporción** (`ratioMismatchMessage`): tras subir, si el ratio del pin no encaja con las dimensiones reales (tolerancia del 5 %), la fila queda en «Hecho. Aviso: …». Si el ratio vino del nombre, el aviso lo dice («El nombre del archivo indica 4:5, pero mide 1080×1080…»). Ahora también para imágenes, con cualquier origen del ratio (antes solo vídeos). No bloquea: el pin ya está creado.
+2. **Portada de `other`** (`CoverMediaUpload`): lee el nombre igual que la carga masiva y, si trae proporción, la pone en el selector (si no, sigue sugiriendo la de las dimensiones). Como ahí las dimensiones se leen antes de subir, el aviso de desajuste sale antes de subir nada. La carga masiva ya servía para `other`.
+3. **Convención documentada**: no estaba escrita en ningún sitio; añadida en `contrato-medios-fase-1.md` §10.4. De paso, ese contrato aún citaba `queueOrder` en el CSV y el orden en cola como dato de entrada, que ya no existen desde §2.43: corregido.
+
+Arreglo de paso: al cambiar el ratio o el idioma por defecto, las filas se regeneraban con el valor anterior (el estado aún no se había actualizado); ahora usan el recién elegido. Sin migraciones.
+
+Tests: `tests/unit/media/ratioFromFilename.test.ts` y bloque nuevo en `bulkPinUpload.test.tsx`.
