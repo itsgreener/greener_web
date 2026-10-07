@@ -5,9 +5,9 @@ import { parsePinCsv, findCsvRowForFile } from '@/modules/pin/domain/pinCsv'
 describe('parsePinCsv', () => {
   it('parsea una cabecera y varias filas', () => {
     const csv = [
-      'filename,label,ratio,language,alt,queueOrder',
-      'foto1.jpg,Pistachos de temporada,1:1,es,Cosecha de pistachos,0',
-      'foto2.jpg,Cosecha,4:5,es,Trabajadores en el campo,1',
+      'filename,label,ratio,language,alt',
+      'foto1.jpg,Pistachos de temporada,1:1,es,Cosecha de pistachos',
+      'foto2.jpg,Cosecha,4:5,es,Trabajadores en el campo',
     ].join('\n')
 
     const rows = parsePinCsv(csv)
@@ -19,16 +19,13 @@ describe('parsePinCsv', () => {
       ratio: '1:1',
       language: 'es',
       alt: 'Cosecha de pistachos',
-      queueOrder: '0',
     })
   })
 
-  it('acepta "queue_order" y "queueorder" como alias de la misma columna', () => {
-    const csv1 = ['filename,queue_order', 'foto1.jpg,3'].join('\n')
-    const csv2 = ['filename,queueorder', 'foto1.jpg,3'].join('\n')
+  it('una columna queue_order heredada se ignora: el orden se asigna solo', () => {
+    const csv = ['filename,queue_order', 'foto1.jpg,3'].join('\n')
 
-    expect(parsePinCsv(csv1)[0].queueOrder).toBe('3')
-    expect(parsePinCsv(csv2)[0].queueOrder).toBe('3')
+    expect(parsePinCsv(csv)[0]).toEqual({ filename: 'foto1.jpg' })
   })
 
   it('ignora columnas desconocidas en vez de fallar', () => {

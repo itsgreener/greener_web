@@ -17,7 +17,6 @@ describe('attachPinImageSchema', () => {
     width: 1200,
     height: 800,
     bytes: 500_000,
-    slideOrder: 0,
   }
 
   it('acepta una entrada válida', () => {
@@ -31,22 +30,10 @@ describe('attachPinImageSchema', () => {
     ).toBe(false)
   })
 
-  it('rechaza slideOrder fuera de 0-7 — máximo 8 slides (§9.1)', () => {
-    expect(
-      attachPinImageSchema.safeParse({ ...base, slideOrder: 8 }).success,
-    ).toBe(false)
-    expect(
-      attachPinImageSchema.safeParse({ ...base, slideOrder: -1 }).success,
-    ).toBe(false)
-  })
-
-  it('acepta slideOrder en los extremos válidos (0 y 7)', () => {
-    expect(
-      attachPinImageSchema.safeParse({ ...base, slideOrder: 0 }).success,
-    ).toBe(true)
-    expect(
-      attachPinImageSchema.safeParse({ ...base, slideOrder: 7 }).success,
-    ).toBe(true)
+  it('un pin es un único medio: el esquema no tiene slideOrder', () => {
+    const parsed = attachPinImageSchema.safeParse({ ...base, slideOrder: 3 })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) expect(parsed.data).not.toHaveProperty('slideOrder')
   })
 })
 
@@ -59,20 +46,10 @@ describe('attachPinVideoSchema', () => {
     height: 1080,
     durationSeconds: 3,
     bytes: 2 * 1024 * 1024,
-    slideOrder: 0,
   }
 
   it('acepta una animación válida', () => {
     expect(attachPinVideoSchema.safeParse(base).success).toBe(true)
-  })
-
-  it('rechaza slideOrder fuera de 0-7 — mismo rango que la imagen ahora que pin_type desaparece (especificacion-final-formato-detalle.md §3, §6)', () => {
-    expect(
-      attachPinVideoSchema.safeParse({ ...base, slideOrder: 8 }).success,
-    ).toBe(false)
-    expect(
-      attachPinVideoSchema.safeParse({ ...base, slideOrder: -1 }).success,
-    ).toBe(false)
   })
 
   it('rechaza más de 15 segundos — techo absoluto de un vídeo de pin (el de las tools), no los 180s de un vídeo de caso', () => {

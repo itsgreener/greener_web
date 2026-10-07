@@ -36,19 +36,13 @@ export interface PinDirectoryEntry {
   // en Insight.
   displaySecondary?: string | null
   alt: string
-  // Solo tiene efecto real en un pin de un único medio de vídeo (§9.1):
-  // 'viewport' lo reproduce vía IntersectionObserver (compite por el
-  // hueco global del feed, videoPlaybackCoordinator.ts), 'hover' solo
-  // mientras el puntero está encima (no compite por el hueco — es una
-  // acción explícita del usuario, no reproducción ambiental), null no
-  // reproduce nunca. El slide activo de un carrusel siempre reproduce
-  // si tiene hueco, sin mirar este campo — es un comportamiento distinto
-  // ya decidido (ver PinCard/index.tsx).
+  // Solo tiene efecto real en un pin de vídeo (§9.1): 'viewport' lo
+  // reproduce vía IntersectionObserver (compite por el hueco global del
+  // feed, videoPlaybackCoordinator.ts), 'hover' solo mientras el puntero
+  // está encima (no compite por el hueco — es una acción explícita del
+  // usuario, no reproducción ambiental), null no reproduce nunca.
   autoplayMode: 'viewport' | 'hover' | null
-  // 1 elemento en el caso normal; más de uno solo cuando el pin se
-  // agrupa como carrusel (show_as_carousel = true) — si está
-  // desactivado, cada medio ya llega aquí como su propia entrada de
-  // directorio (ver buildFeedUnitsForPin).
+  // Un pin es un único medio (7 oct 2026, §2.41): siempre 1 elemento.
   media: FeedItemMedia[]
 }
 
@@ -131,7 +125,6 @@ interface PinRow {
   language: string
   alt: string
   queue_order: number
-  show_as_carousel: boolean
   autoplay_mode: 'viewport' | 'hover' | null
   pin_media: {
     media_id: string
@@ -145,7 +138,7 @@ interface PinRow {
 }
 
 const PIN_SELECT = `
-  id, ratio, label, language, alt, queue_order, show_as_carousel, autoplay_mode,
+  id, ratio, label, language, alt, queue_order, autoplay_mode,
   pin_media (
     media_id,
     slide_order,
@@ -237,69 +230,46 @@ function derivedFeedText(
 }
 
 /**
- * Expande un pin en una o varias "unidades" seleccionables por el motor
- * de feed (especificacion-final-formato-detalle.md §3, §6): un pin con
- * show_as_carousel=true (o con un único medio) es una sola unidad —
- * unitId = pin.id — que lleva todos sus medios para que el cliente
- * pinte un carrusel real. Un pin con show_as_carousel=false y más de un
- * medio se reparte en tantas unidades como medios tenga —
- * unitId = `${pin.id}::${media_id}` — cada una con un único medio, para
- * que el motor de feed (que ya trata cada unidad como un id de texto
- * opaco, domain/types.ts) las seleccione y separe de forma independiente.
- *
- * Pines sin ningún medio listo no producen ninguna unidad (§8.2: "el pin
- * necesita al menos un medio listo").
+ * Convierte un pin en su unidad de feed (§2.41): un pin es un único medio
+ * y cada pin es una unidad independiente — unitId = pin.id. Los pines sin
+ * ningún medio listo no producen ninguna unidad (§8.2: "el pin necesita
+ * al menos un medio listo").
  */
 export function buildFeedUnitsForPin(
   pin: PinRow,
   content: FeedContentMeta,
 ): { unitId: string; entry: PinDirectoryEntry }[] {
-  const media = [...pin.pin_media]
+  const first = [...pin.pin_media]
     .sort((a, b) => a.slide_order - b.slide_order)
-    .filter((pm) => pm.media_asset !== null)
-    .map((pm) => ({
-      mediaId: pm.media_id,
-      kind: pm.media_asset!.kind,
-      cloudinaryPublicId: pm.media_asset!.cloudinary_public_id,
-      durationSeconds: pm.media_asset!.duration_seconds ?? null,
-    }))
+    .filter((pm) => pm.media_asset !== null)[0]
 
-  if (media.length === 0) return []
+  if (!first) return []
 
-  const contentType = content.type as PinDirectoryEntry['contentType']
+  const media = {
+    kind: first.media_asset!.kind,
+    cloudinaryPublicId: first.media_asset!.cloudinary_public_id,
+    durationSeconds: first.media_asset!.duration_seconds ?? null,
+  }
+
   const text = derivedFeedText(pin, content)
 
-  const base = {
-    contentId: content.id,
-    contentType,
-    contentSlug: content.slug,
-    ratio: pin.ratio,
-    label: text.label,
-    displayTitle: text.displayTitle,
-    displaySecondary: text.displaySecondary,
-    alt: pin.alt,
-    autoplayMode: pin.autoplay_mode,
-  }
-
-  if (pin.show_as_carousel || media.length === 1) {
-    return [
-      {
-        unitId: pin.id,
-        entry: {
-          ...base,
-          media: media.map((m) => toFeedItemMedia(m)),
-        },
+  return [
+    {
+      unitId: pin.id,
+      entry: {
+        contentId: content.id,
+        contentType: content.type as PinDirectoryEntry['contentType'],
+        contentSlug: content.slug,
+        ratio: pin.ratio,
+        label: text.label,
+        displayTitle: text.displayTitle,
+        displaySecondary: text.displaySecondary,
+        alt: pin.alt,
+        autoplayMode: pin.autoplay_mode,
+        media: [toFeedItemMedia(media)],
       },
-    ]
-  }
-
-  return media.map((m) => ({
-    unitId: `${pin.id}::${m.mediaId}`,
-    entry: {
-      ...base,
-      media: [toFeedItemMedia(m)],
     },
-  }))
+  ]
 }
 
 function toFeedItemMedia(m: {
@@ -427,12 +397,9 @@ interface PinLookupRow extends PinRow {
  * para generar una ronda nueva. Preserva el orden de `unitIds`, no el
  * que devuelva Supabase.
  *
- * Un unitId es o bien un pin.id (unidad = pin completo, posiblemente con
- * varios medios agrupados en carrusel) o bien `${pin.id}::${media_id}`
- * (unidad = un único medio de un pin con show_as_carousel=false) — el
- * pin subyacente se extrae con el prefijo antes del "::" para poder
- * consultarlo una sola vez por pin, aunque el mismo pin aporte varias
- * unidades a la lista.
+ * Un unitId es un pin.id (§2.41). Se consulta una sola vez por pin aunque
+ * el mismo pin aparezca varias veces en la lista (el feed repite por
+ * diseño).
  */
 export async function getPinDirectoryByIds(
   unitIds: string[],
@@ -440,7 +407,7 @@ export async function getPinDirectoryByIds(
 ): Promise<Record<string, PinDirectoryEntry>> {
   if (unitIds.length === 0) return {}
 
-  const pinIds = [...new Set(unitIds.map((id) => id.split('::')[0]))]
+  const pinIds = [...new Set(unitIds)]
 
   const { data, error } = await client
     .from('pin')

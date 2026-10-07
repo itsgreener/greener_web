@@ -106,11 +106,10 @@ export default function PinMediaManager({
 
   const [kind, setKind] = useState<'image' | 'video'>('image')
 
-  const sortedMedia = [...media].sort((a, b) => a.slideOrder - b.slideOrder)
+  // Un pin es un único medio: para cambiarlo se quita el actual y se sube otro.
+  const sortedMedia = media
 
-  const nextSlideOrder = sortedMedia.length
-
-  const canAddMore = sortedMedia.length < 8
+  const canAddMore = sortedMedia.length < 1
 
   async function handleRemove(item: PinMedia) {
     setError(null)
@@ -179,8 +178,6 @@ export default function PinMediaManager({
         height: uploaded.height,
 
         bytes: uploaded.bytes,
-
-        slideOrder: nextSlideOrder,
       })
 
       if (!result.ok) {
@@ -291,8 +288,6 @@ export default function PinMediaManager({
         durationSeconds: uploaded.duration,
 
         bytes: uploaded.bytes,
-
-        slideOrder: nextSlideOrder,
       })
 
       if (!result.ok) {
@@ -335,7 +330,7 @@ export default function PinMediaManager({
 
   return (
     <div>
-      <h4>Medios del pin ({sortedMedia.length}/8)</h4>
+      <h4>Medio del pin</h4>
 
       <div>
         {sortedMedia.map((item) => (
@@ -403,7 +398,9 @@ export default function PinMediaManager({
         </div>
       )}
 
-      {!canAddMore && <p>Este pin ya tiene 8 medios, el máximo permitido.</p>}
+      {!canAddMore && (
+        <p>Este pin ya tiene su medio. Quítalo para subir otro.</p>
+      )}
 
       {error && <p>{error}</p>}
 

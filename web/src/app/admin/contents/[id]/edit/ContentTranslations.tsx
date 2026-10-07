@@ -117,6 +117,10 @@ export default function ContentTranslations({
                 locale={locale}
                 translation={translation}
                 showHighlightAndBody={showHighlightAndBody}
+                // Case y episodio no usan summary: su texto es highlight + body.
+                showSummary={
+                  contentType !== 'case' && contentType !== 'episode'
+                }
               />
             </div>
           )

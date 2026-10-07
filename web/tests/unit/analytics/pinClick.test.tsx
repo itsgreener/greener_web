@@ -146,11 +146,11 @@ describe('Pin Click analytics', () => {
     )
   })
 
-  it('identifica como carousel un pin con varios medios', () => {
+  it('un pin siempre se identifica por su primer medio: no existe el tipo carousel', () => {
     render(
       <PinCard
         pin={{
-          pinId: 'pin-carousel',
+          pinId: 'pin-multi',
 
           destination: '/insights/uno',
 
@@ -200,7 +200,7 @@ describe('Pin Click analytics', () => {
 
         section: 'recommendations',
 
-        pinType: 'carousel',
+        pinType: 'image',
       },
       {
         interactive: true,

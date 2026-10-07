@@ -28,7 +28,7 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       p_width: input.width,
       p_height: input.height,
       p_bytes: input.bytes,
-      p_slide_order: input.slideOrder,
+      p_slide_order: 0,
     })
 
     if (error) {
@@ -49,7 +49,7 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       p_height: input.height,
       p_duration_seconds: input.durationSeconds,
       p_bytes: input.bytes,
-      p_slide_order: input.slideOrder,
+      p_slide_order: 0,
     })
 
     if (error) {

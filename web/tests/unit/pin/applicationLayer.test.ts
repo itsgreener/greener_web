@@ -29,11 +29,8 @@ const validCreateInput = {
   contentId: CONTENT_ID,
   ratio: '1:1' as const,
   label: 'Pin de ejemplo',
-  showAsCarousel: true,
   language: 'es' as const,
   autoplayMode: null,
-  speedMs: null,
-  queueOrder: 0,
   alt: 'Alt',
 }
 
@@ -67,11 +64,8 @@ describe('updatePin', () => {
     id: PIN_ID,
     ratio: '4:5' as const,
     label: 'Actualizado',
-    showAsCarousel: false,
     language: 'es' as const,
     autoplayMode: null,
-    speedMs: null,
-    queueOrder: 1,
     alt: 'Alt actualizado',
   }
 
@@ -86,18 +80,6 @@ describe('updatePin', () => {
 
     expect(result).toBe(PIN_ID)
     expect(supabasePinRepository.update).toHaveBeenCalledOnce()
-  })
-
-  it('rechaza queueOrder negativo sin llamar al repositorio', async () => {
-    const { updatePin } = await import('@/modules/pin/application/updatePin')
-    const { supabasePinRepository } =
-      await import('@/modules/pin/infrastructure/supabasePinRepository')
-
-    await expect(
-      updatePin({ ...validUpdateInput, queueOrder: -1 }),
-    ).rejects.toThrow()
-
-    expect(supabasePinRepository.update).not.toHaveBeenCalled()
   })
 })
 
@@ -141,7 +123,6 @@ describe('attachPinImage', () => {
     width: 1200,
     height: 800,
     bytes: 500_000,
-    slideOrder: 0,
   }
 
   it('valida y delega en supabasePinMediaRepository.attachImage', async () => {
@@ -162,17 +143,21 @@ describe('attachPinImage', () => {
     )
   })
 
-  it('rechaza slideOrder fuera de 0-7 sin llamar al repositorio', async () => {
+  it('ignora un slideOrder heredado: un pin es un único medio y no hay orden', async () => {
     const { attachPinImage } =
       await import('@/modules/pin/application/attachPinImage')
     const { supabasePinMediaRepository } =
       await import('@/modules/pin/infrastructure/supabasePinMediaRepository')
 
-    await expect(
-      attachPinImage({ ...validInput, slideOrder: 9 }),
-    ).rejects.toThrow()
+    vi.mocked(supabasePinMediaRepository.attachImage).mockResolvedValue(
+      MEDIA_ID,
+    )
 
-    expect(supabasePinMediaRepository.attachImage).not.toHaveBeenCalled()
+    await attachPinImage({ ...validInput, slideOrder: 9 } as typeof validInput)
+
+    expect(supabasePinMediaRepository.attachImage).toHaveBeenCalledWith(
+      validInput,
+    )
   })
 })
 
@@ -185,7 +170,6 @@ describe('attachPinVideo', () => {
     height: 1080,
     durationSeconds: 3,
     bytes: 2 * 1024 * 1024,
-    slideOrder: 0,
   }
 
   it('valida y delega en supabasePinMediaRepository.attachVideo', async () => {

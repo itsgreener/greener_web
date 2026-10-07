@@ -67,10 +67,8 @@ function destinationFor(
 
   if (contentType === 'tool') {
     // La ficha de Tool necesita saber desde qué pin se abrió para poder
-    // reutilizar exactamente ese medio como portada. `unitId` es el id
-    // del pin o `pinId::mediaId` cuando un pin no-carrusel se expande en
-    // varios medios independientes. PinCard añade además `slide` cuando
-    // el usuario pulsa un carrusel en un slide concreto.
+    // reutilizar exactamente ese medio como miniatura. `unitId` es el id
+    // del pin.
     return `${path}?pin=${encodeURIComponent(unitId)}`
   }
 

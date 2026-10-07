@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   buildFeedVideoSources,
   buildImageUrl,
@@ -36,12 +36,11 @@ export interface PinCardData {
   displaySecondary?: string | null
   cta: string | null
   alt: string
-  // Solo tiene efecto en un pin de un único medio de vídeo — ver más
-  // abajo. El slide activo de un carrusel reproduce siempre que tenga
-  // hueco, sin mirar este campo (comportamiento ya decidido, distinto).
+  // Solo tiene efecto en un pin de vídeo — ver más abajo.
   autoplayMode: 'viewport' | 'hover' | null
-  // Hasta 8 medios cuando el pin se agrupa como carrusel
-  // (show_as_carousel) — ver más abajo cómo se recorren.
+  // Un pin es un único medio (7 oct 2026, §2.41: sin carrusel de pines).
+  // Es una lista por compatibilidad con los datos del feed: se usa el
+  // primer elemento.
   media: PinCardMedia[]
 }
 
@@ -51,11 +50,6 @@ export interface PinCardStyle {
   width: number
   height: number
 }
-
-// Confirmado el 15 sep: 5 s por slide, sin controles de avance/retroceso
-// manual (es una tarjeta pequeña) — con hover, la imagen se congela y el
-// vídeo entra en loop; al salir del hover, se reinicia el temporizador.
-const SLIDE_INTERVAL_MS = 5000
 
 /**
  * Evento "Pin Click" (arquitectura §18.2). `tag` queda opcional porque
@@ -79,10 +73,7 @@ function aspectRatioCss(ratio: string): string {
  * de base de datos del que leerlo directamente, se deriva del propio
  * array de medios que ya tiene el componente.
  */
-function analyticsPinType(
-  media: PinCardMedia[],
-): 'image' | 'video' | 'carousel' {
-  if (media.length > 1) return 'carousel'
+function analyticsPinType(media: PinCardMedia[]): 'image' | 'video' {
   return media[0]?.kind === 'video' ? 'video' : 'image'
 }
 
@@ -91,22 +82,13 @@ function analyticsPinType(
  * de medios §3), espacio reservado antes de la descarga (evita CLS, §9.2,
  * §10.1) y posicionada por transform, no por flujo normal del documento.
  *
- * Reproducción de vídeo, dos casos independientes:
- *
- * 1. Un único medio de vídeo (`media.length === 1`): según
- *    `pin.autoplayMode` (§9.1, ABM) — 'viewport' compite por uno de los
- *    huecos globales del feed (2 escritorio / 1 móvil, §9.3, ver
- *    videoPlaybackCoordinator.ts); 'hover' reproduce solo mientras el
- *    puntero está encima, sin competir por ningún hueco (es una acción
- *    explícita del usuario, no reproducción ambiental); `null` nunca
- *    reproduce — poster estático siempre, como hasta ahora.
- *
- * 2. Carrusel (`show_as_carousel`, media.length > 1): el slide activo,
- *    si es vídeo, reproduce siempre que tenga hueco — también compite
- *    por el mismo presupuesto global de 2/1 que los pines de un único
- *    vídeo (confirmado el 15 sep). Si no consigue hueco, se queda en
- *    poster y el carrusel avanza igualmente a los 5 s, como un slide de
- *    imagen — nunca se queda parado esperando un vídeo que no reproduce.
+ * Reproducción de vídeo, según `pin.autoplayMode` (§9.1, ABM) —
+ * 'viewport' compite por uno de los
+ * huecos globales del feed (2 escritorio / 1 móvil, §9.3, ver
+ * videoPlaybackCoordinator.ts); 'hover' reproduce solo mientras el
+ * puntero está encima, sin competir por ningún hueco (es una acción
+ * explícita del usuario, no reproducción ambiental); `null` nunca
+ * reproduce — poster estático siempre.
  *
  * Carga del vídeo (contrato de medios, fase 1 — 7 oct 2026): el póster es
  * SIEMPRE la capa de base y el `<video>` se monta oculto encima cuando la
@@ -135,15 +117,13 @@ export function PinCard({
 }) {
   const videoId = instanceId ?? pin.pinId
   const media = pin.media
-  const isCarousel = media.length > 1
 
-  const [index, setIndex] = useState(0)
   const [hovering, setHovering] = useState(false)
   const cardRef = useRef<HTMLAnchorElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const { feedAutoplayAllowed } = useMotionPreferences()
 
-  const current = media[index]
+  const current = media[0]
   const isVideoSlide = current?.kind === 'video'
 
   // Un vídeo largo (> PIN_ANIMATION_LIMITS) sigue siendo un vídeo — se
@@ -152,26 +132,21 @@ export function PinCard({
   const isAnimatable =
     isVideoSlide && canAnimateInFeed(current?.durationSeconds)
 
-  // El slide activo de un carrusel siempre compite por un hueco global;
-  // un pin de un único vídeo solo lo hace en modo 'viewport' — 'hover' no
-  // compite (arriba, en el docstring, se explica el porqué). Sin autoplay
+  // Un pin de vídeo solo compite por un hueco global en modo 'viewport' —
+  // 'hover' no compite (arriba, en el docstring, se explica el porqué). Sin autoplay
   // permitido en el feed (reduced-motion, save-data, conexión lenta) no
   // compite por nada: póster fijo.
   const wantsGlobalSlot =
-    isAnimatable &&
-    feedAutoplayAllowed &&
-    (isCarousel || pin.autoplayMode === 'viewport')
+    isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport'
   const hasSlot = useVideoSlot(videoId, cardRef, wantsGlobalSlot)
 
   const isPlaying =
     isAnimatable &&
-    (isCarousel
+    (pin.autoplayMode === 'viewport'
       ? hasSlot
-      : pin.autoplayMode === 'viewport'
-        ? hasSlot
-        : pin.autoplayMode === 'hover'
-          ? hovering
-          : false)
+      : pin.autoplayMode === 'hover'
+        ? hovering
+        : false)
 
   // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
   // MP4/H.264), a un solo ancho (contrato de medios §4.4-§4.5).
@@ -188,58 +163,17 @@ export function PinCard({
     id: videoId,
     cardRef,
     videoRef,
-    resetKey: `${index}-${current?.cloudinaryPublicId ?? ''}`,
+    resetKey: current?.cloudinaryPublicId ?? '',
     sourceCount: sources.length,
     // Solo se hace prefetch de lo que puede llegar a reproducirse: un pin de
     // un único vídeo sin `autoplayMode` nunca se anima y no gasta ancho de
     // banda (en Cloudinary Free cada MB cuenta).
     prefetchEnabled:
-      isAnimatable &&
-      feedAutoplayAllowed &&
-      (isCarousel || pin.autoplayMode !== null),
+      isAnimatable && feedAutoplayAllowed && pin.autoplayMode !== null,
     wantsPlay: isPlaying,
   })
 
-  const advance = useCallback(() => {
-    setIndex((i) => (i + 1) % media.length)
-  }, [media.length])
-
-  // Temporizador de 5 s — para slides de imagen, y también para un slide
-  // de vídeo que todavía no suena (sin hueco, o cargando): nunca se queda
-  // parado esperando un vídeo que no reproduce. Cuando el vídeo ya suena,
-  // avanza por 'ended' (más abajo).
-  useEffect(() => {
-    if (!isCarousel || hovering) return
-    if (isVideoSlide && video.isActuallyPlaying) return
-    const id = setTimeout(advance, SLIDE_INTERVAL_MS)
-    return () => clearTimeout(id)
-  }, [
-    isCarousel,
-    hovering,
-    index,
-    isVideoSlide,
-    video.isActuallyPlaying,
-    advance,
-  ])
-
-  // Hover sobre un slide de vídeo de carrusel: que entre en loop en vez
-  // de avanzar. Al salir del hover, se quita el loop — el próximo
-  // 'ended' natural dispara el avance ("se reinicia el temporizador").
-  // No aplica al vídeo de un pin sin carrusel: ese usa el atributo loop
-  // fijo (ver el <video> más abajo), no necesita este ajuste imperativo.
-  // Se repite al (re)montarse el vídeo: puede aparecer con el hover ya
-  // puesto, o remontarse en un reintento.
-  useEffect(() => {
-    if (!isCarousel) return
-    const el = videoRef.current
-    if (el) el.loop = hovering
-  }, [isCarousel, hovering, index, video.mounted, video.attempt])
-
   if (!current) return null
-
-  function handleVideoEnded() {
-    if (isCarousel && !hovering) advance()
-  }
 
   function handlePinClick() {
     if (!analyticsContext) return
@@ -270,13 +204,9 @@ export function PinCard({
     : buildImageUrl(current.cloudinaryPublicId, 'feed', fallbackWidth)
 
   // Las Tools conservan una única ficha aunque tengan muchos pines. El
-  // servidor ya añade ?pin=<unitId> al destino; si este pin es carrusel,
-  // añadimos el índice del slide que el usuario está viendo justo ahora.
-  // Así la ficha puede usar exactamente ese medio como portada.
-  const destination =
-    isCarousel && pin.destination.startsWith('/tools/')
-      ? `${pin.destination}${pin.destination.includes('?') ? '&' : '?'}slide=${index}`
-      : pin.destination
+  // servidor ya añade ?pin=<pinId> al destino, y la ficha usa el medio de
+  // ese pin como miniatura.
+  const destination = pin.destination
 
   return (
     <a
@@ -318,11 +248,11 @@ export function PinCard({
         />
         {video.mounted && (
           <video
-            key={`${pin.pinId}-${index}-${video.attempt}`}
+            key={`${pin.pinId}-${video.attempt}`}
             ref={videoRef}
             className={`${styles.video} ${video.visible ? styles.videoVisible : ''}`}
             muted
-            loop={!isCarousel}
+            loop
             playsInline
             preload="auto"
             // El póster de debajo ya lleva el `alt`.
@@ -331,7 +261,6 @@ export function PinCard({
             onPlaying={video.handlers.onPlaying}
             onPause={video.handlers.onPause}
             onError={video.handlers.onVideoError}
-            onEnded={handleVideoEnded}
           >
             {sources.map((source, sourceIndex) => (
               <source

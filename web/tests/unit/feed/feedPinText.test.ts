@@ -14,7 +14,6 @@ const PIN = {
   language: 'es',
   alt: 'alt',
   queue_order: 0,
-  show_as_carousel: false,
   autoplay_mode: null,
   pin_media: [
     {
@@ -210,7 +209,6 @@ describe('las dos consultas del feed piden el programa del episodio', () => {
     language: 'es',
     alt: 'alt',
     queue_order: 0,
-    show_as_carousel: false,
     autoplay_mode: null,
     pin_media: PIN.pin_media,
   }

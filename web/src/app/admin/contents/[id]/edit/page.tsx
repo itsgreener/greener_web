@@ -32,7 +32,10 @@ import PackageUpload from './PackageUpload'
 
 import PinList from './PinList'
 
-import NewPinForm from './NewPinForm'
+import {
+  MAX_PINS_PER_CONTENT,
+  remainingPinSlots,
+} from '@/modules/pin/domain/pinLimits'
 
 import BulkPinUpload from './BulkPinUpload'
 
@@ -302,18 +305,26 @@ export default async function EditContentPage({ params }: Props) {
             </div>
 
             <div className="admin-editor-subsection">
-              <h3>Crear un pin</h3>
+              <h3>Crear pines</h3>
 
-              <NewPinForm contentId={content.id} contentType={content.type} />
-            </div>
+              <p>
+                Cada pin es un único medio (imagen o vídeo). Selecciona uno o
+                varios archivos, ajusta los datos de cada fila y quita los que
+                no quieras antes de subir.
+              </p>
 
-            <div className="admin-editor-subsection">
-              <h3>Carga masiva</h3>
-
-              <BulkPinUpload
-                contentId={content.id}
-                contentType={content.type}
-              />
+              {pins.length >= MAX_PINS_PER_CONTENT ? (
+                <p>
+                  Este contenido ya tiene {MAX_PINS_PER_CONTENT} pines, el
+                  máximo permitido. Elimina uno para crear otro.
+                </p>
+              ) : (
+                <BulkPinUpload
+                  contentId={content.id}
+                  contentType={content.type}
+                  availableSlots={remainingPinSlots(pins.length)}
+                />
+              )}
             </div>
           </section>
 

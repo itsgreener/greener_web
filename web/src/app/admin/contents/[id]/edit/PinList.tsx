@@ -11,6 +11,7 @@ import {
 } from './pinActions'
 
 import PinMediaManager from './PinMediaManager'
+import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
 import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
 type Props = {
@@ -73,17 +74,6 @@ function EditPinForm({
         </>
       )}
 
-      <label htmlFor={`carousel-${pin.id}`}>
-        <input
-          id={`carousel-${pin.id}`}
-          name="showAsCarousel"
-          type="checkbox"
-          value="true"
-          defaultChecked={pin.showAsCarousel}
-        />
-        Mostrar como carrusel en el feed
-      </label>
-
       <label htmlFor={`language-${pin.id}`}>Idioma</label>
       <select
         id={`language-${pin.id}`}
@@ -106,25 +96,6 @@ function EditPinForm({
         <option value="viewport">Al entrar en viewport</option>
         <option value="hover">Al hacer hover</option>
       </select>
-
-      <label htmlFor={`speed-${pin.id}`}>Velocidad (ms)</label>
-      <input
-        id={`speed-${pin.id}`}
-        name="speedMs"
-        type="number"
-        min={1}
-        defaultValue={pin.speedMs ?? ''}
-      />
-
-      <label htmlFor={`queue-${pin.id}`}>Orden en cola</label>
-      <input
-        id={`queue-${pin.id}`}
-        name="queueOrder"
-        type="number"
-        min={0}
-        defaultValue={pin.queueOrder}
-        required
-      />
 
       <label htmlFor={`alt-${pin.id}`}>Alt</label>
       <input
@@ -201,13 +172,19 @@ export default function PinList({ contentId, contentType, pins }: Props) {
 
   return (
     <div>
+      <p>
+        {pins.length} / {MAX_PINS_PER_CONTENT} pines
+        {pins.length >= MAX_PINS_PER_CONTENT
+          ? ' — máximo alcanzado, no se pueden crear más.'
+          : '.'}
+      </p>
+
       <table>
         <thead>
           <tr>
             <th>Rótulo</th>
             <th>Ratio</th>
-            <th>Orden</th>
-            <th>Medios</th>
+            <th>Medio</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -221,10 +198,12 @@ export default function PinList({ contentId, contentType, pins }: Props) {
                   : (pin.label ?? '—')}
               </td>
               <td>{pin.ratio}</td>
-              <td>{pin.queueOrder}</td>
               <td>
-                {pin.media.length} / 8
-                {pin.showAsCarousel ? ' (carrusel)' : ' (tarjetas separadas)'}
+                {pin.media.length === 0
+                  ? 'Sin medio'
+                  : pin.media[0].kind === 'video'
+                    ? 'Vídeo'
+                    : 'Imagen'}
               </td>
               <td>
                 <button
@@ -243,7 +222,7 @@ export default function PinList({ contentId, contentType, pins }: Props) {
 
           {pins.length === 0 && (
             <tr>
-              <td colSpan={5}>Todavía no hay pines para este contenido.</td>
+              <td colSpan={4}>Todavía no hay pines para este contenido.</td>
             </tr>
           )}
         </tbody>

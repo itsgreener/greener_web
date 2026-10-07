@@ -12,7 +12,7 @@ import styles from './page.module.css'
 
 type Props = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ preview?: string; pin?: string; slide?: string }>
+  searchParams: Promise<{ preview?: string; pin?: string }>
 }
 
 /**
@@ -60,21 +60,16 @@ type ToolPinRow = {
  * Seguridad: el pin se filtra también por content_id, de modo que no se
  * puede usar ?pin= para inyectar el medio de otra Tool.
  *
- * Formatos soportados:
- * - pin=<pinId>                 -> pin normal / carrusel
- * - pin=<pinId>::<mediaId>      -> unidad individual de un pin no-carrusel
- * - slide=<n>                   -> slide visible de un carrusel
+ * Formato: pin=<pinId> (un pin es un único medio).
  */
 async function getToolPinCover(
   contentId: string,
   pinRef: string | undefined,
-  slideParam: string | undefined,
   client?: SupabaseClient,
 ): Promise<ToolPinCover | null> {
   if (!pinRef) return null
 
-  const [pinId, mediaIdFromUnit] = pinRef.split('::', 2)
-  if (!pinId) return null
+  const pinId = pinRef
 
   const supabase = client ?? createPublicReadClient()
 
@@ -106,17 +101,7 @@ async function getToolPinCover(
 
   if (media.length === 0) return null
 
-  let selected = media[0]
-
-  if (mediaIdFromUnit) {
-    selected =
-      media.find((item) => item.media_id === mediaIdFromUnit) ?? selected
-  } else if (slideParam !== undefined) {
-    const slideIndex = Number.parseInt(slideParam, 10)
-    if (Number.isInteger(slideIndex) && slideIndex >= 0) {
-      selected = media[slideIndex] ?? selected
-    }
-  }
+  const selected = media[0]
 
   if (!selected.media_asset) return null
 
@@ -135,7 +120,7 @@ export async function generateMetadata({
   searchParams,
 }: Props): Promise<Metadata> {
   const { slug } = await params
-  const { preview, pin, slide } = await searchParams
+  const { preview, pin } = await searchParams
   const resolved = await getToolPreview(slug, preview)
   if (!resolved) return {}
   // Sin portada propia (§2.40): OG del pin pedido (?pin=) o, si no, del
@@ -143,7 +128,6 @@ export async function generateMetadata({
   const pinCover = await getToolPinCover(
     resolved.content.id,
     pin,
-    slide,
     resolved.client,
   )
   const shareMedia =
@@ -157,7 +141,7 @@ export async function generateMetadata({
 
 export default async function ToolPage({ params, searchParams }: Props) {
   const { slug } = await params
-  const { preview, pin, slide } = await searchParams
+  const { preview, pin } = await searchParams
   const resolved = await getToolPreview(slug, preview)
 
   if (!resolved) {
@@ -167,7 +151,6 @@ export default async function ToolPage({ params, searchParams }: Props) {
   const pinCover = await getToolPinCover(
     resolved.content.id,
     pin,
-    slide,
     resolved.client,
   )
 

@@ -25,7 +25,8 @@ export async function buildWorkMetadata(
   options?: { client?: SupabaseClient; noindex?: boolean },
 ): Promise<Metadata> {
   const title = content.seoTitle ?? content.title
-  const description = content.seoDescription ?? content.summary ?? undefined
+  // Case y episodio ya no tienen summary: la descripción es solo la SEO.
+  const description = content.seoDescription ?? undefined
 
   // og_media_id es cover_media_id, que caso/episodio no rellenan (§3: es
   // exclusivo de tool/insight/other) — para un caso se usa la primera

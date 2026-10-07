@@ -83,11 +83,13 @@ function image(name = 'foto.webp') {
 
 function renderBulk(
   contentType: 'tool' | 'case' | 'insight' | 'episode' | 'other' = 'tool',
+  availableSlots = 8,
 ) {
   render(
     <BulkPinUpload
       contentId="11111111-1111-4111-8111-111111111111"
       contentType={contentType as never}
+      availableSlots={availableSlots}
     />,
   )
 }
@@ -324,5 +326,111 @@ describe('BulkPinUpload — vídeos en la carga masiva (5 oct 2026)', () => {
     await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalledOnce())
     expect(createPinWithVideoAction).not.toHaveBeenCalled()
     expect(await screen.findByText('Hecho')).toBeInTheDocument()
+  })
+})
+
+describe('BulkPinUpload — máximo de 8 pines por contenido (7 oct 2026)', () => {
+  it('con 3 huecos libres solo admite 3 de 5 archivos y avisa de los descartados', () => {
+    renderBulk('tool', 3)
+
+    selectFiles([
+      image('a.webp'),
+      image('b.webp'),
+      image('c.webp'),
+      image('d.webp'),
+      image('e.webp'),
+    ])
+
+    expect(
+      screen.getByRole('button', { name: 'Subir 3 pines' }),
+    ).toBeInTheDocument()
+    expect(screen.getByText(/Solo quedan 3 huecos de pin/)).toBeInTheDocument()
+    expect(screen.getByText(/se han descartado 2 archivos/)).toBeInTheDocument()
+  })
+
+  it('sin huecos libres no queda nada que subir', () => {
+    renderBulk('tool', 0)
+
+    selectFiles([image('a.webp')])
+
+    expect(screen.queryByRole('button', { name: /Subir \d+ pines/ })).toBeNull()
+    expect(screen.getByText(/Solo quedan 0 huecos/)).toBeInTheDocument()
+  })
+
+  it('con huecos de sobra no avisa de nada', () => {
+    renderBulk('tool', 8)
+
+    selectFiles([image('a.webp'), image('b.webp')])
+
+    expect(screen.queryByText(/Solo quedan/)).toBeNull()
+  })
+})
+
+describe('BulkPinUpload — quitar un archivo del lote antes de subir (7 oct 2026)', () => {
+  it('quita la fila elegida y el botón pasa a subir menos pines', () => {
+    renderBulk()
+
+    selectFiles([image('a.webp'), image('b.webp'), image('c.webp')])
+    expect(screen.getByText('b.webp')).toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar b.webp del lote' }),
+    )
+
+    expect(screen.queryByText('b.webp')).toBeNull()
+    expect(screen.getByText('a.webp')).toBeInTheDocument()
+    expect(screen.getByText('c.webp')).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Subir 2 pines' }),
+    ).toBeInTheDocument()
+  })
+
+  it('el archivo quitado no vuelve al cambiar un valor por defecto', () => {
+    renderBulk()
+
+    selectFiles([image('a.webp'), image('b.webp')])
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar a.webp del lote' }),
+    )
+
+    fireEvent.change(screen.getByLabelText('Ratio por defecto'), {
+      target: { value: '4:5' },
+    })
+
+    expect(screen.queryByText('a.webp')).toBeNull()
+    expect(screen.getByText('b.webp')).toBeInTheDocument()
+  })
+
+  it('al quitar el último archivo desaparecen la tabla y el botón de subir', () => {
+    renderBulk()
+
+    selectFiles([image('a.webp')])
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar a.webp del lote' }),
+    )
+
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.queryByRole('button', { name: /Subir \d+ pines/ })).toBeNull()
+  })
+
+  it('solo lo que se queda en el lote se sube', async () => {
+    renderBulk()
+
+    selectFiles([image('a.webp'), image('b.webp')])
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar a.webp del lote' }),
+    )
+    clickUpload(1)
+
+    await screen.findByText('Hecho')
+    expect(createPinWithImageAction).toHaveBeenCalledTimes(1)
+  })
+
+  it('ya no pide el orden en cola: se asigna solo', () => {
+    renderBulk()
+
+    expect(screen.queryByLabelText('Orden en cola inicial')).toBeNull()
+    selectFiles([image('a.webp')])
+    expect(screen.queryByRole('columnheader', { name: 'Orden' })).toBeNull()
   })
 })

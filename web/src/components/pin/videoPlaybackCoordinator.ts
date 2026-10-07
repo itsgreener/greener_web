@@ -7,11 +7,9 @@ import {
  * Coordina el vídeo de todo el feed con DOS presupuestos independientes:
  *
  * 1. HUECOS DE REPRODUCCIÓN (arquitectura §9.3: 2 en escritorio, 1 en
- *    móvil): cuántos vídeos se reproducen a la vez. Cuentan para el mismo
- *    presupuesto tanto los pines de un único vídeo en modo "viewport" como
- *    el slide activo de un carrusel (show_as_carousel) — confirmado el 15
- *    sep: "dicho límite tiene que tener en cuenta los vídeos corriendo en
- *    un carrusel". El modo "hover" no compite aquí — ver PinCard/index.tsx.
+ *    móvil): cuántos vídeos se reproducen a la vez. Compiten los pines de
+ *    vídeo en modo "viewport"; el modo "hover" no compite aquí — ver
+ *    PinCard/index.tsx.
  *
  *    Prioridad por candidato: mayor % visible primero, y a igualdad de
  *    visibilidad, el más cercano al centro del viewport (arquitectura §9.3:

@@ -16,7 +16,6 @@ function pinWith(
     publicId: string
     duration: number | null
   }>,
-  showAsCarousel: boolean,
 ) {
   return {
     id: 'pin-1',
@@ -25,7 +24,6 @@ function pinWith(
     language: 'es',
     alt: 'alt',
     queue_order: 0,
-    show_as_carousel: showAsCarousel,
     autoplay_mode: 'viewport' as const,
     pin_media: media.map((m, i) => ({
       media_id: m.id,
@@ -42,10 +40,7 @@ function pinWith(
 describe('duración de los vídeos en el directorio del feed (5 oct 2026)', () => {
   it('un pin de un vídeo lleva su duración al cliente', () => {
     const [unit] = buildFeedUnitsForPin(
-      pinWith(
-        [{ id: 'm1', kind: 'video', publicId: 'v1', duration: 12 }],
-        false,
-      ),
+      pinWith([{ id: 'm1', kind: 'video', publicId: 'v1', duration: 12 }]),
       CONTENT,
     )
 
@@ -56,10 +51,7 @@ describe('duración de los vídeos en el directorio del feed (5 oct 2026)', () =
 
   it('la imagen NO lleva duración (no significa nada en una imagen)', () => {
     const [unit] = buildFeedUnitsForPin(
-      pinWith(
-        [{ id: 'm1', kind: 'image', publicId: 'i1', duration: null }],
-        false,
-      ),
+      pinWith([{ id: 'm1', kind: 'image', publicId: 'i1', duration: null }]),
       CONTENT,
     )
 
@@ -70,44 +62,24 @@ describe('duración de los vídeos en el directorio del feed (5 oct 2026)', () =
 
   it('un vídeo sin duración guardada llega como null (el cliente lo trata como animable)', () => {
     const [unit] = buildFeedUnitsForPin(
-      pinWith(
-        [{ id: 'm1', kind: 'video', publicId: 'v1', duration: null }],
-        false,
-      ),
+      pinWith([{ id: 'm1', kind: 'video', publicId: 'v1', duration: null }]),
       CONTENT,
     )
 
     expect(unit.entry.media[0]).toMatchObject({ durationSeconds: null })
   })
 
-  it('en un carrusel cada slide conserva su propia duración', () => {
-    const [unit] = buildFeedUnitsForPin(
-      pinWith(
-        [
-          { id: 'm1', kind: 'video', publicId: 'v1', duration: 6 },
-          { id: 'm2', kind: 'video', publicId: 'v2', duration: 14 },
-        ],
-        true,
-      ),
+  it('cada pin es una unidad independiente cuyo id es el del pin (sin carrusel ni «::»)', () => {
+    const units = buildFeedUnitsForPin(
+      pinWith([{ id: 'm1', kind: 'video', publicId: 'v1', duration: 6 }]),
       CONTENT,
     )
 
-    expect(unit.entry.media.map((m) => m.durationSeconds)).toEqual([6, 14])
+    expect(units.map((u) => u.unitId)).toEqual(['pin-1'])
+    expect(units[0].entry.media).toHaveLength(1)
   })
 
-  it('un pin no-carrusel con varios medios se reparte en unidades, cada una con su duración', () => {
-    const units = buildFeedUnitsForPin(
-      pinWith(
-        [
-          { id: 'm1', kind: 'video', publicId: 'v1', duration: 6 },
-          { id: 'm2', kind: 'video', publicId: 'v2', duration: 14 },
-        ],
-        false,
-      ),
-      CONTENT,
-    )
-
-    expect(units.map((u) => u.unitId)).toEqual(['pin-1::m1', 'pin-1::m2'])
-    expect(units.map((u) => u.entry.media[0].durationSeconds)).toEqual([6, 14])
+  it('un pin sin ningún medio listo no produce unidades', () => {
+    expect(buildFeedUnitsForPin(pinWith([]), CONTENT)).toEqual([])
   })
 })

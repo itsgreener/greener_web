@@ -22,7 +22,7 @@ export type AnalyticsEventMap = {
     destinationType: string
     section: string
     tag?: string
-    pinType: 'image' | 'video' | 'carousel'
+    pinType: 'image' | 'video'
   }
 
   'Case Open': {

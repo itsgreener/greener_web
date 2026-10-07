@@ -75,14 +75,6 @@ function revalidateContent(contentId: string) {
   revalidatePath(`/admin/contents/${contentId}/edit`)
 }
 
-function parseOptionalNumber(value: FormDataEntryValue | null) {
-  if (value === null || value === '') {
-    return null
-  }
-
-  return Number(value)
-}
-
 export async function createPinAction(
   contentId: string,
   _previousState: PinFormState,
@@ -91,12 +83,9 @@ export async function createPinAction(
   const result = createPinSchema.safeParse({
     contentId,
     ratio: formData.get('ratio'),
-    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
     language: formData.get('language'),
     autoplayMode: formData.get('autoplayMode') || null,
-    speedMs: parseOptionalNumber(formData.get('speedMs')),
-    queueOrder: formData.get('queueOrder') || 0,
     alt: formData.get('alt'),
   })
 
@@ -143,12 +132,9 @@ export async function updatePinAction(
   const result = updatePinSchema.safeParse({
     id: pinId,
     ratio: formData.get('ratio'),
-    showAsCarousel: formData.get('showAsCarousel') === 'true',
     label: formData.get('label'),
     language: formData.get('language'),
     autoplayMode: formData.get('autoplayMode') || null,
-    speedMs: parseOptionalNumber(formData.get('speedMs')),
-    queueOrder: formData.get('queueOrder') || 0,
     alt: formData.get('alt'),
   })
 
@@ -322,7 +308,6 @@ export async function createPinWithImageAction(
   const imageResult = attachPinImageSchema.safeParse({
     pinId,
     ...verifiedImage,
-    slideOrder: 0,
   })
 
   if (!imageResult.success) {
@@ -553,7 +538,6 @@ export async function createPinWithVideoAction(
     height: videoInput.height,
     durationSeconds: videoInput.durationSeconds,
     bytes: videoInput.bytes,
-    slideOrder: 0,
   })
 
   if (!clientVideo.success) {
@@ -600,7 +584,6 @@ export async function createPinWithVideoAction(
       durationSeconds: durationAssumed
         ? clientVideo.data.durationSeconds
         : verifiedAsset.durationSeconds,
-      slideOrder: 0,
     })
 
     revalidateContent(pinResult.data.contentId)

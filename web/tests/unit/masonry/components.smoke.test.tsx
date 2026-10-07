@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, fireEvent, act } from '@testing-library/react'
+import { render, screen, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { MasonryFeed } from '@/components/masonry/MasonryFeed'
 import { PinCard } from '@/components/pin/PinCard'
@@ -95,239 +95,83 @@ describe('PinCard — prueba de humo', () => {
 })
 
 /**
- * Confirmado el 15 sep: con más de un medio (show_as_carousel), la
- * tarjeta sí recorre el carrusel de verdad — 5 s por slide de imagen, un
- * slide de vídeo avanza al terminar (evento 'ended'), sin flechas ni
- * puntos manuales. En hover: imagen fija, vídeo en loop. Al salir, se
- * reinicia el temporizador desde cero.
+ * 7 oct 2026 (§2.41): un pin es un único medio y no existe el carrusel de
+ * pines. Si por datos antiguos llegaran varios medios, la tarjeta pinta el
+ * primero y no avanza nunca.
  */
-describe('PinCard — carrusel (más de un medio)', () => {
-  const CAROUSEL_PIN = {
-    pinId: 'carousel-1',
-    destination: '/work/caso-carrusel',
+describe('PinCard — un pin es un único medio (sin carrusel)', () => {
+  const PIN = {
+    pinId: 'pin-1',
+    destination: '/work/caso',
     ratio: '1:1',
-    label: 'Carrusel',
+    label: 'Pin',
     cta: null,
-    alt: 'Alt del carrusel',
+    alt: 'Alt del pin',
     autoplayMode: null,
   }
+  const STYLE = { x: 0, y: 0, width: 300, height: 300 }
 
   beforeEach(() => {
     vi.useFakeTimers()
-
-    // useVideoSlot (videoPlaybackCoordinator) necesita un
-    // IntersectionObserver que sí llame al callback — a diferencia del
-    // stub no-op de más abajo (MasonryFeed), aquí hace falta un ratio de
-    // visibilidad real para que el slot se conceda.
-    // @ts-expect-error -- stub mínimo suficiente para el smoke test
-    global.IntersectionObserver = class {
-      callback: IntersectionObserverCallback
-      constructor(callback: IntersectionObserverCallback) {
-        this.callback = callback
-      }
-      observe(target: Element) {
-        this.callback(
-          [
-            {
-              intersectionRatio: 1,
-              boundingClientRect: { top: 0, bottom: 100 },
-              target,
-            } as IntersectionObserverEntry,
-          ],
-          this as unknown as IntersectionObserver,
-        )
-      }
-      disconnect() {}
-      unobserve() {}
-    }
   })
 
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('con dos imágenes, avanza a la siguiente a los 5000ms', () => {
+  it('con varios medios en los datos pinta solo el primero y no avanza con el tiempo', () => {
     render(
       <PinCard
         pin={{
-          ...CAROUSEL_PIN,
+          ...PIN,
           media: [
-            { kind: 'image', cloudinaryPublicId: 'img-1' },
-            { kind: 'image', cloudinaryPublicId: 'img-2' },
+            { kind: 'image', cloudinaryPublicId: 'imagen-1' },
+            { kind: 'image', cloudinaryPublicId: 'imagen-2' },
           ],
         }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
+        style={STYLE}
       />,
     )
 
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-1'),
-    )
+    const img = screen.getByAltText('Alt del pin')
+    expect(img).toHaveAttribute('src', expect.stringContaining('imagen-1'))
 
     act(() => {
-      vi.advanceTimersByTime(5000)
+      vi.advanceTimersByTime(30_000)
     })
 
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+    expect(screen.getByAltText('Alt del pin')).toHaveAttribute(
       'src',
-      expect.stringContaining('img-2'),
+      expect.stringContaining('imagen-1'),
     )
   })
 
-  it('en hover, no avanza aunque pase el tiempo — al salir, se reinicia desde cero', () => {
+  it('el destino de una tool no lleva ningún parámetro slide', () => {
     render(
       <PinCard
         pin={{
-          ...CAROUSEL_PIN,
-          media: [
-            { kind: 'image', cloudinaryPublicId: 'img-1' },
-            { kind: 'image', cloudinaryPublicId: 'img-2' },
-          ],
+          ...PIN,
+          destination: '/tools/mi-tool?pin=pin-1',
+          media: [{ kind: 'image', cloudinaryPublicId: 'imagen-1' }],
         }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
+        style={STYLE}
       />,
     )
 
-    const link = screen.getByRole('link')
-    fireEvent.mouseEnter(link)
-
-    act(() => {
-      vi.advanceTimersByTime(10_000)
-    })
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-1'),
-    )
-
-    fireEvent.mouseLeave(link)
-
-    // Recién salido del hover, todavía no han pasado los 5000ms nuevos.
-    act(() => {
-      vi.advanceTimersByTime(4999)
-    })
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-1'),
-    )
-
-    act(() => {
-      vi.advanceTimersByTime(1)
-    })
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-2'),
+    expect(screen.getByRole('link')).toHaveAttribute(
+      'href',
+      '/tools/mi-tool?pin=pin-1',
     )
   })
 
-  it('un slide de vídeo avanza cuando el vídeo termina (evento "ended"), no por el timer de 5000ms', () => {
+  it('un medio de vídeo sin autoplay no monta ningún <video>', () => {
     render(
       <PinCard
         pin={{
-          ...CAROUSEL_PIN,
-          media: [
-            { kind: 'video', cloudinaryPublicId: 'clip-1' },
-            { kind: 'image', cloudinaryPublicId: 'img-2' },
-          ],
-        }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
-      />,
-    )
-
-    const video = document.querySelector('video') as HTMLVideoElement
-    expect(video).toBeInTheDocument()
-
-    // El vídeo ya está listo y suena (jsdom no dispara estos eventos solo):
-    // contrato de medios §6.3, el vídeo avanza por 'ended' solo cuando
-    // de verdad se reproduce.
-    Object.defineProperty(video, 'readyState', {
-      value: 4,
-      configurable: true,
-    })
-    act(() => {
-      fireEvent(video, new Event('canplay'))
-      fireEvent(video, new Event('playing'))
-    })
-
-    // El timer de 5000ms no debe hacer avanzar un slide de vídeo que suena.
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
-    expect(document.querySelector('video')).toBeInTheDocument()
-
-    fireEvent(video, new Event('ended'))
-
-    expect(document.querySelector('video')).not.toBeInTheDocument()
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-2'),
-    )
-  })
-
-  it('un slide de vídeo que NO llega a reproducirse (aún cargando o fallando) avanza por el timer: el carrusel nunca se queda parado', () => {
-    render(
-      <PinCard
-        pin={{
-          ...CAROUSEL_PIN,
-          media: [
-            { kind: 'video', cloudinaryPublicId: 'clip-1' },
-            { kind: 'image', cloudinaryPublicId: 'img-2' },
-          ],
-        }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
-      />,
-    )
-
-    // Sin evento 'playing': el vídeo está montado pero oculto bajo el póster.
-    expect(document.querySelector('video')).toBeInTheDocument()
-
-    act(() => {
-      vi.advanceTimersByTime(5000)
-    })
-
-    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
-      'src',
-      expect.stringContaining('img-2'),
-    )
-  })
-
-  it('en hover sobre un slide de vídeo, entra en loop y el evento "ended" no avanza', () => {
-    render(
-      <PinCard
-        pin={{
-          ...CAROUSEL_PIN,
-          media: [
-            { kind: 'video', cloudinaryPublicId: 'clip-1' },
-            { kind: 'image', cloudinaryPublicId: 'img-2' },
-          ],
-        }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
-      />,
-    )
-
-    const link = screen.getByRole('link')
-    const video = document.querySelector('video') as HTMLVideoElement
-
-    fireEvent.mouseEnter(link)
-    expect(video.loop).toBe(true)
-
-    fireEvent(video, new Event('ended'))
-
-    // Sigue en el mismo slide de vídeo — el hover impide el avance.
-    expect(document.querySelector('video')).toBeInTheDocument()
-
-    fireEvent.mouseLeave(link)
-    expect(video.loop).toBe(false)
-  })
-
-  it('con un único medio (sin carrusel), no monta ningún <video> aunque sea de tipo vídeo — ver el test de arriba, "un medio de vídeo usa el poster"', () => {
-    render(
-      <PinCard
-        pin={{
-          ...CAROUSEL_PIN,
+          ...PIN,
           media: [{ kind: 'video', cloudinaryPublicId: 'clip-1' }],
         }}
-        style={{ x: 0, y: 0, width: 300, height: 300 }}
+        style={STYLE}
       />,
     )
 

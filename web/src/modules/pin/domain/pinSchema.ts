@@ -32,22 +32,9 @@ const pinCommonFields = {
     .nullable()
     .optional(),
 
-  // pin_type (fixed/animated/carousel) desaparece: un pin admite de 1 a
-  // 8 medios mixtos y este flag decide cómo se muestra en el feed —
-  // agrupado como una tarjeta con carrusel (true) o como tarjetas
-  // independientes, una por medio (false).
-  showAsCarousel: z.boolean(),
-
   language: pinLocaleSchema,
 
   autoplayMode: pinAutoplayModeSchema.nullable().optional(),
-
-  speedMs: z.coerce.number().int().positive().nullable().optional(),
-
-  queueOrder: z.coerce
-    .number()
-    .int()
-    .min(0, 'queue_order no puede ser negativo'),
 
   alt: z.string().trim().min(1, 'El alt es obligatorio'),
 }

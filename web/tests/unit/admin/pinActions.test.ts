@@ -144,17 +144,11 @@ function createValidFormData() {
 
   formData.set('ratio', '1:1')
 
-  formData.set('showAsCarousel', 'false')
-
   formData.set('label', 'Pin de prueba')
 
   formData.set('language', 'es')
 
   formData.set('autoplayMode', '')
-
-  formData.set('speedMs', '')
-
-  formData.set('queueOrder', '0')
 
   formData.set('alt', 'Texto alternativo')
 
@@ -166,17 +160,11 @@ const VALID_PIN_INPUT = {
 
   ratio: '1:1',
 
-  showAsCarousel: false,
-
   label: 'Pin de prueba',
 
   language: 'es',
 
   autoplayMode: null,
-
-  speedMs: null,
-
-  queueOrder: 0,
 
   alt: 'Texto alternativo',
 }
@@ -193,8 +181,6 @@ const VALID_IMAGE_INPUT = {
   height: 800,
 
   bytes: 1024,
-
-  slideOrder: 0,
 }
 
 const VALID_VIDEO_INPUT = {
@@ -211,8 +197,6 @@ const VALID_VIDEO_INPUT = {
   durationSeconds: 3,
 
   bytes: 1024,
-
-  slideOrder: 0,
 }
 
 const VALID_PIN_WITH_IMAGE = {
@@ -321,18 +305,6 @@ describe('pinActions', () => {
 
       expect(mockUpdatePin).toHaveBeenCalledTimes(1)
     })
-
-    it('con queueOrder negativo, no llega a llamar a updatePin', async () => {
-      const formData = createValidFormData()
-
-      formData.set('queueOrder', '-1')
-
-      const result = await updatePinAction(PIN_ID, CONTENT_ID, {}, formData)
-
-      expect(result.fieldErrors).toBeDefined()
-
-      expect(mockUpdatePin).not.toHaveBeenCalled()
-    })
   })
 
   describe('deletePinAction', () => {
@@ -428,7 +400,7 @@ describe('pinActions', () => {
       expect(mockCreatePin).toHaveBeenCalledTimes(1)
 
       expect(mockAttachPinVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ pinId: PIN_ID, slideOrder: 0 }),
+        expect.objectContaining({ pinId: PIN_ID }),
       )
 
       expect(mockDeletePin).not.toHaveBeenCalled()
@@ -583,8 +555,6 @@ describe('pinActions', () => {
         height: 800,
 
         bytes: 1024,
-
-        slideOrder: 0,
       })
     })
 
@@ -675,8 +645,6 @@ describe('pinActions', () => {
         height: 800,
 
         bytes: 1024,
-
-        slideOrder: 0,
       })
     })
 
@@ -719,8 +687,6 @@ describe('pinActions', () => {
         height: 1000,
 
         bytes: 4096,
-
-        slideOrder: 0,
       })
     })
 
@@ -799,8 +765,6 @@ describe('pinActions', () => {
         durationSeconds: 3,
 
         bytes: 4096,
-
-        slideOrder: 0,
       })
     })
 
@@ -910,8 +874,6 @@ describe('pinActions', () => {
         durationSeconds: 4,
 
         bytes: 8192,
-
-        slideOrder: 0,
       })
     })
 

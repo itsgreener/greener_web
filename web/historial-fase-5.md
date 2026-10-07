@@ -814,3 +814,35 @@ Archivado junto con el resto del detalle de las Fases 0-2 (`historial-fases-0-2.
 **Qué NO se quita, y por qué.** El tipo `other` (variety) usa la portada (imagen o vídeo) como contenido principal de su ficha, así que la columna `cover_media_id`, `cover_ratio`, las RPC y `ToolInsightDetail` (que también sirve a `other` y a tool con `?pin=`) se conservan. Quitar la columna entera exigiría decidir antes cómo se sustituye en `other`.
 
 **Efectos a vigilar.** (a) Los recursos de Cloudinary de las portadas antiguas quedan huérfanos: `scripts/reconcile-cloudinary.mjs` los detecta y se pueden borrar para recuperar almacenamiento. (b) **Imagen de OG resuelta**: tool e insight la sacan del primer medio de su primer pin (`getFirstPinMedia`, orden `queue_order` y luego `created_at`; si es vídeo, su póster jpg a 1200 de ancho). En tool, un `?pin=` en la URL manda sobre el primer pin, de modo que compartir un pin concreto muestra ese pin. `other` mantiene su portada, que tiene prioridad. Una lectura fallida nunca tumba la página. Tests: `tests/unit/media/coverOnlyForOther.test.ts` y `tests/unit/seo/contentMetadata.test.ts`.
+
+### 2.41 Pin = un medio, máximo 8 pines por contenido, sin carrusel de pines (7 oct)
+
+**Decisión.** El modelo original era «un pin es un medio y cada contenido tiene como máximo 8 pines». La rediseñada §3/§6 del 10 sep había dado a cada pin hasta 8 medios y un flag `show_as_carousel` (activo por defecto) que los agrupaba en una tarjeta con carrusel. Nadie lo pidió, y para este catálogo agrupar piezas pierde el sentido (la web busca mostrar mucho contenido distinto). Se quita; si algún día se necesita, se diseñará a nivel de contenido, no de pin. Sin pines con varios medios en los datos reales, la migración no cambia ninguno.
+
+**Migración `20261007120000_pins_single_media_no_carousel.sql`.** (1) Comprobación previa que **avisa y aborta** (no trunca ni borra) si algún pin tiene más de un medio o algún contenido más de 8 pines. (2) Elimina `pin.show_as_carousel` y `pin.speed_ms` (velocidad del carrusel); `autoplay_mode` se conserva porque el feed lo usa para decidir cuándo reproduce el vídeo de un pin suelto. (3) Índice único `pin_media(pin_id)` y trigger con mensaje legible («Un pin admite un solo medio»); `attach_pin_image/video` no cambian de firma. (4) Trigger `pin_max_per_content`: máximo 8 pines por contenido en todos los tipos (errcode 22023, así el ABM muestra el mensaje). (5) `create_pin`/`update_pin` sin `p_show_as_carousel` ni `p_speed_ms`, conservando el rótulo opcional de insight de la `20261007100000`.
+
+**Código.** Dominio y repositorios sin `showAsCarousel`/`speedMs`/`slideOrder` (la BBDD rellena `slide_order` con 0). Feed: una unidad por pin con `unitId = pinId`; desaparece `pinId::mediaId` y el motor no se toca. `PinCard` pierde el carrusel (temporizador de 5 s, slides, loop en hover); el vídeo reproduce según `autoplayMode`. La ficha de tool deja de leer `?slide=` y solo usa `?pin=`. Analítica: `pinType` ya no tiene `carousel`. ABM: sin checkbox de carrusel ni velocidad; contador «N / 8 pines»; alta y carga masiva bloqueadas al llegar a 8 (la carga masiva descarta los archivos que sobran y avisa); `PinMediaManager` ofrece un único medio (para cambiarlo se quita y se sube otro). Constante compartida en `modules/pin/domain/pinLimits.ts`. Seed y generador de demo sin el flag.
+
+**Pendiente de ti.** Aplicar la migración (`npx supabase db push`). Si avisa de pines con varios medios o contenidos con más de 8, hay que corregirlos a mano antes. Una sesión de feed ya abierta con ids antiguos `pinId::mediaId` (no debería haber ninguna: todos los pines eran de carrusel) simplemente no encontraría su entrada.
+
+Tests: `tests/unit/pin/singleMediaPins.test.ts`, bloque de límite en `bulkPinUpload.test.tsx`, y reescritos los de carrusel (`components.smoke`, `pinClick`, `feedVideoDuration`, esquemas y capa de aplicación).
+
+### 2.42 Retoques del ABM: crear pines con medio, quitar filas del lote, summary de episodio (7 oct)
+
+**Crear pines.** El formulario «Crear un pin» creaba un pin vacío (sin medio) y obligaba a subir el medio después desde «Editar». Se elimina `NewPinForm` y la creación pasa a un único bloque «Crear pines» (el antiguo de carga masiva, que ya sube medio + pin juntos y sirve para 1 o N archivos). El orden en cola inicial del lote ya no arranca en 0 sino a continuación de los pines que tiene el contenido. `createPinAction` (pin sin medio) queda sin uso en la interfaz.
+
+**Quitar filas del lote.** Cada fila pendiente o con error tiene un botón «Quitar» (antes solo se podía recargar todo). El archivo sale también de la lista interna: si no, cambiar un valor por defecto regeneraba las filas y lo resucitaba. Las filas ya subidas no se pueden quitar (su pin ya existe).
+
+**Columna «Orden» (`queue_order`): se conserva.** No es del carrusel. Es el orden del pin dentro de la cola circular de su contenido, que el motor del feed usa para decidir qué pin de ese contenido sale después (`supabaseFeedSource`, orden por `queue_order`) y que `getFirstPinMedia` usa para elegir el primero. Quitarla cambiaría el comportamiento del motor.
+
+**Summary en episodios.** El campo no se muestra para episodios (`showSummary`). Highlight y Body siguen en su formulario y se pintan en la ficha pública del episodio (`EpisodeDetail`). El summary solo servía de respaldo de la meta descripción cuando no hay `seoDescription`. La columna en base de datos no se toca. Case sigue mostrándolo: queda decidir si también sobra.
+
+Tests: `bulkPinUpload.test.tsx` (quitar filas, orden inicial) y `translationFormSummary.test.tsx`.
+
+### 2.43 Orden en cola automático y summary fuera de case y episodio (7 oct)
+
+**Orden en cola.** `queue_order` (orden del pin dentro de la cola circular de su contenido, que lee el motor) ya no se pide en ningún formulario del ABM (alta, edición, carga masiva ni columna del CSV) ni se muestra en la lista. Migración `20261007130000_pin_queue_order_auto.sql`: `create_pin` asigna el siguiente libre del contenido (`max + 1`, con bloqueo por contenido para que dos altas simultáneas no empaten), `update_pin` ya no lo toca (cambian las firmas, sin `p_queue_order`) y los pines existentes se renumeran por contenido (0, 1, 2…) respetando su orden actual y desempatando por antigüedad. En un lote, el orden sale de la posición de las filas. El motor no cambia: sigue leyendo `pin.queue_order`. Contrapartida asumida: ya no se puede reordenar un pin a mano; para cambiar el orden hay que borrar y volver a subir.
+
+**Summary.** El campo desaparece también de case (antes solo de episodio): ninguno lo usaba más que como respaldo de la meta descripción. Para case y episodio la descripción SEO es solo `seoDescription` (`workContent.ts`); tool, insight y other mantienen su summary. Al guardar la traducción de un case o episodio el summary guardado se vacía, porque el campo ya no viaja en el formulario. La columna no se toca.
+
+Tests: bloque de la migración y del ABM en `singleMediaPins.test.ts`, `bulkPinUpload.test.tsx`, `translationFormSummary.test.tsx`, `pinCsv.test.ts`.

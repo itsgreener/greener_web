@@ -6,9 +6,8 @@ import {
   TOOL_PIN_VIDEO_LIMITS,
 } from '@/modules/media/domain/mediaLimits'
 
-// Antes había un slideOrder distinto según pin_type (0-7 para carrusel,
-// siempre 0 para fixed/animated). Ese enum desaparece: cualquier pin
-// admite hasta 8 medios mixtos, así que el rango 0-7 aplica siempre.
+// Un pin es un único medio (7 oct 2026, §2.41): ya no hay slideOrder.
+// La base de datos lo rellena con 0.
 export const attachPinImageSchema = z.object({
   pinId: z.string().uuid('El identificador del pin no es válido'),
 
@@ -31,8 +30,6 @@ export const attachPinImageSchema = z.object({
       IMAGE_LIMITS.maxSizeBytes,
       `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
     ),
-
-  slideOrder: z.number().int().min(0).max(7),
 })
 
 export const attachPinVideoSchema = z.object({
@@ -70,8 +67,6 @@ export const attachPinVideoSchema = z.object({
       VIDEO_LIMITS.maxSizeBytes,
       `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
     ),
-
-  slideOrder: z.number().int().min(0).max(7),
 })
 
 export const detachPinMediaSchema = z.object({

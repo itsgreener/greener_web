@@ -27,11 +27,8 @@ describe('createPinSchema', () => {
     contentId: CONTENT_ID,
     ratio: '1:1' as const,
     label: 'Pin de ejemplo',
-    showAsCarousel: true,
     language: 'es' as const,
     autoplayMode: null,
-    speedMs: null,
-    queueOrder: 0,
     alt: 'Texto alternativo',
   }
 
@@ -58,25 +55,23 @@ describe('createPinSchema', () => {
     expect(createPinSchema.safeParse({ ...base, alt: '' }).success).toBe(false)
   })
 
-  it('rechaza queueOrder negativo', () => {
-    expect(createPinSchema.safeParse({ ...base, queueOrder: -1 }).success).toBe(
-      false,
-    )
+  it('ya no recibe queueOrder: el orden en cola se asigna solo', () => {
+    const parsed = createPinSchema.safeParse({ ...base, queueOrder: 5 })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) expect(parsed.data).not.toHaveProperty('queueOrder')
   })
 
-  it('acepta showAsCarousel en ambos valores', () => {
-    expect(
-      createPinSchema.safeParse({ ...base, showAsCarousel: true }).success,
-    ).toBe(true)
-    expect(
-      createPinSchema.safeParse({ ...base, showAsCarousel: false }).success,
-    ).toBe(true)
-  })
-
-  it('rechaza showAsCarousel ausente — ya no hay pin_type con un valor por defecto implícito', () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { showAsCarousel: _flag, ...withoutFlag } = base
-    expect(createPinSchema.safeParse(withoutFlag).success).toBe(false)
+  it('ya no acepta ni exige showAsCarousel ni speedMs: un pin no tiene carrusel', () => {
+    const parsed = createPinSchema.safeParse({
+      ...base,
+      showAsCarousel: true,
+      speedMs: 3000,
+    })
+    expect(parsed.success).toBe(true)
+    if (parsed.success) {
+      expect(parsed.data).not.toHaveProperty('showAsCarousel')
+      expect(parsed.data).not.toHaveProperty('speedMs')
+    }
   })
 
   it('acepta autoplayMode viewport/hover', () => {
@@ -84,7 +79,6 @@ describe('createPinSchema', () => {
       createPinSchema.safeParse({
         ...base,
         autoplayMode: 'viewport',
-        speedMs: 3000,
       }).success,
     ).toBe(true)
   })
@@ -112,11 +106,8 @@ describe('updatePinSchema', () => {
       id: PIN_ID,
       ratio: '4:5',
       label: 'Actualizado',
-      showAsCarousel: false,
       language: 'es',
       autoplayMode: null,
-      speedMs: null,
-      queueOrder: 2,
       alt: 'Alt actualizado',
     })
 
@@ -132,11 +123,8 @@ describe('updatePinSchema', () => {
         id: 'no-es-uuid',
         ratio: '1:1',
         label: 'x',
-        showAsCarousel: true,
         language: 'es',
         autoplayMode: null,
-        speedMs: null,
-        queueOrder: 0,
         alt: 'x',
       }).success,
     ).toBe(false)

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
 import type { ContentType } from '@/modules/content/domain/contentSchema'
 
 import {
@@ -38,6 +39,8 @@ import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
 type Props = {
+  // Huecos de pin que quedan en el contenido (máximo 8 por contenido).
+  availableSlots: number
   contentId: string
   contentType: ContentType
 }
@@ -54,7 +57,6 @@ type Row = {
   ratio: string
   language: string
   alt: string
-  queueOrder: string
   status: RowStatus
   error?: string
   // Aviso no bloqueante de una fila ya subida (p. ej. ratio del vídeo).
@@ -83,7 +85,7 @@ function buildRow(
   file: File,
   index: number,
   csvRow: PinCsvRow | undefined,
-  defaults: { ratio: string; language: string; queueOrderStart: number },
+  defaults: { ratio: string; language: string },
 ): Row {
   return {
     key: `${file.name}-${index}`,
@@ -93,12 +95,15 @@ function buildRow(
     ratio: csvRow?.ratio || defaults.ratio,
     language: csvRow?.language || defaults.language,
     alt: csvRow?.alt || labelFromFilename(file.name),
-    queueOrder: csvRow?.queueOrder ?? String(defaults.queueOrderStart + index),
     status: 'pending',
   }
 }
 
-export default function BulkPinUpload({ contentId, contentType }: Props) {
+export default function BulkPinUpload({
+  contentId,
+  contentType,
+  availableSlots,
+}: Props) {
   const derivedLabel = hasDerivedPinLabel(contentType)
 
   const [files, setFiles] = useState<File[]>([])
@@ -106,7 +111,6 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
   const [rows, setRows] = useState<Row[]>([])
   const [defaultRatio, setDefaultRatio] = useState('1:1')
   const [defaultLanguage, setDefaultLanguage] = useState('es')
-  const [queueOrderStart, setQueueOrderStart] = useState(0)
   // Cómo se reproducen en el feed los pines de vídeo del lote (los de
   // imagen no usan este valor). Un vídeo de más de 8 s se queda en poster
   // aunque aquí se elija «viewport»: lo decide la duración (canAnimateInFeed).
@@ -120,7 +124,6 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
     const defaults = {
       ratio: defaultRatio,
       language: defaultLanguage,
-      queueOrderStart,
     }
 
     setRows(
@@ -136,7 +139,16 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
   }
 
   async function handleFilesChange(fileList: FileList | null) {
-    const nextFiles = fileList ? Array.from(fileList) : []
+    const selected = fileList ? Array.from(fileList) : []
+    // Máximo de 8 pines por contenido: no se admiten más archivos que
+    // huecos libres (lo impone también la base de datos).
+    const nextFiles = selected.slice(0, availableSlots)
+
+    setFormError(
+      selected.length > availableSlots
+        ? `Solo quedan ${availableSlots} huecos de pin en este contenido (máximo ${MAX_PINS_PER_CONTENT}): se han descartado ${selected.length - availableSlots} archivos.`
+        : null,
+    )
 
     setFiles(nextFiles)
     regenerateRows(nextFiles, csvRows)
@@ -156,6 +168,20 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
     setCsvRows(parsed)
     regenerateRows(files, parsed)
+  }
+
+  // Quita un archivo del lote antes de subirlo (p. ej. un vídeo elegido por
+  // error). También sale de `files`: si no, cambiar un valor por defecto
+  // regeneraría las filas y lo resucitaría.
+  function removeRow(key: string) {
+    const row = rows.find((item) => item.key === key)
+    if (!row) return
+
+    const nextFiles = files.filter((file) => file !== row.file)
+
+    setFiles(nextFiles)
+    regenerateRows(nextFiles, csvRows)
+    setFormError(null)
   }
 
   function updateRow(key: string, patch: Partial<Row>) {
@@ -188,11 +214,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       // En Case/Episode el feed nunca usa un texto escrito a mano.
       // Se deriva de título + cliente / tipo de episodio.
       label: derivedLabel ? null : row.label,
-      showAsCarousel: true,
       language: row.language,
       autoplayMode: null,
-      speedMs: null,
-      queueOrder: Number(row.queueOrder) || 0,
       alt: row.alt,
       cloudinaryPublicId: uploaded.public_id,
       format: uploaded.format,
@@ -270,11 +293,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       contentId,
       ratio: row.ratio,
       label: derivedLabel ? null : row.label,
-      showAsCarousel: true,
       language: row.language,
       autoplayMode: videoAutoplay,
-      speedMs: null,
-      queueOrder: Number(row.queueOrder) || 0,
       alt: row.alt,
       cloudinaryPublicId: uploaded.public_id,
       format: uploaded.format,
@@ -365,8 +385,6 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
 
   return (
     <div>
-      <h4>Carga masiva</h4>
-
       {derivedLabel && (
         <p>
           El texto del feed es automático para{' '}
@@ -392,8 +410,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
       <label htmlFor="bulk-csv">
         Plantilla CSV (opcional):{' '}
         {derivedLabel
-          ? 'filename,ratio,language,alt,queueOrder'
-          : 'filename,label,ratio,language,alt,queueOrder'}
+          ? 'filename,ratio,language,alt'
+          : 'filename,label,ratio,language,alt'}
       </label>
       <input
         id="bulk-csv"
@@ -453,19 +471,6 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
           <option value="viewport">Al entrar en pantalla</option>
           <option value="hover">Al pasar el ratón</option>
         </select>
-
-        <label htmlFor="bulk-queue-start">Orden en cola inicial</label>
-        <input
-          id="bulk-queue-start"
-          type="number"
-          min={0}
-          value={queueOrderStart}
-          onChange={(event) => {
-            const value = Number(event.target.value) || 0
-            setQueueOrderStart(value)
-            regenerateRows(files, csvRows)
-          }}
-        />
       </fieldset>
 
       {rows.length > 0 && (
@@ -477,8 +482,8 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
               <th>Ratio</th>
               <th>Idioma</th>
               <th>Alt</th>
-              <th>Orden</th>
               <th>Estado</th>
+              <th>Quitar</th>
             </tr>
           </thead>
 
@@ -544,23 +549,24 @@ export default function BulkPinUpload({ contentId, contentType }: Props) {
                 </td>
 
                 <td>
-                  <input
-                    type="number"
-                    min={0}
-                    value={row.queueOrder}
-                    disabled={uploading}
-                    onChange={(event) =>
-                      updateRow(row.key, { queueOrder: event.target.value })
-                    }
-                  />
-                </td>
-
-                <td>
                   {row.status === 'pending' && 'Pendiente'}
                   {row.status === 'uploading' && 'Subiendo...'}
                   {row.status === 'ok' &&
                     (row.note ? `Hecho. Aviso: ${row.note}` : 'Hecho')}
                   {row.status === 'error' && `Error: ${row.error}`}
+                </td>
+
+                <td>
+                  {row.status !== 'ok' && row.status !== 'uploading' && (
+                    <button
+                      type="button"
+                      disabled={uploading}
+                      aria-label={`Quitar ${row.file.name} del lote`}
+                      onClick={() => removeRow(row.key)}
+                    >
+                      Quitar
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

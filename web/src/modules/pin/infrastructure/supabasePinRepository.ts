@@ -21,12 +21,9 @@ type SupabasePinRow = {
   id: string
   content_id: string
   ratio: string
-  show_as_carousel: boolean
   label: string | null
   language: string
   autoplay_mode: PinListItem['autoplayMode']
-  speed_ms: number | null
-  queue_order: number
   alt: string
   created_at: string
   pin_media: Array<{
@@ -44,12 +41,9 @@ function mapPin(row: SupabasePinRow): PinListItem {
     id: row.id,
     contentId: row.content_id,
     ratio: row.ratio,
-    showAsCarousel: row.show_as_carousel,
     label: row.label,
     language: row.language,
     autoplayMode: row.autoplay_mode,
-    speedMs: row.speed_ms,
-    queueOrder: row.queue_order,
     alt: row.alt,
     createdAt: row.created_at,
     media: row.pin_media
@@ -75,12 +69,9 @@ export const supabasePinRepository: PinRepository = {
         id,
         content_id,
         ratio,
-        show_as_carousel,
         label,
         language,
         autoplay_mode,
-        speed_ms,
-        queue_order,
         alt,
         created_at,
         pin_media (
@@ -106,12 +97,9 @@ export const supabasePinRepository: PinRepository = {
     const { data, error } = await supabase.rpc('create_pin', {
       p_content_id: input.contentId,
       p_ratio: input.ratio,
-      p_show_as_carousel: input.showAsCarousel,
       p_label: input.label ?? null,
       p_language: input.language,
       p_autoplay_mode: input.autoplayMode ?? null,
-      p_speed_ms: input.speedMs ?? null,
-      p_queue_order: input.queueOrder,
       p_alt: input.alt,
     })
 
@@ -128,12 +116,9 @@ export const supabasePinRepository: PinRepository = {
     const { data, error } = await supabase.rpc('update_pin', {
       p_pin_id: input.id,
       p_ratio: input.ratio,
-      p_show_as_carousel: input.showAsCarousel,
       p_label: input.label ?? null,
       p_language: input.language,
       p_autoplay_mode: input.autoplayMode ?? null,
-      p_speed_ms: input.speedMs ?? null,
-      p_queue_order: input.queueOrder,
       p_alt: input.alt,
     })
 

@@ -8,12 +8,9 @@ export type PinListItem = {
   id: string
   contentId: string
   ratio: string
-  showAsCarousel: boolean
   label: string | null
   language: string
   autoplayMode: 'viewport' | 'hover' | null
-  speedMs: number | null
-  queueOrder: number
   alt: string
   createdAt: string
   media: Array<{

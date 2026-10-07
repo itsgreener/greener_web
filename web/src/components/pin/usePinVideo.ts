@@ -40,7 +40,7 @@ function isNear(entry: IntersectionObserverEntry): boolean {
  *
  * Toda la política vive en `modules/media/domain/videoPlayback.ts`; aquí
  * solo se conecta con el DOM. `wantsPlay` lo decide quien llama (hueco de
- * reproducción, hover o slide activo de un carrusel).
+ * reproducción o hover).
  */
 export function usePinVideo({
   id,
@@ -56,7 +56,7 @@ export function usePinVideo({
   cardRef: RefObject<HTMLElement | null>
   /** Lo crea el componente (no el hook): un hook que devolviera el ref dentro de su resultado haría saltar react-hooks/refs. */
   videoRef: RefObject<HTMLVideoElement | null>
-  /** Cambia cuando cambia el vídeo (otro slide de un carrusel): reinicia el ciclo. */
+  /** Cambia cuando cambia el vídeo: reinicia el ciclo. */
   resetKey: string
   sourceCount: number
   /** Vídeo animable, y el visitante admite prefetch y autoplay en el feed. */
@@ -256,7 +256,7 @@ export function usePinVideo({
     attempt: load.attempt,
     /** ¿El vídeo ya sustituye al póster? Listo Y reproduciéndose. */
     visible: mounted && load.phase === 'ready' && wantsPlay && playing,
-    /** ¿Se está reproduciendo de verdad? (los carruseles avanzan por `ended`). */
+    /** ¿Se está reproduciendo de verdad? */
     isActuallyPlaying: mounted && wantsPlay && playing,
     handlers: { onCanPlay, onPlaying, onPause, onVideoError, onSourceError },
   }

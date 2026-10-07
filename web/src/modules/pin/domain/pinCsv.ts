@@ -13,7 +13,6 @@ export type PinCsvRow = {
   ratio?: string
   language?: string
   alt?: string
-  queueOrder?: string
 }
 
 function parseCsvLine(line: string): string[] {
@@ -61,9 +60,6 @@ const COLUMN_ALIASES: Record<string, keyof PinCsvRow> = {
   language: 'language',
   lang: 'language',
   alt: 'alt',
-  queueorder: 'queueOrder',
-  queue_order: 'queueOrder',
-  'queue order': 'queueOrder',
 }
 
 /**

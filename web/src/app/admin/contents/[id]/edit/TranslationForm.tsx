@@ -22,6 +22,8 @@ type Props = {
   locale: Locale
   translation: ContentTranslation | null
   showHighlightAndBody: boolean
+  // Case y episodio no usan summary: su texto es highlight + body.
+  showSummary: boolean
 }
 
 const initialState: TranslationActionState = {}
@@ -44,6 +46,7 @@ export default function TranslationForm({
   locale,
   translation,
   showHighlightAndBody,
+  showSummary,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     saveTranslationAction,
@@ -116,21 +119,23 @@ export default function TranslationForm({
           />
         </div>
 
-        <div className="admin-field">
-          <div className="admin-field-heading">
-            <label htmlFor={`summary-${locale}`}>Summary</label>
+        {showSummary && (
+          <div className="admin-field">
+            <div className="admin-field-heading">
+              <label htmlFor={`summary-${locale}`}>Summary</label>
 
-            <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
+              <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
+            </div>
+
+            <textarea
+              id={`summary-${locale}`}
+              name="summary"
+              rows={3}
+              defaultValue={translation?.summary ?? ''}
+              onChange={summary.onChange}
+            />
           </div>
-
-          <textarea
-            id={`summary-${locale}`}
-            name="summary"
-            rows={3}
-            defaultValue={translation?.summary ?? ''}
-            onChange={summary.onChange}
-          />
-        </div>
+        )}
       </div>
 
       <div className="admin-field">
