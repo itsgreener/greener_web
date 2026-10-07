@@ -61,3 +61,13 @@ vi.mock('next/font/local', () => ({
     style: { fontFamily: 'font-stub' },
   }),
 }))
+
+/**
+ * jsdom no implementa la reproducción real: `load()` y `pause()` solo emiten un aviso de
+ * «Not implemented» que ensucia la salida. Los tests que necesitan comprobar
+ * que se llama (liberar un vídeo) lo espían con vi.spyOn.
+ */
+if (typeof HTMLMediaElement !== 'undefined') {
+  HTMLMediaElement.prototype.load = function load() {}
+  HTMLMediaElement.prototype.pause = function pause() {}
+}

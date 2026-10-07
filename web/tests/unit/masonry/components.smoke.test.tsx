@@ -234,18 +234,57 @@ describe('PinCard — carrusel (más de un medio)', () => {
       />,
     )
 
-    const video = document.querySelector('video')
+    const video = document.querySelector('video') as HTMLVideoElement
     expect(video).toBeInTheDocument()
 
-    // El timer de 5000ms no debe hacer avanzar un slide de vídeo.
+    // El vídeo ya está listo y suena (jsdom no dispara estos eventos solo):
+    // contrato de medios §6.3, el vídeo avanza por 'ended' solo cuando
+    // de verdad se reproduce.
+    Object.defineProperty(video, 'readyState', {
+      value: 4,
+      configurable: true,
+    })
+    act(() => {
+      fireEvent(video, new Event('canplay'))
+      fireEvent(video, new Event('playing'))
+    })
+
+    // El timer de 5000ms no debe hacer avanzar un slide de vídeo que suena.
     act(() => {
       vi.advanceTimersByTime(5000)
     })
     expect(document.querySelector('video')).toBeInTheDocument()
 
-    fireEvent(video as HTMLVideoElement, new Event('ended'))
+    fireEvent(video, new Event('ended'))
 
     expect(document.querySelector('video')).not.toBeInTheDocument()
+    expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
+      'src',
+      expect.stringContaining('img-2'),
+    )
+  })
+
+  it('un slide de vídeo que NO llega a reproducirse (aún cargando o fallando) avanza por el timer: el carrusel nunca se queda parado', () => {
+    render(
+      <PinCard
+        pin={{
+          ...CAROUSEL_PIN,
+          media: [
+            { kind: 'video', cloudinaryPublicId: 'clip-1' },
+            { kind: 'image', cloudinaryPublicId: 'img-2' },
+          ],
+        }}
+        style={{ x: 0, y: 0, width: 300, height: 300 }}
+      />,
+    )
+
+    // Sin evento 'playing': el vídeo está montado pero oculto bajo el póster.
+    expect(document.querySelector('video')).toBeInTheDocument()
+
+    act(() => {
+      vi.advanceTimersByTime(5000)
+    })
+
     expect(screen.getByAltText('Alt del carrusel')).toHaveAttribute(
       'src',
       expect.stringContaining('img-2'),

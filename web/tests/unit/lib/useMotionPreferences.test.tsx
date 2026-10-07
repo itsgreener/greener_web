@@ -4,6 +4,7 @@ import { renderHook, act } from '@testing-library/react'
 import {
   readReducedMotion,
   readSaveData,
+  readSlowConnection,
   useMotionPreferences,
 } from '@/lib/useMotionPreferences'
 
@@ -46,7 +47,9 @@ describe('useMotionPreferences (5 oct 2026, arquitectura §9.3)', () => {
     expect(result.current).toEqual({
       reducedMotion: false,
       saveData: false,
+      slowConnection: false,
       autoplayAllowed: true,
+      feedAutoplayAllowed: true,
     })
   })
 
@@ -98,6 +101,56 @@ describe('useMotionPreferences (5 oct 2026, arquitectura §9.3)', () => {
     window.matchMedia = undefined
 
     expect(readReducedMotion()).toBe(false)
+  })
+
+  describe('conexión lenta (contrato de medios §6.4, 7 oct 2026)', () => {
+    it('downlink por debajo de 1,5 Mbps es conexión lenta; desde 1,5 no', () => {
+      mockMatchMedia(false)
+
+      mockConnection({ downlink: 1.4 })
+      expect(readSlowConnection()).toBe(true)
+
+      mockConnection({ downlink: 1.5 })
+      expect(readSlowConnection()).toBe(false)
+
+      mockConnection({ downlink: 10 })
+      expect(readSlowConnection()).toBe(false)
+    })
+
+    it('sin downlink (Safari, Firefox) no se asume lenta', () => {
+      mockMatchMedia(false)
+
+      mockConnection(undefined)
+      expect(readSlowConnection()).toBe(false)
+
+      mockConnection({})
+      expect(readSlowConnection()).toBe(false)
+    })
+
+    it('una conexión lenta quita el autoplay del FEED, pero NO el de la ficha de tool', () => {
+      mockMatchMedia(false)
+      mockConnection({ downlink: 0.8 })
+
+      const { result } = renderHook(() => useMotionPreferences())
+
+      expect(result.current.slowConnection).toBe(true)
+      expect(result.current.feedAutoplayAllowed).toBe(false)
+      // La ficha reproduce igualmente (con su póster hasta que esté listo).
+      expect(result.current.autoplayAllowed).toBe(true)
+    })
+
+    it('reduced-motion y save-data quitan también el autoplay del feed', () => {
+      mockMatchMedia(true)
+      const reduced = renderHook(() => useMotionPreferences())
+
+      expect(reduced.result.current.feedAutoplayAllowed).toBe(false)
+
+      mockMatchMedia(false)
+      mockConnection({ saveData: true })
+      const save = renderHook(() => useMotionPreferences())
+
+      expect(save.result.current.feedAutoplayAllowed).toBe(false)
+    })
   })
 
   it('reacciona si el usuario activa reduced-motion con la página abierta', () => {

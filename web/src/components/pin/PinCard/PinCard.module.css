@@ -47,6 +47,34 @@
 }
 
 /*
+ * El vídeo se monta OCULTO encima del póster (prefetch) y solo se hace
+ * visible cuando ya está listo y reproduciendo, para que el cambio
+ * póster→vídeo no tenga tirones. `opacity: 0` y no `display: none`: un
+ * vídeo sin caja no se descarga ni se reproduce de forma fiable.
+ */
+.video {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+
+  &.videoVisible {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video {
+    transition: none;
+  }
+}
+
+/*
  * El texto NO se alinea con el borde exterior de la imagen.
  * El radio de la imagen es 12px, por lo que 12px es justamente el punto
  * donde termina la curva superior/inferior y empieza el tramo recto.

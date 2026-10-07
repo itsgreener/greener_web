@@ -4,10 +4,14 @@ import Link from 'next/link'
 import {
   buildImageUrl,
   buildImageSrcSet,
-  buildVideoFullUrl,
   buildVideoPosterUrl,
+  buildVideoSources,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
-import { widestCarouselRatio } from '@/modules/media/domain/closestRatio'
+import {
+  closestClosedRatio,
+  widestCarouselRatio,
+} from '@/modules/media/domain/closestRatio'
+import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import { PinCard } from '@/components/pin/PinCard'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
 import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
@@ -35,6 +39,31 @@ const CSS_ASPECT_RATIO: Record<string, string> = {
 // siempre trae 1-N medios en la práctica (§3), pero la página no debe
 // romper si un caso se publica sin carrusel por error de carga.
 const FALLBACK_RATIO = '16:9' as const
+
+/**
+ * Vídeo del carrusel de un caso (contrato de medios §4.2): escalón M del
+ * ratio PROPIO del vídeo, dos fuentes explícitas (WebM/VP9 y MP4/H.264) y
+ * el audio conservado (lleva controles). Antes se servía el original sin
+ * tope (hasta 180 s y 100 MB).
+ */
+function CarouselVideo({ item }: { item: PublicCaseCarouselItem }) {
+  const size = detailVideoRungM(closestClosedRatio(item.width, item.height))
+
+  return (
+    <video
+      poster={buildVideoPosterUrl(item.cloudinaryPublicId, size, 'detail')}
+      controls
+      aria-label={item.alt}
+      className={styles.media}
+    >
+      {buildVideoSources(item.cloudinaryPublicId, 'caseDetail', size).map(
+        (source) => (
+          <source key={source.type} src={source.src} type={source.type} />
+        ),
+      )}
+    </video>
+  )
+}
 
 /**
  * Plantilla de detalle tipo B para un caso (especificacion-final-formato-
@@ -106,13 +135,7 @@ export function CaseDetail({
                     className={styles.media}
                   />
                 ) : (
-                  <video
-                    src={buildVideoFullUrl(item.cloudinaryPublicId)}
-                    poster={buildVideoPosterUrl(item.cloudinaryPublicId)}
-                    controls
-                    aria-label={item.alt}
-                    className={styles.media}
-                  />
+                  <CarouselVideo item={item} />
                 )}
               </div>
             ))}

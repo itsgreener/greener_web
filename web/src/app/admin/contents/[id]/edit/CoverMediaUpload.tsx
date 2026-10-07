@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { ADMIN_THUMBNAIL_WIDTH } from '@/modules/media/domain/mediaDelivery'
 
 import {
   VIDEO_LIMITS,
@@ -370,7 +371,11 @@ export default function CoverMediaUpload({
           {coverMedia.kind === 'image' ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={buildImageUrl(coverMedia.cloudinaryPublicId, 'feed', 300)}
+              src={buildImageUrl(
+                coverMedia.cloudinaryPublicId,
+                'feed',
+                ADMIN_THUMBNAIL_WIDTH,
+              )}
               alt=""
               width={200}
               height={200}

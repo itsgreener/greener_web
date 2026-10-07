@@ -698,6 +698,48 @@ Con esto: 107 ficheros y 1042 tests, todos en verde.
 
 **Estado al cerrar el día.** Fase 1 **no empezada** (se aplica el 7 oct). Esta tarde se convierten imágenes y vídeos de tools. No hay cambios de código: el repositorio es el zip del 6 oct (107 ficheros de test, 1042 tests en verde); lo nuevo son `contrato-medios-fase-1.md`, esta sección, `PROGRESO.md`, la especificación y los ficheros de estructura regenerados. Decisiones abiertas en `contrato-medios-fase-1.md` §12.
 
+### 2.38 Fase 1 del contrato de medios: implementación (6-7 oct)
+
+**Qué se hizo.** El contrato de `contrato-medios-fase-1.md` §4 y el comportamiento de §6, en código, con el contrato congelado por un test de cadenas exactas. Pasos 2-12 del plan §7, salvo lo señalado como pendiente abajo.
+
+**Sintaxis confirmada (§4.6).** `ac_none` (documentación de audio: `none` quita el canal) confirmado. **`fps` NO se usa:** su sintaxis es `fps_<mín>[-<máx>]`, un _rango aceptable_ con mínimo obligatorio, no un tope; sin sintaxis segura de «máximo 30», los 30 fps los garantiza la fuente (tabla de subida). Un test fija que ninguna URL lleva `fps_`. El orden de componentes (`ac_none/c_limit,…/f_…/q_…`) sigue los ejemplos oficiales, **pero ninguna cadena está probada contra Cloudinary real** (el entorno no llega): lo comprueba Greener (200 y `Content-Type`).
+
+**Dominio** (`modules/media/domain`).
+
+- `mediaDelivery.ts`: escalera del feed 320/480/640; `pickFeedImageWidth` (el `src` de reserva es un escalón, nunca el ancho de la tarjeta); `FEED_VIDEO_WIDTH` 480; `VIDEO_PROFILES` (`feed`, `toolDetail`, `caseDetail`: calidad y audio); `DETAIL_VIDEO_RUNGS` con la tabla exacta de §4.3 y `pickDetailVideoRung` (necesario = lado mayor de la caja × min(DPR, 2); L si > 1,09 × lado mayor de M); `ADMIN_THUMBNAIL_WIDTH` (= primer escalón). **`MEDIA_QUALITY` es el punto único de la prueba A/B**: hoy todo `auto`.
+- `videoPlayback.ts` (nuevo): todas las constantes de §6 (billetes 3/2, 10 s, reintentos 3 s y 8 s, 1,5 Mbps, umbrales de prefetch) y `videoLoadReducer`, máquina de estados pura (`loading → ready | retrying → gaveup`).
+
+**URLs** (`cloudinaryUrl.ts`): `buildVideoSources` (WebM/VP9 y MP4/H.264, sin `f_auto`), `buildFeedVideoSources`, `buildVideoPosterUrl(id, tamaño)`, `buildVideoPosterSrcSet` y `buildVideoTransformations` (las cadenas que usará el eager de la fase 2: una sola fuente de verdad). **Eliminadas** `buildVideoFullUrl`, `buildVideoDetailUrl` y `buildVideoPreviewUrl` (esta última era código muerto con `f_auto` sin tope).
+
+**Feed.** `videoPlaybackCoordinator` gana los billetes de prefetch (presupuesto aparte de los huecos; quien suena siempre tiene billete; desempate estable por id). `usePinVideo` (nuevo): prefetch con histéresis (se adquiere a una pantalla, se suelta a dos), vídeo oculto bajo el póster hasta `readyState ≥ 3` + `playing`, tiempo máximo, reintentos y liberación del elemento (`releaseVideoElement`). `PinCard`: póster siempre como capa de base, `<video>` con `<source>` encima. `useMotionPreferences` gana `slowConnection` y `feedAutoplayAllowed` (la ficha **no** se ve afectada por la conexión lenta).
+
+**Ficha de tool.** `ToolCoverVideo` recibe `ratio` y la caja completa; escalón M/L, póster del tamaño del escalón, capa de póster hasta `playing`, tiempo máximo con botón de reproducir, reintentos. **Vídeo de caso y de `other`:** escalón M del ratio propio del vídeo, dos fuentes, audio conservado. **Miniaturas del ABM:** escalón 320.
+
+**Bugs propios encontrados por los tests y corregidos.**
+
+1. Un pin de vídeo con `autoplayMode: null` (no se anima nunca) hacía prefetch: ancho de banda tirado.
+2. Tras pasar de un slide de vídeo a uno de imagen el `<video>` seguía montado hasta resolverse un microtask (billete obsoleto).
+3. **React hace burbujear el `error` de un `<source>` hasta el `onError` del `<video>`:** el fallo de una sola fuente (que el navegador resuelve probando la otra) se trataba como fallo total y habría reintentado y descartado vídeos que sí funcionaban. Ahora el `onError` del vídeo solo cuenta si `event.target === event.currentTarget`. Test de regresión comprobado: falla sin el arreglo.
+4. El efecto de reinicio por escalón de la ficha se ejecutaba también en el montaje y pisaba eventos tempranos; ahora solo reinicia cuando el escalón cambia.
+
+**Cambio de comportamiento intencionado.** Un slide de vídeo de un carrusel que aún no suena (cargando o fallando) avanza por el temporizador de 5 s; antes bloqueaba el carrusel hasta `ended`. Un test lo fija.
+
+**Verificación.** `eslint`, `tsc` y `prettier --end-of-line crlf` limpios; **112 ficheros y 1155 tests en verde** (partía de 107 y 1042). Tests nuevos: `mediaContract` (cadenas exactas y propiedades), `mediaDelivery` (tabla M/L y selección por pantalla), `videoPlayback`, `videoPlaybackCoordinator`, `pinVideoLifecycle` y ampliaciones de ficha, caso y preferencias de movimiento.
+
+**Chromium real (Anexo B del contrato; clip sintético 480×600 generado con ffmpeg, «Cloudinary» local por HTTPS, 30 pines).**
+
+- **Cumplido:** nunca más de **3** `<video>` montados (en todo el scroll); en la carga solo se piden los 3 primeros; **ningún vídeo visible antes de haber estado listo** (el código anterior sí lo mostraba: 18 muestras); con una red de 2 KB/s no se reproduce nada y los vídeos se abandonan; 1 petición por vídeo.
+- **NO cumplido, y no resuelto: `droppedVideoFrames` ≤ 2 en los primeros 2 s.** Primeros vídeos tras cargar: **0-12 fotogramas perdidos según la ejecución** (7 ejecuciones del código nuevo), frente a **1-5** del código anterior en las mismas condiciones (5 ejecuciones). Es decir, **en este arnés el código nuevo no es mejor que el anterior en esa métrica y parece algo peor.** Descartado como causa (con medidas): la transición de `opacity`, el tercer decodificador (límite 2) y revelar tras N fotogramas presentados con `requestVideoFrameCallback` (probado y revertido: no mejoró). Tampoco son peticiones extra. Hay paradas de buffer (`readyState` 2) tras empezar que no he podido explicar.
+- **Por qué hay que tomarlo con cautela:** Chromium _headless_ con decodificación por software en un sandbox compartido, clip sintético, y ejecuciones idénticas que varían entre 0 y 12. **Greener debe medirlo en hardware real** (DevTools → `getVideoPlaybackQuality()`). Si se confirma, la hipótesis a investigar es el flujo «precargar y llamar a `play()` después» (el navegador suspende la precarga y la reanuda) frente al `autoplay` directo.
+
+**Prueba A/B de calidad: decidida el 7 oct (misma jornada).** Greener probó `q_auto` frente a `q_auto:eco` con piezas reales: vídeo 720×1280 744→424 KB (-43 %; medido por mí, SSIM 0,968 y PSNR 36 dB), imágenes -10 %, -11 % y -20 % sin diferencia visible (solo una levísima pérdida en degradados de sombras de piel). Decisión: **`auto:eco` en el feed** (imagen, póster y vídeo; las miniaturas del ABM lo heredan porque usan el escalón de 320 del feed) y **`auto` en las fichas** de tool y caso. El ABM no tiene preview de vídeo servida por Cloudinary, así que no hay nada más que cambiar ahí.
+
+Cambios: `MEDIA_QUALITY` (`feedImage` y `feedVideo` a `auto:eco`, `detailVideo` sigue en `auto`); **el póster de vídeo tenía `q_auto` escrito a mano en la URL** y se habría quedado fuera, así que `buildVideoPosterUrl` recibe ahora un `context` (`'feed'`/`'detail'`, obligatorio para que un olvido no pase en silencio) y toma la calidad de `IMAGE_DELIVERY[context]`. Tests: cadenas exactas del feed a `q_auto:eco` y tres tests nuevos de «calidad por contexto» (todo el feed en eco, ninguna ficha en eco, miniaturas del ABM compartiendo versión con el escalón de 320). Comprobado por mutación: poner eco en las fichas rompe 5 tests.
+
+**Aviso de fps.** Los dos clips de la prueba iban a **50 fps**, no a 30 (`ffprobe`), con lo que el contrato de «la fuente ya viene a 30 fps» (§4.6) no se cumplía en ellos. Se supone que eran medios antiguos, no la tanda nueva: **comprobar con `ffprobe` que la tanda nueva va a 30 fps antes de subirla**, porque `fps` no se puede acotar por URL.
+
+**Pendiente.** Comprobar las cadenas contra Cloudinary real; tope de 40 MB de vídeos de caso (no tocado); fase 2 (eager al publicar); medir en hardware real lo anterior.
+
 ---
 
 ## Historial de correcciones de `PROGRESO.md` (hasta el 2 de octubre)

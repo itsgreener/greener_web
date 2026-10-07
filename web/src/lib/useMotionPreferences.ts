@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useSyncExternalStore } from 'react'
+import { isSlowDownlink } from '@/modules/media/domain/videoPlayback'
 
 /**
  * Preferencias del visitante que desaconsejan reproducir vídeo solo
@@ -11,8 +12,13 @@ import { useMemo, useSyncExternalStore } from 'react'
  *   Chromium) — «todo vídeo requiere interacción».
  *
  * Antes de este módulo (5 oct 2026) ninguna de las dos existía en el
- * código. Lo usa el vídeo de la ficha de las tools; los pines del feed
- * podrán adoptarlo después sin cambiar nada aquí.
+ * código. Lo usa el vídeo de la ficha de las tools y, desde la fase 1 del
+ * contrato de medios (7 oct), también los pines del feed.
+ *
+ * Aparte, `slowConnection` (contrato de medios §6.4): `downlink` por debajo
+ * de ~1,5 Mbps (solo Chromium). Solo la usa el FEED (póster fijo, sin
+ * prefetch): la ficha de una tool reproduce igualmente, con su póster hasta
+ * que el vídeo esté listo, así que `autoplayAllowed` NO la incluye.
  *
  * Se lee con useSyncExternalStore: se actualiza si el usuario cambia el
  * ajuste con la página abierta, y en servidor (y en la primera pasada de
@@ -23,13 +29,21 @@ import { useMemo, useSyncExternalStore } from 'react'
 export interface MotionPreferences {
   reducedMotion: boolean
   saveData: boolean
+  /** `downlink` estimado por debajo del umbral (solo Chromium). */
+  slowConnection: boolean
   /** true si el autoplay está permitido (ni reduced-motion ni save-data). */
   autoplayAllowed: boolean
+  /**
+   * true si el FEED puede hacer prefetch y autoplay: `autoplayAllowed` y
+   * además una conexión que no sea lenta.
+   */
+  feedAutoplayAllowed: boolean
 }
 
 type NetworkInformationLike = {
   saveData?: boolean
   effectiveType?: string
+  downlink?: number
   addEventListener?: (type: 'change', listener: () => void) => void
   removeEventListener?: (type: 'change', listener: () => void) => void
 }
@@ -61,14 +75,18 @@ export function readSaveData(): boolean {
   )
 }
 
-// Instantánea como cadena («rs»: reduced, save) para que React compare por
-// valor y no re-renderice si nada ha cambiado.
+export function readSlowConnection(): boolean {
+  return isSlowDownlink(getConnection()?.downlink)
+}
+
+// Instantánea como cadena («rsl»: reduced, save, slow) para que React
+// compare por valor y no re-renderice si nada ha cambiado.
 function getSnapshot(): string {
-  return `${readReducedMotion() ? 1 : 0}${readSaveData() ? 1 : 0}`
+  return `${readReducedMotion() ? 1 : 0}${readSaveData() ? 1 : 0}${readSlowConnection() ? 1 : 0}`
 }
 
 function getServerSnapshot(): string {
-  return '00'
+  return '000'
 }
 
 function subscribe(onChange: () => void): () => void {
@@ -97,11 +115,15 @@ export function useMotionPreferences(): MotionPreferences {
   return useMemo(() => {
     const reducedMotion = snapshot[0] === '1'
     const saveData = snapshot[1] === '1'
+    const slowConnection = snapshot[2] === '1'
+    const autoplayAllowed = !reducedMotion && !saveData
 
     return {
       reducedMotion,
       saveData,
-      autoplayAllowed: !reducedMotion && !saveData,
+      slowConnection,
+      autoplayAllowed,
+      feedAutoplayAllowed: autoplayAllowed && !slowConnection,
     }
   }, [snapshot])
 }

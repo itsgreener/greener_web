@@ -174,6 +174,23 @@ describe('CaseDetail — prueba de humo', () => {
     expect(video).toHaveAttribute('controls')
     expect(video).toHaveAttribute('aria-label', 'Vídeo de la cosecha')
     expect(video?.getAttribute('poster')).toContain('vid1')
+
+    // Contrato de medios §4.2: escalón M del ratio PROPIO del vídeo (16:9 →
+    // 1280×720), dos fuentes explícitas y el audio conservado. Antes: el
+    // original sin tope.
+    expect(video?.hasAttribute('src')).toBe(false)
+    const sources = Array.from(video!.querySelectorAll('source'))
+    expect(sources.map((s) => s.getAttribute('type'))).toEqual([
+      'video/webm; codecs="vp9"',
+      'video/mp4',
+    ])
+    for (const source of sources) {
+      const src = source.getAttribute('src')!
+      expect(src).toContain('c_limit,w_1280,h_720')
+      expect(src).not.toContain('f_auto')
+      expect(src).not.toContain('ac_none')
+    }
+    expect(video?.getAttribute('poster')).toContain('w_1280,h_720')
   })
 
   it('el ratio fijo del carrusel es el del medio más ancho, aplicado por igual a todas las diapositivas (decisión del 21 sep)', () => {

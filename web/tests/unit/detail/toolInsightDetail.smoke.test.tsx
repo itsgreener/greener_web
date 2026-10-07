@@ -236,7 +236,11 @@ describe('ToolInsightDetail — prueba de humo', () => {
     const video = container.querySelector('video')
     expect(video).toBeInTheDocument()
     expect(video).toHaveAttribute('aria-label', 'Mi tool')
-    expect(container.querySelector('img')).not.toBeInTheDocument()
+    // Ninguna imagen de portada: la única <img> es la capa decorativa del
+    // póster del vídeo (alt vacío, aria-hidden).
+    expect(
+      container.querySelector('img:not([aria-hidden="true"])'),
+    ).not.toBeInTheDocument()
   })
 
   it('carga y pinta las recomendaciones del panel (excluido el propio contenido del universo)', async () => {

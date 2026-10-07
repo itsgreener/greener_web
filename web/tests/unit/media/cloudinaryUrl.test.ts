@@ -3,24 +3,26 @@ import {
   buildImageUrl,
   buildImageSrcSet,
   buildVideoPosterUrl,
-  buildVideoPreviewUrl,
-  buildVideoFullUrl,
-  buildVideoDetailUrl,
+  buildVideoPosterSrcSet,
+  buildVideoSources,
+  buildFeedVideoSources,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 import {
   IMAGE_DELIVERY,
   pickDetailWidth,
 } from '@/modules/media/domain/mediaDelivery'
 
-// NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "test-cloud" viene de tests/setup.ts
+// NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "test-cloud" viene de tests/setup.ts.
+// Las cadenas EXACTAS del contrato las fija mediaContract.test.ts; aquí se
+// comprueba el comportamiento general de los constructores.
 const PUBLIC_ID = 'greener/content/abc123'
 
 describe('buildImageUrl', () => {
-  it('usa q_auto/f_auto y el ancho más grande del contexto cuando no se pasa width', () => {
+  it('usa la calidad del contexto (feed: q_auto:eco), f_auto y el mayor escalón cuando no se pasa width', () => {
     const url = buildImageUrl(PUBLIC_ID, 'feed')
 
     expect(url).toBe(
-      `https://res.cloudinary.com/test-cloud/image/upload/q_auto,f_auto,w_960,c_limit/${PUBLIC_ID}`,
+      `https://res.cloudinary.com/test-cloud/image/upload/q_auto:eco,f_auto,w_640,c_limit/${PUBLIC_ID}`,
     )
   })
 
@@ -34,7 +36,8 @@ describe('buildImageUrl', () => {
     const feedUrl = buildImageUrl(PUBLIC_ID, 'feed')
     const detailUrl = buildImageUrl(PUBLIC_ID, 'detail')
 
-    expect(feedUrl).toContain('w_960')
+    expect(feedUrl).toContain('w_640')
+    expect(feedUrl).not.toContain('w_960')
     expect(detailUrl).toContain('w_1920')
   })
 })
@@ -44,54 +47,66 @@ describe('buildImageSrcSet', () => {
     const srcset = buildImageSrcSet(PUBLIC_ID, 'feed')
     const entries = srcset.split(', ')
 
-    expect(entries).toHaveLength(4) // [320, 480, 640, 960] — §10.1
+    expect(entries).toHaveLength(3) // escalera 320/480/640 — contrato §4.2
     expect(entries[0]).toContain('320w')
-    expect(entries[entries.length - 1]).toContain('960w')
+    expect(entries[entries.length - 1]).toContain('640w')
   })
 })
 
 describe('buildVideoPosterUrl', () => {
   it('construye una URL .jpg bajo el recurso video (no image) — poster de vídeo', () => {
-    const url = buildVideoPosterUrl(PUBLIC_ID)
+    const url = buildVideoPosterUrl(PUBLIC_ID, { width: 480 }, 'feed')
 
     expect(url).toBe(
-      `https://res.cloudinary.com/test-cloud/video/upload/q_auto,f_jpg,w_960,c_limit/${PUBLIC_ID}.jpg`,
+      `https://res.cloudinary.com/test-cloud/video/upload/q_auto:eco,f_jpg,w_480,c_limit/${PUBLIC_ID}.jpg`,
+    )
+  })
+
+  it('con alto (póster de la ficha) acota ancho Y alto', () => {
+    expect(
+      buildVideoPosterUrl(PUBLIC_ID, { width: 1280, height: 720 }, 'detail'),
+    ).toContain('w_1280,h_720,c_limit')
+  })
+
+  it('el srcset del póster del feed usa la misma escalera que las imágenes', () => {
+    const entries = buildVideoPosterSrcSet(PUBLIC_ID).split(', ')
+
+    expect(entries.map((e) => e.split(' ')[1])).toEqual(
+      IMAGE_DELIVERY.feed.widths.map((w) => `${w}w`),
     )
   })
 })
 
-describe('buildVideoPreviewUrl', () => {
-  it('limita la duración del preview a 5 s (feed nunca sirve el vídeo completo)', () => {
-    const url = buildVideoPreviewUrl(PUBLIC_ID)
+describe('buildVideoSources', () => {
+  it('devuelve dos fuentes explícitas, WebM primero y MP4 de reserva, bajo el recurso video', () => {
+    const sources = buildVideoSources(PUBLIC_ID, 'toolDetail', {
+      width: 1280,
+      height: 720,
+    })
 
-    expect(url).toContain('du_5')
-    expect(url).not.toContain('w_') // el preview no recorta ancho, solo duración
+    expect(sources).toHaveLength(2)
+    expect(sources[0].type).toContain('video/webm')
+    expect(sources[1].type).toBe('video/mp4')
+    for (const { src } of sources) {
+      expect(src).toContain('/video/upload/')
+      expect(src.endsWith(`/${PUBLIC_ID}`)).toBe(true)
+    }
+  })
+
+  it('el vídeo del feed pide un solo ancho de 480', () => {
+    for (const { src } of buildFeedVideoSources(PUBLIC_ID)) {
+      expect(src).toContain('c_limit,w_480')
+    }
   })
 })
 
-describe('buildVideoFullUrl', () => {
-  it('no aplica límite de duración ni de ancho — solo para detalle/reproducción explícita', () => {
-    const url = buildVideoFullUrl(PUBLIC_ID)
-
-    expect(url).toBe(
-      `https://res.cloudinary.com/test-cloud/video/upload/q_auto,f_auto/${PUBLIC_ID}`,
-    )
-  })
-})
-
-describe('vídeo de la ficha de una tool (5 oct 2026)', () => {
-  it('buildVideoDetailUrl limita el ancho (c_limit) y deja que f_auto elija WebM o MP4', () => {
-    expect(buildVideoDetailUrl(PUBLIC_ID, 960)).toBe(
-      `https://res.cloudinary.com/test-cloud/video/upload/q_auto,f_auto,w_960,c_limit/${PUBLIC_ID}`,
-    )
-  })
-
-  it('pickDetailWidth reutiliza los anchos de detalle de las imágenes, sin constantes nuevas', () => {
+describe('pickDetailWidth', () => {
+  it('reutiliza los anchos de detalle de las imágenes, sin constantes nuevas', () => {
     const widths = IMAGE_DELIVERY.detail.widths
 
-    for (const css of [100, 480, 700, 1000, 3000]) {
-      for (const dpr of [1, 2, 3]) {
-        expect(widths).toContain(pickDetailWidth(css, dpr))
+    for (const css of [100, 480, 481, 800, 1500, 5000]) {
+      for (const dpr of [1, 1.5, 2, 3]) {
+        expect(widths).toContain(pickDetailWidth(css, dpr) as never)
       }
     }
   })
@@ -103,11 +118,11 @@ describe('vídeo de la ficha de una tool (5 oct 2026)', () => {
     expect(pickDetailWidth(800, 2)).toBe(1920)
   })
 
-  it('con densidad 3× no pasa de 2× (en vídeo cuesta ancho de banda y no se nota)', () => {
+  it('limita la densidad a 2: un DPR 3 no pide más que un DPR 2', () => {
     expect(pickDetailWidth(480, 3)).toBe(pickDetailWidth(480, 2))
   })
 
-  it('una caja mayor que el mayor ancho usa el mayor, y una caja 0 o negativa el menor', () => {
+  it('con una caja mayor que el mayor ancho, usa el mayor; sin caja, el menor', () => {
     expect(pickDetailWidth(5000, 2)).toBe(1920)
     expect(pickDetailWidth(0, 1)).toBe(960)
     expect(pickDetailWidth(-10, 1)).toBe(960)

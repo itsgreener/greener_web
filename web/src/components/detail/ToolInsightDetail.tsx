@@ -4,14 +4,15 @@ import Link from 'next/link'
 import {
   buildImageUrl,
   buildImageSrcSet,
-  buildVideoFullUrl,
   buildVideoPosterUrl,
+  buildVideoSources,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 import type {
   PublicContent,
   PublicContentMedia,
 } from '@/modules/content/infrastructure/publicContentSource'
 import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
+import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { PinCard } from '@/components/pin/PinCard'
 import { ToolCoverVideo } from './ToolCoverVideo'
@@ -124,18 +125,37 @@ export function ToolInsightDetail({
                   <ToolCoverVideo
                     publicId={coverMedia.cloudinaryPublicId}
                     alt={coverAltOverride || content.title}
+                    ratio={ratio}
                     boxWidthPx={contentBlockImageWidth}
+                    boxHeightPx={contentBlockImageHeight}
                   />
                 ) : (
                   // Portada de vídeo de contenido libre (`other`): sin
                   // cambios, con controles nativos.
+                  // Escalón M (contrato de medios §4.2): dos fuentes
+                  // explícitas, con tope de tamaño y conservando el audio.
                   <video
-                    src={buildVideoFullUrl(coverMedia.cloudinaryPublicId)}
-                    poster={buildVideoPosterUrl(coverMedia.cloudinaryPublicId)}
+                    poster={buildVideoPosterUrl(
+                      coverMedia.cloudinaryPublicId,
+                      detailVideoRungM(ratio),
+                      'detail',
+                    )}
                     controls
                     aria-label={content.title}
                     className={styles.coverImage}
-                  />
+                  >
+                    {buildVideoSources(
+                      coverMedia.cloudinaryPublicId,
+                      'caseDetail',
+                      detailVideoRungM(ratio),
+                    ).map((source) => (
+                      <source
+                        key={source.type}
+                        src={source.src}
+                        type={source.type}
+                      />
+                    ))}
+                  </video>
                 )
               ) : (
                 // URL ya transformada por

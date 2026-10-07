@@ -17,6 +17,33 @@
   background: var(--color-surface-hover);
 }
 
+/*
+ * El póster cubre el vídeo hasta que éste está reproduciendo: «cuando está
+ * listo» y no «cuando pinta su primer fotograma». Mismo recorte y esquinas
+ * que el vídeo, para que el cambio no mueva nada.
+ */
+.poster {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+
+  &.posterHidden {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster {
+    transition: none;
+  }
+}
+
 .toggle {
   position: absolute;
   left: var(--space-sm);

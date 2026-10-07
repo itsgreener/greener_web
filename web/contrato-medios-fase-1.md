@@ -7,7 +7,7 @@
 1. **Problema.** Los vídeos cortos de las tools (§2.36 del historial) se reproducen en los pines de la home y en la ficha, pero tardan en cargarse y al entrar en pantalla van a tirones durante unos segundos.
 2. **Restricción.** Cloudinary **Free (25 créditos)**. Greener ha descartado pasar a Plus (225 créditos, unos 89-99 $/mes) y no existe un plan de «pago por uso» razonable (§2). Hay que **gastar poco**: el gasto que escala son el ancho de banda, las versiones únicas de cada asset y, en vídeo, los segundos procesados.
 3. **Decisión.** Fijar **una sola vez** un contrato de entrega de medios (§4) y aplicar la **fase 1** (§7): URLs con tamaño acotado, dos fuentes de vídeo explícitas, pósters con escalera de anchos, prefetch y cambio póster→vídeo sin tirones. Después, en la **fase 2** (§9), calentar las versiones al publicar.
-4. **Estado.** **La fase 1 NO está empezada.** No hay cambios de código de esta conversación pendientes de integrar: el repositorio es el último zip entregado el 6 oct (107 ficheros de test, 1042 tests en verde, ver `PROGRESO.md` §1). Lo único nuevo son documentos.
+4. **Estado (actualizado el 7 oct).** **La fase 1 está IMPLEMENTADA** (ver `historial-fase-5.md` §2.38): pasos 2 y 4-12 de §7 hechos, 1155 tests en verde. **Pendiente:** prueba A/B (paso 3), comprobar las cadenas contra Cloudinary real y medir `droppedVideoFrames` en hardware real (el criterio ≤ 2 de §7.1 no se cumplió en el Chromium del entorno). Lo que sigue describe el estado ANTERIOR: **La fase 1 NO está empezada.** No hay cambios de código de esta conversación pendientes de integrar: el repositorio es el último zip entregado el 6 oct (107 ficheros de test, 1042 tests en verde, ver `PROGRESO.md` §1). Lo único nuevo son documentos.
 5. **Plan inmediato.** Hoy (6 oct, tarde): Greener y Claude convierten imágenes y vídeos de tools según el contrato de subida (§5, proceso en §10). Mañana (7 oct): se aplica la fase 1 (§7).
 
 ## 1. Reglas de trabajo con este repositorio (aprendidas en esta conversación)
@@ -153,7 +153,7 @@ En vídeo se emiten **dos `<source>`**: WebM/VP9 primero y MP4/H.264 de reserva.
 3. Que `q_auto` / `q_auto:eco` se combinan bien con `f_webm,vc_vp9` y `f_mp4,vc_h264` en la misma cadena (la documentación dice que `q_auto` admite VP9, H.264 y H.265).
 4. El orden y la sintaxis exactos de `c_limit,w_<W>,h_<H>` en vídeo con las otras partes.
 
-Calidad (`q_auto:eco` frente a `q_auto`): **pendiente de la prueba A/B de Greener** (§12). La documentación de Cloudinary describe `eco` como «más agresivo, ficheros más pequeños y calidad ligeramente menor» y `low` como el más agresivo, pensado para vídeos de vista previa; con `Save-Data: on`, `q_auto` pasa solo a `eco`.
+**Decidido el 7 oct 2026 tras la prueba real de Greener** (`MEDIA_QUALITY`, `mediaDelivery.ts`): `q_auto:eco` en el feed y `q_auto` en las fichas. Resultados: vídeo 720×1280 de 744 KB a 424 KB (-43 %, SSIM 0,968; algo menos de claridad en momentos de poco contraste); imágenes 316→283 KB, 1387→1229 KB y 15→12 KB (-10 %, -11 %, -20 %), sin diferencia visible salvo una levísima pérdida en degradados de sombras de piel. Texto anterior, ya superado: Calidad (`q_auto:eco` frente a `q_auto`): pendiente de la prueba A/B de Greener (§12). La documentación de Cloudinary describe `eco` como «más agresivo, ficheros más pequeños y calidad ligeramente menor» y `low` como el más agresivo, pensado para vídeos de vista previa; con `Save-Data: on`, `q_auto` pasa solo a `eco`.
 
 ### 4.7 Lo que NO hay que hacer
 
@@ -305,16 +305,16 @@ Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDurati
 
 **Confirmado por Greener el 6 oct:** contrato con los dos escalones M/L en la ficha; vídeos de caso incluidos en el contrato; dos fuentes explícitas en vez de `f_auto`; seguir en Free; reducir el peso de origen por su lado.
 
-| Decisión                                                                       | Estado                                                               |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
-| Calidad del feed: `q_auto:eco` frente a `q_auto` (imágenes y vídeo)            | **Pendiente: prueba A/B de Greener** (paso 3 de §7)                  |
-| `ac_none` y tope de fps: sintaxis                                              | **Pendiente: Claude lo confirma en la documentación** (§4.6)         |
-| Tope de 40 MB en vídeos de caso                                                | **Pendiente de probar y aprobar** (§5.4)                             |
-| Umbral para usar L (1,09 × lado mayor de M) y umbral de `downlink` (~1,5 Mbps) | Valores propuestos, ajustables tras probar                           |
-| Escalón S (960×540) para móvil                                                 | **No incluido**; reabrir solo si el ancho de banda de la ficha duele |
-| Calentar al publicar (fase 2) frente a al subir                                | **Pendiente** (§9)                                                   |
-| Script de avisos de uso de créditos                                            | **Opcional** (paso 13 de §7)                                         |
-| Qué ocurre al pasarse de 25 créditos en Free                                   | **Pendiente: Greener pregunta a soporte de Cloudinary**              |
+| Decisión                                                                       | Estado                                                                                                                           |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| Calidad del feed: `q_auto:eco` frente a `q_auto` (imágenes y vídeo)            | **Resuelto (7 oct, prueba real de Greener):** eco en el feed (imagen, póster y vídeo) y miniaturas del ABM; `auto` en las fichas |
+| `ac_none` y tope de fps: sintaxis                                              | **Resuelto (7 oct):** `ac_none` confirmado; `fps` no se usa (es un rango con mínimo obligatorio, no un tope)                     |
+| Tope de 40 MB en vídeos de caso                                                | **Pendiente de probar y aprobar** (§5.4)                                                                                         |
+| Umbral para usar L (1,09 × lado mayor de M) y umbral de `downlink` (~1,5 Mbps) | Valores propuestos, ajustables tras probar                                                                                       |
+| Escalón S (960×540) para móvil                                                 | **No incluido**; reabrir solo si el ancho de banda de la ficha duele                                                             |
+| Calentar al publicar (fase 2) frente a al subir                                | **Pendiente** (§9)                                                                                                               |
+| Script de avisos de uso de créditos                                            | **Opcional** (paso 13 de §7)                                                                                                     |
+| Qué ocurre al pasarse de 25 créditos en Free                                   | **Pendiente: Greener pregunta a soporte de Cloudinary**                                                                          |
 
 ## 13. Fuentes consultadas (6 oct 2026)
 

@@ -1,15 +1,19 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+  buildFeedVideoSources,
   buildImageUrl,
   buildImageSrcSet,
-  buildVideoFullUrl,
+  buildVideoPosterSrcSet,
   buildVideoPosterUrl,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { pickFeedImageWidth } from '@/modules/media/domain/mediaDelivery'
 import { canAnimateInFeed } from '@/modules/media/domain/mediaLimits'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
+import { useMotionPreferences } from '@/lib/useMotionPreferences'
 import { useVideoSlot } from '../useVideoSlot'
+import { usePinVideo } from '../usePinVideo'
 import styles from './PinCard.module.css'
 
 export interface PinCardMedia {
@@ -103,6 +107,14 @@ function analyticsPinType(
  *    vídeo (confirmado el 15 sep). Si no consigue hueco, se queda en
  *    poster y el carrusel avanza igualmente a los 5 s, como un slide de
  *    imagen — nunca se queda parado esperando un vídeo que no reproduce.
+ *
+ * Carga del vídeo (contrato de medios, fase 1 — 7 oct 2026): el póster es
+ * SIEMPRE la capa de base y el `<video>` se monta oculto encima cuando la
+ * tarjeta está cerca del viewport (prefetch, con un tope global de billetes;
+ * ver usePinVideo.ts), y solo se hace visible cuando ya está listo y
+ * reproduciendo. Con `prefers-reduced-motion`, `save-data`, 2G o una
+ * conexión lenta el feed no hace prefetch ni autoplay: póster fijo. El
+ * hover es una acción explícita del usuario y sigue funcionando.
  */
 export function PinCard({
   pin,
@@ -118,8 +130,9 @@ export function PinCard({
 
   const [index, setIndex] = useState(0)
   const [hovering, setHovering] = useState(false)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
   const cardRef = useRef<HTMLAnchorElement | null>(null)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  const { feedAutoplayAllowed } = useMotionPreferences()
 
   const current = media[index]
   const isVideoSlide = current?.kind === 'video'
@@ -132,9 +145,13 @@ export function PinCard({
 
   // El slide activo de un carrusel siempre compite por un hueco global;
   // un pin de un único vídeo solo lo hace en modo 'viewport' — 'hover' no
-  // compite (arriba, en el docstring, se explica el porqué).
+  // compite (arriba, en el docstring, se explica el porqué). Sin autoplay
+  // permitido en el feed (reduced-motion, save-data, conexión lenta) no
+  // compite por nada: póster fijo.
   const wantsGlobalSlot =
-    isAnimatable && (isCarousel || pin.autoplayMode === 'viewport')
+    isAnimatable &&
+    feedAutoplayAllowed &&
+    (isCarousel || pin.autoplayMode === 'viewport')
   const hasSlot = useVideoSlot(pin.pinId, cardRef, wantsGlobalSlot)
 
   const isPlaying =
@@ -147,46 +164,67 @@ export function PinCard({
           ? hovering
           : false)
 
+  // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
+  // MP4/H.264), a un solo ancho (contrato de medios §4.4-§4.5).
+  const sources = useMemo(
+    () =>
+      isVideoSlide && current
+        ? buildFeedVideoSources(current.cloudinaryPublicId)
+        : [],
+    [isVideoSlide, current],
+  )
+
+  // Prefetch, listo-para-reproducir, tiempo máximo y reintentos del vídeo.
+  const video = usePinVideo({
+    id: pin.pinId,
+    cardRef,
+    videoRef,
+    resetKey: `${index}-${current?.cloudinaryPublicId ?? ''}`,
+    sourceCount: sources.length,
+    // Solo se hace prefetch de lo que puede llegar a reproducirse: un pin de
+    // un único vídeo sin `autoplayMode` nunca se anima y no gasta ancho de
+    // banda (en Cloudinary Free cada MB cuenta).
+    prefetchEnabled:
+      isAnimatable &&
+      feedAutoplayAllowed &&
+      (isCarousel || pin.autoplayMode !== null),
+    wantsPlay: isPlaying,
+  })
+
   const advance = useCallback(() => {
     setIndex((i) => (i + 1) % media.length)
   }, [media.length])
 
   // Temporizador de 5 s — para slides de imagen, y también para un slide
-  // de vídeo que no ha conseguido hueco (no hay 'ended' que lo avance).
+  // de vídeo que todavía no suena (sin hueco, o cargando): nunca se queda
+  // parado esperando un vídeo que no reproduce. Cuando el vídeo ya suena,
+  // avanza por 'ended' (más abajo).
   useEffect(() => {
     if (!isCarousel || hovering) return
-    if (isVideoSlide && isPlaying) return // avanza por 'ended', más abajo
+    if (isVideoSlide && video.isActuallyPlaying) return
     const id = setTimeout(advance, SLIDE_INTERVAL_MS)
     return () => clearTimeout(id)
-  }, [isCarousel, hovering, index, isVideoSlide, isPlaying, advance])
+  }, [
+    isCarousel,
+    hovering,
+    index,
+    isVideoSlide,
+    video.isActuallyPlaying,
+    advance,
+  ])
 
   // Hover sobre un slide de vídeo de carrusel: que entre en loop en vez
   // de avanzar. Al salir del hover, se quita el loop — el próximo
   // 'ended' natural dispara el avance ("se reinicia el temporizador").
   // No aplica al vídeo de un pin sin carrusel: ese usa el atributo loop
   // fijo (ver el <video> más abajo), no necesita este ajuste imperativo.
+  // Se repite al (re)montarse el vídeo: puede aparecer con el hover ya
+  // puesto, o remontarse en un reintento.
   useEffect(() => {
     if (!isCarousel) return
     const el = videoRef.current
     if (el) el.loop = hovering
-  }, [isCarousel, hovering, index])
-
-  // Arranca el vídeo desde el principio cada vez que pasa a reproducirse
-  // (nuevo slide de carrusel, entra en viewport, o empieza el hover).
-  useEffect(() => {
-    const el = videoRef.current
-    if (!el || !isPlaying) return
-    el.currentTime = 0
-    try {
-      // Autoplay bloqueado por el navegador o sin soporte real de vídeo
-      // (jsdom en tests): se queda en el poster, no rompe nada — por eso
-      // el try/catch además del .catch, play() puede lanzar de forma
-      // síncrona en vez de devolver una promesa rechazada según el entorno.
-      el.play()?.catch(() => {})
-    } catch {
-      // ver comentario de arriba
-    }
-  }, [index, isPlaying])
+  }, [isCarousel, hovering, index, video.mounted, video.attempt])
 
   if (!current) return null
 
@@ -209,9 +247,18 @@ export function PinCard({
     )
   }
 
+  // `src` de reserva = un escalón de la escalera del feed (320/480/640), NO
+  // el ancho exacto de la tarjeta: un ancho suelto (`w_189`) crearía una
+  // versión única en Cloudinary por cada ancho de columna. El navegador
+  // elige del `srcset`.
+  const fallbackWidth = pickFeedImageWidth(style.width)
   const imageUrl = isVideoSlide
-    ? buildVideoPosterUrl(current.cloudinaryPublicId)
-    : buildImageUrl(current.cloudinaryPublicId, 'feed', Math.round(style.width))
+    ? buildVideoPosterUrl(
+        current.cloudinaryPublicId,
+        { width: fallbackWidth },
+        'feed',
+      )
+    : buildImageUrl(current.cloudinaryPublicId, 'feed', fallbackWidth)
 
   // Las Tools conservan una única ficha aunque tengan muchos pines. El
   // servidor ya añade ?pin=<unitId> al destino; si este pin es carrusel,
@@ -241,42 +288,51 @@ export function PinCard({
         className={styles.media}
         style={{ aspectRatio: aspectRatioCss(pin.ratio) }}
       >
-        {isPlaying ? (
+        {/* El póster (o la imagen) es SIEMPRE la capa de base: el vídeo
+            solo la tapa cuando ya está listo y reproduciendo. La URL ya
+            viene transformada (calidad, ancho de la escalera) por
+            modules/media/infrastructure/cloudinaryUrl.ts; next/image la
+            retransformaría de nuevo sin necesidad (arquitectura §9.2). */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          srcSet={
+            isVideoSlide
+              ? buildVideoPosterSrcSet(current.cloudinaryPublicId)
+              : buildImageSrcSet(current.cloudinaryPublicId, 'feed')
+          }
+          sizes={`${Math.round(style.width)}px`}
+          alt={pin.alt}
+          loading="lazy"
+          decoding="async"
+          className={styles.image}
+        />
+        {video.mounted && (
           <video
-            key={`${pin.pinId}-${index}`}
+            key={`${pin.pinId}-${index}-${video.attempt}`}
             ref={videoRef}
-            src={buildVideoFullUrl(current.cloudinaryPublicId)}
-            poster={buildVideoPosterUrl(current.cloudinaryPublicId)}
+            className={`${styles.video} ${video.visible ? styles.videoVisible : ''}`}
             muted
-            autoPlay
             loop={!isCarousel}
             playsInline
+            preload="auto"
+            // El póster de debajo ya lleva el `alt`.
+            aria-hidden="true"
+            onCanPlay={video.handlers.onCanPlay}
+            onPlaying={video.handlers.onPlaying}
+            onPause={video.handlers.onPause}
+            onError={video.handlers.onVideoError}
             onEnded={handleVideoEnded}
-            aria-label={pin.alt}
-            className={styles.image}
-          />
-        ) : (
-          // La URL ya viene transformada (q_auto/f_auto/ancho) por
-          // modules/media/infrastructure/cloudinaryUrl.ts; next/image la
-          // retransformaría de nuevo sin necesidad (arquitectura §9.2).
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={imageUrl}
-            srcSet={
-              current.kind === 'image'
-                ? buildImageSrcSet(current.cloudinaryPublicId, 'feed')
-                : undefined
-            }
-            sizes={
-              current.kind === 'image'
-                ? `${Math.round(style.width)}px`
-                : undefined
-            }
-            alt={pin.alt}
-            loading="lazy"
-            decoding="async"
-            className={styles.image}
-          />
+          >
+            {sources.map((source, sourceIndex) => (
+              <source
+                key={source.type}
+                src={source.src}
+                type={source.type}
+                onError={() => video.handlers.onSourceError(sourceIndex)}
+              />
+            ))}
+          </video>
         )}
         {pin.cta && <span className={styles.cta}>{pin.cta}</span>}
       </div>

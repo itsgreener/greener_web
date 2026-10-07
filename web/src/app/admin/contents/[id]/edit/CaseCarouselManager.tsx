@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { ADMIN_THUMBNAIL_WIDTH } from '@/modules/media/domain/mediaDelivery'
 
 import {
   VIDEO_LIMITS,
@@ -296,7 +297,11 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
             {item.kind === 'image' ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={buildImageUrl(item.cloudinaryPublicId, 'feed', 200)}
+                src={buildImageUrl(
+                  item.cloudinaryPublicId,
+                  'feed',
+                  ADMIN_THUMBNAIL_WIDTH,
+                )}
                 alt={item.alt}
                 width={100}
                 height={100}

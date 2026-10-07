@@ -1,5 +1,6 @@
 'use client'
 
+import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { useToolCoverVideo } from './useToolCoverVideo'
 import styles from './ToolCoverVideo.module.css'
 
@@ -9,33 +10,44 @@ import styles from './ToolCoverVideo.module.css'
  * Mudo y en bucle; botón de pausa siempre visible. Con
  * `prefers-reduced-motion` o `save-data` no arranca solo: poster + «Play».
  * Sin analítica (decisión del 5 oct 2026).
+ *
+ * El póster cubre el vídeo hasta que éste está reproduciendo; si no llega a
+ * hacerlo en ~10 s, se queda el póster con el botón de reproducir (contrato
+ * de medios, fase 1).
  */
 export function ToolCoverVideo({
   publicId,
   alt,
+  ratio,
   boxWidthPx,
+  boxHeightPx,
 }: {
   publicId: string
   alt: string
+  ratio: PinRatioValue
   boxWidthPx: number
+  boxHeightPx: number
 }) {
   const {
     videoRef,
     wrapperRef,
-    src,
+    sources,
     poster,
+    videoKey,
+    posterHidden,
     autoplayAllowed,
     isPlaying,
     toggle,
     onPlay,
     onPause,
-  } = useToolCoverVideo({ publicId, boxWidthPx })
+    handlers,
+  } = useToolCoverVideo({ publicId, ratio, boxWidthPx, boxHeightPx })
 
   return (
     <div ref={wrapperRef} className={styles.wrapper}>
       <video
+        key={videoKey}
         ref={videoRef}
-        src={src}
         poster={poster}
         muted
         loop
@@ -45,6 +57,29 @@ export function ToolCoverVideo({
         className={styles.video}
         onPlay={onPlay}
         onPause={onPause}
+        onCanPlay={handlers.onCanPlay}
+        onPlaying={handlers.onPlaying}
+        onError={handlers.onVideoError}
+      >
+        {sources.map((source, index) => (
+          <source
+            key={source.type}
+            src={source.src}
+            type={source.type}
+            onError={() => handlers.onSourceError(index)}
+          />
+        ))}
+      </video>
+
+      {/* Mismo póster que el atributo `poster` (ya en caché): el navegador
+          lo retira en cuanto pinta un fotograma, aunque el vídeo aún no
+          avance; esta capa lo mantiene hasta `playing`. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={poster}
+        alt=""
+        aria-hidden="true"
+        className={`${styles.poster} ${posterHidden ? styles.posterHidden : ''}`}
       />
 
       <button
