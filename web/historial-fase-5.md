@@ -873,6 +873,22 @@ Ampliación del mismo día:
 2. **Portada de `other`** (`CoverMediaUpload`): lee el nombre igual que la carga masiva y, si trae proporción, la pone en el selector (si no, sigue sugiriendo la de las dimensiones). Como ahí las dimensiones se leen antes de subir, el aviso de desajuste sale antes de subir nada. La carga masiva ya servía para `other`.
 3. **Convención documentada**: no estaba escrita en ningún sitio; añadida en `contrato-medios-fase-1.md` §10.4. De paso, ese contrato aún citaba `queueOrder` en el CSV y el orden en cola como dato de entrada, que ya no existen desde §2.43: corregido.
 
+Contadores al final del nombre (7 oct, tarde): `elonmuskeizer-43-image-2.webp` no se leía porque el `-2` desplazaba el tipo de medio a la posición de la proporción. Ahora se descartan los bloques numéricos del final (`-2`, `_3`, ` (2)`) antes de buscar; cualquier otro sufijo (`-final`, `-v2`) sigue sin admitirse a propósito, porque obligaría a adivinar y a leer números del nombre como proporciones.
+
 Arreglo de paso: al cambiar el ratio o el idioma por defecto, las filas se regeneraban con el valor anterior (el estado aún no se había actualizado); ahora usan el recién elegido. Sin migraciones.
 
 Tests: `tests/unit/media/ratioFromFilename.test.ts` y bloque nuevo en `bulkPinUpload.test.tsx`.
+
+### 2.47 Comprobación del rótulo automático en case (7 oct)
+
+Revisión de que el fallo de insight (§2.40: `create_pin`/`update_pin` exigían rótulo para un tipo que el ABM ya enviaba vacío) no se repite en case. Resultado: **no se repite**. En la última versión de ambas funciones (migración `20261007130000`) la lista de tipos sin rótulo obligatorio es `case`, `episode`, `insight`; `pin.label` admite null desde el rediseño del 10 sep; `pinSchema` acepta rótulo vacío o ausente; el feed ignora `pin.label` en case y deriva el texto de título + cliente; la edición de pines envía el rótulo vacío en los tres tipos. `derivedPinLabel.test.ts` ya impedía que TypeScript y SQL se separen.
+
+Único hueco encontrado: ningún test comprobaba que la carga masiva envía `label: null` en cada tipo derivado. Añadido para case, episode e insight (imagen y vídeo), más la comprobación contraria para tool y other. Sin cambios de código ni migraciones.
+
+### 2.48 Botón «Borrar todos los pines» (7 oct)
+
+La lista de pines de cualquier contenido (tool, case, episode, insight y other comparten `PinList`) tiene ahora el botón «Borrar todos los pines (N)», visible solo si hay pines, con confirmación que avisa de que se borran también los archivos y de que el contenido dejará de aparecer en el feed hasta que haya pines nuevos.
+
+`deleteAllPinsAction` (en `pinActions.ts`) lista los pines del contenido y llama a `delete_pin` pin a pin (máximo 8), leyendo los medios de cada uno antes de borrarlo; al terminar purga Cloudinary una sola vez con todos los archivos. Sin migración: reutiliza `delete_pin`, que ya borra en Postgres los `media_asset` huérfanos. No es atómico entre pines: si uno falla, se detiene, dice cuántos se borraron (por ejemplo «1 de 3») y purga igualmente los archivos de los ya borrados; si Cloudinary no puede borrar alguno, los pines se dan por borrados y se avisa (los recoge `scripts/reconcile-cloudinary.mjs`). Un contenido sin pines devuelve un aviso y no hace nada. El carrusel de un case (`case_detail_media`) no son pines y queda fuera de ese botón, pero tiene el suyo: «Quitar todas las diapositivas (N)» (`removeAllCaseCarouselMediaAction`, en `caseCarouselActions.ts`). Lee la lista en servidor, desvincula cada medio con `remove_case_carousel_media` (como al quitarlos de uno en uno) y después borra de Cloudinary solo los archivos de los medios ya desvinculados. Mismo comportamiento ante fallos que el de pines: se detiene, informa de cuántas se quitaron («1 de 3») y borra los archivos de las ya quitadas; si Cloudinary falla en alguno, avisa con el recuento. Sin migración.
+
+Tests: `tests/unit/admin/deleteAllPins.test.tsx`, y bloques nuevos en `caseCarouselActions.test.ts` y `caseCarouselManager.test.tsx`.

@@ -27,6 +27,7 @@ import { readLocalVideoDuration } from '@/modules/media/infrastructure/readLocal
 import {
   addCaseCarouselImageAction,
   addCaseCarouselVideoAction,
+  removeAllCaseCarouselMediaAction,
   removeCaseCarouselMediaAction,
 } from './caseCarouselActions'
 
@@ -47,6 +48,8 @@ type Props = {
 
 export default function CaseCarouselManager({ contentId, items }: Props) {
   const [uploading, setUploading] = useState(false)
+
+  const [removingAll, setRemovingAll] = useState(false)
 
   const [error, setError] = useState<string | null>(null)
 
@@ -84,6 +87,38 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
     if (result.warning) {
       setWarning(result.warning)
+    }
+
+    window.location.reload()
+  }
+
+  async function handleRemoveAll() {
+    if (
+      !window.confirm(
+        `¿Quitar las ${sorted.length} diapositivas del carrusel? Se borrarán también sus archivos. Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return
+    }
+
+    setRemovingAll(true)
+    setError(null)
+    setWarning(null)
+
+    const result = await removeAllCaseCarouselMediaAction(contentId)
+
+    if (!result.ok) {
+      setError(result.error)
+      setRemovingAll(false)
+
+      return
+    }
+
+    if (result.warning) {
+      setWarning(result.warning)
+      setRemovingAll(false)
+
+      return
     }
 
     window.location.reload()
@@ -320,6 +355,18 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
         {sorted.length === 0 && <p>Todavía no hay carrusel para este caso.</p>}
       </div>
+
+      {sorted.length > 0 && (
+        <button
+          type="button"
+          disabled={removingAll || uploading}
+          onClick={handleRemoveAll}
+        >
+          {removingAll
+            ? 'Quitando...'
+            : `Quitar todas las diapositivas (${sorted.length})`}
+        </button>
+      )}
 
       <label htmlFor="carousel-alt">Alt (obligatorio)</label>
 

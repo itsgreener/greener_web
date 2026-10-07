@@ -15,6 +15,7 @@ import '@testing-library/jest-dom/vitest'
 const getSignedVideoUpload = vi.fn()
 const uploadVideoToCloudinary = vi.fn()
 const addCaseCarouselVideoAction = vi.fn()
+const removeAllCaseCarouselMediaAction = vi.fn()
 
 vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
   const actual = await vi.importActual<
@@ -33,6 +34,8 @@ vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
     addCaseCarouselVideoAction(...args),
   addCaseCarouselImageAction: vi.fn(),
   removeCaseCarouselMediaAction: vi.fn(),
+  removeAllCaseCarouselMediaAction: (...args: unknown[]) =>
+    removeAllCaseCarouselMediaAction(...args),
 }))
 
 import CaseCarouselManager from '@/app/admin/contents/[id]/edit/CaseCarouselManager'
@@ -215,5 +218,75 @@ describe('CaseCarouselManager — subida de vídeo cuando el navegador no sabe l
       expect(screen.getByText(/180 segundos/)).toBeInTheDocument()
     })
     expect(uploadVideoToCloudinary).not.toHaveBeenCalled()
+  })
+})
+
+describe('CaseCarouselManager — quitar todas las diapositivas', () => {
+  const items = [0, 1].map((n) => ({
+    mediaId: `m-${n}`,
+    kind: 'image' as const,
+    cloudinaryPublicId: `greener/content/${n}`,
+    sortOrder: n,
+    alt: `alt ${n}`,
+  }))
+
+  beforeEach(() => {
+    removeAllCaseCarouselMediaAction.mockReset()
+    removeAllCaseCarouselMediaAction.mockResolvedValue({ ok: true })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('no aparece si el carrusel está vacío', () => {
+    render(<CaseCarouselManager contentId="content-1" items={[]} />)
+
+    expect(screen.queryByRole('button', { name: /Quitar todas/ })).toBeNull()
+  })
+
+  it('pide confirmación con el recuento y llama a la acción', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    render(<CaseCarouselManager contentId="content-1" items={items} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar todas las diapositivas (2)' }),
+    )
+
+    await waitFor(() =>
+      expect(removeAllCaseCarouselMediaAction).toHaveBeenCalledWith(
+        'content-1',
+      ),
+    )
+    expect(window.confirm).toHaveBeenCalledWith(
+      expect.stringContaining('las 2 diapositivas'),
+    )
+  })
+
+  it('si se cancela la confirmación no borra nada', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    render(<CaseCarouselManager contentId="content-1" items={items} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar todas las diapositivas (2)' }),
+    )
+
+    expect(removeAllCaseCarouselMediaAction).not.toHaveBeenCalled()
+  })
+
+  it('muestra el error de la acción', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    removeAllCaseCarouselMediaAction.mockResolvedValue({
+      ok: false,
+      error:
+        'Se han quitado 1 de 2 diapositivas; el borrado se ha detenido por un error.',
+    })
+    render(<CaseCarouselManager contentId="content-1" items={items} />)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar todas las diapositivas (2)' }),
+    )
+
+    expect(await screen.findByText(/Se han quitado 1 de 2/)).toBeInTheDocument()
   })
 })

@@ -5,6 +5,7 @@ import { useActionState, useState } from 'react'
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
 import {
+  deleteAllPinsAction,
   deletePinAction,
   updatePinAction,
   type PinFormState,
@@ -166,6 +167,56 @@ function DeletePinButton({
   )
 }
 
+function DeleteAllPinsButton({
+  contentId,
+  count,
+}: {
+  contentId: string
+  count: number
+}) {
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleClick() {
+    if (
+      !window.confirm(
+        `¿Borrar los ${count} pines de este contenido? Se borrarán también sus archivos y el contenido dejará de aparecer en el feed hasta que subas pines nuevos. Esta acción no se puede deshacer.`,
+      )
+    ) {
+      return
+    }
+
+    setPending(true)
+    setError(null)
+
+    const result = await deleteAllPinsAction(contentId)
+
+    if (result.formError) {
+      setError(result.formError)
+      setPending(false)
+      return
+    }
+
+    if (result.warning) {
+      setError(result.warning)
+      setPending(false)
+      return
+    }
+
+    window.location.reload()
+  }
+
+  return (
+    <div>
+      <button type="button" onClick={handleClick} disabled={pending}>
+        {pending ? 'Borrando...' : `Borrar todos los pines (${count})`}
+      </button>
+
+      {error && <p>{error}</p>}
+    </div>
+  )
+}
+
 export default function PinList({ contentId, contentType, pins }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const derivedLabel = hasDerivedPinLabel(contentType)
@@ -227,6 +278,10 @@ export default function PinList({ contentId, contentType, pins }: Props) {
           )}
         </tbody>
       </table>
+
+      {pins.length > 0 && (
+        <DeleteAllPinsButton contentId={contentId} count={pins.length} />
+      )}
 
       {pins
         .filter((pin) => pin.id === expandedId)

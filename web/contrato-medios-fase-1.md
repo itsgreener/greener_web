@@ -304,6 +304,7 @@ Todo archivo que se sube al ABM se nombra así: **`[nombre]-[proporción]-[tipo 
 El ABM lee la proporción del nombre y precarga el ratio de cada archivo en la **carga masiva de pines** y en la **portada de los contenidos de tipo `other`** (`ratioFromFilename.ts`, §2.46 del historial). Reglas:
 
 - La forma compacta solo se lee en el penúltimo bloque; la forma con `x` vale en cualquier posición. Así `caso-11-hero.jpg` se lee como 1:1 y un número suelto del nombre (`2023`, `caso-11.jpg`) no se confunde con una proporción.
+- **Varias imágenes con el mismo nombre:** se puede terminar el nombre con un contador (`elonmuskeizer-43-image-2.webp`, `…-image_3.webp`, `… (2).webp`); el ABM ignora los números del final y lee lo anterior como si no estuvieran. Solo se descartan números: cualquier otro sufijo (`-final`, `-v2`) desplaza el tipo de medio y la proporción deja de estar en el penúltimo bloque.
 - Si el nombre no trae una proporción legible, o no es una de las 7 cerradas (`5x7`, `21x9`), **no se aplica nada**: queda el ratio por defecto (carga masiva) o la sugerencia por las dimensiones (portada de `other`).
 - Prioridad en la carga masiva: CSV, nombre del archivo, ratio por defecto. El admin puede corregir el ratio a mano antes de subir.
 - **Aviso, nunca bloqueo:** si el ratio no encaja con las dimensiones reales del archivo (tolerancia del 5 %, `mediaMatchesRatio`), el ABM avisa de que se verá recortado y de que probablemente el nombre está mal puesto. En la portada de `other` el aviso sale antes de subir; en la carga masiva, al terminar cada fila.

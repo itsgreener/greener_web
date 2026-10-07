@@ -52,6 +52,7 @@ vi.mock('@/app/admin/contents/[id]/edit/discardUpload', () => ({
 }))
 
 import BulkPinUpload from '@/app/admin/contents/[id]/edit/BulkPinUpload'
+import { DERIVED_PIN_LABEL_TYPES } from '@/modules/pin/domain/derivedPinLabel'
 
 const SIGNED = {
   timestamp: 1,
@@ -597,4 +598,55 @@ describe('BulkPinUpload — aviso si el ratio no encaja con la imagen subida', (
       ).toBeInTheDocument(),
     )
   })
+})
+
+describe('BulkPinUpload — rótulo automático en case, episode e insight', () => {
+  it.each(DERIVED_PIN_LABEL_TYPES)(
+    '%s: no pide frase gancho y sube el pin de imagen con label null',
+    async (type) => {
+      renderBulk(type)
+
+      selectFiles([image('flap-1x1-img.webp')])
+
+      // Sin columna editable de frase gancho: el texto del feed es automático.
+      expect(screen.getByText('Automático')).toBeInTheDocument()
+
+      clickUpload(1)
+
+      await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+      expect(createPinWithImageAction).toHaveBeenCalledWith(
+        expect.objectContaining({ label: null }),
+      )
+    },
+  )
+
+  it.each(DERIVED_PIN_LABEL_TYPES)(
+    '%s: el pin de vídeo también se crea con label null',
+    async (type) => {
+      renderBulk(type)
+
+      selectFiles([video()])
+      clickUpload(1)
+
+      await waitFor(() => expect(createPinWithVideoAction).toHaveBeenCalled())
+      expect(createPinWithVideoAction).toHaveBeenCalledWith(
+        expect.objectContaining({ label: null }),
+      )
+    },
+  )
+
+  it.each(['tool', 'other'] as const)(
+    '%s: sigue enviando la frase gancho escrita',
+    async (type) => {
+      renderBulk(type)
+
+      selectFiles([image('flap-1x1-img.webp')])
+      clickUpload(1)
+
+      await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+      expect(createPinWithImageAction).toHaveBeenCalledWith(
+        expect.objectContaining({ label: 'flap 1x1 img' }),
+      )
+    },
+  )
 })

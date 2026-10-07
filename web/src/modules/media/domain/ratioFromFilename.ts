@@ -12,7 +12,10 @@ import {
  * con la proporción como `1x1`, `4x5`, `9x16`… o compacta: `11`, `45`, `916`.
  *
  * Reglas, pensadas para no inventar nada:
- *  1. Se separa el nombre (sin extensión) por `-`, `_` o espacios.
+ *  1. Se separa el nombre (sin extensión) por `-`, `_` o espacios y se
+ *     descartan los contadores numéricos del final (`-2`, `_3`, ` (2)`): un
+ *     mismo nombre repetido para varias imágenes no cambia lo que hay antes
+ *     (`elonmuskeizer-43-image-2.webp` se lee igual que `…-image.webp`).
  *  2. Si el penúltimo bloque (el que ocupa la proporción en la convención) es
  *     una proporción válida, en cualquiera de las dos formas, se usa.
  *  3. Si no, se usa el último bloque con forma explícita `AxB` válida, en
@@ -34,6 +37,9 @@ const COMPACT: Record<string, PinRatioValue> = {
   '916': '9:16',
   '169': '16:9',
 }
+
+// Contador de copia al final del nombre: `2`, `(2)`.
+const COUNTER = /^\(?\d+\)?$/
 
 const EXPLICIT = /^(\d{1,2})[x×](\d{1,2})$/i
 
@@ -59,6 +65,10 @@ function parseToken(
 export function ratioFromFilename(filename: string): PinRatioValue | null {
   const base = filename.replace(/\.[^.]+$/, '')
   const tokens = base.split(/[-_\s]+/).filter(Boolean)
+
+  while (tokens.length > 2 && COUNTER.test(tokens[tokens.length - 1])) {
+    tokens.pop()
+  }
 
   if (tokens.length >= 2) {
     const conventional = parseToken(tokens[tokens.length - 2], true)

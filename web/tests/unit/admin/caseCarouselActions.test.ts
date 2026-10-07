@@ -20,6 +20,10 @@ vi.mock('@/modules/media/application/addCaseCarouselVideo', () => ({
   addCaseCarouselVideo: vi.fn(),
 }))
 
+vi.mock('@/modules/content/application/getCaseCarousel', () => ({
+  getCaseCarousel: vi.fn(),
+}))
+
 vi.mock('@/modules/media/application/removeCaseCarouselMedia', () => ({
   removeCaseCarouselMedia: vi.fn(),
 }))
@@ -57,6 +61,7 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
 import {
   addCaseCarouselImageAction,
   addCaseCarouselVideoAction,
+  removeAllCaseCarouselMediaAction,
   removeCaseCarouselMediaAction,
 } from '@/app/admin/contents/[id]/edit/caseCarouselActions'
 
@@ -65,6 +70,8 @@ import { addCaseCarouselImage } from '@/modules/media/application/addCaseCarouse
 import { addCaseCarouselVideo } from '@/modules/media/application/addCaseCarouselVideo'
 
 import { removeCaseCarouselMedia } from '@/modules/media/application/removeCaseCarouselMedia'
+
+import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
 
 import {
   CloudinaryImageVerificationError,
@@ -386,5 +393,111 @@ describe('caseCarouselActions', () => {
         expect(result.warning).toContain('Cloudinary')
       }
     })
+  })
+})
+
+describe('removeAllCaseCarouselMediaAction', () => {
+  const ITEMS = [
+    {
+      mediaId: '33333333-3333-4333-8333-333333333331',
+      kind: 'image' as const,
+      cloudinaryPublicId: 'greener/content/a',
+      sortOrder: 0,
+      alt: 'a',
+    },
+    {
+      mediaId: '33333333-3333-4333-8333-333333333332',
+      kind: 'video' as const,
+      cloudinaryPublicId: 'greener/content/videos/b',
+      sortOrder: 1,
+      alt: 'b',
+    },
+    {
+      mediaId: '33333333-3333-4333-8333-333333333333',
+      kind: 'image' as const,
+      cloudinaryPublicId: 'greener/content/c',
+      sortOrder: 2,
+      alt: 'c',
+    },
+  ]
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+
+    vi.mocked(getCaseCarousel).mockResolvedValue(ITEMS)
+    vi.mocked(removeCaseCarouselMedia).mockResolvedValue(MEDIA_ID)
+    vi.mocked(deleteCloudinaryAsset).mockResolvedValue(undefined as never)
+  })
+
+  it('quita todas las diapositivas leídas en servidor y borra sus archivos', async () => {
+    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
+
+    expect(result).toEqual({ ok: true })
+    expect(removeCaseCarouselMedia).toHaveBeenCalledTimes(3)
+    expect(removeCaseCarouselMedia).toHaveBeenNthCalledWith(2, {
+      contentId: CONTENT_ID,
+      mediaId: ITEMS[1].mediaId,
+      cloudinaryPublicId: 'greener/content/videos/b',
+      kind: 'video',
+    })
+    expect(deleteCloudinaryAsset).toHaveBeenCalledTimes(3)
+    expect(deleteCloudinaryAsset).toHaveBeenCalledWith(
+      'greener/content/videos/b',
+      'video',
+    )
+  })
+
+  it('si falla una, se detiene, informa y solo borra los archivos de las ya quitadas', async () => {
+    vi.mocked(removeCaseCarouselMedia)
+      .mockResolvedValueOnce(MEDIA_ID)
+      .mockRejectedValueOnce(new Error('boom'))
+
+    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
+
+    expect(result.ok).toBe(false)
+
+    if (!result.ok) {
+      expect(result.error).toContain('Se han quitado 1 de 3 diapositivas')
+    }
+
+    expect(removeCaseCarouselMedia).toHaveBeenCalledTimes(2)
+    expect(deleteCloudinaryAsset).toHaveBeenCalledTimes(1)
+    expect(deleteCloudinaryAsset).toHaveBeenCalledWith(
+      'greener/content/a',
+      'image',
+    )
+  })
+
+  it('si Cloudinary falla en algún archivo, devuelve aviso con el recuento', async () => {
+    vi.mocked(deleteCloudinaryAsset)
+      .mockRejectedValueOnce(new Error('cloudinary'))
+      .mockResolvedValue(undefined as never)
+
+    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
+
+    expect(result.ok).toBe(true)
+
+    if (result.ok) {
+      expect(result.warning).toContain('1 archivo(s)')
+    }
+  })
+
+  it('un caso sin diapositivas no hace nada', async () => {
+    vi.mocked(getCaseCarousel).mockResolvedValue([])
+
+    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'Este caso no tiene diapositivas que quitar.',
+    })
+    expect(removeCaseCarouselMedia).not.toHaveBeenCalled()
+  })
+
+  it('rechaza un identificador que no es uuid y no lee nada', async () => {
+    const result = await removeAllCaseCarouselMediaAction('nope')
+
+    expect(result.ok).toBe(false)
+    expect(getCaseCarousel).not.toHaveBeenCalled()
   })
 })

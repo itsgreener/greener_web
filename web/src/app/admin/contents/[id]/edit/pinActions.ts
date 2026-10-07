@@ -2,6 +2,8 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { z } from 'zod'
+
 import {
   createPinSchema,
   updatePinSchema,
@@ -13,6 +15,7 @@ import { createPin } from '@/modules/pin/application/createPin'
 import { pinCreationErrorMessage } from '@/modules/pin/application/pinCreationError'
 import { updatePin } from '@/modules/pin/application/updatePin'
 import { deletePin } from '@/modules/pin/application/deletePin'
+import { listPins } from '@/modules/pin/application/listPins'
 
 import {
   attachPinImageSchema,
@@ -211,6 +214,89 @@ export async function deletePinAction(
     return {
       success: true,
       warning: `Se ha borrado el pin, pero ${purge.failed} archivo(s) no se han podido borrar de Cloudinary. Se limpiarán con el reconciliador (scripts/reconcile-cloudinary.mjs). Recarga la página.`,
+    }
+  }
+
+  return {
+    success: true,
+  }
+}
+
+/**
+ * Borra TODOS los pines de un contenido (máximo 8). Reutiliza `delete_pin`
+ * pin a pin, que ya limpia en Postgres los `media_asset` que se quedan sin
+ * referencias; los archivos de Cloudinary se borran al final con la lista
+ * leída antes de cada borrado.
+ *
+ * No es atómico entre pines: si uno falla, se detiene y se informa de
+ * cuántos se llegaron a borrar (los ya borrados no se restauran, y su
+ * Cloudinary se limpia igualmente).
+ */
+export async function deleteAllPinsAction(
+  contentId: string,
+): Promise<PinFormState> {
+  const parsedContentId = z.string().uuid().safeParse(contentId)
+
+  if (!parsedContentId.success) {
+    return {
+      formError: 'El identificador del contenido no es válido.',
+    }
+  }
+
+  let pins: Awaited<ReturnType<typeof listPins>>
+
+  try {
+    pins = await listPins(parsedContentId.data)
+  } catch (error) {
+    console.error(error)
+
+    return {
+      formError: 'No se han podido leer los pines del contenido.',
+    }
+  }
+
+  if (pins.length === 0) {
+    return {
+      formError: 'Este contenido no tiene pines que borrar.',
+    }
+  }
+
+  const mediaRefs: Awaited<ReturnType<typeof snapshotPinMedia>> = []
+
+  let deleted = 0
+  let failed = false
+
+  for (const pin of pins) {
+    const refs = await snapshotPinMedia(pin.id)
+
+    try {
+      await deletePin({ id: pin.id })
+    } catch (error) {
+      console.error(error)
+      failed = true
+      break
+    }
+
+    deleted += 1
+    mediaRefs.push(...refs)
+  }
+
+  // Aunque haya fallado a mitad, los pines ya borrados dejan sus archivos
+  // sin dueño: se purgan igual.
+  const purge = await purgeRemovedMedia(mediaRefs)
+
+  revalidateContent(parsedContentId.data)
+
+  if (failed) {
+    return {
+      formError: `Se han borrado ${deleted} de ${pins.length} pines; el borrado se ha detenido por un error. Recarga la página y vuelve a intentarlo.`,
+    }
+  }
+
+  if (purge.failed > 0) {
+    return {
+      success: true,
+      warning: `Se han borrado los ${deleted} pines, pero ${purge.failed} archivo(s) no se han podido borrar de Cloudinary. Se limpiarán con el reconciliador (scripts/reconcile-cloudinary.mjs). Recarga la página.`,
     }
   }
 

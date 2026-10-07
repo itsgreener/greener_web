@@ -51,6 +51,24 @@ describe('ratioFromFilename — convención nombre-proporción-tipo.ext', () => 
     expect(ratioFromFilename('2023-campana-img.jpg')).toBeNull()
   })
 
+  it.each([
+    ['elonmuskeizer-43-image-2.webp', '4:3'],
+    ['elonmuskeizer-43-image-12.webp', '4:3'],
+    ['flap-4x5-img-2.jpg', '4:5'],
+    ['flap-916-video_3.mp4', '9:16'],
+    ['flap-169-video-2-3.mp4', '16:9'],
+    ['flap 45 img (2).jpg', '4:5'],
+    ['flap-1x1-2.jpg', '1:1'],
+  ])('ignora el contador numérico del final: %s → %s', (name, expected) => {
+    expect(ratioFromFilename(name)).toBe(expected)
+  })
+
+  it('el contador no hace que se lea como proporción un número del nombre', () => {
+    expect(ratioFromFilename('caso-11-hero-2.jpg')).toBe('1:1') // posición de la convención
+    expect(ratioFromFilename('2023-campana-img-2.jpg')).toBeNull()
+    expect(ratioFromFilename('flap-img-2.jpg')).toBeNull()
+  })
+
   it('sin la parte de tipo, solo se acepta la forma explícita', () => {
     expect(ratioFromFilename('flap-1x1.jpg')).toBe('1:1')
     expect(ratioFromFilename('flap-45.jpg')).toBeNull()
