@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { resolvePreviewContext } from '@/modules/content/application/resolvePreviewContext'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
+import { getFirstPinMedia } from '@/modules/content/infrastructure/firstPinMedia'
 import type { PublicContentMedia } from '@/modules/content/infrastructure/publicContentSource'
 import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
@@ -134,10 +135,24 @@ export async function generateMetadata({
   searchParams,
 }: Props): Promise<Metadata> {
   const { slug } = await params
-  const { preview } = await searchParams
+  const { preview, pin, slide } = await searchParams
   const resolved = await getToolPreview(slug, preview)
   if (!resolved) return {}
-  return buildContentMetadata(resolved.content, { noindex: resolved.isPreview })
+  // Sin portada propia (§2.40): OG del pin pedido (?pin=) o, si no, del
+  // primer pin de la tool.
+  const pinCover = await getToolPinCover(
+    resolved.content.id,
+    pin,
+    slide,
+    resolved.client,
+  )
+  const shareMedia =
+    pinCover?.media ??
+    (await getFirstPinMedia(resolved.content.id, resolved.client))
+  return buildContentMetadata(resolved.content, {
+    noindex: resolved.isPreview,
+    shareMedia,
+  })
 }
 
 export default async function ToolPage({ params, searchParams }: Props) {

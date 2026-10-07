@@ -1,6 +1,12 @@
 import type { Metadata } from 'next'
-import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import {
+  buildImageUrl,
+  buildVideoPosterUrl,
+} from '@/modules/media/infrastructure/cloudinaryUrl'
+import type {
+  PublicContent,
+  PublicContentMedia,
+} from '@/modules/content/infrastructure/publicContentSource'
 
 /**
  * generateMetadata compartido por las plantillas de detalle que usan
@@ -11,15 +17,17 @@ import type { PublicContent } from '@/modules/content/infrastructure/publicConte
  */
 export function buildContentMetadata(
   content: PublicContent,
-  options?: { noindex?: boolean },
+  options?: {
+    noindex?: boolean
+    // Medio de respaldo para la imagen de OG cuando el contenido no tiene
+    // portada (tool/insight, §2.40): primer medio de su primer pin.
+    shareMedia?: PublicContentMedia | null
+  },
 ): Metadata {
   const title = content.seoTitle ?? content.title
   const description = content.seoDescription ?? content.summary ?? undefined
 
-  const ogImage =
-    content.coverMedia && content.coverMedia.kind === 'image'
-      ? buildImageUrl(content.coverMedia.cloudinaryPublicId, 'detail', 1200)
-      : undefined
+  const ogImage = buildOgImage(content.coverMedia ?? options?.shareMedia)
 
   return {
     title,
@@ -33,4 +41,11 @@ export function buildContentMetadata(
       images: ogImage ? [ogImage] : undefined,
     },
   }
+}
+
+function buildOgImage(media: PublicContentMedia | null | undefined) {
+  if (!media) return undefined
+  return media.kind === 'image'
+    ? buildImageUrl(media.cloudinaryPublicId, 'detail', 1200)
+    : buildVideoPosterUrl(media.cloudinaryPublicId, { width: 1200 }, 'detail')
 }

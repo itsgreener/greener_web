@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { resolvePreviewContext } from '@/modules/content/application/resolvePreviewContext'
 import { buildContentMetadata } from '@/lib/contentMetadata'
+import { getFirstPinMedia } from '@/modules/content/infrastructure/firstPinMedia'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import styles from './page.module.css'
 
@@ -38,7 +39,15 @@ export async function generateMetadata({
   const { preview } = await searchParams
   const resolved = await getInsightPreview(slug, preview)
   if (!resolved) return {}
-  return buildContentMetadata(resolved.content, { noindex: resolved.isPreview })
+  // Sin portada propia (§2.40): OG del primer pin del insight.
+  const shareMedia = await getFirstPinMedia(
+    resolved.content.id,
+    resolved.client,
+  )
+  return buildContentMetadata(resolved.content, {
+    noindex: resolved.isPreview,
+    shareMedia,
+  })
 }
 
 export default async function InsightPage({ params, searchParams }: Props) {

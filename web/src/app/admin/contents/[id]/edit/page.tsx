@@ -73,15 +73,15 @@ export default async function EditContentPage({ params }: Props) {
   }
 
   // especificacion-final-formato-detalle.md §1: tres formatos de
-  // detalle — tipo A (tool/insight, con paquete HTML + portada imagen),
+  // detalle — tipo A (tool/insight, con paquete HTML, sin portada),
   // tipo B (case/episode), y contenido libre (other, portada imagen o
   // vídeo). El editor de bloques genérico desaparece por completo (§6).
   const supportsPackage = content.type === 'tool' || content.type === 'insight'
 
-  const supportsCoverMedia =
-    content.type === 'tool' ||
-    content.type === 'insight' ||
-    content.type === 'other'
+  // Portada solo para contenido libre (other). Tool genera su miniatura
+  // con ?pin=<pinId> e insight va directo a /app: no tienen portada
+  // (migración 20261007110000, constraint content_cover_only_for_other).
+  const supportsCoverMedia = content.type === 'other'
 
   const [
     translations,
@@ -254,7 +254,7 @@ export default async function EditContentPage({ params }: Props) {
 
               <CoverMediaUpload
                 contentId={content.id}
-                allowVideo={content.type === 'other'}
+                allowVideo
                 coverMedia={content.coverMedia}
               />
             </section>
