@@ -892,3 +892,24 @@ La lista de pines de cualquier contenido (tool, case, episode, insight y other c
 `deleteAllPinsAction` (en `pinActions.ts`) lista los pines del contenido y llama a `delete_pin` pin a pin (máximo 8), leyendo los medios de cada uno antes de borrarlo; al terminar purga Cloudinary una sola vez con todos los archivos. Sin migración: reutiliza `delete_pin`, que ya borra en Postgres los `media_asset` huérfanos. No es atómico entre pines: si uno falla, se detiene, dice cuántos se borraron (por ejemplo «1 de 3») y purga igualmente los archivos de los ya borrados; si Cloudinary no puede borrar alguno, los pines se dan por borrados y se avisa (los recoge `scripts/reconcile-cloudinary.mjs`). Un contenido sin pines devuelve un aviso y no hace nada. El carrusel de un case (`case_detail_media`) no son pines y queda fuera de ese botón, pero tiene el suyo: «Quitar todas las diapositivas (N)» (`removeAllCaseCarouselMediaAction`, en `caseCarouselActions.ts`). Lee la lista en servidor, desvincula cada medio con `remove_case_carousel_media` (como al quitarlos de uno en uno) y después borra de Cloudinary solo los archivos de los medios ya desvinculados. Mismo comportamiento ante fallos que el de pines: se detiene, informa de cuántas se quitaron («1 de 3») y borra los archivos de las ya quitadas; si Cloudinary falla en alguno, avisa con el recuento. Sin migración.
 
 Tests: `tests/unit/admin/deleteAllPins.test.tsx`, y bloques nuevos en `caseCarouselActions.test.ts` y `caseCarouselManager.test.tsx`.
+
+### 2.49 Borrar versiones anteriores de los paquetes de tools e insights (7 oct)
+
+Hasta hoy una versión de paquete (zip) solo se podía publicar o recuperar («Volver a esta versión»), nunca eliminar, así que las versiones y sus ficheros del bucket `html-packages` se acumulaban sin límite.
+
+- **Migración `20261007140000_delete_html_package_version.sql`**: función `delete_html_package_version(p_content_id, p_version_id)`. Exige admin, que la versión sea de ese paquete y que **no sea la activa** (ni `published` ni `current_version_id`: error P0001 con mensaje para el admin). Borra la fila, deja rastro en `audit_log` (`delete_package_version`) y devuelve la ruta de Storage.
+- **Repositorio** (`supabaseHtmlPackageRepository.deleteVersion`): primero la RPC y, solo si va bien, los ficheros de Storage bajo esa ruta, con listado **recursivo y paginado** (Storage no lista subcarpetas por sí solo). Best-effort: si Storage falla, la versión ya no existe y se avisa de cuántos ficheros quedaron huérfanos.
+- **ABM** (`PackageUpload`): botón «Borrar versión» en cada borrador y versión anterior (nunca en la activa), y «Borrar versiones anteriores (N)» que borra solo las `rolled_back` (los borradores son trabajo pendiente, no versiones anteriores). Ambos piden confirmación; el masivo va una a una y, si falla alguna, se detiene e informa («1 de 3»).
+- **Numeración**: la siguiente subida calcula `max(version) + 1`, así que borrar la versión más alta libera su número. Si en ese caso Storage dejó ficheros huérfanos, la subida con ese número puede fallar (`upsert: false`); el aviso lo indica.
+
+Tests: `tests/unit/packages/deletePackageVersion.test.ts`, `deleteOldVersions.test.ts` y `tests/unit/admin/packageVersionDelete.test.tsx`. Sin probar contra Postgres ni Storage reales.
+
+### 2.50 Fallo: «Quitar» una fila de la carga masiva devolvía a pendiente las ya subidas (7 oct)
+
+**Síntoma** (subiendo medios de una tool): un archivo falla en Cloudinary, se pulsa «Quitar» en esa fila y todas las filas ya subidas vuelven a aparecer como «Pendiente», mientras los mismos pines ya figuran en la lista de pines (que es correcto: sí se habían creado).
+
+**Causa**: `removeRow` (añadido en §2.43) y `regenerateRows` reconstruían todas las filas desde la lista de archivos con `buildRow`, que siempre crea la fila en estado `pending`. El pin de las filas ya subidas existía, pero la interfaz lo olvidaba; con esa lista, el siguiente «Subir» habría **duplicado esos pines**. El mismo fallo se producía al cambiar el ratio o el idioma por defecto, o al cargar un CSV, después de una subida parcial.
+
+**Arreglo** (`BulkPinUpload.tsx`): «Quitar» ya no reconstruye nada, solo elimina esa fila, así que las demás conservan su estado y lo que se hubiera editado en ellas. `regenerateRows` (defaults, CSV) conserva sin tocar las filas `ok` y `uploading`, reconociéndolas por el archivo y no por la clave (que lleva el índice y cambia al quitar filas). Las filas pendientes o con error sí se regeneran con los valores nuevos, como antes.
+
+Tests (`bulkPinUpload.test.tsx`): quitar el fallido no resucita las subidas; volver a subir no duplica pines; quitar conserva las ediciones de las demás; cambiar el ratio por defecto tras subida parcial no resucita filas. Los cuatro fallaban antes del arreglo. Sin migraciones.

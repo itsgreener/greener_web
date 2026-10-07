@@ -229,7 +229,7 @@ Qué hace por dentro, para quien quiera entender el porqué: pide al propio serv
 1. El ZIP se valida contra todo lo anterior. Si falla algo, se informa el motivo exacto y no se sube nada.
 2. Se escanea con un antivirus (Cloudmersive) antes de aceptarse. Si el escaneo encuentra algo o el servicio no responde, la subida se rechaza — es una comprobación bloqueante, no un aviso.
 3. Si todo pasa, se crea como una **nueva versión en borrador** — no sustituye automáticamente a la versión pública actual.
-4. Desde el ABM, un administrador decide cuándo esa versión pasa a ser la pública. Se puede volver a una versión anterior en cualquier momento sin volver a subir nada.
+4. Desde el ABM, un administrador decide cuándo esa versión pasa a ser la pública. Se puede volver a una versión anterior en cualquier momento sin volver a subir nada. Las versiones que ya no hagan falta se pueden **borrar** desde el ABM (una a una o todas las anteriores de golpe); se borran también sus ficheros y no se pueden recuperar. La versión activa no se puede borrar: hay que publicar otra antes.
 
 ### Versiones y caché del navegador
 

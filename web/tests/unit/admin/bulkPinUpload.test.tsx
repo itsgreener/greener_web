@@ -650,3 +650,116 @@ describe('BulkPinUpload — rótulo automático en case, episode e insight', () 
     },
   )
 })
+
+describe('BulkPinUpload — quitar una fila tras una subida parcial', () => {
+  it('REGRESIÓN: quitar el archivo fallido NO devuelve a «pendiente» los ya subidos', async () => {
+    renderBulk()
+
+    // El segundo archivo falla en Cloudinary; el primero y el tercero suben.
+    uploadImageToCloudinary
+      .mockResolvedValueOnce({
+        public_id: 'greener/content/a',
+        format: 'webp',
+        width: 800,
+        height: 800,
+        bytes: 1024,
+      })
+      .mockRejectedValueOnce(new Error('Cloudinary rechazó el archivo'))
+      .mockResolvedValueOnce({
+        public_id: 'greener/content/c',
+        format: 'webp',
+        width: 800,
+        height: 800,
+        bytes: 1024,
+      })
+
+    selectFiles([image('a.webp'), image('b.webp'), image('c.webp')])
+    clickUpload(3)
+
+    expect(
+      await screen.findByText('Error: Cloudinary rechazó el archivo'),
+    ).toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByText('Hecho')).toHaveLength(2))
+    expect(createPinWithImageAction).toHaveBeenCalledTimes(2)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar b.webp del lote' }),
+    )
+
+    // Los dos pines ya creados siguen marcados como hechos, no pendientes.
+    expect(screen.getAllByText('Hecho')).toHaveLength(2)
+    expect(screen.queryByText('Pendiente')).toBeNull()
+    expect(screen.queryByText(/^Error:/)).toBeNull()
+    expect(screen.queryByText('b.webp')).toBeNull()
+  })
+
+  it('tras quitar el fallido, volver a subir NO duplica los pines ya creados', async () => {
+    renderBulk()
+
+    uploadImageToCloudinary
+      .mockResolvedValueOnce({
+        public_id: 'greener/content/a',
+        format: 'webp',
+        width: 800,
+        height: 800,
+        bytes: 1024,
+      })
+      .mockRejectedValueOnce(new Error('fallo'))
+
+    selectFiles([image('a.webp'), image('b.webp')])
+    clickUpload(2)
+
+    await screen.findByText('Error: fallo')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar b.webp del lote' }),
+    )
+
+    // Queda solo la fila ya subida: no hay nada pendiente que enviar.
+    expect(createPinWithImageAction).toHaveBeenCalledTimes(1)
+    clickUpload(1)
+
+    await waitFor(() =>
+      expect(uploadImageToCloudinary).toHaveBeenCalledTimes(2),
+    )
+    expect(createPinWithImageAction).toHaveBeenCalledTimes(1)
+  })
+
+  it('quitar una fila conserva las ediciones hechas en las demás', () => {
+    renderBulk()
+
+    selectFiles([image('a.webp'), image('b.webp'), image('c.webp')])
+
+    const rowOf = (name: string) =>
+      screen.getByText(name).closest('tr') as HTMLElement
+
+    fireEvent.change(rowOf('c.webp').querySelectorAll('select')[0], {
+      target: { value: '9:16' },
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Quitar a.webp del lote' }),
+    )
+
+    expect(
+      (rowOf('c.webp').querySelectorAll('select')[0] as HTMLSelectElement)
+        .value,
+    ).toBe('9:16')
+  })
+
+  it('cambiar el ratio por defecto tras una subida parcial no resucita las filas ya subidas', async () => {
+    renderBulk()
+
+    selectFiles([image('a.webp'), image('b.webp')])
+    clickUpload(2)
+
+    await waitFor(() => expect(screen.getAllByText('Hecho')).toHaveLength(2))
+
+    fireEvent.change(screen.getByLabelText('Ratio por defecto'), {
+      target: { value: '4:5' },
+    })
+
+    expect(screen.getAllByText('Hecho')).toHaveLength(2)
+    expect(screen.queryByText('Pendiente')).toBeNull()
+  })
+})

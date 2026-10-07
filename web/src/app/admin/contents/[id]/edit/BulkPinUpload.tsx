@@ -147,15 +147,28 @@ export default function BulkPinUpload({
       language: overrides.language ?? defaultLanguage,
     }
 
-    setRows(
-      nextFiles.map((file, index) =>
-        buildRow(
+    setRows((current) =>
+      nextFiles.map((file, index) => {
+        // Una fila que ya se ha subido (o se está subiendo) NO se
+        // regenera: su pin ya existe y volver a «pendiente» haría que el
+        // siguiente «Subir» lo duplicara. Se reconoce por el archivo, no
+        // por la clave (que lleva el índice y cambia al quitar filas).
+        const existing = current.find((row) => row.file === file)
+
+        if (
+          existing &&
+          (existing.status === 'ok' || existing.status === 'uploading')
+        ) {
+          return existing
+        }
+
+        return buildRow(
           file,
           index,
           findCsvRowForFile(nextCsvRows, file.name),
           defaults,
-        ),
-      ),
+        )
+      }),
     )
   }
 
@@ -192,16 +205,16 @@ export default function BulkPinUpload({
   }
 
   // Quita un archivo del lote antes de subirlo (p. ej. un vídeo elegido por
-  // error). También sale de `files`: si no, cambiar un valor por defecto
-  // regeneraría las filas y lo resucitaría.
+  // error o uno que ha fallado). Solo quita esa fila: NO se reconstruyen las
+  // demás, para no perder su estado (las ya subidas siguen «Hecho») ni lo que
+  // el admin haya editado en ellas. También sale de `files`: si no, cambiar
+  // un valor por defecto regeneraría las filas y lo resucitaría.
   function removeRow(key: string) {
     const row = rows.find((item) => item.key === key)
     if (!row) return
 
-    const nextFiles = files.filter((file) => file !== row.file)
-
-    setFiles(nextFiles)
-    regenerateRows(nextFiles, csvRows)
+    setFiles((current) => current.filter((file) => file !== row.file))
+    setRows((current) => current.filter((item) => item.key !== key))
     setFormError(null)
   }
 

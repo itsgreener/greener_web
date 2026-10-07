@@ -22,6 +22,17 @@ export type PublishHtmlPackageVersionInput = {
   versionId: string
 }
 
+export type DeleteHtmlPackageVersionInput = {
+  contentId: string
+  versionId: string
+}
+
+export type DeleteHtmlPackageVersionResult = {
+  storagePath: string
+  /** Ficheros que no se pudieron borrar de Storage (0 si todo fue bien). */
+  storageFailed: number
+}
+
 export interface HtmlPackageRepository {
   /** Sube los ficheros a Storage y crea la versión en estado 'draft'. */
   uploadVersion(input: UploadHtmlPackageVersionInput): Promise<string>
@@ -30,4 +41,13 @@ export interface HtmlPackageRepository {
   publishVersion(input: PublishHtmlPackageVersionInput): Promise<string>
 
   listVersions(contentId: string): Promise<HtmlPackageVersionSummary[]>
+
+  /**
+   * Borra una versión que NO sea la activa (la base de datos lo exige) y,
+   * después, sus ficheros de Storage (best-effort: un fallo ahí no deshace
+   * el borrado de la fila, se cuenta en `storageFailed`).
+   */
+  deleteVersion(
+    input: DeleteHtmlPackageVersionInput,
+  ): Promise<DeleteHtmlPackageVersionResult>
 }

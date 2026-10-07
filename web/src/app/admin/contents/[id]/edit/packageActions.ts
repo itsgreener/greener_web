@@ -7,6 +7,11 @@ import {
   publishHtmlPackageVersion,
   publishHtmlPackageVersionSchema,
 } from '@/modules/packages/application/publishHtmlPackageVersion'
+import {
+  deleteHtmlPackageVersion,
+  deleteHtmlPackageVersionSchema,
+  deleteOldHtmlPackageVersions,
+} from '@/modules/packages/application/deleteHtmlPackageVersion'
 import { PackageValidationError } from '@/modules/packages/infrastructure/zipValidation'
 import { VirusScanError } from '@/modules/packages/infrastructure/cloudmersiveVirusScan'
 
@@ -18,6 +23,12 @@ export type UploadPackageActionState = {
 
 export type PublishPackageActionState = {
   error?: string
+  success?: boolean
+}
+
+export type DeletePackageActionState = {
+  error?: string
+  warning?: string
   success?: boolean
 }
 
@@ -90,6 +101,102 @@ export async function publishHtmlPackageVersionAction(
   }
 
   revalidateContent(result.data.contentId)
+
+  return { success: true }
+}
+
+// El RPC rechaza con P0001 las versiones que no se pueden borrar (la activa,
+// o una que no es de este paquete) con un mensaje pensado para el admin.
+function userFacingDeleteError(error: unknown): string {
+  if (
+    error instanceof Error &&
+    (error as Error & { code?: string }).code === 'P0001' &&
+    error.message.trim()
+  ) {
+    return error.message
+  }
+
+  return 'No se ha podido borrar la versión.'
+}
+
+function storageWarning(count: number): string {
+  return `La versión se ha borrado, pero ${count} fichero(s) no se han podido borrar de Storage y han quedado huérfanos. Si vuelves a subir un paquete con ese mismo número de versión, la subida puede fallar.`
+}
+
+export async function deleteHtmlPackageVersionAction(
+  _previousState: DeletePackageActionState,
+  formData: FormData,
+): Promise<DeletePackageActionState> {
+  const result = deleteHtmlPackageVersionSchema.safeParse({
+    contentId: formData.get('contentId'),
+    versionId: formData.get('versionId'),
+  })
+
+  if (!result.success) {
+    return { error: 'Los datos de la versión no son válidos.' }
+  }
+
+  let outcome: Awaited<ReturnType<typeof deleteHtmlPackageVersion>>
+
+  try {
+    outcome = await deleteHtmlPackageVersion(result.data)
+  } catch (error) {
+    console.error(error)
+
+    return { error: userFacingDeleteError(error) }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  if (outcome.storageFailed > 0) {
+    return { success: true, warning: storageWarning(outcome.storageFailed) }
+  }
+
+  return { success: true }
+}
+
+export async function deleteOldHtmlPackageVersionsAction(
+  _previousState: DeletePackageActionState,
+  formData: FormData,
+): Promise<DeletePackageActionState> {
+  const result = deleteHtmlPackageVersionSchema
+    .pick({ contentId: true })
+    .safeParse({ contentId: formData.get('contentId') })
+
+  if (!result.success) {
+    return { error: 'El identificador del contenido no es válido.' }
+  }
+
+  let outcome: Awaited<ReturnType<typeof deleteOldHtmlPackageVersions>>
+
+  try {
+    outcome = await deleteOldHtmlPackageVersions(result.data.contentId)
+  } catch (error) {
+    console.error(error)
+
+    return { error: 'No se han podido leer las versiones del paquete.' }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  if (outcome.total === 0) {
+    return { error: 'No hay versiones anteriores que borrar.' }
+  }
+
+  if (outcome.error) {
+    console.error(outcome.error)
+
+    return {
+      error: `Se han borrado ${outcome.deleted} de ${outcome.total} versiones anteriores; el borrado se ha detenido por un error. ${userFacingDeleteError(outcome.error)}`,
+    }
+  }
+
+  if (outcome.storageFailed > 0) {
+    return {
+      success: true,
+      warning: storageWarning(outcome.storageFailed),
+    }
+  }
 
   return { success: true }
 }

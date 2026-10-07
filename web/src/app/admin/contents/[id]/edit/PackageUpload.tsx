@@ -5,8 +5,11 @@ import { useActionState, useState } from 'react'
 import type { HtmlPackageVersionSummary } from '@/modules/packages/domain/htmlPackageRepository'
 
 import {
+  deleteHtmlPackageVersionAction,
+  deleteOldHtmlPackageVersionsAction,
   publishHtmlPackageVersionAction,
   uploadHtmlPackageAction,
+  type DeletePackageActionState,
   type PublishPackageActionState,
   type UploadPackageActionState,
 } from './packageActions'
@@ -18,6 +21,7 @@ type Props = {
 
 const uploadInitialState: UploadPackageActionState = {}
 const publishInitialState: PublishPackageActionState = {}
+const deleteInitialState: DeletePackageActionState = {}
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString('es-ES', {
@@ -54,6 +58,81 @@ function PublishVersionButton({
   )
 }
 
+function DeleteVersionButton({
+  contentId,
+  version,
+}: {
+  contentId: string
+  version: HtmlPackageVersionSummary
+}) {
+  const [state, action, pending] = useActionState(
+    deleteHtmlPackageVersionAction,
+    deleteInitialState,
+  )
+
+  return (
+    <form
+      action={action}
+      onSubmit={(event) => {
+        if (
+          !window.confirm(
+            `¿Borrar la versión v${version.version}? Se borrarán también sus ficheros. Esta acción no se puede deshacer.`,
+          )
+        ) {
+          event.preventDefault()
+        }
+      }}
+    >
+      <input type="hidden" name="contentId" value={contentId} />
+      <input type="hidden" name="versionId" value={version.id} />
+
+      <button type="submit" disabled={pending}>
+        {pending ? 'Borrando...' : 'Borrar versión'}
+      </button>
+
+      {state.error && <p>{state.error}</p>}
+      {state.warning && <p>{state.warning}</p>}
+    </form>
+  )
+}
+
+function DeleteOldVersionsButton({
+  contentId,
+  count,
+}: {
+  contentId: string
+  count: number
+}) {
+  const [state, action, pending] = useActionState(
+    deleteOldHtmlPackageVersionsAction,
+    deleteInitialState,
+  )
+
+  return (
+    <form
+      action={action}
+      onSubmit={(event) => {
+        if (
+          !window.confirm(
+            `¿Borrar las ${count} versiones anteriores? La versión activa y los borradores no se tocan; se borrarán también los ficheros de las anteriores. Esta acción no se puede deshacer.`,
+          )
+        ) {
+          event.preventDefault()
+        }
+      }}
+    >
+      <input type="hidden" name="contentId" value={contentId} />
+
+      <button type="submit" disabled={pending}>
+        {pending ? 'Borrando...' : `Borrar versiones anteriores (${count})`}
+      </button>
+
+      {state.error && <p>{state.error}</p>}
+      {state.warning && <p>{state.warning}</p>}
+    </form>
+  )
+}
+
 export default function PackageUpload({ contentId, versions }: Props) {
   const [uploadState, uploadAction, uploading] = useActionState(
     uploadHtmlPackageAction,
@@ -61,6 +140,10 @@ export default function PackageUpload({ contentId, versions }: Props) {
   )
 
   const [file, setFile] = useState<File | null>(null)
+
+  const oldVersionsCount = versions.filter(
+    (version) => version.status === 'rolled_back',
+  ).length
 
   return (
     <div>
@@ -99,6 +182,13 @@ export default function PackageUpload({ contentId, versions }: Props) {
         {uploadState.success && <p>Versión subida como borrador.</p>}
       </form>
 
+      {oldVersionsCount > 0 && (
+        <DeleteOldVersionsButton
+          contentId={contentId}
+          count={oldVersionsCount}
+        />
+      )}
+
       <table>
         <thead>
           <tr>
@@ -132,6 +222,13 @@ export default function PackageUpload({ contentId, versions }: Props) {
                     contentId={contentId}
                     versionId={version.id}
                     label="Volver a esta versión"
+                  />
+                )}
+
+                {version.status !== 'published' && (
+                  <DeleteVersionButton
+                    contentId={contentId}
+                    version={version}
                   />
                 )}
 

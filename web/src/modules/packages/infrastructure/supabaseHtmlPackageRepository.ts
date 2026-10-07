@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 
 import type {
+  DeleteHtmlPackageVersionInput,
+  DeleteHtmlPackageVersionResult,
   HtmlPackageRepository,
   HtmlPackageVersionSummary,
   PublishHtmlPackageVersionInput,
@@ -38,6 +40,49 @@ function contentTypeFor(path: string): string {
   }
 
   return types[extension] ?? 'application/octet-stream'
+}
+
+type StorageClient = Awaited<ReturnType<typeof createClient>>['storage']
+
+const LIST_PAGE_SIZE = 100
+
+/**
+ * Lista TODOS los ficheros bajo un prefijo del bucket. `list` de Storage no
+ * es recursivo: las subcarpetas (p. ej. `assets/`) vuelven como entradas sin
+ * `id`, y hay que entrar en ellas.
+ */
+async function listFilesRecursive(
+  storage: StorageClient,
+  prefix: string,
+): Promise<string[]> {
+  const files: string[] = []
+
+  for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
+    const { data, error } = await storage.from(BUCKET).list(prefix, {
+      limit: LIST_PAGE_SIZE,
+      offset,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message)
+    }
+
+    const entries = data ?? []
+
+    for (const entry of entries) {
+      const path = `${prefix}/${entry.name}`
+
+      if (entry.id) {
+        files.push(path)
+      } else {
+        files.push(...(await listFilesRecursive(storage, path)))
+      }
+    }
+
+    if (entries.length < LIST_PAGE_SIZE) break
+  }
+
+  return files
 }
 
 export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
@@ -102,6 +147,49 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
     }
 
     return data as string
+  },
+
+  async deleteVersion(
+    input: DeleteHtmlPackageVersionInput,
+  ): Promise<DeleteHtmlPackageVersionResult> {
+    const supabase = await createClient()
+
+    // Primero la base de datos: valida que la versión es de este paquete y
+    // que NO es la activa, y devuelve su ruta en Storage.
+    const { data, error } = await supabase.rpc('delete_html_package_version', {
+      p_content_id: input.contentId,
+      p_version_id: input.versionId,
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    const storagePath = data as string
+
+    // Después los ficheros, best-effort: la fila ya no existe, así que un
+    // fallo aquí solo deja ficheros huérfanos, no una versión rota.
+    let storageFailed = 0
+
+    try {
+      const files = await listFilesRecursive(supabase.storage, storagePath)
+
+      if (files.length > 0) {
+        const { error: removeError } = await supabase.storage
+          .from(BUCKET)
+          .remove(files)
+
+        if (removeError) {
+          console.error(removeError)
+          storageFailed = files.length
+        }
+      }
+    } catch (storageError) {
+      console.error(storageError)
+      storageFailed = Math.max(storageFailed, 1)
+    }
+
+    return { storagePath, storageFailed }
   },
 
   async listVersions(contentId: string): Promise<HtmlPackageVersionSummary[]> {
