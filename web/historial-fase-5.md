@@ -846,3 +846,9 @@ Tests: `bulkPinUpload.test.tsx` (quitar filas, orden inicial) y `translationForm
 **Summary.** El campo desaparece también de case (antes solo de episodio): ninguno lo usaba más que como respaldo de la meta descripción. Para case y episodio la descripción SEO es solo `seoDescription` (`workContent.ts`); tool, insight y other mantienen su summary. Al guardar la traducción de un case o episodio el summary guardado se vacía, porque el campo ya no viaja en el formulario. La columna no se toca.
 
 Tests: bloque de la migración y del ABM en `singleMediaPins.test.ts`, `bulkPinUpload.test.tsx`, `translationFormSummary.test.tsx`, `pinCsv.test.ts`.
+
+### 2.44 Corrección de los vídeos de tools (7 oct)
+
+La conversión del 6 oct deformó 23 de los 63 vídeos de tools: sus WebM originales cambian de resolución a mitad de fichero (la grabación se hizo mientras se redimensionaba la ventana) y la conversión fijó el tamaño con el primer fotograma. Se rehicieron cortando por tramos de tamaño constante y quedándose solo con los que encajan con una de las 6 proporciones (aviso nuevo en el Anexo A de `contrato-medios-fase-1.md`: medir fotograma a fotograma antes de convertir).
+
+Se eliminaron además todos los vídeos de 2 s o menos, que Greener no puede usar: `flowbars` 4:3, `halo` 4:5, `lyrics` 3:4, `slabs` 16:9 y `slabs` 3:4. Resultado: 68 vídeos, 45 MB. **Proporciones de tools sin vídeo**: `lyrics` 16:9 y 3:4, `flowbars` 4:3, `halo` 4:5, `slabs` 16:9 y 3:4. Con un único vídeo corto (menos de 3 s): `flap` 4:5, `glitch` 4:3 y `slabs` 4:5. Sin cambios de código.

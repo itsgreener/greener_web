@@ -332,6 +332,8 @@ ffmpeg -i in.mov -vf "scale=W:H:flags=lanczos,fps=30" -c:v libx264 -profile:v hi
 
 Si el ratio de origen no coincide con el de destino, **no** forzar `scale=W:H` (deformaría): decidir antes entre recortar (`crop`) y rellenar.
 
+**Vídeos cuya resolución cambia dentro del fichero** (aprendido el 7 oct con los WebM de tools: 23 de 63 empezaban en un formato y seguían en otro, o con bandas negras). Antes de convertir **medir fotograma a fotograma** (`ffprobe -select_streams v -show_entries frame=pts_time,width,height`), no solo la cabecera. Si hay cambios: cortar el original por tramos con `-c copy` en el fotograma clave donde cambia el tamaño, medir la zona real de contenido de cada tramo (descartar bandas negras) y codificar cada tramo por separado con su proporción; unir solo tramos de la misma proporción. Nunca pasar el clip entero por un `scale=W:H` fijo: ffmpeg reescala los fotogramas de otro tamaño al primero y los deforma. Después de convertir, comprobar que todos los fotogramas de la salida tienen el mismo tamaño.
+
 **Imagen** (recorte centrado al ratio y reducción con Pillow, verificado):
 
 ```python
