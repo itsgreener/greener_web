@@ -24,15 +24,16 @@ export function MasonryFeed() {
         {positioned.map((p) =>
           p.mounted ? (
             <PinCard
-              key={p.item.pinId}
+              key={p.key}
               pin={p.item}
+              instanceId={p.key}
               style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
             />
           ) : (
             // Espaciador: conserva la posición de scroll sin mantener la
             // imagen en el DOM (arquitectura §10.2).
             <div
-              key={p.item.pinId}
+              key={p.key}
               className={styles.spacer}
               style={{
                 transform: `translate(${p.x}px, ${p.y}px)`,

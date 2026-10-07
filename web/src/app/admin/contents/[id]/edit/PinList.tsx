@@ -11,6 +11,7 @@ import {
 } from './pinActions'
 
 import PinMediaManager from './PinMediaManager'
+import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
 type Props = {
   contentId: string
@@ -196,10 +197,7 @@ function DeletePinButton({
 
 export default function PinList({ contentId, contentType, pins }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
-  const derivedLabel =
-    contentType === 'case' ||
-    contentType === 'episode' ||
-    contentType === 'insight'
+  const derivedLabel = hasDerivedPinLabel(contentType)
 
   return (
     <div>

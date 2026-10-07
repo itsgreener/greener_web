@@ -183,8 +183,9 @@ export function CaseDetail({
       >
         {positioned.map((p) => (
           <PinCard
-            key={p.item.pinId}
+            key={p.key}
             pin={p.item}
+            instanceId={p.key}
             style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
             analyticsContext={{
               section: 'recommendations',

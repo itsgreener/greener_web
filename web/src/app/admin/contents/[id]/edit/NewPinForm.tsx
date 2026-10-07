@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import type { ContentType } from '@/modules/content/domain/contentSchema'
 
 import { createPinAction, type PinFormState } from './pinActions'
+import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
 type Props = {
   contentId: string
@@ -18,10 +19,7 @@ export default function NewPinForm({ contentId, contentType }: Props) {
     initialState,
   )
 
-  const derivedLabel =
-    contentType === 'case' ||
-    contentType === 'episode' ||
-    contentType === 'insight'
+  const derivedLabel = hasDerivedPinLabel(contentType)
 
   return (
     <form action={formAction}>

@@ -35,6 +35,7 @@ import {
   createPinWithVideoAction,
 } from './pinActions'
 import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
+import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
 type Props = {
   contentId: string
@@ -98,10 +99,7 @@ function buildRow(
 }
 
 export default function BulkPinUpload({ contentId, contentType }: Props) {
-  const derivedLabel =
-    contentType === 'case' ||
-    contentType === 'episode' ||
-    contentType === 'insight'
+  const derivedLabel = hasDerivedPinLabel(contentType)
 
   const [files, setFiles] = useState<File[]>([])
   const [csvRows, setCsvRows] = useState<PinCsvRow[]>([])

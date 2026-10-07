@@ -17,7 +17,7 @@ Este documento (`PROGRESO.md`) sigue siendo el único sitio a mirar para saber �
 
 Sustituye a las versiones anteriores de `PROGRESO.md` y `CHECKLIST.md`. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado.
 
-Última revisión: 7 de octubre de 2026 (fase 1 de medios implementada, §2.38; antes, 6 de octubre: investigación de rendimiento de medios y contrato de medios, §2.37; antes, vídeos de demostración en las tools, §2.36 y reorganización de la documentación; el código y las cifras de §1 son los verificados el 2 de octubre ejecutando lint, `tsc`, tests, `next build`, `prettier` y `npm audit`).
+Última revisión: 7 de octubre de 2026 (keys duplicadas del masonry y alta de pines de insight, §2.39; antes, fase 1 de medios implementada, §2.38; antes, 6 de octubre: investigación de rendimiento de medios y contrato de medios, §2.37; antes, vídeos de demostración en las tools, §2.36 y reorganización de la documentación; el código y las cifras de §1 son los verificados el 2 de octubre ejecutando lint, `tsc`, tests, `next build`, `prettier` y `npm audit`).
 
 ---
 
@@ -77,6 +77,7 @@ Una fila por sección. **El detalle completo (qué, por qué, cómo se verificó
 | 2.36 | 5 oct     | Vídeos de demostración en las tools (en el flujo de pines), límites 8/15 s, reduced-motion y limpieza de Cloudinary.      |
 | 2.37 | 6 oct     | Rendimiento de los medios en Cloudinary Free: diagnóstico, presupuesto y plan de la fase 1 (`contrato-medios-fase-1.md`). |
 | 2.38 | 6-7 oct  | Fase 1 del contrato de medios implementada (URLs con tamaño acotado, dos fuentes de vídeo, escalones M/L, prefetch con billetes, póster hasta `playing`, tiempo máximo y reintentos). **Pendiente:** A/B de calidad, cadenas contra Cloudinary real y `droppedVideoFrames` en hardware real. |
+| 2.39 | 7 oct     | Keys duplicadas en el masonry (el `pinId` no es único: el feed recicla pines; además pisaba registros del coordinador de vídeo) arregladas con una key de posición. Alta de pines de insight rota por una desincronización TS/SQL del rótulo: migración nueva + test que compara ambas listas. |
 
 ---
 
@@ -109,6 +110,8 @@ Las referencias a «§4.8» que quedan en los historiales y en comentarios del c
 
 ### 4.0 PRIORITARIO (añadido el 2 oct)
 
+- [ ] **Aplicar la migración `20261007100000_pin_label_optional_for_insight.sql`** con `npx supabase db push` (§2.39): sin ella siguen fallando el alta y la edición de pines de insight, aunque el código ya esté desplegado.
+- [ ] **Decisión de producto sobre la repetición de pines en el motor** (§2.39): con catálogo corto un tipo repite sus pines varias veces por ronda (5 insights ≈ 3 veces cada uno). Se decide con contenido en masa; no se ha tocado el motor.
 - [~] **Vídeos cortos de demostración en `/tools/{slug}`** (§2.36). **Implementado el 5 oct, pendiente de probar con datos reales.** El vídeo sustituye a la imagen de la ficha y entra por el flujo de pines (sin tabla ni sección nueva): 15 s / 15 MB en pines de tool, 8 s en el resto, no se anima en la home por encima de 8 s, mudo + bucle + botón de pausa, `reduced-motion`/`save-data`, `alt` obligatorio, sin analítica. Falta, por orden:
   1. **Aplicar las dos migraciones nuevas** (`20261005090000_pin_video_limits_by_content_type.sql` y `20261005091000_delete_pin_content_remove_orphan_media.sql`) con `npx supabase db push` **antes de desplegar el código**: sin la primera, el SQL antiguo sigue rechazando vídeos de más de 5 s; sin la segunda, borrar un pin sigue dejando filas de `media_asset`.
   2. **Probar en un navegador real** (no se ha hecho; jsdom no reproduce vídeo): subir un vídeo de ~6 s y otro de ~12 s a un pin de tool, ver que el de 6 s se anima en la home y el de 12 s se queda en poster, abrir ambos en `/tools/{slug}?pin=…` y comprobar autoplay mudo, bucle, botón de pausa, `prefers-reduced-motion`, un `.mov` y un vídeo con ratio que no encaje (debe salir el aviso del ABM).
@@ -237,6 +240,7 @@ Decisiones ya cerradas: ver `historial-fases-0-2.md`, `historial-fases-3-4.md` e
 
 Más reciente primero. El registro anterior (22 sep – 2 oct, ~15 KB) está archivado en `historial-fase-5.md`, sección «Historial de correcciones de `PROGRESO.md`».
 
+- **7 oct 2026 (keys del masonry e insight)**: arregladas las keys duplicadas del masonry (key de posición + `instanceId` en `PinCard`) y el alta/edición de pines de insight (migración `20261007100000` + lista única TS con test contra el SQL). 115 ficheros y 1171 tests en verde (+13). **Falta aplicar la migración** con `db push`. Decisión pendiente de Greener: la repetición de pines en el motor con catálogo corto (§2.39). No se ha tocado el motor.
 - **7 oct 2026 (calidad de medios)**: tras la prueba real de Greener, `MEDIA_QUALITY` pasa a `auto:eco` en el feed y se mantiene `auto` en las fichas; el póster de vídeo, que llevaba `q_auto` fijo, elige calidad por contexto. Tests de cadenas exactas actualizados + 3 nuevos (§2.38). Aviso: los clips de prueba iban a 50 fps.
 - **6-7 oct 2026 (fase 1 de medios)**: implementado el contrato de entrega y el comportamiento de reproducción (§2.38). 112 ficheros y 1155 tests en verde. Medido en Chromium real: tope de 3 vídeos montados y ninguno visible antes de estar listo cumplidos; **`droppedVideoFrames` ≤ 2 NO cumplido ni mejor que el código anterior en ese arnés**. Pendientes en §4.0.
 - **6 oct 2026 (contrato de medios)**: investigación del lag de los vídeos de tools y del presupuesto de Cloudinary Free; se acuerda un contrato de entrega y de subida de medios y se planifica la fase 1 (7 oct). Documento nuevo `contrato-medios-fase-1.md` (traspaso para Claude), sección §2.37 del historial, fila en el índice, nuevos items en §4.0 y filas en §5; regenerados `estructura-src.txt` y `estructura-migrations.txt`. Sin cambios de código: el repo sigue siendo el del 6 oct (1042 tests).

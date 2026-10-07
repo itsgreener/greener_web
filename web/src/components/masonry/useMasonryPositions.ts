@@ -28,6 +28,14 @@ import type { PinCardData } from '@/components/pin/PinCard'
  */
 
 export interface PositionedPin {
+  /**
+   * Identidad de ESTA tarjeta en la lista, única aunque el mismo pin salga
+   * varias veces (el feed es infinito y recicla pines: ver PROGRESO). La
+   * lista solo crece por el final y un ítem nunca cambia de posición, así
+   * que el índice global es una clave estable; el pinId se añade solo para
+   * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
+   */
+  key: string
   item: PinCardData
   x: number
   y: number
@@ -242,6 +250,7 @@ export function useMasonryPositions(
     return layout.positions.map((pos, index) => {
       const batchIndex = batchIndexForItem(index, batchSizes)
       return {
+        key: `${index}:${items[index].pinId}`,
         item: items[index],
         x: pos.x,
         y: pos.y,

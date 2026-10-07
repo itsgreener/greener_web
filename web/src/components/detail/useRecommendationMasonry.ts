@@ -81,6 +81,14 @@ async function fetchBatch(
 }
 
 export interface PositionedRecommendation {
+  /**
+   * Identidad de ESTA tarjeta en la lista, única aunque el mismo pin salga
+   * varias veces (el feed es infinito y recicla pines: ver PROGRESO). La
+   * lista solo crece por el final y un ítem nunca cambia de posición, así
+   * que el índice global es una clave estable; el pinId se añade solo para
+   * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
+   */
+  key: string
   item: FeedBatchItem
   x: number
   y: number
@@ -370,6 +378,7 @@ export function useRecommendationMasonry(
   const positioned: PositionedRecommendation[] = useMemo(() => {
     if (!layout) return []
     return layout.positions.map((pos, index) => ({
+      key: `${index}:${items[index].pinId}`,
       item: items[index],
       x: pos.x,
       y: pos.y,

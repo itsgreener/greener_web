@@ -120,11 +120,20 @@ export function PinCard({
   pin,
   style,
   analyticsContext,
+  instanceId,
 }: {
   pin: PinCardData
   style: PinCardStyle
   analyticsContext?: PinAnalyticsContext
+  /**
+   * Identidad de ESTA tarjeta (no la del pin): el mismo pin puede estar
+   * montado dos veces a la vez y el coordinador de vídeo indexa por id, así
+   * que con `pinId` la segunda tarjeta le pisaba el registro a la primera.
+   * Las listas pasan aquí la clave de posición; sin ella se usa el pinId.
+   */
+  instanceId?: string
 }) {
+  const videoId = instanceId ?? pin.pinId
   const media = pin.media
   const isCarousel = media.length > 1
 
@@ -152,7 +161,7 @@ export function PinCard({
     isAnimatable &&
     feedAutoplayAllowed &&
     (isCarousel || pin.autoplayMode === 'viewport')
-  const hasSlot = useVideoSlot(pin.pinId, cardRef, wantsGlobalSlot)
+  const hasSlot = useVideoSlot(videoId, cardRef, wantsGlobalSlot)
 
   const isPlaying =
     isAnimatable &&
@@ -176,7 +185,7 @@ export function PinCard({
 
   // Prefetch, listo-para-reproducir, tiempo máximo y reintentos del vídeo.
   const video = usePinVideo({
-    id: pin.pinId,
+    id: videoId,
     cardRef,
     videoRef,
     resetKey: `${index}-${current?.cloudinaryPublicId ?? ''}`,

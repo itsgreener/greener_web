@@ -10,6 +10,7 @@ import {
 } from '@/modules/pin/domain/pinSchema'
 
 import { createPin } from '@/modules/pin/application/createPin'
+import { pinCreationErrorMessage } from '@/modules/pin/application/pinCreationError'
 import { updatePin } from '@/modules/pin/application/updatePin'
 import { deletePin } from '@/modules/pin/application/deletePin'
 
@@ -285,7 +286,7 @@ export async function createPinWithImageAction(
 
     return {
       ok: false,
-      error: 'No se ha podido crear el pin.',
+      error: pinCreationErrorMessage(error),
     }
   }
 
@@ -584,7 +585,7 @@ export async function createPinWithVideoAction(
   } catch (error) {
     console.error(error)
 
-    return { ok: false, error: 'No se ha podido crear el pin.' }
+    return { ok: false, error: pinCreationErrorMessage(error) }
   }
 
   const { durationAssumed, ...verifiedAsset } = verified
