@@ -7,8 +7,8 @@ import styles from './page.module.css'
  * Formulario de contacto real (brief §5.6, arquitectura §14.1):
  * nombre, teléfono, email y mensaje, con honeypot, límite por IP y
  * consentimiento de privacidad — envío por SMTP (nodemailer) a una
- * dirección de Greener, sin Mailchimp (eso es un flujo aparte, queda
- * fuera a propósito por ahora).
+ * dirección de Greener. Debajo va la newsletter (Mailchimp, double
+ * opt-in), que es otro flujo con su propia acción y su propio límite.
  *
  * Ruta e interfaz en inglés (arquitectura §2.4: "interfaz global en
  * inglés") — antes vivía en /contacto, renombrada el 15 sep.
@@ -34,9 +34,7 @@ export default function ContactPage() {
 
       <section className={styles.newsletter}>
         <h2 className={styles.newsletterTitle}>Newsletter</h2>
-        <p className="text-body">
-          Ideas, projects and things worth sharing.
-        </p>
+        <p className="text-body">Ideas, projects and things worth sharing.</p>
         <NewsletterForm />
       </section>
     </div>

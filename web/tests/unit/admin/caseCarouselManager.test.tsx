@@ -38,6 +38,7 @@ vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
     removeAllCaseCarouselMediaAction(...args),
 }))
 
+import { resetEditorLockForTests } from '@/app/admin/contents/[id]/edit/editorLock'
 import CaseCarouselManager from '@/app/admin/contents/[id]/edit/CaseCarouselManager'
 
 // jsdom no decodifica vídeo de verdad: ni onloadedmetadata ni onerror se
@@ -87,6 +88,9 @@ function selectAndUpload(file: File) {
 }
 
 beforeEach(() => {
+  // Tras un borrado correcto el cerrojo se queda tomado hasta la recarga de
+  // la página; entre tests hay que reiniciarlo.
+  resetEditorLockForTests()
   vi.clearAllMocks()
   vi.stubGlobal('URL', {
     ...URL,

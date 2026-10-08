@@ -34,6 +34,7 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => ({
   verifyCloudinaryVideoAsset: vi.fn(),
 }))
 
+import { resetEditorLockForTests } from '@/app/admin/contents/[id]/edit/editorLock'
 import { deleteAllPinsAction } from '@/app/admin/contents/[id]/edit/pinActions'
 import { listPins } from '@/modules/pin/application/listPins'
 import { deletePin } from '@/modules/pin/application/deletePin'
@@ -54,6 +55,9 @@ const REFS = (id: string) => [
 ]
 
 beforeEach(() => {
+  // Tras un borrado correcto el cerrojo se queda tomado hasta la recarga de
+  // la página; entre tests hay que reiniciarlo.
+  resetEditorLockForTests()
   vi.clearAllMocks()
   vi.mocked(listPins).mockResolvedValue(
     pinIds.map((id) => ({ id })) as Awaited<ReturnType<typeof listPins>>,

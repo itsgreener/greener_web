@@ -17,9 +17,13 @@ import { removeCaseCarouselMedia } from '@/modules/media/application/removeCaseC
 import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
 
 import {
+  purgeRemovedMedia,
+  snapshotContentMedia,
+} from '@/modules/media/application/cleanupMedia'
+
+import {
   CloudinaryImageVerificationError,
   CloudinaryVideoVerificationError,
-  deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
@@ -180,6 +184,13 @@ export async function removeCaseCarouselMediaAction(
     }
   }
 
+  // El archivo de Cloudinary se identifica LEYENDO la base de datos antes de
+  // desvincular (como hacen los pines): no se fía del public id que manda el
+  // navegador.
+  const mediaRefs = (await snapshotContentMedia(result.data.contentId)).filter(
+    (ref) => ref.mediaId === result.data.mediaId,
+  )
+
   try {
     await removeCaseCarouselMedia(result.data)
   } catch (error) {
@@ -212,20 +223,18 @@ export async function removeCaseCarouselMediaAction(
     }
   }
 
+  // Postgres ya borró el `media_asset` (remove_case_carousel_media); aquí se
+  // borra el archivo real en Cloudinary, solo si ya nadie lo referencia.
+  // Best-effort: si falla, el medio ya está desvinculado y solo se avisa.
+  const purge = await purgeRemovedMedia(mediaRefs)
+
   revalidateContent(result.data.contentId)
 
-  try {
-    await deleteCloudinaryAsset(
-      result.data.cloudinaryPublicId,
-      result.data.kind,
-    )
-  } catch (error) {
-    console.error(error)
-
+  if (purge.failed > 0) {
     return {
       ok: true,
       warning:
-        'Se ha desvinculado el medio, pero no se ha podido borrar el archivo en Cloudinary. Revísalo manualmente si el consumo del plan gratuito te preocupa.',
+        'Se ha desvinculado el medio, pero el archivo no se ha podido borrar de Cloudinary. Se limpiará con el reconciliador (scripts/reconcile-cloudinary.mjs).',
     }
   }
 
@@ -298,17 +307,16 @@ export async function removeAllCaseCarouselMediaAction(
   }
 
   // Aunque haya fallado a mitad, las diapositivas ya quitadas dejan su
-  // archivo sin dueño: se borra igualmente.
-  let cloudinaryFailures = 0
+  // archivo sin dueño: se borra igualmente (solo si Postgres ya no lo tiene).
+  const purge = await purgeRemovedMedia(
+    removed.map((item) => ({
+      mediaId: item.mediaId,
+      cloudinaryPublicId: item.cloudinaryPublicId,
+      kind: item.kind,
+    })),
+  )
 
-  for (const item of removed) {
-    try {
-      await deleteCloudinaryAsset(item.cloudinaryPublicId, item.kind)
-    } catch (error) {
-      console.error(error)
-      cloudinaryFailures += 1
-    }
-  }
+  const cloudinaryFailures = purge.failed
 
   revalidateContent(parsedContentId.data)
 

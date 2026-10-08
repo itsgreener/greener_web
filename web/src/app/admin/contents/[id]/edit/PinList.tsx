@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from 'react'
 
+import { acquireEditorLock, useEditorBusy } from './editorLock'
+
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
 import {
@@ -125,6 +127,7 @@ function DeletePinButton({
   contentId: string
 }) {
   const [pending, setPending] = useState(false)
+  const busy = useEditorBusy()
   const [error, setError] = useState<string | null>(null)
 
   async function handleClick() {
@@ -136,20 +139,34 @@ function DeletePinButton({
       return
     }
 
+    const release = acquireEditorLock()
+
     setPending(true)
     setError(null)
 
-    const result = await deletePinAction(pin.id, contentId)
+    let result: Awaited<ReturnType<typeof deletePinAction>>
+
+    try {
+      result = await deletePinAction(pin.id, contentId)
+    } catch (actionError) {
+      console.error(actionError)
+      setError('No se ha podido completar la operación.')
+      setPending(false)
+      release()
+      return
+    }
 
     if (result.formError) {
       setError(result.formError)
       setPending(false)
+      release()
       return
     }
 
     if (result.warning) {
       setError(result.warning)
       setPending(false)
+      release()
       return
     }
 
@@ -158,7 +175,7 @@ function DeletePinButton({
 
   return (
     <div>
-      <button type="button" onClick={handleClick} disabled={pending}>
+      <button type="button" onClick={handleClick} disabled={pending || busy}>
         {pending ? 'Borrando...' : 'Borrar pin'}
       </button>
 
@@ -175,6 +192,7 @@ function DeleteAllPinsButton({
   count: number
 }) {
   const [pending, setPending] = useState(false)
+  const busy = useEditorBusy()
   const [error, setError] = useState<string | null>(null)
 
   async function handleClick() {
@@ -186,20 +204,34 @@ function DeleteAllPinsButton({
       return
     }
 
+    const release = acquireEditorLock()
+
     setPending(true)
     setError(null)
 
-    const result = await deleteAllPinsAction(contentId)
+    let result: Awaited<ReturnType<typeof deleteAllPinsAction>>
+
+    try {
+      result = await deleteAllPinsAction(contentId)
+    } catch (actionError) {
+      console.error(actionError)
+      setError('No se ha podido completar la operación.')
+      setPending(false)
+      release()
+      return
+    }
 
     if (result.formError) {
       setError(result.formError)
       setPending(false)
+      release()
       return
     }
 
     if (result.warning) {
       setError(result.warning)
       setPending(false)
+      release()
       return
     }
 
@@ -208,7 +240,7 @@ function DeleteAllPinsButton({
 
   return (
     <div>
-      <button type="button" onClick={handleClick} disabled={pending}>
+      <button type="button" onClick={handleClick} disabled={pending || busy}>
         {pending ? 'Borrando...' : `Borrar todos los pines (${count})`}
       </button>
 

@@ -2,11 +2,16 @@
 
 import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
 
+export const NEWSLETTER_SUCCESS_MESSAGE =
+  "Thanks! If this address isn't subscribed yet, we've sent you an email to confirm it. Check your inbox (and your spam folder)."
+
 export type NewsletterActionState = {
   fieldErrors?: Record<string, string[]>
   formError?: string
   success?: boolean
   message?: string
+  /** true si es un alta nueva (cuenta para la analítica). */
+  newSubscription?: boolean
 }
 
 export async function subscribeNewsletterAction(
@@ -27,23 +32,14 @@ export async function subscribeNewsletterAction(
     return { formError: result.formError }
   }
 
-  switch (result.status) {
-    case 'already_subscribed':
-      return {
-        success: true,
-        message: 'You are already subscribed to the Greener newsletter.',
-      }
-    case 'confirmation_pending':
-      return {
-        success: true,
-        message:
-          'Your subscription is waiting for confirmation. Check your inbox.',
-      }
-    default:
-      return {
-        success: true,
-        message:
-          'Check your inbox. We sent you an email to confirm your subscription.',
-      }
+  // UNA sola respuesta para los tres estados de Mailchimp (alta nueva,
+  // pendiente de confirmar, ya suscrito): con textos distintos, cualquiera
+  // podría averiguar si un email está en la lista, y además «pendiente»
+  // decía «revisa tu bandeja» sin que llegara ningún correo nuevo. Lo que
+  // ocurrió de verdad solo se usa para la analítica (`newSubscription`).
+  return {
+    success: true,
+    newSubscription: result.newSubscription,
+    message: NEWSLETTER_SUCCESS_MESSAGE,
   }
 }

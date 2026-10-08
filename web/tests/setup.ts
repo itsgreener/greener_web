@@ -22,6 +22,9 @@ process.env.CONTACT_SMTP_USER ??= 'test-smtp-user'
 process.env.CONTACT_SMTP_PASSWORD ??= 'test-smtp-password'
 process.env.CONTACT_EMAIL_TO ??= 'contact-test@example.com'
 process.env.CONTACT_EMAIL_FROM ??= 'no-reply-test@example.com'
+process.env.MAILCHIMP_API_KEY ??= 'test-mailchimp-key-us21'
+process.env.MAILCHIMP_AUDIENCE_ID ??= 'test-audience-id'
+process.env.MAILCHIMP_SERVER_PREFIX ??= 'us21'
 
 /**
  * cleanup() global (decisión del 22 sep): antes cada fichero con jsdom

@@ -31,6 +31,8 @@ import {
   removeCaseCarouselMediaAction,
 } from './caseCarouselActions'
 
+import { acquireEditorLock, useEditorBusy } from './editorLock'
+
 import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 
 type CarouselItem = {
@@ -51,6 +53,8 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
   const [removingAll, setRemovingAll] = useState(false)
 
+  const busy = useEditorBusy()
+
   const [error, setError] = useState<string | null>(null)
 
   const [warning, setWarning] = useState<string | null>(null)
@@ -66,21 +70,34 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
   const nextSortOrder = sorted.length
 
   async function handleRemove(item: CarouselItem) {
+    const release = acquireEditorLock()
+
     setError(null)
     setWarning(null)
 
-    const result = await removeCaseCarouselMediaAction({
-      contentId,
+    let result: Awaited<ReturnType<typeof removeCaseCarouselMediaAction>>
 
-      mediaId: item.mediaId,
+    try {
+      result = await removeCaseCarouselMediaAction({
+        contentId,
 
-      cloudinaryPublicId: item.cloudinaryPublicId,
+        mediaId: item.mediaId,
 
-      kind: item.kind,
-    })
+        cloudinaryPublicId: item.cloudinaryPublicId,
+
+        kind: item.kind,
+      })
+    } catch (actionError) {
+      console.error(actionError)
+      setError('No se ha podido completar la operación.')
+      release()
+
+      return
+    }
 
     if (!result.ok) {
       setError(result.error)
+      release()
 
       return
     }
@@ -101,15 +118,29 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       return
     }
 
+    const release = acquireEditorLock()
+
     setRemovingAll(true)
     setError(null)
     setWarning(null)
 
-    const result = await removeAllCaseCarouselMediaAction(contentId)
+    let result: Awaited<ReturnType<typeof removeAllCaseCarouselMediaAction>>
+
+    try {
+      result = await removeAllCaseCarouselMediaAction(contentId)
+    } catch (actionError) {
+      console.error(actionError)
+      setError('No se ha podido completar la operación.')
+      setRemovingAll(false)
+      release()
+
+      return
+    }
 
     if (!result.ok) {
       setError(result.error)
       setRemovingAll(false)
+      release()
 
       return
     }
@@ -117,6 +148,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
     if (result.warning) {
       setWarning(result.warning)
       setRemovingAll(false)
+      release()
 
       return
     }
@@ -347,7 +379,11 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
 
             <p>{item.alt}</p>
 
-            <button type="button" onClick={() => handleRemove(item)}>
+            <button
+              type="button"
+              disabled={busy || uploading}
+              onClick={() => handleRemove(item)}
+            >
               Quitar
             </button>
           </div>
@@ -359,7 +395,7 @@ export default function CaseCarouselManager({ contentId, items }: Props) {
       {sorted.length > 0 && (
         <button
           type="button"
-          disabled={removingAll || uploading}
+          disabled={removingAll || uploading || busy}
           onClick={handleRemoveAll}
         >
           {removingAll

@@ -2,11 +2,7 @@ import { createHash } from 'node:crypto'
 import { env } from '@/lib/env'
 
 type MailchimpMemberStatus =
-  | 'subscribed'
-  | 'unsubscribed'
-  | 'cleaned'
-  | 'pending'
-  | 'transactional'
+  'subscribed' | 'unsubscribed' | 'cleaned' | 'pending' | 'transactional'
 
 type MailchimpMember = {
   email_address?: string
@@ -18,6 +14,13 @@ type MailchimpError = {
   detail?: string
   status?: number
 }
+
+/**
+ * Tiempo máximo de cada llamada a Mailchimp. Sin él, una API caída o lenta
+ * dejaría colgada la acción del formulario (y la conexión del servidor) hasta
+ * que el sistema operativo cortara. 8 s sobra para la API normal.
+ */
+export const MAILCHIMP_TIMEOUT_MS = 8000
 
 export type MailchimpSubscribeResult =
   | { status: 'confirmation_sent' }
@@ -39,7 +42,34 @@ function subscriberHash(email: string) {
   return createHash('md5').update(email.trim().toLowerCase()).digest('hex')
 }
 
-async function parseMailchimpError(response: Response): Promise<MailchimpError> {
+/** `fetch` con tiempo máximo; los fallos de red y de tiempo se traducen a un error propio. */
+async function mailchimpFetch(
+  url: string,
+  init: RequestInit,
+): Promise<Response> {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(MAILCHIMP_TIMEOUT_MS),
+    })
+  } catch (error) {
+    const name = error instanceof Error ? error.name : ''
+
+    if (name === 'TimeoutError' || name === 'AbortError') {
+      console.error('Mailchimp request timed out', {
+        url: new URL(url).pathname,
+      })
+      throw new Error('Mailchimp did not respond in time.')
+    }
+
+    console.error('Mailchimp request failed', error)
+    throw new Error('Mailchimp could not be reached.')
+  }
+}
+
+async function parseMailchimpError(
+  response: Response,
+): Promise<MailchimpError> {
   try {
     return (await response.json()) as MailchimpError
   } catch {
@@ -67,7 +97,7 @@ export async function subscribeEmailInMailchimp(
     env.MAILCHIMP_AUDIENCE_ID,
   )}/members/${hash}`
 
-  const existingResponse = await fetch(apiUrl(memberPath), {
+  const existingResponse = await mailchimpFetch(apiUrl(memberPath), {
     method: 'GET',
     headers: authHeaders(),
     cache: 'no-store',
@@ -90,7 +120,7 @@ export async function subscribeEmailInMailchimp(
       )
     }
 
-    const updateResponse = await fetch(apiUrl(memberPath), {
+    const updateResponse = await mailchimpFetch(apiUrl(memberPath), {
       method: 'PATCH',
       headers: authHeaders(),
       body: JSON.stringify({ status: 'pending' }),
@@ -122,7 +152,7 @@ export async function subscribeEmailInMailchimp(
     throw new Error('Mailchimp could not check this subscriber.')
   }
 
-  const createResponse = await fetch(
+  const createResponse = await mailchimpFetch(
     apiUrl(`/lists/${encodeURIComponent(env.MAILCHIMP_AUDIENCE_ID)}/members`),
     {
       method: 'POST',

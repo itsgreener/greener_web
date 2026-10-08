@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
+import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import {
   subscribeNewsletterAction,
   type NewsletterActionState,
@@ -15,6 +16,16 @@ export function NewsletterForm() {
     subscribeNewsletterAction,
     initialState,
   )
+
+  // «Newsletter Signup» solo para altas nuevas: no para quien ya estaba
+  // suscrito o pendiente, ni para el éxito silencioso del honeypot.
+  const signedUp = state.success === true && state.newSubscription === true
+
+  useEffect(() => {
+    if (signedUp) {
+      trackAnalyticsEvent('Newsletter Signup', { placement: 'contact' })
+    }
+  }, [signedUp])
 
   if (state.success) {
     return <p className={styles.success}>{state.message}</p>

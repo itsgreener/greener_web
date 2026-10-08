@@ -57,11 +57,18 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
     verifyCloudinaryImageAsset: vi.fn(),
 
     verifyCloudinaryVideoAsset: vi.fn(),
-
-    deleteCloudinaryAsset: vi.fn(),
   }
 })
 
+vi.mock('@/modules/media/application/cleanupMedia', () => ({
+  snapshotContentMedia: vi.fn(),
+  purgeRemovedMedia: vi.fn(),
+}))
+
+import {
+  purgeRemovedMedia,
+  snapshotContentMedia,
+} from '@/modules/media/application/cleanupMedia'
 import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import {
   addCaseCarouselImageAction,
@@ -81,7 +88,6 @@ import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
 import {
   CloudinaryImageVerificationError,
   CloudinaryVideoVerificationError,
-  deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
@@ -92,7 +98,9 @@ const mockAddCaseCarouselVideo = vi.mocked(addCaseCarouselVideo)
 
 const mockRemoveCaseCarouselMedia = vi.mocked(removeCaseCarouselMedia)
 
-const mockDeleteCloudinaryAsset = vi.mocked(deleteCloudinaryAsset)
+const mockSnapshotContentMedia = vi.mocked(snapshotContentMedia)
+
+const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
 
 const mockVerifyCloudinaryImageAsset = vi.mocked(verifyCloudinaryImageAsset)
 
@@ -355,7 +363,24 @@ describe('caseCarouselActions', () => {
   })
 
   describe('removeCaseCarouselMediaAction', () => {
-    it('si Postgres y Cloudinary funcionan, elimina el medio', async () => {
+    const OWN_REF = {
+      mediaId: MEDIA_ID,
+      cloudinaryPublicId: VIDEO_PUBLIC_ID,
+      kind: 'video' as const,
+    }
+
+    const OTHER_REF = {
+      mediaId: '99999999-9999-4999-8999-999999999999',
+      cloudinaryPublicId: 'greener/content/otro',
+      kind: 'image' as const,
+    }
+
+    beforeEach(() => {
+      mockSnapshotContentMedia.mockResolvedValue([OWN_REF, OTHER_REF])
+      mockPurgeRemovedMedia.mockResolvedValue({ purged: 1, failed: 0 })
+    })
+
+    it('desvincula en Postgres y borra de Cloudinary solo el archivo de ese medio', async () => {
       const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
 
       expect(result).toEqual({
@@ -366,10 +391,39 @@ describe('caseCarouselActions', () => {
         VALID_REMOVE_INPUT,
       )
 
-      expect(mockDeleteCloudinaryAsset).toHaveBeenCalledWith(
-        VIDEO_PUBLIC_ID,
-        'video',
-      )
+      expect(mockSnapshotContentMedia).toHaveBeenCalledWith(CONTENT_ID)
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([OWN_REF])
+    })
+
+    it('lee el public id en el servidor: ignora el que manda el navegador', async () => {
+      await removeCaseCarouselMediaAction({
+        ...VALID_REMOVE_INPUT,
+        cloudinaryPublicId: 'greener/content/ajeno',
+      })
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([OWN_REF])
+    })
+
+    it('la lectura va ANTES de desvincular (después ya no se sabría el archivo)', async () => {
+      const order: string[] = []
+
+      mockSnapshotContentMedia.mockImplementationOnce(async () => {
+        order.push('snapshot')
+        return [OWN_REF]
+      })
+      mockRemoveCaseCarouselMedia.mockImplementationOnce(async () => {
+        order.push('remove')
+        return MEDIA_ID
+      })
+      mockPurgeRemovedMedia.mockImplementationOnce(async () => {
+        order.push('purge')
+        return { purged: 1, failed: 0 }
+      })
+
+      await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
+
+      expect(order).toEqual(['snapshot', 'remove', 'purge'])
     })
 
     it('si Postgres falla, aborta antes de borrar en Cloudinary', async () => {
@@ -385,13 +439,11 @@ describe('caseCarouselActions', () => {
         error: 'Este medio no pertenece a este caso',
       })
 
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
     })
 
-    it('si Cloudinary falla después de borrar en Postgres, devuelve warning', async () => {
-      mockDeleteCloudinaryAsset.mockRejectedValueOnce(
-        new Error('fallo Cloudinary'),
-      )
+    it('si Cloudinary falla después de desvincular, devuelve warning', async () => {
+      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 1 })
 
       const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
 
@@ -434,7 +486,10 @@ describe('removeAllCaseCarouselMediaAction', () => {
 
     vi.mocked(getCaseCarousel).mockResolvedValue(ITEMS)
     vi.mocked(removeCaseCarouselMedia).mockResolvedValue(MEDIA_ID)
-    vi.mocked(deleteCloudinaryAsset).mockResolvedValue(undefined as never)
+    mockPurgeRemovedMedia.mockImplementation(async (refs) => ({
+      purged: refs.length,
+      failed: 0,
+    }))
   })
 
   it('quita todas las diapositivas leídas en servidor y borra sus archivos', async () => {
@@ -448,10 +503,12 @@ describe('removeAllCaseCarouselMediaAction', () => {
       cloudinaryPublicId: 'greener/content/videos/b',
       kind: 'video',
     })
-    expect(deleteCloudinaryAsset).toHaveBeenCalledTimes(3)
-    expect(deleteCloudinaryAsset).toHaveBeenCalledWith(
-      'greener/content/videos/b',
-      'video',
+    expect(mockPurgeRemovedMedia).toHaveBeenCalledWith(
+      ITEMS.map((item) => ({
+        mediaId: item.mediaId,
+        cloudinaryPublicId: item.cloudinaryPublicId,
+        kind: item.kind,
+      })),
     )
   })
 
@@ -469,17 +526,17 @@ describe('removeAllCaseCarouselMediaAction', () => {
     }
 
     expect(removeCaseCarouselMedia).toHaveBeenCalledTimes(2)
-    expect(deleteCloudinaryAsset).toHaveBeenCalledTimes(1)
-    expect(deleteCloudinaryAsset).toHaveBeenCalledWith(
-      'greener/content/a',
-      'image',
-    )
+    expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([
+      {
+        mediaId: ITEMS[0].mediaId,
+        cloudinaryPublicId: 'greener/content/a',
+        kind: 'image',
+      },
+    ])
   })
 
   it('si Cloudinary falla en algún archivo, devuelve aviso con el recuento', async () => {
-    vi.mocked(deleteCloudinaryAsset)
-      .mockRejectedValueOnce(new Error('cloudinary'))
-      .mockResolvedValue(undefined as never)
+    mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 2, failed: 1 })
 
     const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
 
