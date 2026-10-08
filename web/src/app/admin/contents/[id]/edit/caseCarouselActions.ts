@@ -1,5 +1,6 @@
 'use server'
 
+import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import { revalidatePath } from 'next/cache'
 
 import { z } from 'zod'
@@ -110,12 +111,15 @@ export async function addCaseCarouselVideoAction(
   try {
     const verified = await verifyCloudinaryVideoAsset(
       result.data.cloudinaryPublicId,
+      result.data.durationSeconds,
     )
 
     const mediaId = await addCaseCarouselVideo({
       ...result.data,
       ...verified,
     })
+
+    await warmContentAfterResponse(result.data.contentId)
 
     revalidateContent(result.data.contentId)
 

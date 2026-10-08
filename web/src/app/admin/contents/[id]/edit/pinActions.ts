@@ -1,5 +1,9 @@
 'use server'
 
+import {
+  warmContentAfterResponse,
+  warmPinContentAfterResponse,
+} from '@/modules/media/application/warmAfterResponse'
 import { revalidatePath } from 'next/cache'
 
 import { z } from 'zod'
@@ -537,25 +541,20 @@ export async function attachPinVideoAction(
   }
 
   try {
+    // La duración sale de la Admin API; solo si faltara se usa la que
+    // Cloudinary dio al navegador (`result.data.durationSeconds`), nunca una
+    // inventada (ver verifyCloudinaryVideoAsset).
     const verified = await verifyCloudinaryVideoAsset(
       result.data.cloudinaryPublicId,
+      result.data.durationSeconds,
     )
-
-    const { durationAssumed, ...verifiedAsset } = verified
 
     const mediaId = await attachPinVideo({
       ...result.data,
-      ...verifiedAsset,
-      // Si la Admin API no devolvió duración (parche temporal `?? 10` de
-      // verifyCloudinaryVideoAsset), `verifiedAsset.durationSeconds` es un
-      // 10 inventado: usarlo haría que TODO vídeo de pin pasara por «más
-      // de 8 s» y se quedara en poster en el feed. En ese caso se usa la
-      // duración que Cloudinary dio al navegador en la respuesta de la
-      // propia subida (ya validada por el esquema), que es real.
-      durationSeconds: durationAssumed
-        ? result.data.durationSeconds
-        : verifiedAsset.durationSeconds,
+      ...verified,
     })
+
+    await warmPinContentAfterResponse(result.data.pinId)
 
     return {
       ok: true,
@@ -635,6 +634,7 @@ export async function createPinWithVideoAction(
   try {
     verified = await verifyCloudinaryVideoAsset(
       clientVideo.data.cloudinaryPublicId,
+      clientVideo.data.durationSeconds,
     )
   } catch (error) {
     console.error(error)
@@ -658,19 +658,14 @@ export async function createPinWithVideoAction(
     return { ok: false, error: pinCreationErrorMessage(error) }
   }
 
-  const { durationAssumed, ...verifiedAsset } = verified
-
   try {
     const mediaId = await attachPinVideo({
       ...clientVideo.data,
-      ...verifiedAsset,
+      ...verified,
       pinId,
-      // Misma regla que attachPinVideoAction: si la Admin API no dio
-      // duración (parche `?? 10`), vale la que Cloudinary dio al navegador.
-      durationSeconds: durationAssumed
-        ? clientVideo.data.durationSeconds
-        : verifiedAsset.durationSeconds,
     })
+
+    await warmContentAfterResponse(pinResult.data.contentId)
 
     revalidateContent(pinResult.data.contentId)
 

@@ -7,10 +7,8 @@ import {
   buildVideoPosterUrl,
   buildVideoSources,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
-import {
-  closestClosedRatio,
-  widestCarouselRatio,
-} from '@/modules/media/domain/closestRatio'
+import { widestCarouselRatio } from '@/modules/media/domain/closestRatio'
+import { caseVideoRatio } from '@/modules/media/domain/detailVideoRatio'
 import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import { PinCard } from '@/components/pin/PinCard'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
@@ -47,7 +45,7 @@ const FALLBACK_RATIO = '16:9' as const
  * tope (hasta 180 s y 100 MB).
  */
 function CarouselVideo({ item }: { item: PublicCaseCarouselItem }) {
-  const size = detailVideoRungM(closestClosedRatio(item.width, item.height))
+  const size = detailVideoRungM(caseVideoRatio(item.width, item.height))
 
   return (
     <video

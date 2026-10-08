@@ -1,5 +1,6 @@
 'use server'
 
+import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import { revalidatePath } from 'next/cache'
 
 import {
@@ -125,12 +126,15 @@ export async function registerCoverVideoAction(
   try {
     const verified = await verifyCloudinaryVideoAsset(
       result.data.cloudinaryPublicId,
+      result.data.durationSeconds,
     )
 
     const mediaId = await registerCoverVideo({
       ...result.data,
       ...verified,
     })
+
+    await warmContentAfterResponse(result.data.contentId)
 
     revalidatePath(`/admin/contents/${result.data.contentId}/edit`)
 

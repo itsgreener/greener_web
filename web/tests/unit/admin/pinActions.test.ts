@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('@/modules/media/application/warmAfterResponse', () => ({
+  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
+  warmPinContentAfterResponse: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
@@ -63,6 +68,10 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
   }
 })
 
+import {
+  warmContentAfterResponse,
+  warmPinContentAfterResponse,
+} from '@/modules/media/application/warmAfterResponse'
 import {
   createPinAction,
   updatePinAction,
@@ -393,9 +402,14 @@ describe('pinActions', () => {
 
       expect(result).toEqual({ ok: true, pinId: PIN_ID, mediaId: MEDIA_ID })
 
+      // Segundo argumento: la duración que dio Cloudinary al navegador, que
+      // solo se usa si la Admin API no devuelve la suya.
       expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
         VIDEO_CLOUDINARY_PUBLIC_ID,
+        5,
       )
+
+      expect(warmContentAfterResponse).toHaveBeenCalledTimes(1)
 
       expect(mockCreatePin).toHaveBeenCalledTimes(1)
 
@@ -493,7 +507,7 @@ describe('pinActions', () => {
       expect(mockAttachPinVideo).not.toHaveBeenCalled()
     })
 
-    it('si la Admin API no devolvió duración (parche ?? 10), usa la real que dio Cloudinary al navegador', async () => {
+    it('pasa a la verificación la duración del navegador, redondeada hacia arriba, como último recurso', async () => {
       mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
         cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
 
@@ -503,11 +517,9 @@ describe('pinActions', () => {
 
         height: 1080,
 
-        durationSeconds: 10,
+        durationSeconds: 7,
 
         bytes: 4096,
-
-        durationAssumed: true,
       })
 
       await createPinWithVideoAction({
@@ -515,12 +527,13 @@ describe('pinActions', () => {
         durationSeconds: 6.4,
       })
 
-      expect(mockAttachPinVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ durationSeconds: 7 }),
+      expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
+        VIDEO_CLOUDINARY_PUBLIC_ID,
+        7,
       )
 
-      expect(mockAttachPinVideo.mock.calls[0][0]).not.toHaveProperty(
-        'durationAssumed',
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ durationSeconds: 7 }),
       )
     })
   })
@@ -749,7 +762,10 @@ describe('pinActions', () => {
 
       expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
         VIDEO_CLOUDINARY_PUBLIC_ID,
+        3,
       )
+
+      expect(warmPinContentAfterResponse).toHaveBeenCalledWith(PIN_ID)
 
       expect(mockAttachPinVideo).toHaveBeenCalledWith({
         pinId: PIN_ID,
@@ -768,7 +784,7 @@ describe('pinActions', () => {
       })
     })
 
-    it('si la Admin API no devolvió duración (parche ?? 10), usa la duración REAL que Cloudinary dio al navegador, no el 10 supuesto', async () => {
+    it('pasa a la verificación la duración del navegador, redondeada hacia arriba, como último recurso', async () => {
       mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
         cloudinaryPublicId: VIDEO_CLOUDINARY_PUBLIC_ID,
 
@@ -778,11 +794,9 @@ describe('pinActions', () => {
 
         height: 1080,
 
-        durationSeconds: 10,
+        durationSeconds: 7,
 
         bytes: 4096,
-
-        durationAssumed: true,
       })
 
       await attachPinVideoAction({
@@ -791,13 +805,13 @@ describe('pinActions', () => {
         durationSeconds: 6.4,
       })
 
-      expect(mockAttachPinVideo).toHaveBeenCalledWith(
-        expect.objectContaining({ durationSeconds: 7 }),
+      expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
+        VIDEO_CLOUDINARY_PUBLIC_ID,
+        7,
       )
 
-      // La bandera es interna: no se propaga al caso de uso.
-      expect(mockAttachPinVideo.mock.calls[0][0]).not.toHaveProperty(
-        'durationAssumed',
+      expect(mockAttachPinVideo).toHaveBeenCalledWith(
+        expect.objectContaining({ durationSeconds: 7 }),
       )
     })
 
@@ -814,8 +828,6 @@ describe('pinActions', () => {
         durationSeconds: 4,
 
         bytes: 4096,
-
-        durationAssumed: false,
       })
 
       await attachPinVideoAction({

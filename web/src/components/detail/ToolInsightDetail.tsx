@@ -13,18 +13,12 @@ import type {
 } from '@/modules/content/infrastructure/publicContentSource'
 import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
+import { toolInsightDetailRatio } from '@/modules/media/domain/detailVideoRatio'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { PinCard } from '@/components/pin/PinCard'
 import { ToolCoverVideo } from './ToolCoverVideo'
 import { useRecommendationMasonry } from './useRecommendationMasonry'
 import styles from './ToolInsightDetail.module.css'
-
-// especificacion-final-formato-detalle.md §2: fuera de la tabla de
-// ratios cerrados (sin cover_ratio todavía, contenido sin portada) no
-// hay columnas que reservar — se trata como el caso "vertical" más
-// conservador (3 columnas de contenido a 6 totales) en vez de reventar,
-// hasta que exista portada real.
-const FALLBACK_RATIO = '4:5' as const
 
 /**
  * Plantilla de detalle tipo A (especificacion-final-formato-detalle.md
@@ -64,7 +58,10 @@ export function ToolInsightDetail({
   coverAltOverride?: string | null
 }) {
   const coverMedia = coverMediaOverride ?? content.coverMedia
-  const ratio = coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO
+  // Ratio compartido con el calentamiento de vídeo (fase 2): ver
+  // modules/media/domain/detailVideoRatio.ts. Sin ratio (contenido sin
+  // portada) se usa el caso «vertical» más conservador.
+  const ratio = toolInsightDetailRatio(coverRatioOverride, content.coverRatio)
   const recommendationScope =
     content.type === 'tool'
       ? 'tools'

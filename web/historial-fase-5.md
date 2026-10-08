@@ -913,3 +913,84 @@ Tests: `tests/unit/packages/deletePackageVersion.test.ts`, `deleteOldVersions.te
 **Arreglo** (`BulkPinUpload.tsx`): «Quitar» ya no reconstruye nada, solo elimina esa fila, así que las demás conservan su estado y lo que se hubiera editado en ellas. `regenerateRows` (defaults, CSV) conserva sin tocar las filas `ok` y `uploading`, reconociéndolas por el archivo y no por la clave (que lleva el índice y cambia al quitar filas). Las filas pendientes o con error sí se regeneran con los valores nuevos, como antes.
 
 Tests (`bulkPinUpload.test.tsx`): quitar el fallido no resucita las subidas; volver a subir no duplica pines; quitar conserva las ediciones de las demás; cambiar el ratio por defecto tras subida parcial no resucita filas. Los cuatro fallaban antes del arreglo. Sin migraciones.
+
+### 2.51 Planificación de la fase 2 del contrato de medios: calentar versiones de vídeo (7 oct)
+
+**Solo planificación y documentación; sin cambios de código ni migraciones.** El plan completo, listo para implementarse en una conversación nueva, está en `contrato-medios-fase-1.md` §9 (reescrita). Resumen:
+
+**Decisiones de Greener:** calentar al publicar, al programar, al añadir un medio a un contenido ya publicado y a mano (botón + script), **no al subir**; calentar feed (480) + escalón M de la ficha en WebM y MP4, **sin el escalón L**; llevar el seguimiento en base de datos (migración sobre `media_asset`); y el tope de 40 MB en vídeos de case **solo si Cloudinary no puede gestionar vídeos mayores en Free**.
+
+**Hallazgos del análisis:**
+
+1. **`pg_cron` publica lo programado dentro de Postgres** (`publish_scheduled_content()`, migración `20260922090000`), sin pasar por la aplicación: un gancho solo en el botón «Publicar» dejaría lo programado sin calentar. De ahí el gancho al programar.
+2. **Ya existe la pieza clave:** `buildVideoTransformations(profile, size)` (`cloudinaryUrl.ts`) devuelve las cadenas en el orden de `<source>` y se escribió para alimentar el eager. El SDK `cloudinary` ^2.10 ya está en el proyecto.
+3. **El ratio debe ser idéntico al de la entrega**, o las cadenas del eager no coinciden y se paga dos veces: en tool/`other` viene de `coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO` y en case de `closestClosedRatio(width, height)`. Test de contrato obligatorio.
+4. Calentar **no ahorra créditos** (cada versión única se cobra una vez); solo los adelanta. Con 68 clips de ~7 s (duración supuesta), feed + ficha M cuesta unos 3,8-7,6 créditos, una sola vez, dentro de una ventana móvil de 30 días.
+5. **Corrección de una afirmación mía:** dije que por encima de 40 MB Free «no transforma y el vídeo no se serviría». Según una respuesta de personal de Cloudinary en su comunidad, el límite de 40 MB es para transformaciones **síncronas**; con **eager asíncrono** se pueden transformar vídeos mayores (hasta el máximo de la cuenta, 100 MB para nosotros). Por tanto, por la regla de Greener, el tope de 40 MB **provisionalmente no se aplica**; si se confirma, calentar pasa a ser obligatorio para los vídeos de 40-100 MB de case y `other` (los de tool están limitados a 15 MB), con una ventana de riesgo entre publicar y terminar el eager. No es documentación oficial: se confirma con la prueba del paso 0.
+
+**Lo no verificado** (se comprueba antes de codificar, paso 0 de §9.9, con un script que ejecuta Greener): la forma de `eager` en `explicit`; que la URL de entrega responde 200 tras el eager; si repetir un `explicit` vuelve a cobrar; el coste real de una rendición; y el comportamiento con un vídeo de 60-80 MB.
+
+### 2.52 Fase 2 de medios: paso 0 y piezas puras (8 oct)
+
+**Qué se hizo.** Arranque de la fase 2 (calentar versiones de vídeo, `contrato-medios-fase-1.md` §9). Se escribió lo que NO depende del resultado de las pruebas contra Cloudinary; nada llama aún a Cloudinary desde la aplicación. Línea base antes de empezar: 126 ficheros y 1315 tests en verde, `tsc` y ESLint limpios. Después: **129 ficheros y 1353 tests**, todo en verde.
+
+**Piezas nuevas.**
+
+1. `scripts/warm-probe.mjs` (**desechable**, paso 0 de §9.9): lo ejecuta Greener con `--env-file=.env.local`. Etapas: 0 duración en la Admin API con y sin `image_metadata` (cierra el pendiente del `?? 10`); 1 `explicit` con `eager_async` (prueba la forma «array de cadenas» y, si la rechaza, «objeto con `raw_transformation`») y espera a que aparezca la derivada en `derived`; 2 la URL de entrega responde 200 sin crear una derivada nueva (prueba que la cadena del eager y la de entrega coinciden); 3 repetir el `explicit`; 4 cadenas de la ficha (escalón M) al vuelo, que validan a la vez el contrato de la fase 1; 5 opcional, vídeo grande. Sin `--execute` solo simula. Un test (`warmProbe.test.ts`) comprueba que sus cadenas coinciden con `buildVideoTransformations`.
+2. `domain/detailVideoRatio.ts`: el ratio con el que se calcula el escalón M, **extraído** de `ToolInsightDetail` y `CaseDetail`, que ahora lo usan. Es la única fuente entre entrega y calentamiento (trampa de §9.4).
+3. `domain/warmPlan.ts`: `planVideoWarming(usos)` (perfil y tamaño; las cadenas las sigue construyendo `buildVideoTransformations`) y `warmContractId(cadenas)` para `warmed_contract`.
+4. Migración `20261008090000_media_asset_warm_tracking.sql` (**sin aplicar**): columnas `warmed_contract`, `warmed_at`, `warm_error` en `media_asset` y `mark_media_asset_warmed(media, contrato, error)`.
+
+**Dos correcciones al plan de §9.** (a) La función de la migración admite **también el rol de servicio** (`current_user = 'service_role'`): `is_admin()` mira el email del JWT y la `SUPABASE_SECRET_KEY` no lo lleva, así que con solo `is_admin()` el script habría sido rechazado. (b) **El feed no se calienta para un vídeo que nunca se anima:** sin `autoplayMode`, o de más de 8 s (solo se ve el póster; `PinCard`), nadie pide su versión del feed. La ficha de tool sí se calienta siempre. Efecto: menos créditos que los 3,8-7,6 de §9.7.
+
+**Aviso de privacidad menor.** `media_asset` tiene lectura pública (`media_asset_public_read`), así que las columnas nuevas también se leen; `warm_error` se recorta a 300 caracteres y no debe llevar nada sensible.
+
+**Verificación.** `eslint`, `tsc`, `prettier --end-of-line crlf` y `vitest` en verde. Por mutación: cambiar el ratio por defecto de `otherCover` en el plan rompe 2 tests del contrato eager = entrega. **No comprobado** (no se llega a Cloudinary ni a Supabase desde el entorno): todo lo que cubre el script.
+
+**Pendiente.** Ejecutar el script (Greener), corregir §9 con el resultado, y después `warmVideoRenditions`, `warmContentMedia`, ganchos con `after()`, ABM y `scripts/warm-cloudinary.mjs`.
+
+**Ejecución del script (8 oct, 10:56-11:00).** Greener la lanzó con **el mismo vídeo como `--small` y `--big`**: `uwbetuhmdmnlreyx0a7x`, MP4 1280×720, **43,5 MiB (45,6 MB), 130,7 s**, subido el 1 oct y con 5 derivadas previas (animación y sprite del propio panel, `q_auto,f_auto` de 24,4 MB, póster `w_960`). **No era un clip de tool** y multiplicó el gasto por la duración: la estimación que el script imprimió (1,57-3,14 créditos) no frenaba nada. Fallo del diseño del script, corregido el mismo día (guardas, ver abajo). Las etapas 1-5 corrieron enteras.
+
+**Resultados.**
+
+1. **`eager` como array de cadenas funciona** (forma A) con `eager_async: true`, sobre un vídeo de 43,5 MiB. La respuesta lista nuestras dos URL (con versión y extensión `.webm`/`.mp4`) con `status: processing`. Las **dos derivadas aparecieron en la Admin API (`derived`) en ≤ 70 s** (granularidad de 5 s) para 2 rendiciones de 130 s: la Admin API sirve para saber que el eager terminó, sin `notification_url`.
+2. **La cadena del eager es EXACTAMENTE la de entrega.** Con la derivada ya generada, la URL de entrega de PinCard (sin versión ni extensión) respondió **200** con `video/webm;codecs=vp9` y `video/mp4;codecs=avc1`, sin cabecera de error, y el número de derivadas no cambió (7 → 7): no se crea una derivada propia. Pesos de esa rendición de 130 s a 480 px: WebM 3,2 MB, MP4 4,2 MB (frente a 24,4 MB de la derivada `q_auto,f_auto` sin tope que servía el código antiguo).
+3. **Las cadenas de la ficha (escalón M 4:5) responden 200** al vuelo con el content-type correcto (WebM tardó 4,7 s en la primera petición, MP4 0,6 s; ver el matiz de abajo). Es la primera vez que el contrato de la fase 1 se ve aceptado por Cloudinary real, en su parte de ficha; el feed ya lo estaba por el punto 2.
+4. **Repetir el mismo `explicit` NO es inocuo:** el número de derivadas pasó de 7 a 8. Consecuencia de diseño: **la comprobación previa con `warmed_contract` es obligatoria**, no una optimización (§9.5.5).
+5. **Coste medido (con cautela):** el uso total subió +522 «transformaciones» tras la etapa 1, que casa con 2 rendiciones × 130,7 s × 2 unidades/s = 523: **una rendición de 480 px cuesta 1/500 de crédito por segundo (tarifa SD)**. Es una inferencia por coincidencia de cifras, no una medida aislada.
+6. **La duración solo llega con `image_metadata: true`.** Sin él, la Admin API no devuelve `duration`; con él, 130,73. `verifyCloudinaryVideoAsset` ya lo pasa desde el 5 oct, así que el `?? 10` ya no debería hacer falta (retirar tras comprobar que el log del servidor no avisa de «duración supuesta»).
+7. **Duraciones guardadas sospechosas.** `media_asset`: 67 vídeos, 492 s; de ellos 27 de ≥ 8 s suman **270 s, es decir, exactamente 10,0 de media**, que coincide con el valor supuesto del parche `?? 10`. Los vídeos de carrusel de caso y de portada de `other` guardan `verified.durationSeconds` tal cual (los pines usan la duración del navegador): el vídeo de 130 s está casi seguro guardado como 10. Las 492 s subestiman el gasto real y hay que corregirlas antes del relleno inicial.
+
+**Lo que NO queda demostrado.**
+
+- **Tope de 40 MB.** La etapa 5a no sirve: se pidió una cadena que la etapa 1 ya había generado (respondió 206 desde la derivada existente). Lo que sí hay: **la etapa 4 pidió al vuelo, sin eager, dos cadenas nuevas de ese mismo vídeo de 43,5 MiB y Cloudinary respondió 200 sin `x-cld-error`**, y el eager asíncrono lo procesó. Indicio de que Free no bloquea la transformación síncrona a 43,5 MiB; **no se ha probado con 80-100 MB**. Por la regla de Greener, **el tope sigue sin aplicarse**.
+- **Etapa 4: ¿se generaron realmente las derivadas M?** La lista `derived` siguió en 8 justo después (esperado 10): puede ser retraso del listado. No se confirma.
+- **Etapa 5b (eager repetido) y el coste de las etapas 3-5:** la medición esperaba «una derivada más» y pudo detectar una derivada M que aparecía tarde; no es fiable. El uso de la API de créditos va con retraso (`last_updated` 2026-10-07, desglose congelado): al final marcaba 6,23 créditos (+0,73; 4286 → 5015 unidades). **Lectura pendiente:** con los cargos por llegar, la prueba acabará entre ~5332 y ~6639 unidades (escenarios en `PROGRESO.md` §4.0), es decir, entre ~1,05 y ~2,35 créditos en total, bastante más de los ~0,2-0,3 anunciados por usar un vídeo de 130 s.
+
+**Cambios en `scripts/warm-probe.mjs` (guardas de gasto).** Antes de pedir nada: el clip pequeño debe durar ≤ 15 s y pesar ≤ 15 MB; el grande, superar 40 MB y ser otro vídeo; el peor caso estimado no puede pasar de `--max-credits` (0,5 por defecto). Nuevo `--status` (solo lectura, gratis; imprime también el uso) con `--probe-delivery` opcional; `--repeat` para la etapa 3, que ya no va por defecto. 8 tests nuevos.
+
+### 2.53 Fase 2 de medios: calentamiento implementado y `?? 10` retirado (8 oct)
+
+**Qué se hizo.** Tras los resultados del paso 0 (§2.52) Greener decidió: (1) **no aplicar el tope de 40 MB** (a 43,5 MiB Cloudinary Free no bloqueó) y no hacer la prueba con vídeo sintético; (2) **quitar el relleno `?? 10`** y todo lo que colgaba de él; (3) implementar la fase 2. Resultado: **132 ficheros y 1385 tests** en verde (de 129 / 1353), `tsc`, ESLint y `prettier --end-of-line crlf` limpios.
+
+**El `?? 10`, retirado.** `verifyCloudinaryVideoAsset(publicId, reportedDurationSeconds?)` ya no devuelve `durationAssumed`: usa la duración de la Admin API (con `image_metadata: true`); solo si faltara, la que Cloudinary dio al navegador (con aviso en el log); y si no hay ninguna, **rechaza el vídeo** en vez de inventarla. Los cuatro flujos (`attachPinVideoAction`, `createPinWithVideoAction`, `registerCoverVideoAction`, `addCaseCarouselVideoAction`) le pasan la duración del cliente como último recurso. **Datos antiguos:** `scripts/fix-video-durations.mjs` (simulación por defecto, `--execute`) pregunta a la Admin API la duración real de CADA vídeo, la redondea hacia arriba y corrige las filas que no coinciden (no solo las de 10 s: un 10 puede ser real). **Greener debe ejecutarlo** (corrige las 27 filas con 10,0).
+
+**Calentamiento.**
+
+1. `infrastructure/cloudinaryServer.ts`: `warmVideoRenditions(publicId, cadenas)` → `uploader.explicit` con `eager` (array de cadenas) y `eager_async: true`. Solo vídeos de la carpeta de vídeos y solo con cadenas dadas.
+2. `infrastructure/supabaseWarmRepository.ts`: `readContentWarmInfo` (vídeos de un contenido con sus usos: pines, carrusel de caso, portada de `other`), `readPinContentId` y los dos anotadores de `mark_media_asset_warmed` (con la sesión del admin y con la clave de servicio).
+3. `application/warmContentMedia.ts`: `prepareContentWarming` (lee; salta lo ya calentado con el contrato vigente; no toca borradores salvo `includeDraft`), `runWarmJobs` (Cloudinary + anotación; **nunca lanza**: un fallo se anota en `warm_error` y se sigue), `warmContentMedia` (botón) y `countPendingWarming`.
+4. `application/warmAfterResponse.ts`: lee con la sesión de la petición y deja la llamada a Cloudinary y la anotación (con clave de servicio) para `after()`. Ganchos: publicar, programar, vídeo de pin (adjuntar y alta con vídeo), vídeo de portada y vídeo de carrusel. No lanzan ni retrasan la respuesta.
+5. ABM: `warmActions.ts` (comprueba `is_admin` ANTES de tocar Cloudinary: los contenidos publicados los lee cualquiera y la acción gasta créditos) y `WarmVideosControl` bajo los controles de publicación, con el número de vídeos sin calentar.
+6. `scripts/warm-cloudinary.mjs`: relleno inicial y reintentos. Simulación por defecto con coste estimado, `--execute`, `--check` (solo lectura: compara con `derived`), `--force` (repite; cobra), `--include-drafts`, `--content=ID` y tope `--max-credits` (5). **Reimplementa el plan** (un .mjs no importa TypeScript); `tests/unit/media/warmCloudinary.test.ts` lo compara con la app en 3000 casos al azar.
+
+**Decisiones y límites.**
+
+- **La portada solo se calienta en contenido libre (`other`)**, porque es el único tipo con portada desde el 7 oct.
+- **Contenido programado:** se calienta al programar (el paso a publicado lo hace Postgres sin pasar por la app, §9.3).
+- **No se espera a que Cloudinary termine:** el eager es asíncrono; `warmed_at` es «cuándo se encargó». `--check` comprueba que las derivadas existen.
+- **Tope de 40 MB: no se aplica.** Por decisión de Greener tras ver que a 43,5 MiB no bloqueó. No está probado por encima de ~45 MB.
+
+**No comprobado** (no se llega a Cloudinary ni a Supabase desde este entorno): todo lo que cubre `warm-cloudinary.mjs` y `fix-video-durations.mjs` contra datos reales, el comportamiento de `after()` con cookies en el despliegue (por eso la anotación usa la clave de servicio y la lectura se hace antes), y el coste real del relleno.
+
+**Pendiente (Greener).** 1) `fix-video-durations.mjs` (simulación, luego `--execute`). 2) `warm-cloudinary.mjs` en simulación, revisar el coste estimado y luego `--execute`; después `--check`. 3) Mirar el uso con `warm-probe.mjs --status` (ver tabla de §2.52) antes del relleno.

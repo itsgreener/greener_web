@@ -350,7 +350,7 @@ for (const c of cases) {
 
   for (const pin of c.pins) {
     sqlLines.push(
-      `insert into pin (id, content_id, ratio, show_as_carousel, label, language, queue_order, alt) values (${sqlStr(pin.id)}, ${sqlStr(c.contentId)}, ${sqlStr(pin.ratio)}, true, ${sqlStr(pin.label)}, 'es', ${pin.queueOrder}, ${sqlStr(pin.alt)});`,
+      `insert into pin (id, content_id, ratio, label, language, queue_order, alt) values (${sqlStr(pin.id)}, ${sqlStr(c.contentId)}, ${sqlStr(pin.ratio)}, ${sqlStr(pin.label)}, 'es', ${pin.queueOrder}, ${sqlStr(pin.alt)});`,
     )
     sqlLines.push(
       `insert into pin_media (pin_id, media_id, slide_order) values (${sqlStr(pin.id)}, ${sqlStr(pin.mediaAssetId)}, 0);`,
@@ -387,7 +387,7 @@ for (const e of episodes) {
   )
 
   sqlLines.push(
-    `insert into pin (id, content_id, ratio, show_as_carousel, label, language, queue_order, alt) values (${sqlStr(e.pin.id)}, ${sqlStr(e.contentId)}, ${sqlStr(e.pin.ratio)}, true, ${sqlStr(e.pin.label)}, 'es', 0, ${sqlStr(e.pin.alt)});`,
+    `insert into pin (id, content_id, ratio, label, language, queue_order, alt) values (${sqlStr(e.pin.id)}, ${sqlStr(e.contentId)}, ${sqlStr(e.pin.ratio)}, ${sqlStr(e.pin.label)}, 'es', 0, ${sqlStr(e.pin.alt)});`,
   )
   sqlLines.push(
     `insert into pin_media (pin_id, media_id, slide_order) values (${sqlStr(e.pin.id)}, ${sqlStr(e.pin.mediaAssetId)}, 0);`,

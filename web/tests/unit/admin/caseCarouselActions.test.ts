@@ -8,6 +8,10 @@ const IMAGE_PUBLIC_ID = 'greener/content/case-image'
 
 const VIDEO_PUBLIC_ID = 'greener/content/videos/case-video'
 
+vi.mock('@/modules/media/application/warmAfterResponse', () => ({
+  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
@@ -58,6 +62,7 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
   }
 })
 
+import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import {
   addCaseCarouselImageAction,
   addCaseCarouselVideoAction,
@@ -240,7 +245,10 @@ describe('caseCarouselActions', () => {
 
       expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
         VIDEO_PUBLIC_ID,
+        1,
       )
+
+      expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
 
       expect(mockAddCaseCarouselVideo).toHaveBeenCalledWith({
         contentId: CONTENT_ID,

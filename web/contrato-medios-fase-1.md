@@ -9,6 +9,7 @@
 3. **Decisión.** Fijar **una sola vez** un contrato de entrega de medios (§4) y aplicar la **fase 1** (§7): URLs con tamaño acotado, dos fuentes de vídeo explícitas, pósters con escalera de anchos, prefetch y cambio póster→vídeo sin tirones. Después, en la **fase 2** (§9), calentar las versiones al publicar.
 4. **Estado (actualizado el 7 oct).** **La fase 1 está IMPLEMENTADA** (ver `historial-fase-5.md` §2.38): pasos 2 y 4-12 de §7 hechos, 1155 tests en verde. **Pendiente:** prueba A/B (paso 3), comprobar las cadenas contra Cloudinary real y medir `droppedVideoFrames` en hardware real (el criterio ≤ 2 de §7.1 no se cumplió en el Chromium del entorno). Lo que sigue describe el estado ANTERIOR: **La fase 1 NO está empezada.** No hay cambios de código de esta conversación pendientes de integrar: el repositorio es el último zip entregado el 6 oct (107 ficheros de test, 1042 tests en verde, ver `PROGRESO.md` §1). Lo único nuevo son documentos.
 5. **Plan inmediato.** Hoy (6 oct, tarde): Greener y Claude convierten imágenes y vídeos de tools según el contrato de subida (§5, proceso en §10). Mañana (7 oct): se aplica la fase 1 (§7).
+6. **Fase 2 planificada (7 oct).** Decisiones y diseño completos en §9; **sin implementar**. Empieza por el paso 0 de §9.9 (pruebas contra Cloudinary real). Detalle en `historial-fase-5.md` §2.51.
 
 ## 1. Reglas de trabajo con este repositorio (aprendidas en esta conversación)
 
@@ -45,7 +46,7 @@ Reparto aproximado en créditos (1 crédito = 1000 transformaciones = 1 GB de al
 3. El **almacenamiento** incluye el original, **una copia de cada derivada** generada y las copias de seguridad. Por eso cambiar el texto de una URL no solo regenera las versiones (transformaciones): deja las antiguas ocupando almacenamiento.
 4. Con `f_auto` se crea una derivada **por cada formato servido**. Y `f_auto` **no tiene efecto dentro de una transformación eager** (no hay navegador al subir): para calentar versiones hay que pedir cada formato y códec por separado (§9).
 5. En Free, transformaciones y ancho de banda se miden en una **ventana móvil de 30 días**, sin reinicio el día 1: un pico pesa durante un mes.
-6. En Free el **tamaño máximo de un vídeo para transformarlo es de 40 MB** (la tabla de planes da 300 MB a los de pago). Nuestro tope de subida de vídeo era de 100 MB: ver §5.4.
+6. En Free el **tamaño máximo de un vídeo para transformarlo es de 40 MB** (la tabla de planes da 300 MB a los de pago). **Matiz verificado el 7 oct (§9.8):** ese límite es para las transformaciones **síncronas**; con **eager asíncrono** se pueden transformar vídeos mayores, hasta el máximo de la cuenta (no es la documentación oficial, sino una respuesta de personal de Cloudinary en su comunidad). Nuestro tope de subida de vídeo es de 100 MB: ver §5.4 y §9.8.
 7. En vídeo, 1 crédito de ancho de banda equivale a 1 GB en Free (2 GB en los planes de pago).
 
 ### 2.3 Planes y «pago por uso» (comprobado el 6 oct 2026)
@@ -200,7 +201,7 @@ Peso esperado de un clip de 7 s en M: entre 0,7 y 2 MB (estimación; depende del
 
 ### 5.4 Vídeo de carrusel de caso (aparte)
 
-Hasta 180 s según el límite actual. Propuesta: ≤ 1280×720, 30 fps, AAC 128 kbps si lleva audio, y **bajar el tope de subida de 100 a 40 MB** por el límite de transformación de Free. **Pendiente de confirmar con un vídeo grande de prueba y de aprobar por Greener.** Afecta a `VIDEO_LIMITS` en `mediaLimits.ts`, al SQL de `attach_pin_video`/casos y a los mensajes del ABM.
+Hasta 180 s según el límite actual. Propuesta: ≤ 1280×720, 30 fps, AAC 128 kbps si lleva audio, y **bajar el tope de subida de 100 a 40 MB** por el límite de transformación de Free. **Actualización del 7 oct:** Greener quiere el tope **solo si Cloudinary no puede gestionar vídeos mayores en Free**; como el eager asíncrono parece poder, **provisionalmente NO se aplica** y lo decide la prueba del paso 0 de §9.9 (detalle en §9.8). Si se aplica, afecta a `VIDEO_LIMITS` en `mediaLimits.ts`, al SQL de `attach_pin_video`/casos y a los mensajes del ABM.
 
 ## 6. Comportamiento de reproducción objetivo (fase 1)
 
@@ -257,16 +258,153 @@ Orden recomendado. Cada paso termina con la verificación estándar (§1.4).
 
 Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDuration`, `useMotionPreferences`, limpieza de Cloudinary al borrar y reconciliador (`scripts/reconcile-cloudinary.mjs`), carga masiva con vídeo, caso y episodio con el bloque en flujo, `min-width: 0` en `.content` del Shell, ficha de episodio con CTA «Watch more»: todo en `historial-fase-5.md` §2.36. El reconciliador **no cubre las versiones derivadas**: tras cambiar URLs, las derivadas viejas siguen ocupando almacenamiento y habría que borrarlas con la Admin API (opción `keep_original` al borrar recursos; **no verificada**).
 
-## 9. Fase 2 (después de la fase 1): calentar las versiones al publicar
+## 9. Fase 2: calentar las versiones de vídeo al publicar (IMPLEMENTADA el 8 oct; falta el relleno inicial)
 
-**Objetivo:** que el primer visitante real no espere la generación al vuelo ni reciba un vídeo roto.
+**Estado (8 oct, tarde): implementada** (`historial-fase-5.md` §2.53): `warmVideoRenditions`, `warmContentMedia`, ganchos con `after()`, botón del ABM y `scripts/warm-cloudinary.mjs`; el tope de 40 MB **no se aplica** (decisión de Greener) y el `?? 10` está retirado. Falta el relleno inicial (Greener). Lo que sigue es el estado de la mañana. Planificada y con las decisiones de Greener tomadas. **Arrancada el 8 oct** (`historial-fase-5.md` §2.52): hechos el script del paso 0, el ratio compartido, `warmPlan.ts` y la migración de seguimiento (sin aplicar); **correcciones a este plan en los puntos marcados «8 oct»**. Falta ejecutar el script (Greener) y el resto de pasos. Esta sección es el traspaso completo: léela entera, más §4 (contrato de entrega), §2.2 (reglas de consumo) y `historial-fase-5.md` §2.51. Todo lo marcado «NO VERIFICADO» hay que comprobarlo contra Cloudinary real **antes** de codificar el resto (paso 0 de §9.9).
 
-1. **Cuándo:** al **publicar** el contenido, no al subir el medio. Así los borradores y lo que nunca se publica no consumen créditos.
-2. **Cómo:** llamar desde el servidor a la API `explicit` de Cloudinary con `type: 'upload'`, `resource_type: 'video'`, `eager: [...]` y `eager_async: true` (para no retener la publicación). Hay un ejemplo oficial de `explicit` con `eager` en un artículo de soporte; **esta llamada no está probada**.
-3. **Las cadenas del eager deben ser exactamente las de entrega** (misma función, §4.1) y **por formato y códec** (`f_webm,vc_vp9`, `f_mp4,vc_h264`), nunca con `f_auto`. Solo calienta la caché si produce el mismo vídeo derivado que pide la URL.
-4. **Qué calentar:** feed (480) y ficha (M; L solo si se decide), en los dos formatos. Coste: ~0,6-1,3 créditos por rendición para los 45 clips (§4.1), una sola vez.
-5. **Fallos:** no deben bloquear la publicación; registrar y seguir. Comprobar el límite de 40 MB de Free.
-6. **Decisión pendiente:** si Greener quiere calentar también al subir (más simple, pero gasta créditos en borradores).
+### 9.1 Objetivo y alcance
+
+**Objetivo:** que el primer visitante real no espere la generación al vuelo de las versiones de vídeo ni reciba un vídeo roto.
+
+1. **Solo vídeo.** Las imágenes usan `f_auto` y `f_auto` **no funciona en un eager** (§2.2.4, §4.7): no se pueden calentar. Los pósters (JPG del primer fotograma) son transformaciones de imagen baratas: no se calientan en esta fase (si algún día se quiere, hay que verificar antes que un eager de recurso `video` admite `f_jpg`).
+2. **No ahorra créditos.** Cada versión única se cobra una sola vez, la pida quien la pida (§2.2.2). Calentar **adelanta** el cobro y el trabajo. El coste extra real son las versiones que nadie habría pedido (una ficha que nadie abre).
+3. **Los fallos de calentamiento nunca bloquean** publicar, programar ni subir un medio: se registran y se reintentan (§9.6).
+
+### 9.2 Decisiones de Greener (7 oct 2026)
+
+1. **Cuándo:** al **publicar**, al **programar**, al **añadir un medio a un contenido ya publicado** y **a mano** (botón + script). **No** al subir (gastaría créditos en borradores).
+2. **Qué:** **feed + escalón M de la ficha**, en los dos formatos. **El escalón L no se calienta** (se genera al vuelo cuando una pantalla grande lo pida).
+3. **Seguimiento en base de datos:** **sí** (una migración, §9.6).
+4. **Tope de 40 MB en vídeos de caso/`other`: condicional.** Greener lo quiere **solo si Cloudinary no es capaz de gestionar vídeos mayores en Free**. Lo averiguado el 7 oct (§9.8) apunta a que **sí** puede, de forma asíncrona, así que **provisionalmente NO se aplica el tope**; lo confirma o lo tumba la prueba real del paso 0.
+
+### 9.3 Hallazgo de diseño: las publicaciones programadas no pasan por la aplicación
+
+`schedule_content` deja el contenido en `scheduled` y es la función `publish_scheduled_content()` de **`pg_cron`** (migración `20260922090000`) la que lo pasa a `published` **dentro de Postgres**. La aplicación no se entera, así que un gancho solo en «Publicar» dejaría **todo lo programado sin calentar**. Por eso hay cuatro puntos de calentamiento, todos idempotentes:
+
+| Punto                                     | Dónde engancharlo                                                                                                                            | Nota                                                                                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Publicar                                  | `publishContentAction` (`publishActions.ts`), tras el RPC con éxito                                                                          | con `after()` de `next/server` (Next 16): no retiene la respuesta                                                          |
+| Programar                                 | `scheduleContentAction` (mismo fichero)                                                                                                      | se calienta al programar, no al ejecutarse el cron; si luego se cancela la programación, el gasto ya está hecho (aceptado) |
+| Medio nuevo en contenido **ya publicado** | acciones de alta de pin con medio y de carrusel de case (`pinActions.ts`, `caseCarouselActions.ts`, `mediaActions.ts` de portada de `other`) | solo si `content.status === 'published'` (o `scheduled`)                                                                   |
+| A mano                                    | botón «Calentar» en el ABM del contenido + `scripts/warm-cloudinary.mjs`                                                                     | el script también hace el **relleno inicial** de lo ya subido y publicado, y los reintentos                                |
+
+### 9.4 Qué calentar (matriz de uso)
+
+Cada rendición es un tamaño × un formato (`f_webm,vc_vp9` y `f_mp4,vc_h264`): **2 versiones** por fila.
+
+| Uso del vídeo                                 | Perfil (`VideoProfile`) | Tamaño                                                                                            | Audio | Quién lo pide                       |
+| --------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- | ----- | ----------------------------------- |
+| Pin de **cualquier tipo** en el feed          | `feed`                  | ancho **480** (`FEED_VIDEO_WIDTH`). **8 oct:** solo si se anima (hay `autoplayMode` y dura ≤ 8 s) | no    | `PinCard` (`buildFeedVideoSources`) |
+| Pin de **tool** en la ficha (`/tools/{slug}`) | `toolDetail`            | escalón **M** del ratio (`detailVideoRungM`)                                                      | no    | `useToolCoverVideo`                 |
+| Vídeo del carrusel de **case**                | `caseDetail`            | escalón **M** del ratio **propio del vídeo** (`closestClosedRatio(width, height)`)                | sí    | `CaseDetail.tsx`                    |
+| Portada de vídeo de **`other`**               | `caseDetail`            | escalón **M** del ratio de la portada                                                             | sí    | `ToolInsightDetail.tsx`             |
+
+Un vídeo de pin de tool son **4** versiones (feed + ficha M); uno de case, 2; una portada de `other`, 2 (más 2 si además sale como pin en el feed).
+
+**Trampa que hay que cubrir con un test:** el ratio con el que se calcula el escalón M **debe ser exactamente el de la entrega**, o las cadenas del eager no coincidirán con las URL pedidas y el calentamiento no servirá de nada (y se pagará dos veces). En la entrega: `ToolInsightDetail.tsx` usa `coverRatioOverride ?? content.coverRatio ?? FALLBACK_RATIO` y `CaseDetail.tsx` usa `closestClosedRatio(item.width, item.height)`. La implementación debe reutilizar **esas mismas** expresiones (extraerlas a una función compartida) y un test de contrato debe comparar, para los mismos datos, las cadenas del eager con la parte de transformación de las URL de entrega. Revisar al implementar de dónde sale hoy `coverRatioOverride` para el pin mostrado con `?pin=`.
+
+### 9.5 Cómo (diseño técnico)
+
+1. **Llamada:** `cloudinary.uploader.explicit(publicId, { type: 'upload', resource_type: 'video', eager: [...], eager_async: true })`. El SDK (`cloudinary` ^2.10) ya está instalado y configurado en `cloudinaryServer.ts` (que ya usa `cloudinary.uploader.destroy`). **NO VERIFICADO:** la forma exacta de cada elemento de `eager` (cadena con `/` entre componentes o un objeto de transformación) y si el SDK serializa bien la cadena de `buildVideoTransformations`. Hay un artículo de soporte con un ejemplo de `explicit` con `eager`; confirmarlo en el paso 0.
+2. **Las cadenas salen de `buildVideoTransformations(profile, size)`** (`cloudinaryUrl.ts`), que ya devuelve las dos cadenas en el orden de `<source>` y existe **precisamente para esto** (§4.1.4). Es la única fuente de verdad: no escribir cadenas a mano en la fase 2.
+3. **Notificación de fin:** `eager_notification_url` es opcional; en la v1 **no se usa** (exigiría un endpoint público con verificación de firma). El éxito se comprueba con una petición `HEAD` a la URL derivada (200) desde el script (`--check`) y desde el botón del ABM.
+4. **Estructura propuesta** (ajustable):
+   - `src/modules/media/domain/warmPlan.ts`: función pura que, dado el uso de un vídeo (pin de tool, pin de otro tipo, carrusel de case, portada de `other`, ratio, tamaño del archivo), devuelve la lista de `{ profile, size }` a calentar. Con tests exhaustivos.
+   - `src/modules/media/infrastructure/cloudinaryServer.ts`: `warmVideoRenditions(publicId, transformations)` (envuelve `explicit`).
+   - `src/modules/media/application/warmContentMedia.ts`: orquestador `warmContentMedia(contentId)`: lee los medios y su uso (pines con `pin_media`, `case_detail_media`, `content.cover_media_id`; hay un patrón de lecturas en `supabaseMediaRefs.ts`), calcula el plan, omite lo ya calentado con el contrato vigente y lo que supere el tope de §9.8, llama a Cloudinary y registra el resultado.
+5. **Idempotencia:** antes de llamar, comprobar `warmed_contract` (§9.6). **NO VERIFICADO:** si repetir un `explicit` con un eager cuya derivada ya existe se vuelve a cobrar o no. Se mide en el paso 0; si se cobra, la comprobación previa es obligatoria, no una optimización.
+
+### 9.6 Seguimiento en base de datos (migración nueva)
+
+Una migración sobre `media_asset` (solo filas de vídeo la usan):
+
+1. `warmed_contract text null`: identificador del contrato de calentamiento vigente cuando se calentó (por ejemplo un hash corto de las cadenas del eager de ese vídeo). Si cambia el contrato (§4.7.3), todo vuelve a figurar como «sin calentar» y el script lo puede rehacer.
+2. `warmed_at timestamptz null`.
+3. `warm_error text null`: último error (vacío si fue bien).
+4. Una función `mark_media_asset_warmed(p_media_id uuid, p_contract text, p_error text)` con fila en `audit_log` (security invoker, `revoke ... from public`). **8 oct:** admite admin (`is_admin()`) **o rol de servicio** (`current_user = 'service_role'`), porque `is_admin()` mira el email del JWT y la secret key no lo lleva; `grant ... to authenticated, service_role`. Hecha en `20261008090000_media_asset_warm_tracking.sql`.
+5. **Ojo con la sesión:** el calentamiento tras publicar corre en `after()` con la sesión del admin que pulsó el botón; el que dispara el `pg_cron` no tiene sesión (por eso se calienta al programar, §9.3). El script usa las credenciales de servicio.
+
+**ABM:** en la edición de cada contenido con vídeo, un indicador por medio («calentado», «pendiente», «error: …») y el botón «Calentar». Añadir la migración a la lista de aplicación de `PROGRESO.md` §4.0.
+
+### 9.7 Coste (estimación con suposiciones; una sola vez)
+
+Fórmula (§11.1): `segundos × (1/500)` créditos en SD o `× (1/250)` en HD por rendición; no está claro dónde cae el corte SD/HD (§2.2.1), así que se da el rango.
+
+Suposición: **68 clips de tool de ~7 s** (68 vídeos tras §2.44; la duración media es supuesta) = 476 s. Cada rendición: **0,95 a 1,9 créditos**.
+
+| Alcance                       | Rendiciones por clip | Créditos      |
+| ----------------------------- | -------------------- | ------------- |
+| Solo feed                     | 2                    | 1,9 – 3,8     |
+| **Feed + ficha M (decidido)** | 4                    | **3,8 – 7,6** |
+| Feed + ficha M + L            | 6                    | 5,7 – 11,4    |
+
+Quedaban ~20 de 25 créditos el 6 oct y la ventana es **móvil de 30 días**, así que el pico pesa un mes. **Para afinar:** ejecutar `select count(*), sum(duration_seconds) from media_asset where kind = 'video';` y recalcular con los segundos reales. Los vídeos de case y `other` no están en la tabla; su coste depende de su duración (hasta 180 s hoy) y es proporcional.
+
+### 9.8 El tope de 40 MB: lo que se averiguó el 7 oct (CORRIGE una afirmación previa)
+
+Mi planteamiento previo («por encima de 40 MB Free no transforma y el vídeo no se serviría») era **demasiado categórico**. Lo que dice la respuesta de un empleado de Cloudinary en el hilo de soporte [«Issue with eager transformations erroring out»](https://support.cloudinary.com/hc/en-us/community/posts/4548642915218-Issue-with-eager-transformations-erroring-out):
+
+1. El límite de **40 MB (Free) / 300 MB (de pago)** es para las transformaciones **síncronas** (al vuelo, las que genera una URL de entrega la primera vez que se pide). El error literal es «Video is too large to process synchronously, please use an eager transformation with eager_async=true».
+2. Con **eager asíncrono** se pueden transformar vídeos «tan grandes como el límite máximo de tamaño de vídeo de la cuenta». Nuestro tope de subida es 100 MB.
+
+**Consecuencias si es cierto (se verifica en el paso 0):**
+
+1. Un vídeo de 40-100 MB **sí** se puede servir, pero **solo si sus derivadas se generaron antes por eager asíncrono**: la primera petición al vuelo falla en lugar de ser lenta. Para esos vídeos calentar **deja de ser una mejora y pasa a ser obligatorio**.
+2. Solo afecta a case y `other`: los pines de tool están limitados a 15 MB. En case y `other` solo se pide el escalón M, así que no hay un escalón L al vuelo que falle.
+3. Queda una **ventana de riesgo**: entre publicar y terminar el eager asíncrono, un visitante recibiría un error en vez de un vídeo lento. Opciones a decidir con la prueba: (a) calentar los vídeos de más de 40 MB **al subirlos** (solo esos; es la excepción a la decisión 1 de §9.2); (b) mantener el vídeo oculto hasta que la comprobación `HEAD` dé 200; (c) aplicar el tope.
+4. **Regla de Greener:** si la prueba demuestra que no funciona de forma fiable → **se aplica el tope de 40 MB**. Puntos a tocar: `VIDEO_LIMITS` en `mediaLimits.ts`, el SQL de `attach_pin_video`/casos/portada (migración), los mensajes del ABM y los tests.
+
+**Resultado de la prueba del 8 oct (§2.52 del historial):** un vídeo de 43,5 MiB (45,6 MB) se transformó al vuelo (dos cadenas nuevas, 200 y sin `x-cld-error`) y por eager asíncrono sin problema en Free. **No se ha probado con 80-100 MB** (no hay vídeos así en la cuenta): el tope sigue sin aplicarse y la duda solo afecta a la franja 45-100 MB de case y `other`.
+
+La fuente es un hilo de la comunidad con respuesta de personal, **no la documentación oficial**: tratarla como indicio, no como garantía. (Un segundo hilo habla de un límite de 100 MB de manipulación en línea para otra cuenta; no hay una tabla oficial a mano que lo reconcilie.)
+
+### 9.9 Orden de trabajo (para la conversación nueva)
+
+**Paso 0 — Pruebas contra Cloudinary real (script desechable, p. ej. `scripts/warm-probe.mjs`, antes de codificar nada más).** Necesita las credenciales de Greener (`--env-file=.env.local`), así que el script lo escribe Claude y lo **ejecuta Greener**, que devuelve la salida. Con **un clip de tool** (≤ 15 MB) y **un vídeo de 60-80 MB** (para §9.8):
+
+1. ¿`explicit` con `eager` + `eager_async: true` acepta las cadenas de `buildVideoTransformations`? ¿Con qué forma de `eager` (cadena u objeto)?
+2. Tras esperar, ¿la URL de entrega de `buildVideoSources` (misma cadena, misma `f_`/`vc_`) responde **200** con el `Content-Type` correcto (`video/webm`, `video/mp4`)? (`HEAD`.)
+3. ¿Repetir el `explicit` con derivadas ya existentes **vuelve a cobrar**? (Créditos antes y después en el panel.)
+4. Coste real en créditos de una rendición de ese clip (compara con §9.7).
+5. Vídeo grande: ¿la URL de entrega **sin** eager da el error de «too large»? ¿**Con** eager asíncrono se genera y se sirve? ¿Cuánto tarda?
+6. ¿Hay forma de saber que el eager terminó sin `notification_url` (por ejemplo la Admin API de recursos con `derived`)? Si la hay, el indicador del ABM puede ser más fiel que un `HEAD`.
+   Con los resultados se corrige esta sección **antes** de seguir; si la 5 sale mal, se aplica el tope (§9.8.4).
+   **Resultados del 8 oct (script ejecutado con un vídeo de 130 s, ver §2.52):** (1) sí: array de cadenas; (2) sí, 200 y content-type correcto, sin derivada nueva (la cadena del eager es la de entrega); (3) **repetir añadió una derivada (7→8): no repetir nunca sin `warmed_contract`**; (4) ≈ 1/500 de crédito por segundo en una rendición de 480 px (inferencia); (5) a 43,5 MiB ni la entrega al vuelo ni el eager fallaron, sin prueba de 80-100 MB; (6) sí: la Admin API (`derived`) basta, ≤ 70 s para 2 rendiciones de 130 s. Pendiente: la franja 80-100 MB y el coste de la rendición M (¿tarifa HD?).
+
+**Paso 1.** Migración de §9.6 (columnas + función), tests de su texto como los de la migración de borrado de versiones (`tests/unit/packages/deletePackageVersion.test.ts`).
+**Paso 2.** `warmPlan.ts` (puro) + función compartida del ratio (§9.4) + test de contrato eager = entrega.
+**Paso 3.** `warmVideoRenditions` + `warmContentMedia` con fakes de Cloudinary y de Supabase; fallos que no bloquean; idempotencia por `warmed_contract`.
+**Paso 4.** Los tres ganchos automáticos (§9.3) con `after()`.
+**Paso 5.** Botón e indicador en el ABM; `scripts/warm-cloudinary.mjs` (simulación por defecto, `--execute`, `--check`), con el patrón del reconciliador (`scripts/reconcile-cloudinary.mjs`).
+**Paso 6.** Documentación (§2.N, índice, checklist, registro, esta sección marcada) y zip.
+**Paso 7 (Greener).** Relleno inicial con el script sobre lo ya publicado; comprobar créditos antes y después; HEAD de una muestra.
+
+### 9.10 Tests mínimos
+
+1. Cadenas del eager **idénticas** a las de entrega para los mismos datos (los cuatro usos de §9.4).
+2. El plan no incluye el escalón L, ni imágenes, ni vídeos de borradores sin ganchos manuales.
+3. Un fallo de Cloudinary o de la base de datos **no** impide publicar, programar ni subir (se captura y se registra).
+4. Un vídeo ya calentado con el contrato vigente no se vuelve a calentar; si cambia el contrato, sí.
+5. El gancho de medio nuevo solo actúa si el contenido está `published` o `scheduled`.
+6. Texto de la migración (admin, auditoría, permisos).
+
+### 9.11 Criterios de aceptación
+
+1. Publicar y programar calientan sin retrasar la respuesta; subir un medio a un contenido publicado también.
+2. Lo programado queda calentado **antes** de que el cron lo publique.
+3. Cada vídeo muestra su estado en el ABM y se puede reintentar con el botón o el script.
+4. Tras el relleno inicial, el `HEAD` a la URL de entrega de una muestra de vídeos da 200.
+5. El gasto de créditos del relleno cae dentro del rango de §9.7 (o se explica la diferencia).
+6. `eslint`, `tsc`, `prettier` y `vitest` en verde; documentación al día.
+
+### 9.12 Riesgos y lo no resuelto
+
+1. **Créditos en la ventana de 30 días:** el relleno inicial concentra 4-8 créditos de golpe. Hacerlo cuando haya margen y mirar el panel después.
+2. **Cambiar el contrato** (§4.7.3) invalida lo calentado y obliga a repetir el gasto; por eso el contrato está congelado.
+3. **`explicit` y el eager asíncrono no están probados** (paso 0).
+4. **Las derivadas viejas** de URLs antiguas siguen ocupando almacenamiento y el reconciliador **no las cubre** (§8).
+5. **Programar y cancelar** gasta el calentamiento sin publicar (aceptado).
+6. Sigue pendiente la respuesta de soporte de Cloudinary sobre qué pasa al pasar de 25 créditos (§2.3.3): conviene tenerla antes del relleno.
 
 ## 10. Sesión de conversión de imágenes y vídeos (proceso)
 
@@ -322,16 +460,18 @@ El ABM lee la proporción del nombre y precarga el ratio de cada archivo en la *
 
 **Confirmado por Greener el 6 oct:** contrato con los dos escalones M/L en la ficha; vídeos de caso incluidos en el contrato; dos fuentes explícitas en vez de `f_auto`; seguir en Free; reducir el peso de origen por su lado.
 
-| Decisión                                                                       | Estado                                                                                                                           |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
-| Calidad del feed: `q_auto:eco` frente a `q_auto` (imágenes y vídeo)            | **Resuelto (7 oct, prueba real de Greener):** eco en el feed (imagen, póster y vídeo) y miniaturas del ABM; `auto` en las fichas |
-| `ac_none` y tope de fps: sintaxis                                              | **Resuelto (7 oct):** `ac_none` confirmado; `fps` no se usa (es un rango con mínimo obligatorio, no un tope)                     |
-| Tope de 40 MB en vídeos de caso                                                | **Pendiente de probar y aprobar** (§5.4)                                                                                         |
-| Umbral para usar L (1,09 × lado mayor de M) y umbral de `downlink` (~1,5 Mbps) | Valores propuestos, ajustables tras probar                                                                                       |
-| Escalón S (960×540) para móvil                                                 | **No incluido**; reabrir solo si el ancho de banda de la ficha duele                                                             |
-| Calentar al publicar (fase 2) frente a al subir                                | **Pendiente** (§9)                                                                                                               |
-| Script de avisos de uso de créditos                                            | **Opcional** (paso 13 de §7)                                                                                                     |
-| Qué ocurre al pasarse de 25 créditos en Free                                   | **Pendiente: Greener pregunta a soporte de Cloudinary**                                                                          |
+| Decisión                                                                       | Estado                                                                                                                                                          |
+| ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Calidad del feed: `q_auto:eco` frente a `q_auto` (imágenes y vídeo)            | **Resuelto (7 oct, prueba real de Greener):** eco en el feed (imagen, póster y vídeo) y miniaturas del ABM; `auto` en las fichas                                |
+| `ac_none` y tope de fps: sintaxis                                              | **Resuelto (7 oct):** `ac_none` confirmado; `fps` no se usa (es un rango con mínimo obligatorio, no un tope)                                                    |
+| Tope de 40 MB en vídeos de caso                                                | **Condicional (7 oct):** solo si el eager asíncrono no sirve vídeos mayores en Free; provisionalmente no se aplica. Lo decide la prueba del paso 0 (§9.8, §9.9) |
+| Umbral para usar L (1,09 × lado mayor de M) y umbral de `downlink` (~1,5 Mbps) | Valores propuestos, ajustables tras probar                                                                                                                      |
+| Escalón S (960×540) para móvil                                                 | **No incluido**; reabrir solo si el ancho de banda de la ficha duele                                                                                            |
+| Calentar al publicar (fase 2) frente a al subir                                | **Resuelto (7 oct):** publicar, programar, medio nuevo en contenido publicado y a mano; no al subir (§9.2)                                                      |
+| Qué calentar en la fase 2                                                      | **Resuelto (7 oct):** feed (480) + ficha M, dos formatos; **sin escalón L** (§9.2, §9.4)                                                                        |
+| Seguimiento del calentamiento en base de datos                                 | **Resuelto (7 oct):** sí, una migración sobre `media_asset` (§9.6)                                                                                              |
+| Script de avisos de uso de créditos                                            | **Opcional** (paso 13 de §7)                                                                                                                                    |
+| Qué ocurre al pasarse de 25 créditos en Free                                   | **Pendiente: Greener pregunta a soporte de Cloudinary**                                                                                                         |
 
 ## 13. Fuentes consultadas (6 oct 2026)
 

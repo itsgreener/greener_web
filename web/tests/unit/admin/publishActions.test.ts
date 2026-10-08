@@ -2,6 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 
+vi.mock('@/modules/media/application/warmAfterResponse', () => ({
+  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
@@ -45,6 +49,11 @@ describe('publishContentAction', () => {
 
     expect(result.success).toBe(true)
     expect(publishContent).toHaveBeenCalledWith({ id: CONTENT_ID })
+
+    const { warmContentAfterResponse } =
+      await import('@/modules/media/application/warmAfterResponse')
+
+    expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
   })
 
   it('con un id inválido, no llega a llamar a publishContent', async () => {
@@ -57,6 +66,22 @@ describe('publishContentAction', () => {
 
     expect(result.error).toBeTruthy()
     expect(publishContent).not.toHaveBeenCalled()
+  })
+
+  it('si publicar falla, no se calienta nada', async () => {
+    const { publishContentAction } =
+      await import('@/app/admin/contents/[id]/edit/publishActions')
+    const { publishContent } =
+      await import('@/modules/content/application/publishContent')
+    const { warmContentAfterResponse } =
+      await import('@/modules/media/application/warmAfterResponse')
+
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(publishContent).mockRejectedValue(new Error('boom'))
+
+    await publishContentAction({}, formData({ id: CONTENT_ID }))
+
+    expect(warmContentAfterResponse).not.toHaveBeenCalled()
   })
 
   it('si publishContent lanza, devuelve un error legible', async () => {
@@ -108,6 +133,11 @@ describe('scheduleContentAction', () => {
 
     expect(result.success).toBe(true)
     expect(scheduleContent).toHaveBeenCalledOnce()
+
+    const { warmContentAfterResponse } =
+      await import('@/modules/media/application/warmAfterResponse')
+
+    expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
   })
 
   it('con una fecha pasada, el schema la rechaza sin llamar a scheduleContent', async () => {

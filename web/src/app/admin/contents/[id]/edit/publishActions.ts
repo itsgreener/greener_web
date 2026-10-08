@@ -8,6 +8,7 @@ import {
   unpublishContentSchema,
 } from '@/modules/content/domain/contentSchema'
 
+import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import { publishContent } from '@/modules/content/application/publishContent'
 import { scheduleContent } from '@/modules/content/application/scheduleContent'
 import { unpublishContent } from '@/modules/content/application/unpublishContent'
@@ -60,6 +61,8 @@ export async function publishContentAction(
     return { error: 'No se ha podido publicar el contenido.' }
   }
 
+  await warmContentAfterResponse(result.data.id)
+
   revalidateContent(result.data.id)
 
   return { success: true }
@@ -105,6 +108,8 @@ export async function scheduleContentAction(
 
     return { formError: 'No se ha podido programar la publicación.' }
   }
+
+  await warmContentAfterResponse(result.data.id)
 
   revalidateContent(result.data.id)
 

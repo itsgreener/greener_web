@@ -47,15 +47,9 @@ export type VerifiedCloudinaryVideoAsset = {
   format: string
   width: number
   height: number
+  /** Duración REAL en segundos (puede traer decimales; el esquema la redondea hacia arriba). */
   durationSeconds: number
   bytes: number
-  /**
-   * true cuando la Admin API no devolvió `duration` y `durationSeconds` es
-   * el valor supuesto (10) del parche temporal de abajo. Quien necesite la
-   * duración REAL (los pines: de ella depende si el vídeo se anima en el
-   * feed) debe usar la que Cloudinary entregó al navegador al subir.
-   */
-  durationAssumed?: boolean
 }
 
 export class CloudinaryImageVerificationError extends Error {
@@ -341,12 +335,23 @@ export async function verifyCloudinaryImageAsset(
  * navegador. Los metadatos se obtienen directamente de la Admin API de
  * Cloudinary.
  *
+ * DURACIÓN (8 oct 2026). La Admin API solo devuelve `duration` si se pide
+ * `image_metadata: true` (comprobado contra Cloudinary real: sin él no
+ * viene; con él, 130,73 en un vídeo de 130 s). Si aun así faltara, se usa
+ * `reportedDurationSeconds`, la duración que Cloudinary entregó al navegador
+ * en la respuesta de la propia subida (real, aunque no verificada por el
+ * servidor). NUNCA se inventa una: hasta el 8 oct un `?? 10` guardaba 10 s
+ * en los vídeos sin duración (27 filas de `media_asset` con 10,0 exactos),
+ * lo que falseaba el límite de 180 s y el coste del calentamiento. Si no
+ * hay ninguna de las dos, se rechaza el vídeo.
+ *
  * A diferencia de las imágenes, no se descarga el original completo:
  * un vídeo puede pesar hasta 100 MB y Cloudinary ya ha procesado el asset
  * y expone sus metadatos reales mediante la Admin API.
  */
 export async function verifyCloudinaryVideoAsset(
   publicId: string,
+  reportedDurationSeconds?: number,
 ): Promise<VerifiedCloudinaryVideoAsset> {
   if (!publicId.startsWith(`${VIDEO_FOLDER}/`)) {
     throw new CloudinaryVideoVerificationError(
@@ -360,12 +365,8 @@ export async function verifyCloudinaryVideoAsset(
     rawResource = await cloudinary.api.resource(publicId, {
       resource_type: 'video',
       type: 'upload',
-      // 5 oct 2026 — CANDIDATO A SOLUCIÓN del `?? 10` de abajo, por
-      // verificar con Cloudinary real: según el soporte de Cloudinary, la
-      // duración de un vídeo ya subido se obtiene por Admin API pidiendo
-      // `image_metadata` (sin él, la respuesta no trae `duration`). Si
-      // funciona, el aviso «duración supuesta» de abajo deja de salir en el
-      // log del servidor y el parche ya no se usa.
+      // Sin `image_metadata` la Admin API no devuelve `duration`
+      // (confirmado el 8 oct 2026 contra Cloudinary real).
       image_metadata: true,
     })
   } catch (error) {
@@ -378,16 +379,18 @@ export async function verifyCloudinaryVideoAsset(
 
   const resource = rawResource as CloudinaryVideoResource
 
-  const duration = resource.duration ?? 10
-  const durationAssumed =
-    resource.duration === undefined || resource.duration === null
+  let duration: number
 
-  if (durationAssumed) {
-    // Si este aviso sale con `image_metadata: true` activo, esa opción NO
-    // soluciona la falta de `duration` y hay que buscar otra vía (p. ej. la
-    // Search API, que sí permite filtrar por `duration`).
+  if (isPositiveNumber(resource.duration)) {
+    duration = resource.duration
+  } else if (isPositiveNumber(reportedDurationSeconds)) {
     console.warn(
-      `verifyCloudinaryVideoAsset: la Admin API no devolvió duration para ${publicId}; se usa el valor supuesto (10 s).`,
+      `verifyCloudinaryVideoAsset: la Admin API no devolvió duration para ${publicId}; se usa la que Cloudinary dio al navegador (${reportedDurationSeconds} s).`,
+    )
+    duration = reportedDurationSeconds
+  } else {
+    throw new CloudinaryVideoVerificationError(
+      'Cloudinary no ha devuelto la duración del vídeo.',
     )
   }
 
@@ -398,7 +401,6 @@ export async function verifyCloudinaryVideoAsset(
     resource.format.trim().length === 0 ||
     !isPositiveInteger(resource.width) ||
     !isPositiveInteger(resource.height) ||
-    !isPositiveNumber(duration) ||
     !isPositiveInteger(resource.bytes)
   ) {
     throw new CloudinaryVideoVerificationError(
@@ -432,7 +434,6 @@ export async function verifyCloudinaryVideoAsset(
     height: resource.height,
     durationSeconds: duration,
     bytes: resource.bytes,
-    durationAssumed,
   }
 }
 
@@ -455,4 +456,40 @@ export async function deleteCloudinaryAsset(
       }).`,
     )
   }
+}
+
+/**
+ * Calentamiento de un vídeo (fase 2 del contrato de medios): pide a
+ * Cloudinary, de forma ASÍNCRONA, las versiones indicadas (cadenas de
+ * transformación del contrato, las mismas que construyen las URL de
+ * entrega), para que el primer visitante no espere a que se generen al
+ * vuelo.
+ *
+ * Devuelve en cuanto Cloudinary acepta el encargo; NO espera a que termine
+ * (comprobado el 8 oct 2026: tarda hasta ~70 s para 2 rendiciones de un vídeo
+ * de 130 s). Repetir la llamada con las mismas cadenas NO se reutiliza:
+ * Cloudinary vuelve a generar y a cobrar, así que quien llama debe saltarse
+ * los vídeos ya calentados (`media_asset.warmed_contract`).
+ *
+ * Solo vídeos de la carpeta de vídeos de Greener y solo con cadenas dadas
+ * (nunca construye transformaciones por su cuenta).
+ */
+export async function warmVideoRenditions(
+  publicId: string,
+  transformations: string[],
+): Promise<void> {
+  if (!publicId.startsWith(`${VIDEO_FOLDER}/`)) {
+    throw new Error('El vídeo no pertenece al directorio permitido.')
+  }
+
+  if (transformations.length === 0) {
+    throw new Error('No hay versiones que calentar.')
+  }
+
+  await cloudinary.uploader.explicit(publicId, {
+    type: 'upload',
+    resource_type: 'video',
+    eager: transformations,
+    eager_async: true,
+  })
 }

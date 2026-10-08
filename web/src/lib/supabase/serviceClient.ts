@@ -13,6 +13,10 @@ import { env } from '@/lib/env'
  * contenido no publicado, así que un token válido es la única forma de
  * ver un borrador sin sesión de admin.
  *
+ * También lo usa el calentamiento de vídeos (fase 2, contrato §9) para
+ * anotar con `mark_media_asset_warmed` desde `after()`, donde la sesión del
+ * admin no está garantizada (la función admite el rol de servicio).
+ *
  * NUNCA importar este módulo desde un componente cliente ('use client')
  * ni exponer su resultado, directa o indirectamente, en una respuesta al
  * navegador. Para todo lo que sí tiene política pública de lectura

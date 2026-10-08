@@ -8,6 +8,10 @@ const IMAGE_PUBLIC_ID = 'greener/content/test-image'
 
 const VIDEO_PUBLIC_ID = 'greener/content/videos/test-video'
 
+vi.mock('@/modules/media/application/warmAfterResponse', () => ({
+  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
+}))
+
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
@@ -52,6 +56,7 @@ vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
   }
 })
 
+import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import {
   registerCoverImageAction,
   registerCoverVideoAction,
@@ -255,7 +260,10 @@ describe('mediaActions', () => {
 
       expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
         VIDEO_PUBLIC_ID,
+        1,
       )
+
+      expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
 
       expect(mockRegisterCoverVideo).toHaveBeenCalledWith({
         contentId: CONTENT_ID,

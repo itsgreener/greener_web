@@ -42,6 +42,8 @@ import BulkPinUpload from './BulkPinUpload'
 import DeleteContentButton from './DeleteContentButton'
 
 import PublishControls from './PublishControls'
+import WarmVideosControl from './WarmVideosControl'
+import { countPendingWarming } from '@/modules/media/application/warmContentMedia'
 
 type Props = {
   params: Promise<{
@@ -107,6 +109,14 @@ export default async function EditContentPage({ params }: Props) {
     listPins(content.id),
   ])
 
+  let pendingWarming: number | null = null
+
+  try {
+    pendingWarming = await countPendingWarming(content.id)
+  } catch (error) {
+    console.error(error)
+  }
+
   return (
     <main className="admin-editor-page">
       <div className="admin-editor-shell">
@@ -132,11 +142,18 @@ export default async function EditContentPage({ params }: Props) {
               </div>
             </div>
 
-            <PublishControls
-              contentId={content.id}
-              status={content.status}
-              publishAt={content.publishAt}
-            />
+            <div>
+              <PublishControls
+                contentId={content.id}
+                status={content.status}
+                publishAt={content.publishAt}
+              />
+
+              <WarmVideosControl
+                contentId={content.id}
+                pending={pendingWarming}
+              />
+            </div>
           </div>
         </header>
 

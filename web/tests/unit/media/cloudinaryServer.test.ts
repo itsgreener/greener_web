@@ -403,23 +403,41 @@ describe('cloudinaryServer', () => {
         durationSeconds: 42.5,
 
         bytes: 8192,
-
-        durationAssumed: false,
       })
     })
 
-    it('marca la duración como supuesta cuando la Admin API no la devuelve (parche temporal ?? 10)', async () => {
+    it('si la Admin API no devuelve la duración, usa la que dio Cloudinary al navegador', async () => {
       const { duration: _omitted, ...withoutDuration } = validVideoResource()
 
       void _omitted
 
       mockResource.mockResolvedValueOnce(withoutDuration)
 
-      const result = await verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)
+      const result = await verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID, 12)
 
-      expect(result.durationSeconds).toBe(10)
+      expect(result.durationSeconds).toBe(12)
 
-      expect(result.durationAssumed).toBe(true)
+      expect(result).not.toHaveProperty('durationAssumed')
+    })
+
+    it('si no hay duración ni de la Admin API ni del navegador, rechaza en vez de inventarla', async () => {
+      const { duration: _omitted, ...withoutDuration } = validVideoResource()
+
+      void _omitted
+
+      mockResource.mockResolvedValueOnce(withoutDuration)
+
+      await expect(verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
+        'Cloudinary no ha devuelto la duración del vídeo.',
+      )
+    })
+
+    it('la duración de la Admin API manda sobre la del navegador', async () => {
+      mockResource.mockResolvedValueOnce(validVideoResource())
+
+      const result = await verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID, 99)
+
+      expect(result.durationSeconds).toBe(42.5)
     })
 
     it('rechaza un publicId fuera del directorio de vídeos permitido', async () => {
@@ -449,6 +467,8 @@ describe('cloudinaryServer', () => {
         width: 1920,
 
         height: 1080,
+
+        duration: 10,
       })
 
       await expect(verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
