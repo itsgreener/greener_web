@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ContactForm } from './ContactForm'
+import { NewsletterForm } from './NewsletterForm'
 import styles from './page.module.css'
 
 /**
@@ -30,6 +31,14 @@ export default function ContactPage() {
   what you're after. We'll write back, and the conversation starts there.`}
       </p>
       <ContactForm />
+
+      <section className={styles.newsletter}>
+        <h2 className={styles.newsletterTitle}>Newsletter</h2>
+        <p className="text-body">
+          Ideas, projects and things worth sharing.
+        </p>
+        <NewsletterForm />
+      </section>
     </div>
   )
 }

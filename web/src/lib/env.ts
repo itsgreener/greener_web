@@ -43,6 +43,14 @@ const envSchema = z.object({
   // pero se recomienda fijar una propia en producción.
   CONTACT_IP_HASH_SALT: z.string().min(1).default('greener-dev-salt'),
 
+  // Newsletter — Mailchimp Marketing API. Estas tres variables son solo
+  // de servidor: nunca llevan NEXT_PUBLIC_ y nunca deben llegar al navegador.
+  MAILCHIMP_API_KEY: z.string().min(1),
+  MAILCHIMP_AUDIENCE_ID: z.string().min(1),
+  MAILCHIMP_SERVER_PREFIX: z.string().regex(/^us\d+$/, {
+    message: 'Debe tener formato usXX (por ejemplo us21)',
+  }),
+
   // Site
   // Sin barra final: se recorta aquí una sola vez ("https://itsgreener.com/"
   // → "https://itsgreener.com") para que quien la concatena con una ruta
