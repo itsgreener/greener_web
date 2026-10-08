@@ -1,9 +1,7 @@
 'use server'
 
+import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
 import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
-
-export const NEWSLETTER_SUCCESS_MESSAGE =
-  "Thanks! If this address isn't subscribed yet, we've sent you an email to confirm it. Check your inbox (and your spam folder)."
 
 export type NewsletterActionState = {
   fieldErrors?: Record<string, string[]>

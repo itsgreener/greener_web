@@ -4,10 +4,8 @@ vi.mock('@/modules/newsletter/application/subscribeToNewsletter', () => ({
   subscribeToNewsletter: vi.fn(),
 }))
 
-import {
-  NEWSLETTER_SUCCESS_MESSAGE,
-  subscribeNewsletterAction,
-} from '@/app/(public)/contact/newsletterActions'
+import { subscribeNewsletterAction } from '@/app/(public)/contact/newsletterActions'
+import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
 import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
 
 const mockSubscribe = vi.mocked(subscribeToNewsletter)
