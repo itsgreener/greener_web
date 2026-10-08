@@ -33,8 +33,12 @@ const BASE_VIDEO = 'https://res.cloudinary.com/test-cloud/video/upload'
 /** Parte de transformación de una URL de entrega (entre `upload/` y el id). */
 function transformationOf(src: string): string {
   expect(src.startsWith(`${BASE_VIDEO}/`)).toBe(true)
-  expect(src.endsWith(`/${ID}`)).toBe(true)
-  return src.slice(BASE_VIDEO.length + 1, src.length - ID.length - 1)
+  const withoutExtension = src.replace(/\.(webm|mp4)$/, '')
+  expect(withoutExtension.endsWith(`/${ID}`)).toBe(true)
+  return withoutExtension.slice(
+    BASE_VIDEO.length + 1,
+    withoutExtension.length - ID.length - 1,
+  )
 }
 
 function eagerStrings(renditions: WarmRendition[]): string[] {
@@ -68,9 +72,10 @@ describe('ratio compartido entre entrega y calentamiento', () => {
 })
 
 describe('planVideoWarming — pines', () => {
-  it('pin de tool que se anima: feed 480 + escalón M de la ficha con el ratio del pin', () => {
+  it('pin de tool que se anima: feed 480 + escalones M y L de la ficha con el ratio del pin', () => {
     expect(planVideoWarming([pin({ pinRatio: '4:5' })])).toEqual([
       { profile: 'feed', size: { width: FEED_VIDEO_WIDTH } },
+      { profile: 'toolDetail', size: { width: 1070, height: 1338 } },
       { profile: 'toolDetail', size: { width: 856, height: 1070 } },
     ])
   })
@@ -96,18 +101,20 @@ describe('planVideoWarming — pines', () => {
 
   it('un vídeo de más de 8 s solo enseña el póster en el feed: no calienta el feed, sí la ficha', () => {
     expect(planVideoWarming([pin({ durationSeconds: 12 })])).toEqual([
+      { profile: 'toolDetail', size: { width: 1070, height: 1338 } },
       { profile: 'toolDetail', size: { width: 856, height: 1070 } },
     ])
-    expect(planVideoWarming([pin({ durationSeconds: 8 })])).toHaveLength(2)
-    expect(planVideoWarming([pin({ durationSeconds: 9 })])).toHaveLength(1)
+    expect(planVideoWarming([pin({ durationSeconds: 8 })])).toHaveLength(3)
+    expect(planVideoWarming([pin({ durationSeconds: 9 })])).toHaveLength(2)
   })
 
   it('duración desconocida (fila antigua): se asume que se anima, como PinCard', () => {
-    expect(planVideoWarming([pin({ durationSeconds: null })])).toHaveLength(2)
+    expect(planVideoWarming([pin({ durationSeconds: null })])).toHaveLength(3)
   })
 
   it('tool con autoplayMode null: sigue necesitando la ficha', () => {
     expect(planVideoWarming([pin({ autoplayMode: null })])).toEqual([
+      { profile: 'toolDetail', size: { width: 1070, height: 1338 } },
       { profile: 'toolDetail', size: { width: 856, height: 1070 } },
     ])
   })
@@ -162,7 +169,7 @@ describe('planVideoWarming — propiedades', () => {
     }),
   )
 
-  it('nunca incluye el escalón L ni más de un feed, y no repite rendiciones', () => {
+  it('L solo en la ficha de una tool; el resto, solo M; un feed como mucho; sin repetidos', () => {
     fc.assert(
       fc.property(fc.array(usageArb, { maxLength: 6 }), (usages) => {
         const plan = planVideoWarming(usages)
@@ -171,6 +178,10 @@ describe('planVideoWarming — propiedades', () => {
           (r) => `${r.profile}:${r.size.width}x${r.size.height ?? 0}`,
         )
         expect(new Set(keys).size).toBe(keys.length)
+
+        const hasToolPin = usages.some(
+          (u) => u.kind === 'pin' && u.contentType === 'tool',
+        )
 
         for (const r of plan) {
           if (r.profile === 'feed') {
@@ -187,8 +198,14 @@ describe('planVideoWarming — propiedades', () => {
               DETAIL_VIDEO_RUNGS[ratio].L.width === r.size.width &&
               DETAIL_VIDEO_RUNGS[ratio].L.height === r.size.height,
           )
-          expect(isM).toBe(true)
-          expect(isL).toBe(false)
+
+          if (r.profile === 'caseDetail') {
+            expect(isM).toBe(true)
+            expect(isL).toBe(false)
+          } else {
+            expect(hasToolPin).toBe(true)
+            expect(isM || isL).toBe(true)
+          }
         }
       }),
     )
@@ -224,27 +241,37 @@ describe('CONTRATO: las cadenas del eager son EXACTAMENTE las de la entrega', ()
     expect(eagerStrings(plan)).toEqual(delivered)
   })
 
-  it('ficha de tool: las del plan = las de useToolCoverVideo con una caja de pantalla normal (escalón M) para los 7 ratios', () => {
+  it('ficha de tool: M y L del plan = las de useToolCoverVideo (caja normal → M, pantalla grande o DPR alto → L) para los 7 ratios', () => {
     for (const ratio of RATIOS) {
       const plan = planVideoWarming([
         pin({ pinRatio: ratio, autoplayMode: null }),
       ])
 
-      // Caja de un portátil 1366×768, DPR 1: siempre M.
-      const rung = pickDetailVideoRung({
+      // Portátil 1366×768, DPR 1: M. Monitor grande con DPR 2: L.
+      const small = pickDetailVideoRung({
         ratio: toolInsightDetailRatio(ratio, null),
         boxWidthPx: 771,
         boxHeightPx: 434,
         devicePixelRatio: 1,
       })
-      expect(rung.rung).toBe('M')
+      const big = pickDetailVideoRung({
+        ratio: toolInsightDetailRatio(ratio, null),
+        boxWidthPx: 1500,
+        boxHeightPx: 1500,
+        devicePixelRatio: 2,
+      })
 
-      const delivered = buildVideoSources(ID, 'toolDetail', {
-        width: rung.width,
-        height: rung.height,
-      }).map((s) => transformationOf(s.src))
+      expect(small.rung).toBe('M')
+      expect(big.rung).toBe('L')
 
-      expect(eagerStrings(plan)).toEqual(delivered)
+      const delivered = [small, big].flatMap((rung) =>
+        buildVideoSources(ID, 'toolDetail', {
+          width: rung.width,
+          height: rung.height,
+        }).map((s) => transformationOf(s.src)),
+      )
+
+      expect([...eagerStrings(plan)].sort()).toEqual([...delivered].sort())
     }
   })
 
@@ -271,10 +298,12 @@ describe('CONTRATO: las cadenas del eager son EXACTAMENTE las de la entrega', ()
     }
   })
 
-  it('un pin de tool son 4 versiones exactas (feed + ficha M, WebM y MP4)', () => {
+  it('un pin de tool son 6 versiones exactas (feed + ficha L y M, WebM y MP4)', () => {
     expect(eagerStrings(planVideoWarming([pin({ pinRatio: '4:5' })]))).toEqual([
       'ac_none/c_limit,w_480/f_webm,vc_vp9/q_auto:eco',
       'ac_none/c_limit,w_480/f_mp4,vc_h264/q_auto:eco',
+      'ac_none/c_limit,w_1070,h_1338/f_webm,vc_vp9/q_auto',
+      'ac_none/c_limit,w_1070,h_1338/f_mp4,vc_h264/q_auto',
       'ac_none/c_limit,w_856,h_1070/f_webm,vc_vp9/q_auto',
       'ac_none/c_limit,w_856,h_1070/f_mp4,vc_h264/q_auto',
     ])

@@ -67,10 +67,20 @@ export interface VideoSource {
  * tamaño (con `f_auto` pueden ser hasta cuatro) y son exactamente las
  * mismas cadenas que usará el eager de la fase 2 (`f_auto` no funciona en
  * un eager). A cambio se pierden AV1 y HEVC.
+ *
+ * La URL de entrega lleva SIEMPRE la extensión del formato (`.webm`,
+ * `.mp4`): el eager de Cloudinary guarda la derivada con extensión, y una
+ * URL sin ella (el public_id a secas) es OTRA derivada (8 oct 2026: salía
+ * en la lista con una `/` final y se regeneraba, y cobraba, al abrirla por
+ * primera vez aunque la calentada existiera).
  */
 const VIDEO_FORMATS = [
-  { transformation: 'f_webm,vc_vp9', type: 'video/webm; codecs="vp9"' },
-  { transformation: 'f_mp4,vc_h264', type: 'video/mp4' },
+  {
+    transformation: 'f_webm,vc_vp9',
+    type: 'video/webm; codecs="vp9"',
+    extension: 'webm',
+  },
+  { transformation: 'f_mp4,vc_h264', type: 'video/mp4', extension: 'mp4' },
 ] as const
 
 /** Cadena de transformación de UNA rendición de vídeo (sin la URL base). */
@@ -117,7 +127,7 @@ export function buildVideoSources(
   size: VideoSize,
 ): VideoSource[] {
   return VIDEO_FORMATS.map((format) => ({
-    src: `${baseUrl('video')}/${videoTransformation(profile, size, format)}/${publicId}`,
+    src: `${baseUrl('video')}/${videoTransformation(profile, size, format)}/${publicId}.${format.extension}`,
     type: format.type,
   }))
 }

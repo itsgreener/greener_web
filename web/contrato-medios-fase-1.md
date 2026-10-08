@@ -273,7 +273,7 @@ Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDurati
 ### 9.2 Decisiones de Greener (7 oct 2026)
 
 1. **Cuándo:** al **publicar**, al **programar**, al **añadir un medio a un contenido ya publicado** y **a mano** (botón + script). **No** al subir (gastaría créditos en borradores).
-2. **Qué:** **feed + escalón M de la ficha**, en los dos formatos. **El escalón L no se calienta** (se genera al vuelo cuando una pantalla grande lo pida).
+2. **Qué:** **feed + escalón M de la ficha**, en los dos formatos. **Corrección del 8 oct:** en las **fichas de tool** se calienta también el **escalón L** (lo pide `useToolCoverVideo` en pantallas grandes o con DPR alto y el primer visitante esperaría la transformación); en case y `other` solo M.
 3. **Seguimiento en base de datos:** **sí** (una migración, §9.6).
 4. **Tope de 40 MB en vídeos de caso/`other`: condicional.** Greener lo quiere **solo si Cloudinary no es capaz de gestionar vídeos mayores en Free**. Lo averiguado el 7 oct (§9.8) apunta a que **sí** puede, de forma asíncrona, así que **provisionalmente NO se aplica el tope**; lo confirma o lo tumba la prueba real del paso 0.
 
@@ -382,7 +382,7 @@ La fuente es un hilo de la comunidad con respuesta de personal, **no la document
 ### 9.10 Tests mínimos
 
 1. Cadenas del eager **idénticas** a las de entrega para los mismos datos (los cuatro usos de §9.4).
-2. El plan no incluye el escalón L, ni imágenes, ni vídeos de borradores sin ganchos manuales.
+2. El plan incluye el escalón L solo en las fichas de tool (corrección del 8 oct); no incluye imágenes, ni vídeos de borradores sin ganchos manuales.
 3. Un fallo de Cloudinary o de la base de datos **no** impide publicar, programar ni subir (se captura y se registra).
 4. Un vídeo ya calentado con el contrato vigente no se vuelve a calentar; si cambia el contrato, sí.
 5. El gancho de medio nuevo solo actúa si el contenido está `published` o `scheduled`.
@@ -468,7 +468,7 @@ El ABM lee la proporción del nombre y precarga el ratio de cada archivo en la *
 | Umbral para usar L (1,09 × lado mayor de M) y umbral de `downlink` (~1,5 Mbps) | Valores propuestos, ajustables tras probar                                                                                                                      |
 | Escalón S (960×540) para móvil                                                 | **No incluido**; reabrir solo si el ancho de banda de la ficha duele                                                                                            |
 | Calentar al publicar (fase 2) frente a al subir                                | **Resuelto (7 oct):** publicar, programar, medio nuevo en contenido publicado y a mano; no al subir (§9.2)                                                      |
-| Qué calentar en la fase 2                                                      | **Resuelto (7 oct):** feed (480) + ficha M, dos formatos; **sin escalón L** (§9.2, §9.4)                                                                        |
+| Qué calentar en la fase 2                                                      | **Resuelto (7 oct):** feed (480) + ficha M, dos formatos; **corregido el 8 oct: L solo en fichas de tool** (§9.2, §9.4)                                                                        |
 | Seguimiento del calentamiento en base de datos                                 | **Resuelto (7 oct):** sí, una migración sobre `media_asset` (§9.6)                                                                                              |
 | Script de avisos de uso de créditos                                            | **Opcional** (paso 13 de §7)                                                                                                                                    |
 | Qué ocurre al pasarse de 25 créditos en Free                                   | **Pendiente: Greener pregunta a soporte de Cloudinary**                                                                                                         |

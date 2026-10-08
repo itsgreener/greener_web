@@ -95,11 +95,11 @@ describe('contrato congelado — vídeo del feed (pines de tool)', () => {
   it('un solo ancho (480), sin audio, WebM/VP9 primero y MP4/H.264 de reserva, sin f_auto', () => {
     expect(buildFeedVideoSources(ID)).toEqual([
       {
-        src: `${BASE_VIDEO}/ac_none/c_limit,w_480/f_webm,vc_vp9/q_auto:eco/${ID}`,
+        src: `${BASE_VIDEO}/ac_none/c_limit,w_480/f_webm,vc_vp9/q_auto:eco/${ID}.webm`,
         type: 'video/webm; codecs="vp9"',
       },
       {
-        src: `${BASE_VIDEO}/ac_none/c_limit,w_480/f_mp4,vc_h264/q_auto:eco/${ID}`,
+        src: `${BASE_VIDEO}/ac_none/c_limit,w_480/f_mp4,vc_h264/q_auto:eco/${ID}.mp4`,
         type: 'video/mp4',
       },
     ])
@@ -113,8 +113,8 @@ describe('contrato congelado — vídeo de la ficha de tool (escalones M y L)', 
         (s) => s.src,
       ),
     ).toEqual([
-      `${BASE_VIDEO}/ac_none/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/${ID}`,
-      `${BASE_VIDEO}/ac_none/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/${ID}`,
+      `${BASE_VIDEO}/ac_none/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/${ID}.webm`,
+      `${BASE_VIDEO}/ac_none/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/${ID}.mp4`,
     ])
   })
 
@@ -124,8 +124,8 @@ describe('contrato congelado — vídeo de la ficha de tool (escalones M y L)', 
         (s) => s.src,
       ),
     ).toEqual([
-      `${BASE_VIDEO}/ac_none/c_limit,w_1600,h_900/f_webm,vc_vp9/q_auto/${ID}`,
-      `${BASE_VIDEO}/ac_none/c_limit,w_1600,h_900/f_mp4,vc_h264/q_auto/${ID}`,
+      `${BASE_VIDEO}/ac_none/c_limit,w_1600,h_900/f_webm,vc_vp9/q_auto/${ID}.webm`,
+      `${BASE_VIDEO}/ac_none/c_limit,w_1600,h_900/f_mp4,vc_h264/q_auto/${ID}.mp4`,
     ])
   })
 
@@ -133,7 +133,7 @@ describe('contrato congelado — vídeo de la ficha de tool (escalones M y L)', 
     expect(
       buildVideoSources(ID, 'toolDetail', DETAIL_VIDEO_RUNGS['9:16'].M)[0].src,
     ).toBe(
-      `${BASE_VIDEO}/ac_none/c_limit,w_720,h_1280/f_webm,vc_vp9/q_auto/${ID}`,
+      `${BASE_VIDEO}/ac_none/c_limit,w_720,h_1280/f_webm,vc_vp9/q_auto/${ID}.webm`,
     )
   })
 })
@@ -144,11 +144,11 @@ describe('contrato congelado — vídeo de caso y de contenido libre', () => {
       buildVideoSources(ID, 'caseDetail', DETAIL_VIDEO_RUNGS['16:9'].M),
     ).toEqual([
       {
-        src: `${BASE_VIDEO}/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/${ID}`,
+        src: `${BASE_VIDEO}/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/${ID}.webm`,
         type: 'video/webm; codecs="vp9"',
       },
       {
-        src: `${BASE_VIDEO}/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/${ID}`,
+        src: `${BASE_VIDEO}/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/${ID}.mp4`,
         type: 'video/mp4',
       },
     ])
@@ -214,7 +214,9 @@ describe('contrato — propiedades que no se pueden romper', () => {
     for (const profile of profiles) {
       for (const size of sizes) {
         const fromDelivery = buildVideoSources(ID, profile, size).map((s) =>
-          s.src.slice(`${BASE_VIDEO}/`.length, -`/${ID}`.length),
+          s.src
+            .replace(/\.(webm|mp4)$/, '')
+            .slice(`${BASE_VIDEO}/`.length, -`/${ID}`.length),
         )
 
         expect(buildVideoTransformations(profile, size)).toEqual(fromDelivery)

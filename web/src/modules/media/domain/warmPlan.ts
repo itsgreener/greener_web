@@ -1,6 +1,7 @@
 import type { PinRatioValue } from './closestRatio'
 import { caseVideoRatio, toolInsightDetailRatio } from './detailVideoRatio'
 import {
+  DETAIL_VIDEO_RUNGS,
   detailVideoRungM,
   FEED_VIDEO_WIDTH,
   type VideoProfile,
@@ -19,7 +20,15 @@ import { canAnimateInFeed, type PinContentKind } from './mediaLimits'
  *
  * Decisiones de Greener (7 oct 2026, §9.2): feed (ancho 480) + escalón M de
  * la ficha, siempre en los dos formatos (eso lo añade quien construye las
- * cadenas); NUNCA el escalón L ni imágenes.
+ * cadenas); nunca imágenes.
+ *
+ * CORRECCIÓN DEL 8 oct: el vídeo de la ficha de una TOOL también se calienta
+ * en el escalón L. «Sin escalón L» (decisión del 7 oct) partía de que L no se
+ * serviría, pero `useToolCoverVideo` sí lo pide (`pickDetailVideoRung`) en
+ * pantallas grandes o con DPR alto, y el primer visitante tendría que
+ * esperar a que Cloudinary lo generara (decenas de segundos, con el vídeo a
+ * trompicones). El carrusel de caso y la portada de `other` solo usan M
+ * (`detailVideoRungM`), así que ahí L no se calienta.
  */
 
 /** Un tamaño de rendición de vídeo, igual que `VideoSize` de la entrega. */
@@ -61,6 +70,11 @@ function rungM(ratio: PinRatioValue): WarmSize {
   return { width, height }
 }
 
+function rungL(ratio: PinRatioValue): WarmSize {
+  const { width, height } = DETAIL_VIDEO_RUNGS[ratio].L
+  return { width, height }
+}
+
 function renditionsFor(usage: VideoUsage): WarmRendition[] {
   switch (usage.kind) {
     case 'pin': {
@@ -82,12 +96,15 @@ function renditionsFor(usage: VideoUsage): WarmRendition[] {
       }
 
       // Ficha: solo las tools muestran el vídeo del pin (`/tools/{slug}?pin=`),
-      // con el ratio del propio pin y mudo.
+      // con el ratio del propio pin y mudo. M y L: según la caja y el DPR de
+      // cada visitante se pide uno u otro.
       if (usage.contentType === 'tool') {
-        renditions.push({
-          profile: 'toolDetail',
-          size: rungM(toolInsightDetailRatio(usage.pinRatio, null)),
-        })
+        const ratio = toolInsightDetailRatio(usage.pinRatio, null)
+
+        renditions.push(
+          { profile: 'toolDetail', size: rungM(ratio) },
+          { profile: 'toolDetail', size: rungL(ratio) },
+        )
       }
 
       return renditions

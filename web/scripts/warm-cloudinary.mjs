@@ -31,6 +31,7 @@
  *
  * OPCIONES
  *   --execute          Calienta de verdad. Sin ella NUNCA calienta.
+ *   --inspect=ID       Enseña las derivadas reales de un vídeo (public_id o trozo) frente al plan.
  *   --check            Comprueba el estado en Cloudinary (no calienta).
  *   --force            Repite también lo ya calentado. CUESTA CRÉDITOS DE
  *                      NUEVO: Cloudinary regenera y cobra (comprobado el 8 oct).
@@ -68,6 +69,16 @@ export const RUNG_M = {
   '3:4': { width: 828, height: 1104 },
   '2:3': { width: 780, height: 1170 },
   '9:16': { width: 720, height: 1280 },
+}
+
+export const RUNG_L = {
+  '16:9': { width: 1600, height: 900 },
+  '4:3': { width: 1380, height: 1036 },
+  '1:1': { width: 1200, height: 1200 },
+  '4:5': { width: 1070, height: 1338 },
+  '3:4': { width: 1036, height: 1380 },
+  '2:3': { width: 976, height: 1464 },
+  '9:16': { width: 900, height: 1600 },
 }
 
 const RATIO_VALUE = {
@@ -138,6 +149,11 @@ function rungM(ratio) {
   return { width, height }
 }
 
+function rungL(ratio) {
+  const { width, height } = RUNG_L[ratio]
+  return { width, height }
+}
+
 function renditionsFor(usage) {
   switch (usage.kind) {
     case 'pin': {
@@ -151,7 +167,11 @@ function renditionsFor(usage) {
       }
 
       if (usage.contentType === 'tool') {
-        out.push({ profile: 'toolDetail', size: rungM(usage.pinRatio) })
+        // M y L: según la caja y el DPR de cada visitante se pide uno u otro.
+        out.push(
+          { profile: 'toolDetail', size: rungM(usage.pinRatio) },
+          { profile: 'toolDetail', size: rungL(usage.pinRatio) },
+        )
       }
 
       return out
@@ -274,6 +294,7 @@ export function parseArgs(argv) {
   const options = {
     execute: false,
     check: false,
+    inspect: undefined,
     force: false,
     includeDrafts: false,
     content: undefined,
@@ -283,6 +304,7 @@ export function parseArgs(argv) {
   for (const arg of argv) {
     if (arg === '--execute') options.execute = true
     else if (arg === '--check') options.check = true
+    else if (arg.startsWith('--inspect=')) options.inspect = arg.split('=')[1]
     else if (arg === '--force') options.force = true
     else if (arg === '--include-drafts') options.includeDrafts = true
     else if (arg.startsWith('--content=')) options.content = arg.split('=')[1]
@@ -297,8 +319,10 @@ export function parseArgs(argv) {
     }
   }
 
-  if (options.check && options.execute) {
-    throw new Error('--check y --execute no se combinan: --check solo lee.')
+  if ((options.check || options.inspect) && options.execute) {
+    throw new Error(
+      '--check y --inspect no se combinan con --execute: solo leen.',
+    )
   }
 
   return options
@@ -466,6 +490,16 @@ async function main() {
     force: options.force,
   })
 
+  if (options.inspect) {
+    await runInspect({
+      cloudinary,
+      media,
+      usagesByMedia,
+      term: options.inspect,
+    })
+    return
+  }
+
   if (options.check) {
     await runCheck({ cloudinary, media, usagesByMedia })
     return
@@ -539,6 +573,46 @@ async function main() {
     `\nEncargados: ${warmed}. Fallidos: ${failed}. Cloudinary los termina en unos minutos; comprueba con --check.`,
   )
   if (failed > 0) process.exitCode = 1
+}
+
+/**
+ * Diagnóstico de UN vídeo: enseña, tal cual las devuelve Cloudinary, las
+ * transformaciones derivadas y las compara con las del plan. `term` es el
+ * public_id completo o un trozo de él. Sirve para ver si una URL que el
+ * navegador pide existe ya como derivada (y con qué forma exacta).
+ */
+async function runInspect({ cloudinary, media, usagesByMedia, term }) {
+  const matches = media.filter((item) => item.publicId.includes(term))
+
+  if (matches.length === 0) {
+    console.log(`Ningún vídeo del plan contiene «${term}».`)
+    return
+  }
+
+  for (const item of matches) {
+    const plan = transformationsForUsages(usagesByMedia.get(item.id) ?? [])
+    const resource = await cloudinary.api.resource(item.publicId, {
+      resource_type: 'video',
+      type: 'upload',
+    })
+    const derivedEntries = resource.derived ?? []
+    const derived = derivedEntries.map((d) => d.transformation)
+
+    console.log(`\n${item.publicId}`)
+    console.log(`  Contrato guardado: ${item.warmedContract ?? '(ninguno)'}`)
+    console.log(`  Contrato del plan: ${plan?.contract ?? '(sin plan)'}`)
+    console.log(`  Derivadas en Cloudinary (${derived.length}):`)
+    for (const d of derivedEntries) {
+      console.log(
+        `    ${d.transformation}  [formato: ${d.format ?? '?'}, ${d.bytes ?? '?'} bytes]`,
+      )
+      console.log(`      ${d.secure_url ?? d.url ?? '(sin url)'}`)
+    }
+    console.log('  Del plan:')
+    for (const t of plan?.transformations ?? []) {
+      console.log(`    ${derived.includes(t) ? 'OK       ' : 'FALTA    '}${t}`)
+    }
+  }
 }
 
 async function runCheck({ cloudinary, media, usagesByMedia }) {

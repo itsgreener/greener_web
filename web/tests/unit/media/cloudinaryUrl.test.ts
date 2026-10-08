@@ -89,8 +89,18 @@ describe('buildVideoSources', () => {
     expect(sources[1].type).toBe('video/mp4')
     for (const { src } of sources) {
       expect(src).toContain('/video/upload/')
-      expect(src.endsWith(`/${PUBLIC_ID}`)).toBe(true)
+      expect(src).toMatch(new RegExp(`/${PUBLIC_ID}\\.(webm|mp4)$`))
     }
+  })
+
+  it('cada fuente lleva la extensión de su formato (.webm / .mp4): sin ella Cloudinary la trata como OTRA derivada y la regenera', () => {
+    const [webm, mp4] = buildVideoSources(PUBLIC_ID, 'toolDetail', {
+      width: 856,
+      height: 1070,
+    })
+
+    expect(webm.src.endsWith(`/${PUBLIC_ID}.webm`)).toBe(true)
+    expect(mp4.src.endsWith(`/${PUBLIC_ID}.mp4`)).toBe(true)
   })
 
   it('el vídeo del feed pide un solo ancho de 480', () => {

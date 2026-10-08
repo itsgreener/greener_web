@@ -53,13 +53,15 @@ function toolPinCandidate(warmedContract: string | null = null) {
   }
 }
 
-/** Las cadenas que debe pedir un pin de tool de 6 s con autoplay a 4:5. */
+/** Las cadenas que debe pedir un pin de tool de 6 s con autoplay a 4:5: feed + ficha M y L. */
 const EXPECTED = [
   ...buildVideoTransformations('feed', { width: 480 }),
-  ...buildVideoTransformations('toolDetail', {
-    width: DETAIL_VIDEO_RUNGS['4:5'].M.width,
-    height: DETAIL_VIDEO_RUNGS['4:5'].M.height,
-  }),
+  ...(['M', 'L'] as const).flatMap((rung) =>
+    buildVideoTransformations('toolDetail', {
+      width: DETAIL_VIDEO_RUNGS['4:5'][rung].width,
+      height: DETAIL_VIDEO_RUNGS['4:5'][rung].height,
+    }),
+  ),
 ]
 
 beforeEach(() => {
@@ -71,7 +73,7 @@ beforeEach(() => {
 })
 
 describe('prepareContentWarming', () => {
-  it('pide las cadenas del contrato (feed + ficha M) de un pin de tool', async () => {
+  it('pide las cadenas del contrato (feed + ficha M y L) de un pin de tool', async () => {
     mockRead.mockResolvedValueOnce({
       status: 'published',
       candidates: [toolPinCandidate()],

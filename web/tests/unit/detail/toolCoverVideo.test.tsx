@@ -103,11 +103,11 @@ describe('ToolCoverVideo — vídeo de la ficha de una tool (5 oct 2026; contrat
 
     expect(sourcesOf(container)).toEqual([
       {
-        src: 'https://res.cloudinary.com/test-cloud/video/upload/ac_none/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/greener/content/videos/demo',
+        src: 'https://res.cloudinary.com/test-cloud/video/upload/ac_none/c_limit,w_1280,h_720/f_webm,vc_vp9/q_auto/greener/content/videos/demo.webm',
         type: 'video/webm; codecs="vp9"',
       },
       {
-        src: 'https://res.cloudinary.com/test-cloud/video/upload/ac_none/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/greener/content/videos/demo',
+        src: 'https://res.cloudinary.com/test-cloud/video/upload/ac_none/c_limit,w_1280,h_720/f_mp4,vc_h264/q_auto/greener/content/videos/demo.mp4',
         type: 'video/mp4',
       },
     ])
