@@ -2,13 +2,12 @@
 
 import { useActionState } from 'react'
 
-import type { ContentStatus } from '@/modules/content/domain/contentRepository'
-
 import {
   deleteContentAction,
   type DeleteContentActionState,
 } from './deleteActions'
 
+import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 type Props = {
   id: string
   status: ContentStatus

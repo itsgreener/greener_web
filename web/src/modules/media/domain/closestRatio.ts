@@ -1,4 +1,8 @@
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
+import {
+  pinRatioSchema,
+  RATIO_DECIMAL_VALUE,
+  type PinRatioValue,
+} from '@/modules/shared/domain/ratio'
 
 /**
  * Sugerencia automática del campo `ratio` de una portada
@@ -17,18 +21,6 @@ import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
  * 9:16, aunque en valor absoluto 16:9-1:1 (0,78) y 1:1-9:16 (0,44) no se
  * parezcan nada.
  */
-
-export type PinRatioValue = (typeof pinRatioSchema.options)[number]
-
-export const RATIO_DECIMAL_VALUE: Record<PinRatioValue, number> = {
-  '1:1': 1 / 1,
-  '4:3': 4 / 3,
-  '4:5': 4 / 5,
-  '3:4': 3 / 4,
-  '2:3': 2 / 3,
-  '9:16': 9 / 16,
-  '16:9': 16 / 9,
-}
 
 export function closestClosedRatio(
   width: number,

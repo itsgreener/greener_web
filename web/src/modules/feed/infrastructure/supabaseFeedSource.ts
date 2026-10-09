@@ -1,6 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import { episodePinSecondaryText } from '@/modules/content/domain/episodeLabels'
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import { feedRatiosSchema } from '../domain/feedConfigSchema'
 import type {
   CaseInput,
   ContentPinQueue,
@@ -19,7 +21,7 @@ export interface FeedItemMedia {
 
 export interface PinDirectoryEntry {
   contentId: string
-  contentType: 'case' | 'insight' | 'tool' | 'episode' | 'other'
+  contentType: ContentType
   contentSlug: string
   ratio: string
   // Other sigue usando el rótulo escrito por el admin.
@@ -59,7 +61,7 @@ export interface FeedDataset {
  */
 export const INSIGHT_PIN_SECONDARY_TEXT = 'Insights by Greener'
 
-const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
+const CONTENT_TYPE_TO_KIND: Record<ContentType, keyof FeedSnapshot> = {
   case: 'cases',
   insight: 'insights',
   tool: 'tools',
@@ -75,7 +77,7 @@ const CONTENT_TYPE_TO_KIND: Record<string, keyof FeedSnapshot> = {
  * 'other' no tiene subhome propia (no hay ruta /other en el brief), así
  * que no aparece como scope aquí — solo se sirve dentro de 'home'.
  */
-const SCOPE_TO_TYPES: Record<string, string[]> = {
+const SCOPE_TO_TYPES: Record<string, readonly ContentType[]> = {
   home: ['case', 'insight', 'tool', 'episode', 'other'],
   work: ['case'],
   insights: ['insight'],
@@ -90,7 +92,7 @@ type ContentTranslationRow = {
 
 type FeedContentMeta = {
   id: string
-  type: string
+  type: ContentType
   slug: string
   default_locale?: string
   content_translation?: ContentTranslationRow[]
@@ -102,20 +104,6 @@ type FeedContentMeta = {
     program?: string | null
     episode_kind?: string | null
   } | null
-}
-
-interface ContentRow extends FeedContentMeta {
-  default_locale: string
-  content_translation: ContentTranslationRow[]
-  case_detail: {
-    force: number
-    client: string | null
-  } | null
-  episode: {
-    program: string | null
-    episode_kind: string | null
-  } | null
-  pin: PinRow[]
 }
 
 interface PinRow {
@@ -137,6 +125,9 @@ interface PinRow {
   }[]
 }
 
+// `as const` en este literal y en las plantillas que lo usan: supabase-js
+// deduce el tipo de la fila a partir del texto del select, y sin `as const`
+// una plantilla con interpolación es un `string` cualquiera.
 const PIN_SELECT = `
   id, ratio, label, language, alt, queue_order, autoplay_mode,
   pin_media (
@@ -144,7 +135,7 @@ const PIN_SELECT = `
     slide_order,
     media_asset ( kind, cloudinary_public_id, duration_seconds )
   )
-`
+` as const
 
 function resolveContentTitle(
   content: FeedContentMeta,
@@ -171,7 +162,7 @@ function derivedFeedText(
   displayTitle: string | null
   displaySecondary: string | null
 } {
-  const contentType = content.type as PinDirectoryEntry['contentType']
+  const contentType = content.type
 
   if (contentType === 'case') {
     return {
@@ -258,7 +249,7 @@ export function buildFeedUnitsForPin(
       unitId: pin.id,
       entry: {
         contentId: content.id,
-        contentType: content.type as PinDirectoryEntry['contentType'],
+        contentType: content.type,
         contentSlug: content.slug,
         ratio: pin.ratio,
         label: text.label,
@@ -305,7 +296,7 @@ function toFeedItemMedia(m: {
 export async function getFeedDataset(
   scope: string = 'home',
   excludeContentId?: string | null,
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<FeedDataset> {
   const types = SCOPE_TO_TYPES[scope] ?? SCOPE_TO_TYPES.home
 
@@ -321,7 +312,7 @@ export async function getFeedDataset(
       case_detail ( force, client ),
       episode ( program, episode_kind ),
       pin ( ${PIN_SELECT} )
-    `,
+    ` as const,
     )
     .eq('status', 'published')
     .in('type', types)
@@ -335,7 +326,7 @@ export async function getFeedDataset(
     query = query.neq('id', excludeContentId)
   }
 
-  const { data, error } = await query.returns<ContentRow[]>()
+  const { data, error } = await query
 
   if (error) {
     throw new Error(
@@ -386,10 +377,6 @@ export async function getFeedDataset(
   return { snapshot, pinDirectory }
 }
 
-interface PinLookupRow extends PinRow {
-  content: FeedContentMeta | null
-}
-
 /**
  * Enriquece una lista de unitIds ya decidida (por ejemplo, una ronda
  * leída de feed_round) sin releer todo el catálogo publicado — a
@@ -403,7 +390,7 @@ interface PinLookupRow extends PinRow {
  */
 export async function getPinDirectoryByIds(
   unitIds: string[],
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<Record<string, PinDirectoryEntry>> {
   if (unitIds.length === 0) return {}
 
@@ -423,10 +410,9 @@ export async function getPinDirectoryByIds(
         case_detail ( client ),
         episode ( program, episode_kind )
       )
-    `,
+    ` as const,
     )
     .in('id', pinIds)
-    .returns<PinLookupRow[]>()
 
   if (error) {
     throw new Error(
@@ -444,27 +430,14 @@ export async function getPinDirectoryByIds(
   return directory
 }
 
-interface FeedConfigRow {
-  ratios: {
-    cases: number
-    insights: number
-    tools: number
-    channel: number
-    other: number
-  }
-  batch_size: number
-  mix_window: number
-  distance_window: number
-}
-
 /** Lee la fila única de feed_config (§7.5, §8.1) y la traduce a FeedConfig. */
 export async function getFeedConfig(
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<FeedConfig> {
   const { data, error } = await client
     .from('feed_config')
     .select('ratios, batch_size, mix_window, distance_window')
-    .single<FeedConfigRow>()
+    .single()
 
   if (error || !data) {
     throw new Error(
@@ -472,8 +445,14 @@ export async function getFeedConfig(
     )
   }
 
+  const ratios = feedRatiosSchema.safeParse(data.ratios)
+
+  if (!ratios.success) {
+    throw new Error('feed_config.ratios no tiene la forma esperada')
+  }
+
   return {
-    ratios: data.ratios,
+    ratios: ratios.data,
     mixWindow: data.mix_window,
     distanceWindow: data.distance_window,
     batchSize: data.batch_size,

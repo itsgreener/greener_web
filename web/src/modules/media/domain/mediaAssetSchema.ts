@@ -1,13 +1,17 @@
 import { z } from 'zod'
 
-import { IMAGE_LIMITS, VIDEO_LIMITS } from './mediaLimits'
-// especificacion-final-formato-detalle.md §4: lista cerrada de 7 ratios —
-// un único concepto, no uno por contexto. Se reutiliza el enum de zod que
-// ya valida pin.ratio en vez de declarar aquí una copia que se puede
-// desincronizar (ver también el tipo pin_ratio de Postgres, mismo motivo).
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
-
-export const mediaKindSchema = z.enum(['image', 'video'])
+import { VIDEO_LIMITS } from './mediaLimits'
+import {
+  cloudinaryPublicIdField,
+  uploadedImageFields,
+  uploadedVideoFields,
+} from './uploadedMediaFields'
+import { idSchema } from '@/lib/validation/idSchema'
+import {
+  mediaKindSchema,
+  type MediaKind,
+} from '@/modules/shared/domain/mediaKind'
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 
 export const mediaStatusSchema = z.enum(['processing', 'ready', 'error'])
 
@@ -16,27 +20,9 @@ export const mediaStatusSchema = z.enum(['processing', 'ready', 'error'])
 // imagen o vídeo (nunca ambos) — de ahí dos schemas separados en vez de
 // uno con un kind condicional.
 export const registerCoverImageSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
-
-  format: z.string().trim().min(1, 'Falta el formato de imagen'),
-
-  width: z.number().int().positive(),
-
-  height: z.number().int().positive(),
-
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      IMAGE_LIMITS.maxSizeBytes,
-      `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  ...uploadedImageFields,
 
   // especificacion-final-formato-detalle.md §2: gobierna el grupo de
   // columnas del panel de recomendaciones (16:9 / 1:1,4:3 / verticales).
@@ -47,36 +33,9 @@ export const registerCoverImageSchema = z.object({
 })
 
 export const registerCoverVideoSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
-
-  format: z.string().trim().min(1, 'Falta el formato del vídeo'),
-
-  width: z.number().int().positive(),
-
-  height: z.number().int().positive(),
-
-  durationSeconds: z
-    .number()
-    .positive()
-    .max(
-      VIDEO_LIMITS.maxDurationSeconds,
-      `El vídeo no puede superar ${VIDEO_LIMITS.maxDurationSeconds} segundos`,
-    )
-    .transform((value) => Math.ceil(value)),
-
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      VIDEO_LIMITS.maxSizeBytes,
-      `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  ...uploadedVideoFields(VIDEO_LIMITS.maxDurationSeconds),
 
   ratio: pinRatioSchema,
 })
@@ -87,14 +46,11 @@ export const registerCoverVideoSchema = z.object({
  * unlink_and_delete_cover_media en Supabase).
  */
 export const deleteCoverMediaSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  mediaId: z.string().uuid('El identificador del medio no es válido'),
+  mediaId: idSchema('media'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
+  cloudinaryPublicId: cloudinaryPublicIdField,
 
   kind: mediaKindSchema,
 })
@@ -103,27 +59,9 @@ export const deleteCoverMediaSchema = z.object({
 // un caso — 1-N imágenes/vídeos mixtos, sin tope (case_detail_media, no
 // reutiliza pin_media).
 export const addCaseCarouselImageSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
-
-  format: z.string().trim().min(1, 'Falta el formato de imagen'),
-
-  width: z.number().int().positive(),
-
-  height: z.number().int().positive(),
-
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      IMAGE_LIMITS.maxSizeBytes,
-      `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  ...uploadedImageFields,
 
   sortOrder: z.number().int().min(0),
 
@@ -131,36 +69,9 @@ export const addCaseCarouselImageSchema = z.object({
 })
 
 export const addCaseCarouselVideoSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
-
-  format: z.string().trim().min(1, 'Falta el formato del vídeo'),
-
-  width: z.number().int().positive(),
-
-  height: z.number().int().positive(),
-
-  durationSeconds: z
-    .number()
-    .positive()
-    .max(
-      VIDEO_LIMITS.maxDurationSeconds,
-      `El vídeo no puede superar ${VIDEO_LIMITS.maxDurationSeconds} segundos`,
-    )
-    .transform((value) => Math.ceil(value)),
-
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      VIDEO_LIMITS.maxSizeBytes,
-      `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  ...uploadedVideoFields(VIDEO_LIMITS.maxDurationSeconds),
 
   sortOrder: z.number().int().min(0),
 
@@ -168,19 +79,14 @@ export const addCaseCarouselVideoSchema = z.object({
 })
 
 export const removeCaseCarouselMediaSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
-  mediaId: z.string().uuid('El identificador del medio no es válido'),
+  mediaId: idSchema('media'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
+  cloudinaryPublicId: cloudinaryPublicIdField,
 
   kind: mediaKindSchema,
 })
-
-export type MediaKind = z.infer<typeof mediaKindSchema>
 
 export type MediaStatus = z.infer<typeof mediaStatusSchema>
 

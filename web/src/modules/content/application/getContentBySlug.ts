@@ -1,11 +1,11 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Locale } from '../domain/contentSchema'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { getContentBySlug as getContentBySlugSource } from '../infrastructure/publicContentSource'
 
+import type { Locale } from '@/modules/shared/domain/locale'
 export async function getContentBySlug(
   slug: string,
   locale?: Locale,
-  client?: SupabaseClient,
+  client?: AppSupabaseClient,
 ) {
   return getContentBySlugSource(slug, locale, client)
 }

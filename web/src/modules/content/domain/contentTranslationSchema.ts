@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
-import { localeSchema } from './contentSchema'
-
+import { localeSchema } from '@/modules/shared/domain/locale'
+import { idSchema } from '@/lib/validation/idSchema'
 export const contentTranslationSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
   locale: localeSchema,
 

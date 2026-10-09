@@ -1,9 +1,9 @@
 'use client'
 
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { useToolCoverVideo } from './useToolCoverVideo'
 import styles from './ToolCoverVideo.module.css'
 
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Vídeo de demostración que ocupa el hueco de la portada en la ficha de una
  * tool (`/tools/{slug}?pin=...`), con la misma caja que tendría la imagen.

@@ -2,7 +2,7 @@
 
 import { z } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
+import { isAdminRequest } from '@/lib/auth/adminSession'
 
 import { discardUnregisteredUpload } from '@/modules/media/application/cleanupMedia'
 
@@ -33,11 +33,7 @@ export async function discardUploadedMediaAction(
 
   if (!parsed.success) return { ok: false }
 
-  const supabase = await createClient()
-
-  const { data: isAdmin, error } = await supabase.rpc('is_admin')
-
-  if (error || !isAdmin) return { ok: false }
+  if (!(await isAdminRequest())) return { ok: false }
 
   const discarded = await discardUnregisteredUpload(
     parsed.data.cloudinaryPublicId,

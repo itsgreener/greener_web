@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import { revalidatePath } from 'next/cache'
 
@@ -41,6 +43,9 @@ function revalidateContent(contentId: string) {
 export async function addCaseCarouselImageAction(
   input: unknown,
 ): Promise<CaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = addCaseCarouselImageSchema.safeParse(input)
 
   if (!result.success) {
@@ -103,6 +108,9 @@ export async function addCaseCarouselImageAction(
 export async function addCaseCarouselVideoAction(
   input: unknown,
 ): Promise<CaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = addCaseCarouselVideoSchema.safeParse(input)
 
   if (!result.success) {
@@ -175,6 +183,9 @@ export async function addCaseCarouselVideoAction(
 export async function removeCaseCarouselMediaAction(
   input: unknown,
 ): Promise<RemoveCaseCarouselMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = removeCaseCarouselMediaSchema.safeParse(input)
 
   if (!result.success) {
@@ -256,7 +267,10 @@ export async function removeCaseCarouselMediaAction(
 export async function removeAllCaseCarouselMediaAction(
   contentId: string,
 ): Promise<RemoveCaseCarouselMediaActionResult> {
-  const parsedContentId = z.string().uuid().safeParse(contentId)
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  const parsedContentId = z.uuid().safeParse(contentId)
 
   if (!parsedContentId.success) {
     return {

@@ -12,6 +12,7 @@ import {
   attachVisitorCookie,
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
+import { isUuid } from '@/lib/validation/uuid'
 
 /**
  * POST /api/feed/sessions (§16.1): crea una feedSession real, persistida
@@ -66,9 +67,9 @@ export async function POST(request: NextRequest) {
     return respond({ error: "'scope' debe ser una cadena." }, { status: 400 })
   }
 
-  if (excludeContentId !== undefined && typeof excludeContentId !== 'string') {
+  if (excludeContentId !== undefined && !isUuid(excludeContentId)) {
     return respond(
-      { error: "'excludeContentId', si se manda, debe ser una cadena." },
+      { error: "'excludeContentId', si se manda, debe ser un uuid." },
       { status: 400 },
     )
   }

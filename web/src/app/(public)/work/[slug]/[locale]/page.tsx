@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { getPublicCaseDetail } from '@/modules/content/application/getPublicCaseDetail'
 import { getPublicCaseCarousel } from '@/modules/content/application/getPublicCaseCarousel'
-import { localeSchema } from '@/modules/content/domain/contentSchema'
 import { CaseDetail } from '../CaseDetail'
 import { getWorkContent, buildWorkMetadata } from '../workContent'
 import styles from '../page.module.css'
 
+import { localeSchema } from '@/modules/shared/domain/locale'
 type Props = {
   params: Promise<{ slug: string; locale: string }>
 }

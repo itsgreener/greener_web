@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
 import {
   DETAIL_VIDEO_RUNGS,
   FEED_VIDEO_WIDTH,
@@ -22,6 +21,7 @@ import {
   RUNG_M,
 } from '../../../scripts/warm-probe.mjs'
 
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 /**
  * El script de prueba contra Cloudinary real (paso 0 de la fase 2) tiene las
  * cadenas copiadas a mano porque un .mjs no puede importar el TypeScript de

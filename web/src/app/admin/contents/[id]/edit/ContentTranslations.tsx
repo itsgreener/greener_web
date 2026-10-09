@@ -2,15 +2,12 @@
 
 import { useState } from 'react'
 
-import type {
-  ContentType,
-  Locale,
-} from '@/modules/content/domain/contentSchema'
-
 import type { ContentTranslation } from '@/modules/content/domain/contentTranslationSchema'
 
 import TranslationForm from './TranslationForm'
 
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { Locale } from '@/modules/shared/domain/locale'
 type Props = {
   contentId: string
   contentType: ContentType

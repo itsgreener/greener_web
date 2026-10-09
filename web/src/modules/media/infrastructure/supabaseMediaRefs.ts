@@ -1,12 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import type { MediaKind } from '@/modules/shared/domain/mediaKind'
 
 /**
  * Lecturas de «qué archivos de Cloudinary cuelgan de qué» que necesita la
  * limpieza de medios (cleanupMedia.ts). Van con el cliente del admin
  * (RLS: solo `is_admin()` ve `media_asset` sin publicar).
  */
-
-export type MediaKind = 'image' | 'video'
 
 export interface MediaRef {
   mediaId: string
@@ -18,11 +17,6 @@ type MediaAssetRow = {
   id: string
   kind: MediaKind
   cloudinary_public_id: string
-}
-
-type PinMediaRow = {
-  media_id: string
-  media_asset: MediaAssetRow | null
 }
 
 function repositoryError(message: string): Error {
@@ -52,9 +46,9 @@ export async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
   if (error) throw repositoryError(error.message)
 
   return uniqueByMediaId(
-    ((data ?? []) as unknown as PinMediaRow[])
-      .filter((row) => row.media_asset !== null)
-      .map((row) => toRef(row.media_asset!)),
+    (data ?? []).flatMap((row) =>
+      row.media_asset ? [toRef(row.media_asset)] : [],
+    ),
   )
 }
 
@@ -78,8 +72,8 @@ export async function listContentMediaRefs(
   if (content.error) throw repositoryError(content.error.message)
 
   const directIds = [
-    content.data?.cover_media_id as string | null | undefined,
-    content.data?.og_media_id as string | null | undefined,
+    content.data?.cover_media_id,
+    content.data?.og_media_id,
   ].filter((id): id is string => typeof id === 'string')
 
   if (directIds.length > 0) {
@@ -90,7 +84,7 @@ export async function listContentMediaRefs(
 
     if (direct.error) throw repositoryError(direct.error.message)
 
-    refs.push(...((direct.data ?? []) as MediaAssetRow[]).map(toRef))
+    refs.push(...(direct.data ?? []).map(toRef))
   }
 
   const pins = await supabase
@@ -102,9 +96,7 @@ export async function listContentMediaRefs(
 
   if (pins.error) throw repositoryError(pins.error.message)
 
-  for (const pin of (pins.data ?? []) as unknown as {
-    pin_media: PinMediaRow[]
-  }[]) {
+  for (const pin of pins.data ?? []) {
     for (const row of pin.pin_media) {
       if (row.media_asset) refs.push(toRef(row.media_asset))
     }
@@ -117,11 +109,29 @@ export async function listContentMediaRefs(
 
   if (carousel.error) throw repositoryError(carousel.error.message)
 
-  for (const row of (carousel.data ?? []) as unknown as PinMediaRow[]) {
+  for (const row of carousel.data ?? []) {
     if (row.media_asset) refs.push(toRef(row.media_asset))
   }
 
   return uniqueByMediaId(refs)
+}
+
+/** Referencias (public id y tipo) de estos `media_asset.id`, leídas de Postgres. */
+export async function listMediaRefsByIds(
+  mediaIds: string[],
+): Promise<MediaRef[]> {
+  if (mediaIds.length === 0) return []
+
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('media_asset')
+    .select('id, kind, cloudinary_public_id')
+    .in('id', mediaIds)
+
+  if (error) throw repositoryError(error.message)
+
+  return ((data ?? []) as MediaAssetRow[]).map(toRef)
 }
 
 /** De estos `media_asset.id`, cuáles siguen existiendo en Postgres. */

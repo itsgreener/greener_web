@@ -1,10 +1,9 @@
 import type { Metadata } from 'next'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { getContentBySlug } from '@/modules/content/application/getContentBySlug'
 import { getPublicCaseCarousel } from '@/modules/content/application/getPublicCaseCarousel'
 import { buildImageUrl } from '@/modules/media/infrastructure/cloudinaryUrl'
-import type { Locale } from '@/modules/content/domain/contentSchema'
-
+import type { Locale } from '@/modules/shared/domain/locale'
 /**
  * Compartido por /work/[slug] (canónica) y /work/[slug]/[locale]
  * (variantes de idioma, arquitectura §7.7 — solo caso, nunca episodio:
@@ -22,7 +21,7 @@ type WorkContent = NonNullable<Awaited<ReturnType<typeof getWorkContent>>>
 
 export async function buildWorkMetadata(
   content: WorkContent,
-  options?: { client?: SupabaseClient; noindex?: boolean },
+  options?: { client?: AppSupabaseClient; noindex?: boolean },
 ): Promise<Metadata> {
   const title = content.seoTitle ?? content.title
   // Case y episodio ya no tienen summary: la descripción es solo la SEO.

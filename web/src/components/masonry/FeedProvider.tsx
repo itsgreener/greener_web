@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -29,6 +30,13 @@ import { pageLoadId } from './pageLoadId'
  * (home/work/insights/tools/channel) — cada subhome necesita la misma
  * persistencia al entrar en un detalle y volver, pero cada una con su
  * propio universo de pines, sesión y scroll, no uno compartido.
+ *
+ * Rendimiento (auditoría 8 oct, P0-5): la posición de scroll NO es estado de
+ * React. Antes, cada frame de scroll creaba un estado nuevo, re-renderizaba
+ * todo el feed, recreaba `loadMore` (y con él el IntersectionObserver) y
+ * escribía TODOS los pines en sessionStorage como JSON. Ahora el scroll vive
+ * en un ref y el respaldo se escribe solo al cambiar sesión/lotes y al
+ * ocultar la página (`pagehide`/`visibilitychange`), con el scroll del ref.
  */
 
 interface ScopeFeedState {
@@ -102,10 +110,33 @@ interface FeedContextValue {
 
 const FeedContext = createContext<FeedContextValue | null>(null)
 
+function withScroll(
+  scopes: FeedProviderState,
+  scrollByScope: Record<string, number>,
+): FeedProviderState {
+  const result: FeedProviderState = {}
+  for (const [scope, state] of Object.entries(scopes)) {
+    result[scope] = { ...state, scrollY: scrollByScope[scope] ?? state.scrollY }
+  }
+  return result
+}
+
 export function FeedProvider({ children }: { children: ReactNode }) {
   const [scopes, setScopes] = useState<FeedProviderState>(
     readFromSessionStorage,
   )
+
+  // Scroll por scope, fuera del estado de React (ver comentario de arriba).
+  const scrollByScopeRef = useRef<Record<string, number> | null>(null)
+  if (scrollByScopeRef.current === null) {
+    scrollByScopeRef.current = Object.fromEntries(
+      Object.entries(scopes).map(([scope, state]) => [scope, state.scrollY]),
+    )
+  }
+
+  // Última foto del estado, para escribirla al ocultar la página sin tener
+  // que re-suscribir los listeners en cada cambio.
+  const scopesRef = useRef(scopes)
 
   useEffect(() => {
     // Vuelta atrás sin recarga real: no lo maneja React Router, lo
@@ -116,12 +147,36 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Solo cambia al abrir sesión o añadir un lote: escritura poco frecuente.
   useEffect(() => {
-    writeToSessionStorage(scopes)
+    scopesRef.current = scopes
+    writeToSessionStorage(withScroll(scopes, scrollByScopeRef.current ?? {}))
   }, [scopes])
 
+  // Al salir o pasar a segundo plano se guarda el scroll más reciente.
+  useEffect(() => {
+    const persist = () =>
+      writeToSessionStorage(
+        withScroll(scopesRef.current, scrollByScopeRef.current ?? {}),
+      )
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') persist()
+    }
+
+    window.addEventListener('pagehide', persist)
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      window.removeEventListener('pagehide', persist)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [])
+
   const getState = useCallback(
-    (scope: string) => scopes[scope] ?? EMPTY_SCOPE_STATE,
+    (scope: string): ScopeFeedState => {
+      const state = scopes[scope] ?? EMPTY_SCOPE_STATE
+      const scrollY = scrollByScopeRef.current?.[scope]
+      return scrollY === undefined ? state : { ...state, scrollY }
+    },
     [scopes],
   )
 
@@ -181,12 +236,9 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  // Sin setState: no re-renderiza ni escribe nada en cada frame de scroll.
   const setScrollY = useCallback((scope: string, y: number) => {
-    setScopes((prev) => {
-      const current = prev[scope] ?? EMPTY_SCOPE_STATE
-      if (current.scrollY === y) return prev
-      return { ...prev, [scope]: { ...current, scrollY: y } }
-    })
+    if (scrollByScopeRef.current) scrollByScopeRef.current[scope] = y
   }, [])
 
   const value = useMemo<FeedContextValue>(

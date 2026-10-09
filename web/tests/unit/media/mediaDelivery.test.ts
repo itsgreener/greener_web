@@ -8,11 +8,8 @@ import {
   pickDetailVideoRung,
   pickFeedImageWidth,
 } from '@/modules/media/domain/mediaDelivery'
-import {
-  RATIO_DECIMAL_VALUE,
-  type PinRatioValue,
-} from '@/modules/media/domain/closestRatio'
-
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
+import { RATIO_DECIMAL_VALUE } from '@/modules/shared/domain/ratio'
 describe('escalones M y L de la ficha (contrato §4.3)', () => {
   it('tabla EXACTA del contrato, ratio a ratio (ancho×alto)', () => {
     const table: Record<PinRatioValue, [[number, number], [number, number]]> = {

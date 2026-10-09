@@ -8,39 +8,8 @@ import type {
   PublishHtmlPackageVersionInput,
   UploadHtmlPackageVersionInput,
 } from '../domain/htmlPackageRepository'
-
-const BUCKET = 'html-packages'
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
-
-function contentTypeFor(path: string): string {
-  const extension = path.split('.').pop()?.toLowerCase() ?? ''
-
-  const types: Record<string, string> = {
-    html: 'text/html; charset=utf-8',
-    htm: 'text/html; charset=utf-8',
-    js: 'text/javascript; charset=utf-8',
-    mjs: 'text/javascript; charset=utf-8',
-    css: 'text/css; charset=utf-8',
-    json: 'application/json; charset=utf-8',
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    svg: 'image/svg+xml',
-    woff: 'font/woff',
-    woff2: 'font/woff2',
-  }
-
-  return types[extension] ?? 'application/octet-stream'
-}
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
+import { contentTypeFor, PACKAGE_BUCKET } from '../domain/packageFiles'
 
 type StorageClient = Awaited<ReturnType<typeof createClient>>['storage']
 
@@ -58,7 +27,7 @@ async function listFilesRecursive(
   const files: string[] = []
 
   for (let offset = 0; ; offset += LIST_PAGE_SIZE) {
-    const { data, error } = await storage.from(BUCKET).list(prefix, {
+    const { data, error } = await storage.from(PACKAGE_BUCKET).list(prefix, {
       limit: LIST_PAGE_SIZE,
       offset,
     })
@@ -85,6 +54,21 @@ async function listFilesRecursive(
   return files
 }
 
+/** Limpieza best-effort tras una subida fallida: nunca tapa el error real. */
+async function removeUploadedFiles(
+  storage: StorageClient,
+  paths: string[],
+): Promise<void> {
+  if (paths.length === 0) return
+
+  try {
+    const { error } = await storage.from(PACKAGE_BUCKET).remove(paths)
+    if (error) console.error(error)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
   async uploadVersion(input: UploadHtmlPackageVersionInput) {
     const supabase = await createClient()
@@ -104,34 +88,53 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
     const version = (existing?.version ?? 0) + 1
     const basePath = `${input.contentId}/v${version}`
 
-    for (const entry of input.entries) {
-      const { error: uploadError } = await supabase.storage
-        .from(BUCKET)
-        .upload(`${basePath}/${entry.path}`, entry.data, {
-          contentType: contentTypeFor(entry.path),
-          upsert: false,
-        })
+    // Dos subidas simultáneas calcularían la misma versión: lo impiden
+    // `upsert: false` en Storage y el unique(package_id, version) en
+    // Postgres. Lo que faltaba (auditoría 8 oct, P0-10) es no dejar ficheros
+    // huérfanos en Storage si algo falla a mitad: se borran los que ESTA
+    // subida llegó a escribir (nunca los de otra).
+    const uploadedPaths: string[] = []
 
-      if (uploadError) {
-        throw createRepositoryError(
-          `Fallo subiendo "${entry.path}" a Storage: ${uploadError.message}`,
-        )
+    try {
+      for (const entry of input.entries) {
+        const path = `${basePath}/${entry.path}`
+
+        const { error: uploadError } = await supabase.storage
+          .from(PACKAGE_BUCKET)
+          .upload(path, entry.data, {
+            contentType: contentTypeFor(entry.path),
+            upsert: false,
+          })
+
+        if (uploadError) {
+          throw createRepositoryError(
+            `Fallo subiendo "${entry.path}" a Storage: ${uploadError.message}`,
+          )
+        }
+
+        uploadedPaths.push(path)
       }
+
+      const { data, error } = await supabase.rpc(
+        'create_html_package_version',
+        {
+          p_content_id: input.contentId,
+          p_version: version,
+          p_storage_path: basePath,
+          p_checksum: input.checksum,
+          p_manifest: input.manifest,
+        },
+      )
+
+      if (error) {
+        throw createRepositoryError(error.message, error.code)
+      }
+
+      return data
+    } catch (error) {
+      await removeUploadedFiles(supabase.storage, uploadedPaths)
+      throw error
     }
-
-    const { data, error } = await supabase.rpc('create_html_package_version', {
-      p_content_id: input.contentId,
-      p_version: version,
-      p_storage_path: basePath,
-      p_checksum: input.checksum,
-      p_manifest: input.manifest,
-    })
-
-    if (error) {
-      throw createRepositoryError(error.message, error.code)
-    }
-
-    return data as string
   },
 
   async publishVersion(input: PublishHtmlPackageVersionInput) {
@@ -146,7 +149,7 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async deleteVersion(
@@ -165,7 +168,7 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    const storagePath = data as string
+    const storagePath = data
 
     // Después los ficheros, best-effort: la fila ya no existe, así que un
     // fallo aquí solo deja ficheros huérfanos, no una versión rota.
@@ -176,7 +179,7 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
 
       if (files.length > 0) {
         const { error: removeError } = await supabase.storage
-          .from(BUCKET)
+          .from(PACKAGE_BUCKET)
           .remove(files)
 
         if (removeError) {

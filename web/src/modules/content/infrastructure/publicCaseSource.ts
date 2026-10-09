@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 
 /**
@@ -17,7 +17,7 @@ export interface PublicCaseDetail {
 
 export async function getPublicCaseDetail(
   contentId: string,
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<PublicCaseDetail | null> {
   const { data, error } = await client
     .from('case_detail')
@@ -44,21 +44,9 @@ export interface PublicCaseCarouselItem {
   height: number
 }
 
-interface CaseCarouselRow {
-  media_id: string
-  sort_order: number
-  alt: string
-  media_asset: {
-    kind: 'image' | 'video'
-    cloudinary_public_id: string
-    width: number | null
-    height: number | null
-  } | null
-}
-
 export async function getPublicCaseCarousel(
   contentId: string,
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<PublicCaseCarouselItem[]> {
   const { data, error } = await client
     .from('case_detail_media')
@@ -79,7 +67,7 @@ export async function getPublicCaseCarousel(
     )
   }
 
-  return ((data ?? []) as unknown as CaseCarouselRow[])
+  return (data ?? [])
     .filter((row) => row.media_asset !== null)
     .map((row) => ({
       mediaId: row.media_id,

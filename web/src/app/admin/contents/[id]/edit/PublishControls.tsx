@@ -1,8 +1,7 @@
 'use client'
 
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
-
-import type { ContentStatus } from '@/modules/content/domain/contentRepository'
 
 import { localDateTimeToIsoUtc } from './datetimeLocal'
 
@@ -19,6 +18,7 @@ import {
   type PreviewLinkActionState,
 } from './previewActions'
 
+import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 type Props = {
   contentId: string
   status: ContentStatus
@@ -28,13 +28,6 @@ type Props = {
 const publishInitialState: PublishActionState = {}
 const scheduleInitialState: ScheduleActionState = {}
 const previewInitialState: PreviewLinkActionState = {}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
 
 function getStatusLabel(status: ContentStatus) {
   switch (status) {
@@ -86,11 +79,11 @@ export default function PublishControls({
         </span>
 
         {status === 'scheduled' && publishAt && (
-          <small>Programado para {formatDateTime(publishAt)}</small>
+          <small>Programado para {formatAdminDateTime(publishAt)}</small>
         )}
 
         {status === 'published' && publishAt && (
-          <small>Publicado el {formatDateTime(publishAt)}</small>
+          <small>Publicado el {formatAdminDateTime(publishAt)}</small>
         )}
       </div>
 

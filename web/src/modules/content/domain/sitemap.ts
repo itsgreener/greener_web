@@ -1,6 +1,7 @@
-import type { ContentType, Locale } from './contentSchema'
 import { publicContentPath } from './contentPath'
 
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { Locale } from '@/modules/shared/domain/locale'
 /**
  * Sitemap (arquitectura §18.1: "Sitemap automático de contenidos
  * publicados y hreflang en casos traducidos"). Dominio puro — recibe las

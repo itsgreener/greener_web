@@ -4,26 +4,7 @@ import type {
   CaseCarouselItem,
   CaseCarouselRepository,
 } from '../domain/caseCarouselRepository'
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
-
-type SupabaseCaseCarouselRow = {
-  media_id: string
-  sort_order: number
-  alt: string
-  media_asset: {
-    kind: 'image' | 'video'
-    cloudinary_public_id: string
-  } | null
-}
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabaseCaseCarouselRepository: CaseCarouselRepository = {
   async listByContentId(contentId: string) {
@@ -46,7 +27,7 @@ export const supabaseCaseCarouselRepository: CaseCarouselRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return ((data ?? []) as unknown as SupabaseCaseCarouselRow[])
+    return (data ?? [])
       .filter((row) => row.media_asset !== null)
       .map((row): CaseCarouselItem => ({
         mediaId: row.media_id,

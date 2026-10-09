@@ -1,7 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import type { Locale, ContentType } from '../domain/contentSchema'
+
 import type { SitemapContentRow } from '../domain/sitemap'
 
 // Supabase (PostgREST) devuelve como mucho 1000 filas por petición por
@@ -10,14 +9,6 @@ import type { SitemapContentRow } from '../domain/sitemap'
 // es un fallo que nadie ve — por eso se pagina.
 const PAGE_SIZE = 1000
 
-interface SitemapRow {
-  type: ContentType
-  slug: string
-  default_locale: Locale
-  updated_at: string
-  translations: Array<{ locale: Locale }>
-}
-
 /**
  * Todo el contenido publicado, para el sitemap. RLS ya filtra por
  * status=published (content_public_read); el `.eq` es explícito solo para
@@ -25,7 +16,7 @@ interface SitemapRow {
  * publicContentSource.ts: cliente público, sin sesión.
  */
 export async function listPublishedForSitemap(
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<SitemapContentRow[]> {
   const result: SitemapContentRow[] = []
 
@@ -48,7 +39,7 @@ export async function listPublishedForSitemap(
       )
     }
 
-    const rows = (data ?? []) as unknown as SitemapRow[]
+    const rows = data ?? []
 
     for (const row of rows) {
       result.push({

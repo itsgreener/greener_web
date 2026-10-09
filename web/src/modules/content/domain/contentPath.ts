@@ -1,5 +1,4 @@
-import type { ContentType } from './contentSchema'
-
+import type { ContentType } from '@/modules/shared/domain/contentType'
 /**
  * especificacion-final-formato-detalle.md §7: case/episode comparten
  * /work/[slug] (detalle tipo B); tool/insight tienen ruta propia

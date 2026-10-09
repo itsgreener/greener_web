@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import {
   warmContentAfterResponse,
   warmPinContentAfterResponse,
@@ -34,7 +36,6 @@ import { detachPinMedia } from '@/modules/pin/application/detachPinMedia'
 import {
   CloudinaryImageVerificationError,
   CloudinaryVideoVerificationError,
-  deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
@@ -47,8 +48,10 @@ import {
 
 import {
   purgeRemovedMedia,
+  snapshotMedia,
   snapshotPinMedia,
 } from '@/modules/media/application/cleanupMedia'
+import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
 export type PinFormState = {
   fieldErrors?: Record<string, string[]>
@@ -87,6 +90,8 @@ export async function createPinAction(
   _previousState: PinFormState,
   formData: FormData,
 ): Promise<PinFormState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = createPinSchema.safeParse({
     contentId,
     ratio: formData.get('ratio'),
@@ -98,7 +103,7 @@ export async function createPinAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 
@@ -136,6 +141,8 @@ export async function updatePinAction(
   _previousState: PinFormState,
   formData: FormData,
 ): Promise<PinFormState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = updatePinSchema.safeParse({
     id: pinId,
     ratio: formData.get('ratio'),
@@ -147,7 +154,7 @@ export async function updatePinAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 
@@ -183,6 +190,8 @@ export async function deletePinAction(
   pinId: string,
   contentId: string,
 ): Promise<PinFormState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = deletePinSchema.safeParse({
     id: pinId,
   })
@@ -239,7 +248,9 @@ export async function deletePinAction(
 export async function deleteAllPinsAction(
   contentId: string,
 ): Promise<PinFormState> {
-  const parsedContentId = z.string().uuid().safeParse(contentId)
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
+  const parsedContentId = z.uuid().safeParse(contentId)
 
   if (!parsedContentId.success) {
     return {
@@ -310,14 +321,18 @@ export async function deleteAllPinsAction(
 }
 
 /**
- * Crea el pin y adjunta la imagen en una sola llamada.
+ * Crea el pin y adjunta la imagen en una sola llamada (carga masiva).
  *
- * El archivo ya ha sido subido previamente a Cloudinary
- * desde el cliente, pero NO se confía en los metadatos
- * enviados por el navegador.
+ * El archivo ya está en Cloudinary (lo subió el navegador), pero NO se fía
+ * de los metadatos del navegador: se consulta el asset real y se valida en
+ * servidor.
  *
- * Antes de registrar la imagen en Postgres se consulta el
- * asset real en Cloudinary y se valida en servidor.
+ * Mismo orden que createPinWithVideoAction (auditoría 8 oct, P0-7): antes se
+ * creaba el pin y DESPUÉS se verificaba la imagen, así que cualquier fallo
+ * dejaba un pin vacío. Ahora:
+ *  1. se verifica la imagen ANTES de crear nada;
+ *  2. si el adjuntado falla igualmente, se borra el pin recién creado
+ *     (best-effort). El archivo de Cloudinary lo descarta el cliente.
  */
 export type CreatePinWithImageInput = CreatePinInput & {
   cloudinaryPublicId: string
@@ -342,6 +357,9 @@ export type CreatePinWithImageResult =
 export async function createPinWithImageAction(
   input: unknown,
 ): Promise<CreatePinWithImageResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const pinResult = createPinSchema.safeParse(input)
 
   if (!pinResult.success) {
@@ -350,6 +368,47 @@ export async function createPinWithImageAction(
     return {
       ok: false,
       error: firstIssue ?? 'Los datos del pin no son válidos.',
+    }
+  }
+
+  const imageInput = input as Partial<CreatePinWithImageInput>
+
+  if (typeof imageInput.cloudinaryPublicId !== 'string') {
+    return {
+      ok: false,
+      error: 'La imagen no es válida.',
+    }
+  }
+
+  let verifiedImage
+
+  try {
+    verifiedImage = await verifyCloudinaryImageAsset(
+      imageInput.cloudinaryPublicId,
+    )
+  } catch (error) {
+    console.error(error)
+
+    return {
+      ok: false,
+      error:
+        error instanceof CloudinaryImageVerificationError
+          ? error.message
+          : 'No se ha podido verificar la imagen.',
+    }
+  }
+
+  // El esquema lleva `pinId`, que aún no existe: se valida con uno
+  // provisional y se vuelve a validar con el real al adjuntar.
+  const preflight = attachPinImageSchema.safeParse({
+    pinId: '00000000-0000-4000-8000-000000000000',
+    ...verifiedImage,
+  })
+
+  if (!preflight.success) {
+    return {
+      ok: false,
+      error: preflight.error.issues[0]?.message ?? 'La imagen no es válida.',
     }
   }
 
@@ -366,50 +425,8 @@ export async function createPinWithImageAction(
     }
   }
 
-  const imageInput = input as Partial<CreatePinWithImageInput>
-
-  if (typeof imageInput.cloudinaryPublicId !== 'string') {
-    return {
-      ok: false,
-      pinId,
-      error: 'El pin se creó, pero la imagen no es válida.',
-    }
-  }
-
-  let verifiedImage
-
   try {
-    verifiedImage = await verifyCloudinaryImageAsset(
-      imageInput.cloudinaryPublicId,
-    )
-  } catch (error) {
-    console.error(error)
-
-    return {
-      ok: false,
-      pinId,
-      error:
-        error instanceof CloudinaryImageVerificationError
-          ? error.message
-          : 'El pin se creó, pero no se ha podido verificar la imagen.',
-    }
-  }
-
-  const imageResult = attachPinImageSchema.safeParse({
-    pinId,
-    ...verifiedImage,
-  })
-
-  if (!imageResult.success) {
-    return {
-      ok: false,
-      pinId,
-      error: imageResult.error.issues[0]?.message ?? 'La imagen no es válida.',
-    }
-  }
-
-  try {
-    const mediaId = await attachPinImage(imageResult.data)
+    const mediaId = await attachPinImage({ ...preflight.data, pinId })
 
     revalidateContent(pinResult.data.contentId)
 
@@ -421,15 +438,20 @@ export async function createPinWithImageAction(
   } catch (error) {
     console.error(error)
 
+    try {
+      await deletePin({ id: pinId })
+    } catch (cleanupError) {
+      console.error(cleanupError)
+    }
+
     revalidateContent(pinResult.data.contentId)
 
     return {
       ok: false,
-      pinId,
       error:
         error instanceof Error
           ? error.message
-          : 'El pin se creó pero no se ha podido adjuntar la imagen.',
+          : 'No se ha podido adjuntar la imagen.',
     }
   }
 }
@@ -437,6 +459,9 @@ export async function createPinWithImageAction(
 export async function attachPinImageAction(
   input: unknown,
 ): Promise<PinMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = attachPinImageSchema.safeParse(input)
 
   if (!result.success) {
@@ -531,6 +556,9 @@ function videoAttachErrorMessage(error: unknown): string {
 export async function attachPinVideoAction(
   input: unknown,
 ): Promise<PinMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = attachPinVideoSchema.safeParse(input)
 
   if (!result.success) {
@@ -600,6 +628,9 @@ export type CreatePinWithVideoResult =
 export async function createPinWithVideoAction(
   input: unknown,
 ): Promise<CreatePinWithVideoResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const pinResult = createPinSchema.safeParse(input)
 
   if (!pinResult.success) {
@@ -688,6 +719,9 @@ export async function createPinWithVideoAction(
 export async function detachPinMediaAction(
   input: unknown,
 ): Promise<DetachPinMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = detachPinMediaSchema.safeParse(input)
 
   if (!result.success) {
@@ -696,6 +730,11 @@ export async function detachPinMediaAction(
       error: 'Los datos del medio no son válidos.',
     }
   }
+
+  // El archivo a borrar en Cloudinary se lee de Postgres ANTES de
+  // desvincular, nunca del navegador: `cloudinaryPublicId`/`kind` del input
+  // se ignoran para borrar (auditoría 8 oct, P0-2).
+  const mediaRefs = await snapshotMedia([result.data.mediaId])
 
   try {
     await detachPinMedia(result.data)
@@ -729,18 +768,15 @@ export async function detachPinMediaAction(
     }
   }
 
-  try {
-    await deleteCloudinaryAsset(
-      result.data.cloudinaryPublicId,
-      result.data.kind,
-    )
-  } catch (error) {
-    console.error(error)
+  // detach_pin_media ya borró el media_asset; purgeRemovedMedia solo borra
+  // en Cloudinary lo que ya no existe en Postgres y está en la carpeta del ABM.
+  const purge = await purgeRemovedMedia(mediaRefs)
 
+  if (purge.failed > 0) {
     return {
       ok: true,
       warning:
-        'Se ha desvinculado el medio, pero no se ha podido borrar el archivo en Cloudinary. Revísalo manualmente si el consumo del plan gratuito te preocupa.',
+        'Se ha desvinculado el medio, pero no se ha podido borrar el archivo en Cloudinary. Se limpiará con el reconciliador (scripts/reconcile-cloudinary.mjs).',
     }
   }
 

@@ -2,12 +2,11 @@
 
 import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
 import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
+import type { FormActionState } from '@/lib/forms/formActionState'
 
-export type NewsletterActionState = {
-  fieldErrors?: Record<string, string[]>
-  formError?: string
-  success?: boolean
+export type NewsletterActionState = FormActionState & {
   message?: string
+
   /** true si es un alta nueva (cuenta para la analítica). */
   newSubscription?: boolean
 }

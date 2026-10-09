@@ -4,6 +4,8 @@
  * Esta capa no depende de Cloudinary, Supabase ni Next.js.
  */
 
+import type { ContentType } from '@/modules/shared/domain/contentType'
+
 export const IMAGE_LIMITS = {
   maxSizeBytes: 5 * 1024 * 1024,
 
@@ -52,9 +54,6 @@ export const TOOL_PIN_VIDEO_LIMITS = {
   maxDurationSeconds: 15,
   maxSizeBytes: 15 * 1024 * 1024,
 } as const
-
-/** Tipo de contenido al que pertenece el pin (solo importa si es una tool). */
-export type PinContentKind = 'case' | 'insight' | 'tool' | 'episode' | 'other'
 
 export type MediaValidationError =
   | {
@@ -116,14 +115,24 @@ function asciiAt(bytes: Uint8Array, offset: number, value: string): boolean {
   return true
 }
 
-function containsAscii(bytes: Uint8Array, value: string): boolean {
-  for (let index = 0; index <= bytes.length - value.length; index += 1) {
-    if (asciiAt(bytes, index, value)) {
-      return true
-    }
-  }
+function readUint32LE(bytes: Uint8Array, offset: number): number {
+  return (
+    (bytes[offset] |
+      (bytes[offset + 1] << 8) |
+      (bytes[offset + 2] << 16) |
+      (bytes[offset + 3] << 24)) >>>
+    0
+  )
+}
 
-  return false
+function readUint32BE(bytes: Uint8Array, offset: number): number {
+  return (
+    ((bytes[offset] << 24) |
+      (bytes[offset + 1] << 16) |
+      (bytes[offset + 2] << 8) |
+      bytes[offset + 3]) >>>
+    0
+  )
 }
 
 function isGif(bytes: Uint8Array): boolean {
@@ -134,23 +143,35 @@ function isWebP(bytes: Uint8Array): boolean {
   return asciiAt(bytes, 0, 'RIFF') && asciiAt(bytes, 8, 'WEBP')
 }
 
+/*
+ * Detección de animación recorriendo los CHUNKS del formato (auditoría
+ * 8 oct). Antes se buscaba la cadena `ANIM`/`acTL` en todo el fichero, y
+ * esos 4 bytes pueden aparecer por azar dentro de los datos comprimidos de
+ * una imagen estática de varios MB: un falso positivo rechazaba una foto
+ * válida sin explicación posible para quien la sube.
+ */
 function isAnimatedWebP(bytes: Uint8Array): boolean {
   if (!isWebP(bytes)) {
     return false
   }
 
-  if (containsAscii(bytes, 'ANIM')) {
-    return true
+  // VP8X (formato extendido): el bit 0x02 del byte de flags (offset 20)
+  // indica animación.
+  if (asciiAt(bytes, 12, 'VP8X') && bytes.length > 20) {
+    if ((bytes[20] & 0x02) !== 0) return true
   }
 
-  /*
-   * En VP8X el byte de flags está
-   * en el offset 20.
-   *
-   * El bit 0x02 indica animación.
-   */
-  if (asciiAt(bytes, 12, 'VP8X') && bytes.length > 20) {
-    return (bytes[20] & 0x02) !== 0
+  // Chunks RIFF: fourCC (4) + tamaño little-endian (4) + datos, con relleno
+  // a tamaño par. ANIM/ANMF solo existen en WebP animados.
+  let offset = 12
+
+  while (offset + 8 <= bytes.length) {
+    if (asciiAt(bytes, offset, 'ANIM') || asciiAt(bytes, offset, 'ANMF')) {
+      return true
+    }
+
+    const size = readUint32LE(bytes, offset + 4)
+    offset += 8 + size + (size % 2)
   }
 
   return false
@@ -167,7 +188,23 @@ function isPng(bytes: Uint8Array): boolean {
 }
 
 function isAnimatedPng(bytes: Uint8Array): boolean {
-  return isPng(bytes) && containsAscii(bytes, 'acTL')
+  if (!isPng(bytes)) {
+    return false
+  }
+
+  // Chunks PNG: longitud big-endian (4) + tipo (4) + datos + CRC (4). En un
+  // APNG, acTL va siempre antes del primer IDAT: al llegar a IDAT sin haberlo
+  // visto, la imagen es estática.
+  let offset = 8
+
+  while (offset + 8 <= bytes.length) {
+    if (asciiAt(bytes, offset + 4, 'acTL')) return true
+    if (asciiAt(bytes, offset + 4, 'IDAT')) return false
+
+    offset += 12 + readUint32BE(bytes, offset)
+  }
+
+  return false
 }
 
 /**
@@ -335,7 +372,7 @@ export function validatePinAnimationUpload(
  * (`attach_pin_video`), que es la autoritativa; esto es lo que usa el ABM
  * para avisar antes de subir y para redactar los mensajes.
  */
-export function pinVideoLimitsFor(contentType: PinContentKind | string): {
+export function pinVideoLimitsFor(contentType: ContentType | string): {
   maxDurationSeconds: number
   maxSizeBytes: number
 } {
@@ -353,7 +390,7 @@ export function pinVideoLimitsFor(contentType: PinContentKind | string): {
 }
 
 export function validatePinVideoUpload(
-  contentType: PinContentKind | string,
+  contentType: ContentType | string,
   sizeBytes: number,
   durationSeconds: number,
 ): MediaValidationError | null {

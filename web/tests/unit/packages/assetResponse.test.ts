@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { contentTypeFor } from '@/modules/packages/infrastructure/assetResponse'
+import { contentTypeFor } from '@/modules/packages/domain/packageFiles'
 
 /**
  * Ampliación del 29 de septiembre: los paquetes reales de insights traen
@@ -35,5 +35,16 @@ describe('contentTypeFor', () => {
   it('usa octet-stream para formatos desconocidos y para un nombre sin extensión', () => {
     expect(contentTypeFor('archivo.bin')).toBe('application/octet-stream')
     expect(contentTypeFor('sin-extension')).toBe('application/octet-stream')
+  })
+})
+
+describe('contentTypeFor — mapa unificado (fase 2)', () => {
+  it('sirve .mjs como JavaScript (un módulo ES no arranca con otro MIME)', () => {
+    expect(contentTypeFor('worker.mjs')).toBe('text/javascript; charset=utf-8')
+  })
+
+  it('reconoce html y htm', () => {
+    expect(contentTypeFor('index.html')).toBe('text/html; charset=utf-8')
+    expect(contentTypeFor('index.htm')).toBe('text/html; charset=utf-8')
   })
 })

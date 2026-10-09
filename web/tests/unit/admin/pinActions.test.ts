@@ -35,6 +35,7 @@ vi.mock('@/modules/pin/application/detachPinMedia', () => ({
 
 vi.mock('@/modules/media/application/cleanupMedia', () => ({
   snapshotPinMedia: vi.fn(),
+  snapshotMedia: vi.fn(),
   purgeRemovedMedia: vi.fn(),
 }))
 
@@ -97,6 +98,7 @@ import { detachPinMedia } from '@/modules/pin/application/detachPinMedia'
 
 import {
   purgeRemovedMedia,
+  snapshotMedia,
   snapshotPinMedia,
 } from '@/modules/media/application/cleanupMedia'
 
@@ -135,6 +137,8 @@ const mockDeleteCloudinaryAsset = vi.mocked(deleteCloudinaryAsset)
 const mockSnapshotPinMedia = vi.mocked(snapshotPinMedia)
 
 const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
+
+const mockSnapshotMedia = vi.mocked(snapshotMedia)
 
 const PIN_MEDIA_REFS = [
   {
@@ -594,12 +598,10 @@ describe('pinActions', () => {
 
       expect(result.ok).toBe(false)
 
-      expect(mockVerifyCloudinaryImageAsset).not.toHaveBeenCalled()
-
       expect(mockAttachPinImage).not.toHaveBeenCalled()
     })
 
-    it('si el pin se crea pero adjuntar la imagen falla, informa el pinId — el pin no se pierde', async () => {
+    it('auditoría 8 oct, P0-7: si adjuntar la imagen falla, borra el pin recién creado (no deja pines vacíos)', async () => {
       mockAttachPinImage.mockRejectedValueOnce(new Error('fallo al adjuntar'))
 
       const result = await createPinWithImageAction(VALID_PIN_WITH_IMAGE)
@@ -607,13 +609,13 @@ describe('pinActions', () => {
       expect(result).toEqual({
         ok: false,
 
-        pinId: PIN_ID,
-
         error: 'fallo al adjuntar',
       })
+
+      expect(mockDeletePin).toHaveBeenCalledWith({ id: PIN_ID })
     })
 
-    it('si Cloudinary rechaza la imagen, no la registra en Postgres', async () => {
+    it('auditoría 8 oct, P0-7: si Cloudinary rechaza la imagen, no se crea ningún pin', async () => {
       mockVerifyCloudinaryImageAsset.mockRejectedValueOnce(
         new CloudinaryImageVerificationError('No se permiten archivos GIF.'),
       )
@@ -623,10 +625,10 @@ describe('pinActions', () => {
       expect(result).toEqual({
         ok: false,
 
-        pinId: PIN_ID,
-
         error: 'No se permiten archivos GIF.',
       })
+
+      expect(mockCreatePin).not.toHaveBeenCalled()
 
       expect(mockAttachPinImage).not.toHaveBeenCalled()
     })
@@ -934,6 +936,16 @@ describe('pinActions', () => {
       kind: 'image',
     }
 
+    const SERVER_REF = {
+      mediaId: MEDIA_ID,
+      cloudinaryPublicId: CLOUDINARY_PUBLIC_ID,
+      kind: 'image' as const,
+    }
+
+    beforeEach(() => {
+      mockSnapshotMedia.mockResolvedValue([SERVER_REF])
+    })
+
     it('si Postgres y Cloudinary van bien, devuelve ok sin warning', async () => {
       const result = await detachPinMediaAction(VALID_DETACH_INPUT)
 
@@ -943,13 +955,23 @@ describe('pinActions', () => {
 
       expect(mockDetachPinMedia).toHaveBeenCalledTimes(1)
 
-      expect(mockDeleteCloudinaryAsset).toHaveBeenCalledWith(
-        CLOUDINARY_PUBLIC_ID,
-        'image',
-      )
+      expect(mockSnapshotMedia).toHaveBeenCalledWith([MEDIA_ID])
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
     })
 
-    it('si Postgres falla, aborta sin llamar a Cloudinary', async () => {
+    it('borra el archivo que dice Postgres, nunca el public id que manda el navegador', async () => {
+      await detachPinMediaAction({
+        ...VALID_DETACH_INPUT,
+        cloudinaryPublicId: 'otra-cuenta/archivo-ajeno',
+      })
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
+
+      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+    })
+
+    it('si Postgres falla, aborta sin tocar Cloudinary', async () => {
       mockDetachPinMedia.mockRejectedValueOnce(
         new Error('Este medio no pertenece a este pin'),
       )
@@ -962,11 +984,11 @@ describe('pinActions', () => {
         error: 'Este medio no pertenece a este pin',
       })
 
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
     })
 
     it('si Postgres va bien pero Cloudinary falla, devuelve ok con warning', async () => {
-      mockDeleteCloudinaryAsset.mockRejectedValueOnce(new Error('fallo'))
+      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 1 })
 
       const result = await detachPinMediaAction(VALID_DETACH_INPUT)
 

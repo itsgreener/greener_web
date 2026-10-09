@@ -1,4 +1,3 @@
-import type { PinRatioValue } from './closestRatio'
 import { caseVideoRatio, toolInsightDetailRatio } from './detailVideoRatio'
 import {
   DETAIL_VIDEO_RUNGS,
@@ -6,7 +5,11 @@ import {
   FEED_VIDEO_WIDTH,
   type VideoProfile,
 } from './mediaDelivery'
-import { canAnimateInFeed, type PinContentKind } from './mediaLimits'
+import { canAnimateInFeed } from './mediaLimits'
+
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import { fnv1a32 } from '@/modules/shared/domain/hash'
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 
 /**
  * Plan de calentamiento de un vídeo (fase 2 del contrato de medios,
@@ -47,7 +50,7 @@ export type VideoUsage =
   | {
       kind: 'pin'
       /** Tipo del contenido al que pertenece el pin. */
-      contentType: PinContentKind
+      contentType: ContentType
       /** Ratio del pin (el de `pin.ratio`). */
       pinRatio: PinRatioValue
       /** Del `media_asset`; null = dato antiguo (se asume que se anima). */
@@ -164,17 +167,8 @@ export function planVideoWarming(usages: VideoUsage[]): WarmRendition[] {
 export function warmContractId(transformations: string[]): string {
   const text = [...transformations].sort().join('\n')
 
-  function fnv1a(input: string): number {
-    let hash = 0x811c9dc5
-    for (let i = 0; i < input.length; i += 1) {
-      hash ^= input.charCodeAt(i)
-      hash = Math.imul(hash, 0x01000193) >>> 0
-    }
-    return hash
-  }
-
-  const forward = fnv1a(text).toString(16).padStart(8, '0')
-  const backward = fnv1a([...text].reverse().join(''))
+  const forward = fnv1a32(text).toString(16).padStart(8, '0')
+  const backward = fnv1a32([...text].reverse().join(''))
     .toString(16)
     .padStart(8, '0')
 

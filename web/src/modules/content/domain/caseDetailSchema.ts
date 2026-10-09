@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { idSchema } from '@/lib/validation/idSchema'
 
 /**
  * especificacion-final-formato-detalle.md §3, §6: template_variant,
@@ -9,7 +10,7 @@ import { z } from 'zod'
  * client (texto libre no traducible).
  */
 export const caseDetailSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
   force: z
     .number()

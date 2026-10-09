@@ -1,27 +1,28 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 import { createContentSchema } from '@/modules/content/domain/contentSchema'
 
 import { createContent } from '@/modules/content/application/createContent'
+import {
+  fieldErrorsOf,
+  type FormActionState,
+} from '@/lib/forms/formActionState'
 
-export type CreateContentActionState = {
-  fieldErrors?: {
-    type?: string[]
-    slug?: string[]
-    defaultLocale?: string[]
-    title?: string[]
-  }
-
-  formError?: string
-}
+export type CreateContentActionState = FormActionState<
+  'type' | 'slug' | 'defaultLocale' | 'title'
+>
 
 export async function createContentAction(
   _previousState: CreateContentActionState,
   formData: FormData,
 ): Promise<CreateContentActionState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = createContentSchema.safeParse({
     type: formData.get('type'),
     slug: formData.get('slug'),
@@ -31,7 +32,7 @@ export async function createContentAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 

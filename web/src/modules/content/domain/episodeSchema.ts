@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { localeSchema } from './contentSchema'
-
+import { localeSchema } from '@/modules/shared/domain/locale'
+import { idSchema } from '@/lib/validation/idSchema'
 /**
  * ABM de episodios (arquitectura §7.3; nunca había existido — PROGRESO.md
  * §5.5). Un episodio no se traduce (§7.4: "un solo idioma, como el
@@ -19,8 +19,10 @@ export const episodeProviderSchema = z.enum(['youtube', 'vimeo', 'spotify'])
 // único valor real, no es un descuido dejarlo tan corto.
 export const episodeKindSchema = z.enum(['podcast'])
 
+export type EpisodeProvider = z.infer<typeof episodeProviderSchema>
+
 export const episodeSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
   program: episodeProgramSchema,
 

@@ -185,4 +185,24 @@ describe('POST /api/analytics/package', () => {
 
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
+
+  it('auditoría 8 oct: limita las peticiones por IP (429 al superar el cupo)', async () => {
+    const request = () =>
+      new NextRequest('https://example.com/api/analytics/package', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-forwarded-for': '198.51.100.7, 10.0.0.1',
+        },
+        body: JSON.stringify({ slug: 'mi-tool', action: 'export' }),
+      })
+
+    const statuses: number[] = []
+    for (let i = 0; i < 61; i++) {
+      statuses.push((await POST(request())).status)
+    }
+
+    expect(statuses.slice(0, 60).every((status) => status === 204)).toBe(true)
+    expect(statuses[60]).toBe(429)
+  })
 })

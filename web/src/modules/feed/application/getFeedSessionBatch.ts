@@ -40,6 +40,9 @@ export interface FeedBatchResult {
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
+  // Solo en la respuesta de límite de peticiones superado (route handler):
+  // lote vacío TEMPORAL, el cliente no debe tratarlo como fin del feed.
+  rateLimited?: boolean
 }
 
 export class FeedSessionNotFoundError extends Error {
@@ -95,17 +98,27 @@ function ctaFor(contentType: PinDirectoryEntry['contentType']): string | null {
   }
 }
 
+/**
+ * Una ronda guardada es inmutable, pero el contenido no: si desde que se
+ * generó se despublicó o borró un pin (o se quedó sin medio), ya no está en
+ * el directorio público. Antes eso lanzaba y el lote entero daba 500
+ * (auditoría 8 oct, P0-6); ahora esa unidad simplemente no se sirve.
+ */
 function enrich(
   unitIds: string[],
   directory: Record<string, PinDirectoryEntry>,
 ): FeedBatchItem[] {
-  return unitIds.map((unitId) => {
+  const missing = unitIds.filter((unitId) => !directory[unitId])
+
+  if (missing.length > 0) {
+    console.warn(
+      `Feed: ${missing.length} unidad(es) de la ronda ya no están publicadas y se omiten.`,
+    )
+  }
+
+  return unitIds.flatMap((unitId) => {
     const meta = directory[unitId]
-    if (!meta) {
-      throw new Error(
-        `Unidad ${unitId} de la ronda no tiene entrada en el directorio — dataset inconsistente.`,
-      )
-    }
+    if (!meta) return []
     return {
       pinId: unitId,
       contentId: meta.contentId,

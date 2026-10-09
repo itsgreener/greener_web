@@ -74,3 +74,21 @@ if (typeof HTMLMediaElement !== 'undefined') {
   HTMLMediaElement.prototype.load = function load() {}
   HTMLMediaElement.prototype.pause = function pause() {}
 }
+
+/**
+ * Sesión de admin (auditoría 8 oct, P0-1): todas las Server Actions del ABM
+ * empiezan con `isAdminRequest()`, que lee las cookies de la petición y no
+ * funciona fuera de Next. Por defecto los tests actúan como admin; el que
+ * quiera probar el rechazo hace `vi.mocked(isAdminRequest).mockResolvedValueOnce(false)`.
+ * `checkAdminSession` y `adminApiGuard` siguen siendo los reales (las rutas
+ * de firma se prueban con el cliente de Supabase mockeado).
+ */
+vi.mock('@/lib/auth/adminSession', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/lib/auth/adminSession')>()
+
+  return {
+    ...actual,
+    isAdminRequest: vi.fn(async () => true),
+  }
+})

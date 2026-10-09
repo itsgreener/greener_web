@@ -1,5 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+
+import type { EpisodeKind, EpisodeProgram } from '../domain/episodeLabels'
+import type { EpisodeProvider } from '../domain/episodeSchema'
 
 /**
  * Lectura pública de un episodio para /work/[slug] (tipo B, unificado con
@@ -15,19 +18,16 @@ import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
  * formato de detalle rediseñado, así que no se leen aquí.
  */
 
-export type PublicEpisodeProgram =
-  'brand_the_future' | 'brand_into_europe' | 'brand_to_table'
-
 export interface PublicEpisode {
-  program: PublicEpisodeProgram
-  provider: 'youtube' | 'vimeo' | 'spotify'
+  program: EpisodeProgram
+  provider: EpisodeProvider
   embedId: string
-  episodeKind: 'podcast'
+  episodeKind: EpisodeKind
 }
 
 export async function getPublicEpisode(
   contentId: string,
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<PublicEpisode | null> {
   const { data, error } = await client
     .from('episode')

@@ -1,5 +1,6 @@
 'use client'
 
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
 
 import type { HtmlPackageVersionSummary } from '@/modules/packages/domain/htmlPackageRepository'
@@ -22,13 +23,6 @@ type Props = {
 const uploadInitialState: UploadPackageActionState = {}
 const publishInitialState: PublishPackageActionState = {}
 const deleteInitialState: DeletePackageActionState = {}
-
-function formatDateTime(value: string) {
-  return new Date(value).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
 
 function PublishVersionButton({
   contentId,
@@ -206,7 +200,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
 
               <td>{version.status}</td>
 
-              <td>{formatDateTime(version.createdAt)}</td>
+              <td>{formatAdminDateTime(version.createdAt)}</td>
 
               <td>
                 {version.status === 'draft' && (

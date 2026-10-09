@@ -11,7 +11,6 @@ import type {
   PublicContent,
   PublicContentMedia,
 } from '@/modules/content/infrastructure/publicContentSource'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import { toolInsightDetailRatio } from '@/modules/media/domain/detailVideoRatio'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
@@ -20,6 +19,7 @@ import { ToolCoverVideo } from './ToolCoverVideo'
 import { useRecommendationMasonry } from './useRecommendationMasonry'
 import styles from './ToolInsightDetail.module.css'
 
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Plantilla de detalle tipo A (especificacion-final-formato-detalle.md
  * §1, §2, §7): portada a altura fija × ratio (nunca medida en columnas),

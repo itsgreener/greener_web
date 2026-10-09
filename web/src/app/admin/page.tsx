@@ -1,17 +1,7 @@
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import Link from 'next/link'
 
 import { listContents } from '@/modules/content/application/listContents'
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return 'Sin publicar'
-  }
-
-  return new Date(value).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
-}
 
 function getTypeLabel(type: string) {
   switch (type) {
@@ -181,7 +171,7 @@ export default async function AdminPage() {
                       </span>
 
                       <span className="admin-recent-date">
-                        {formatDateTime(content.publishAt)}
+                        {formatAdminDateTime(content.publishAt, 'Sin publicar')}
                       </span>
 
                       <span className="admin-recent-arrow">→</span>

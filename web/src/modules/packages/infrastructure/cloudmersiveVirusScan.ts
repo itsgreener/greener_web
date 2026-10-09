@@ -1,4 +1,4 @@
-import { env } from '@/lib/env'
+import { getCloudmersiveEnv } from '@/lib/serverEnv'
 
 const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
 
@@ -60,7 +60,7 @@ export async function scanZipForViruses(buffer: Buffer): Promise<void> {
     response = await fetch(CLOUDMERSIVE_SCAN_URL, {
       method: 'POST',
       headers: {
-        Apikey: env.CLOUDMERSIVE_API_KEY,
+        Apikey: getCloudmersiveEnv().CLOUDMERSIVE_API_KEY,
       },
       body: formData,
     })

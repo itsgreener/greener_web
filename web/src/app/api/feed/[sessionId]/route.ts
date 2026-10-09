@@ -9,6 +9,7 @@ import {
   attachVisitorCookie,
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
+import { isUuid } from '@/lib/validation/uuid'
 
 /**
  * GET /api/feed/{sessionId}?cursor=... (§16.1): siguiente lote real de
@@ -57,6 +58,12 @@ export async function GET(
     const response = NextResponse.json(payload, init)
     attachVisitorCookie(response, visitorId)
     return response
+  }
+
+  // Un id que no es uuid no puede ser una sesión: 404 directo, sin que
+  // Postgres lo rechace con un error que acabaría en 500 (auditoría 8 oct).
+  if (!isUuid(sessionId)) {
+    return respond({ error: 'La sesión de feed no existe.' }, { status: 404 })
   }
 
   if (!canFetchBatch(visitorId)) {

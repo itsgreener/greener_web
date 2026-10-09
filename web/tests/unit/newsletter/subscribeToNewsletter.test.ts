@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/modules/contact/infrastructure/clientIp', () => ({
+vi.mock('@/lib/http/clientIp', () => ({
   getHashedClientIp: vi.fn(async () => 'ip-hash-1'),
 }))
 
@@ -8,7 +8,7 @@ vi.mock('@/modules/newsletter/infrastructure/mailchimpNewsletter', () => ({
   subscribeEmailInMailchimp: vi.fn(),
 }))
 
-import { getHashedClientIp } from '@/modules/contact/infrastructure/clientIp'
+import { getHashedClientIp } from '@/lib/http/clientIp'
 import {
   NEWSLETTER_MAX_PER_WINDOW,
   subscribeToNewsletter,

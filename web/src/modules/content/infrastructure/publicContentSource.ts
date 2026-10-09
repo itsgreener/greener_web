@@ -1,8 +1,8 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import type { ContentType, Locale } from '../domain/contentSchema'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
-
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { Locale } from '@/modules/shared/domain/locale'
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Lectura pública de un contenido por slug — para las plantillas de
  * detalle (/work/[slug], /tools|insights/[slug]). A propósito NO
@@ -52,27 +52,6 @@ export interface PublicContent {
   coverRatio: PinRatioValue | null
 }
 
-interface ContentBySlugRow {
-  id: string
-  type: ContentType
-  slug: string
-  default_locale: Locale
-  translations: Array<{
-    locale: Locale
-    title: string
-    seo_title: string | null
-    seo_description: string | null
-    summary: string | null
-    highlight: string | null
-    body: string | null
-  }>
-  cover_media: {
-    kind: 'image' | 'video'
-    cloudinary_public_id: string
-  } | null
-  cover_ratio: PinRatioValue | null
-}
-
 /**
  * Devuelve null si no existe ningún contenido publicado con ese slug, o
  * si se pide un `requestedLocale` concreto que no tiene traducción
@@ -87,7 +66,7 @@ interface ContentBySlugRow {
 export async function getContentBySlug(
   slug: string,
   requestedLocale?: Locale,
-  client: SupabaseClient = createPublicReadClient(),
+  client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<PublicContent | null> {
   const { data, error } = await client
     .from('content')
@@ -119,7 +98,7 @@ export async function getContentBySlug(
 
   if (!data) return null
 
-  const row = data as unknown as ContentBySlugRow
+  const row = data
   const targetLocale = requestedLocale ?? row.default_locale
   const translation = row.translations.find(
     (item) => item.locale === targetLocale,

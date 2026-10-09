@@ -10,16 +10,7 @@ import type {
   RegisterCoverVideoInput,
   RemoveCaseCarouselMediaInput,
 } from '../domain/mediaAssetSchema'
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabaseMediaAssetRepository: MediaAssetRepository = {
   async registerCoverImage(input: RegisterCoverImageInput) {
@@ -45,7 +36,7 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async registerCoverVideo(input: RegisterCoverVideoInput) {
@@ -65,13 +56,15 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       p_duration_seconds: input.durationSeconds,
 
       p_bytes: input.bytes,
+
+      p_ratio: input.ratio,
     })
 
     if (error) {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async unlinkAndDeleteCoverMedia(input: DeleteCoverMediaInput) {
@@ -90,7 +83,7 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async addCaseCarouselImage(input: AddCaseCarouselImageInput) {
@@ -118,7 +111,7 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async addCaseCarouselVideo(input: AddCaseCarouselVideoInput) {
@@ -148,7 +141,7 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async removeCaseCarouselMedia(input: RemoveCaseCarouselMediaInput) {
@@ -164,6 +157,6 @@ export const supabaseMediaAssetRepository: MediaAssetRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

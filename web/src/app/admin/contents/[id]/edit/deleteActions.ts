@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
@@ -20,6 +22,8 @@ export async function deleteContentAction(
   _previousState: DeleteContentActionState,
   formData: FormData,
 ): Promise<DeleteContentActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = deleteContentSchema.safeParse({
     id: formData.get('id'),
   })

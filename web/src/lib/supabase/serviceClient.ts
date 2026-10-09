@@ -1,4 +1,7 @@
+import 'server-only'
+
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/database'
 import { env } from '@/lib/env'
 
 /**
@@ -25,7 +28,7 @@ import { env } from '@/lib/env'
  * público.
  */
 export function createServiceClient() {
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.SUPABASE_SECRET_KEY,
     {

@@ -1,7 +1,8 @@
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
-import { getHashedClientIp } from '@/modules/contact/infrastructure/clientIp'
+import { getHashedClientIp } from '@/lib/http/clientIp'
 import { newsletterSchema } from '../domain/newsletterSchema'
 import { subscribeEmailInMailchimp } from '../infrastructure/mailchimpNewsletter'
+import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
 /**
  * Límite por IP. 5/hora (el valor inicial) era demasiado bajo: varias
@@ -47,7 +48,7 @@ export async function subscribeToNewsletter(
   const parsed = newsletterSchema.safeParse(input)
 
   if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors }
+    return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
   }
 
   const visitorKey = await getHashedClientIp()

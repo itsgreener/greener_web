@@ -1,19 +1,8 @@
 import { z } from 'zod'
 
-// especificacion-final-formato-detalle.md §4: lista cerrada de 7 ratios
-// (antes 6 — faltaba 4:3, que agrupa junto a 1:1 en el modelo de
-// columnas del §2).
-export const pinRatioSchema = z.enum([
-  '1:1',
-  '4:3',
-  '4:5',
-  '3:4',
-  '2:3',
-  '9:16',
-  '16:9',
-])
-
-export const pinLocaleSchema = z.enum(['es', 'en', 'ca'])
+import { localeSchema } from '@/modules/shared/domain/locale'
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
+import { idSchema } from '@/lib/validation/idSchema'
 
 export const pinAutoplayModeSchema = z.enum(['viewport', 'hover'])
 
@@ -32,7 +21,7 @@ const pinCommonFields = {
     .nullable()
     .optional(),
 
-  language: pinLocaleSchema,
+  language: localeSchema,
 
   autoplayMode: pinAutoplayModeSchema.nullable().optional(),
 
@@ -40,19 +29,19 @@ const pinCommonFields = {
 }
 
 export const createPinSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
+  contentId: idSchema('content'),
 
   ...pinCommonFields,
 })
 
 export const updatePinSchema = z.object({
-  id: z.string().uuid('El identificador del pin no es válido'),
+  id: idSchema('pin'),
 
   ...pinCommonFields,
 })
 
 export const deletePinSchema = z.object({
-  id: z.string().uuid('El identificador del pin no es válido'),
+  id: idSchema('pin'),
 })
 
 export type CreatePinInput = z.infer<typeof createPinSchema>

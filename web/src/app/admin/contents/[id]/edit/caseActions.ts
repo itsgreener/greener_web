@@ -1,21 +1,20 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { revalidatePath } from 'next/cache'
 
 import { caseDetailSchema } from '@/modules/content/domain/caseDetailSchema'
 
 import { upsertCaseDetail } from '@/modules/content/application/upsertCaseDetail'
+import {
+  fieldErrorsOf,
+  type FormActionState,
+} from '@/lib/forms/formActionState'
 
-export type CaseDetailActionState = {
-  fieldErrors?: {
-    contentId?: string[]
-    force?: string[]
-    client?: string[]
-  }
-
-  formError?: string
-  success?: boolean
-}
+export type CaseDetailActionState = FormActionState<
+  'contentId' | 'force' | 'client'
+>
 
 function nullableText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') {
@@ -35,6 +34,8 @@ export async function saveCaseDetailAction(
   _previousState: CaseDetailActionState,
   formData: FormData,
 ): Promise<CaseDetailActionState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = caseDetailSchema.safeParse({
     contentId: formData.get('contentId'),
 
@@ -45,7 +46,7 @@ export async function saveCaseDetailAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 

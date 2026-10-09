@@ -140,3 +140,23 @@ describe('POST /api/feed/sessions — límite de 12 creaciones por minuto', () =
     expect((await POST(requestWithCookie('visitor-1'))).status).toBe(201)
   })
 })
+
+describe('validación de entrada (auditoría 8 oct)', () => {
+  it('un excludeContentId que no es uuid da 400 sin llegar a Postgres', async () => {
+    const { POST } = await import('@/app/api/feed/sessions/route')
+
+    const response = await POST(
+      new NextRequest('http://localhost/api/feed/sessions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          scope: 'tools',
+          excludeContentId: 'no-es-uuid',
+        }),
+      }),
+    )
+
+    expect(response.status).toBe(400)
+    expect(createFeedSession).not.toHaveBeenCalled()
+  })
+})

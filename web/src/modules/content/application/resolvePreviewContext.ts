@@ -1,16 +1,15 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 
 import { createServiceClient } from '@/lib/supabase/serviceClient'
-
-import type { Locale } from '../domain/contentSchema'
 
 import { decodePreviewToken } from '../infrastructure/previewToken'
 
 import { getContentBySlug } from './getContentBySlug'
 
+import type { Locale } from '@/modules/shared/domain/locale'
 export interface PreviewResolution {
   content: Awaited<ReturnType<typeof getContentBySlug>>
-  client: SupabaseClient | undefined
+  client: AppSupabaseClient | undefined
   isPreview: boolean
 }
 

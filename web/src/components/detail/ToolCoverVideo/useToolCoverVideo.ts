@@ -9,7 +9,6 @@ import {
   useSyncExternalStore,
   type SyntheticEvent,
 } from 'react'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import {
   detailVideoRungM,
   pickDetailVideoRung,
@@ -28,6 +27,7 @@ import {
 import { releaseVideoElement } from '@/modules/media/infrastructure/releaseVideoElement'
 import { useMotionPreferences } from '@/lib/useMotionPreferences'
 
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Qué quiere el visitante respecto a la reproducción:
  * - 'auto': nada decidido, manda la política automática (autoplay solo si

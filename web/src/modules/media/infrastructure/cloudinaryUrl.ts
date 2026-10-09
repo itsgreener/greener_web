@@ -1,3 +1,5 @@
+import { clientEnv } from '@/lib/env.client'
+
 import {
   FEED_VIDEO_WIDTH,
   IMAGE_DELIVERY,
@@ -19,7 +21,7 @@ import {
  * cambiar algo, se hace de golpe y se documenta (§4.7).
  */
 
-const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+const CLOUD_NAME = clientEnv.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
 
 function baseUrl(resourceType: 'image' | 'video') {
   return `https://res.cloudinary.com/${CLOUD_NAME}/${resourceType}/upload`

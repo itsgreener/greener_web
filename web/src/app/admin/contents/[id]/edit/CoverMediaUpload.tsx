@@ -17,8 +17,6 @@ import {
   ratioMismatchMessage,
 } from '@/modules/media/domain/ratioFromFilename'
 
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
-
 import {
   IMAGE_FILE_ACCEPT,
   validateImageSelection,
@@ -41,6 +39,7 @@ import {
 
 import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 type CoverMedia = {
   id: string
   kind: 'image' | 'video'

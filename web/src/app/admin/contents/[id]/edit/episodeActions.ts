@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { revalidatePath } from 'next/cache'
 
 import { episodeSchema } from '@/modules/content/domain/episodeSchema'
@@ -9,24 +11,21 @@ import { upsertEpisode } from '@/modules/content/application/upsertEpisode'
 import { getEpisode } from '@/modules/content/application/getEpisode'
 
 import { getContent } from '@/modules/content/application/getContent'
+import {
+  fieldErrorsOf,
+  type FormActionState,
+} from '@/lib/forms/formActionState'
 
-export type EpisodeActionState = {
-  fieldErrors?: {
-    contentId?: string[]
-    program?: string[]
-    provider?: string[]
-    embedId?: string[]
-    episodeKind?: string[]
-  }
-
-  formError?: string
-  success?: boolean
-}
+export type EpisodeActionState = FormActionState<
+  'contentId' | 'program' | 'provider' | 'embedId' | 'episodeKind'
+>
 
 export async function saveEpisodeAction(
   _previousState: EpisodeActionState,
   formData: FormData,
 ): Promise<EpisodeActionState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const contentId = formData.get('contentId')
 
   // Campos ocultos del formulario (número, invitado, cargo, empresa, fecha,
@@ -85,7 +84,7 @@ export async function saveEpisodeAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 

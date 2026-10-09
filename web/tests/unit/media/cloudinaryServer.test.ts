@@ -29,14 +29,14 @@ vi.mock('cloudinary', () => ({
   },
 }))
 
-vi.mock('@/lib/env', () => ({
-  env: {
+vi.mock('@/lib/serverEnv', () => ({
+  getCloudinaryEnv: () => ({
     NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: 'test-cloud',
 
     CLOUDINARY_API_KEY: 'test-api-key',
 
     CLOUDINARY_API_SECRET: 'test-api-secret',
-  },
+  }),
 }))
 
 vi.mock('@/modules/media/domain/mediaLimits', async (importOriginal) => {

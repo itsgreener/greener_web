@@ -3,13 +3,12 @@ import {
   addCaseCarouselImageSchema,
   addCaseCarouselVideoSchema,
   deleteCoverMediaSchema,
-  mediaKindSchema,
   mediaStatusSchema,
   registerCoverImageSchema,
   registerCoverVideoSchema,
   removeCaseCarouselMediaSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
-
+import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const MEDIA_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
 

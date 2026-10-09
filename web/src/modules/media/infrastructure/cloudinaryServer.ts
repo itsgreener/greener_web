@@ -1,17 +1,40 @@
+import 'server-only'
+
 import { v2 as cloudinary } from 'cloudinary'
 
-import { env } from '@/lib/env'
+import { getCloudinaryEnv } from '@/lib/serverEnv'
 
 import {
+  IMAGE_FORMAT_NOT_ALLOWED_MESSAGE,
+  imageValidationMessage,
+} from '@/modules/media/domain/imageValidationMessage'
+import {
+  IMAGE_LIMITS,
   validateImageFile,
   validateVideoUpload,
 } from '@/modules/media/domain/mediaLimits'
 
-cloudinary.config({
-  cloud_name: env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
-  api_key: env.CLOUDINARY_API_KEY,
-  api_secret: env.CLOUDINARY_API_SECRET,
-})
+let configured = false
+
+/**
+ * El SDK se configura la primera vez que se usa, no al importar el módulo:
+ * así una variable de Cloudinary que falte solo rompe lo que habla con
+ * Cloudinary (ver serverEnv.ts), no cualquier página que importe este fichero.
+ */
+function sdk() {
+  if (!configured) {
+    const env = getCloudinaryEnv()
+
+    cloudinary.config({
+      cloud_name: env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      api_key: env.CLOUDINARY_API_KEY,
+      api_secret: env.CLOUDINARY_API_SECRET,
+    })
+    configured = true
+  }
+
+  return cloudinary
+}
 
 const IMAGE_FOLDER = 'greener/content'
 const VIDEO_FOLDER = 'greener/content/videos'
@@ -87,9 +110,10 @@ type CloudinaryVideoResource = {
 }
 
 function createSignedUpload(folder: string): SignedMediaUpload {
+  const env = getCloudinaryEnv()
   const timestamp = Math.floor(Date.now() / 1000)
 
-  const signature = cloudinary.utils.api_sign_request(
+  const signature = sdk().utils.api_sign_request(
     {
       timestamp,
       folder,
@@ -145,41 +169,6 @@ function imageMimeFromFormat(format: string): string {
   }
 }
 
-function validationErrorMessage(
-  validation: Awaited<ReturnType<typeof validateImageFile>> | null,
-): string | null {
-  if (!validation) {
-    return null
-  }
-
-  switch (validation.code) {
-    case 'IMAGE_TOO_LARGE':
-      return `La imagen supera el límite de ${
-        validation.maxBytes / 1024 / 1024
-      } MB.`
-
-    case 'GIF_NOT_ALLOWED':
-      return (
-        'No se permiten archivos GIF. ' +
-        'Si necesitas animación, súbela como vídeo.'
-      )
-
-    case 'ANIMATED_IMAGE_NOT_ALLOWED':
-      return (
-        'No se permiten imágenes animadas. ' +
-        'Si necesitas animación, súbela como vídeo.'
-      )
-
-    case 'IMAGE_FORMAT_NOT_ALLOWED':
-      return (
-        'Formato de imagen no permitido. ' + 'Utiliza JPG, PNG, WebP o AVIF.'
-      )
-
-    default:
-      return 'La imagen subida no es válida.'
-  }
-}
-
 function videoValidationErrorMessage(
   validation: ReturnType<typeof validateVideoUpload>,
 ): string | null {
@@ -224,7 +213,7 @@ export async function verifyCloudinaryImageAsset(
   let rawResource: unknown
 
   try {
-    rawResource = await cloudinary.api.resource(publicId, {
+    rawResource = await sdk().api.resource(publicId, {
       resource_type: 'image',
       type: 'upload',
     })
@@ -271,12 +260,8 @@ export async function verifyCloudinaryImageAsset(
     )
   }
 
-  const allowedFormats = new Set(['jpg', 'jpeg', 'png', 'webp', 'avif'])
-
-  if (!allowedFormats.has(format)) {
-    throw new CloudinaryImageVerificationError(
-      'Formato de imagen no permitido. Utiliza JPG, PNG, WebP o AVIF.',
-    )
+  if (!(IMAGE_LIMITS.allowedExtensions as readonly string[]).includes(format)) {
+    throw new CloudinaryImageVerificationError(IMAGE_FORMAT_NOT_ALLOWED_MESSAGE)
   }
 
   let response: Response
@@ -312,7 +297,10 @@ export async function verifyCloudinaryImageAsset(
     },
   })
 
-  const validationMessage = validationErrorMessage(validation)
+  const validationMessage = imageValidationMessage(
+    validation,
+    'La imagen subida no es válida.',
+  )
 
   if (validationMessage) {
     throw new CloudinaryImageVerificationError(validationMessage)
@@ -362,7 +350,7 @@ export async function verifyCloudinaryVideoAsset(
   let rawResource: unknown
 
   try {
-    rawResource = await cloudinary.api.resource(publicId, {
+    rawResource = await sdk().api.resource(publicId, {
       resource_type: 'video',
       type: 'upload',
       // Sin `image_metadata` la Admin API no devuelve `duration`
@@ -444,7 +432,15 @@ export async function deleteCloudinaryAsset(
   publicId: string,
   resourceType: 'image' | 'video',
 ): Promise<void> {
-  const result = await cloudinary.uploader.destroy(publicId, {
+  // Defensa en profundidad: nunca se borra nada fuera de la carpeta del
+  // ABM, aunque quien llama se haya saltado su propia comprobación.
+  if (!isManagedPublicId(publicId)) {
+    throw new Error(
+      'Borrado rechazado: el archivo no pertenece a la carpeta del ABM.',
+    )
+  }
+
+  const result = await sdk().uploader.destroy(publicId, {
     resource_type: resourceType,
     invalidate: true,
   })
@@ -486,7 +482,7 @@ export async function warmVideoRenditions(
     throw new Error('No hay versiones que calentar.')
   }
 
-  await cloudinary.uploader.explicit(publicId, {
+  await sdk().uploader.explicit(publicId, {
     type: 'upload',
     resource_type: 'video',
     eager: transformations,

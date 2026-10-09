@@ -1,3 +1,5 @@
+import type { EpisodeProvider } from './episodeSchema'
+
 /**
  * Dónde se ve/escucha un episodio en su plataforma (CTA «Watch more» de la
  * ficha, especificacion-final-formato-detalle.md §1 y §7: «no es un campo,
@@ -8,8 +10,6 @@
  * YouTube, el del vídeo de Vimeo o el del episodio de Spotify (mismo
  * supuesto que embedUrl en EpisodeDetail: un episodio, no un show).
  */
-
-export type EpisodeProvider = 'youtube' | 'vimeo' | 'spotify'
 
 export const EPISODE_CTA_LABEL = 'Watch more'
 

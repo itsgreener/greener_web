@@ -1,5 +1,5 @@
-import { closestClosedRatio, type PinRatioValue } from './closestRatio'
-
+import { closestClosedRatio } from './closestRatio'
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Ratio con el que se calcula el escalón M del vídeo de una ficha.
  *

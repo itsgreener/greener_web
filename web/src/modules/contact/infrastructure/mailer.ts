@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer'
-import { env } from '@/lib/env'
+import { getContactEnv } from '@/lib/serverEnv'
 import type { ContactFormInput } from '../domain/contactSchema'
 
 /**
@@ -11,6 +11,8 @@ let transporter: ReturnType<typeof nodemailer.createTransport> | null = null
 
 function getTransporter() {
   if (!transporter) {
+    const env = getContactEnv()
+
     transporter = nodemailer.createTransport({
       host: env.CONTACT_SMTP_HOST,
       port: env.CONTACT_SMTP_PORT,
@@ -57,6 +59,8 @@ export async function sendContactEmail(input: ContactFormInput): Promise<void> {
     <p><strong>Mensaje:</strong></p>
     <p>${escapeHtml(input.message).replaceAll('\n', '<br>')}</p>
   `
+
+  const env = getContactEnv()
 
   await getTransporter().sendMail({
     from: env.CONTACT_EMAIL_FROM,

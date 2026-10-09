@@ -1,15 +1,15 @@
 import type { Metadata } from 'next'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { notFound } from 'next/navigation'
 import { resolvePreviewContext } from '@/modules/content/application/resolvePreviewContext'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import { getFirstPinMedia } from '@/modules/content/infrastructure/firstPinMedia'
 import type { PublicContentMedia } from '@/modules/content/infrastructure/publicContentSource'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import styles from './page.module.css'
 
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 type Props = {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ preview?: string; pin?: string }>
@@ -40,21 +40,6 @@ type ToolPinCover = {
   alt: string
 }
 
-type ToolPinRow = {
-  id: string
-  content_id: string
-  ratio: PinRatioValue
-  alt: string
-  pin_media: Array<{
-    media_id: string
-    slide_order: number
-    media_asset: {
-      kind: 'image' | 'video'
-      cloudinary_public_id: string
-    } | null
-  }>
-}
-
 /**
  * Resuelve la portada de la ficha desde el pin que originó la navegación.
  * Seguridad: el pin se filtra también por content_id, de modo que no se
@@ -65,7 +50,7 @@ type ToolPinRow = {
 async function getToolPinCover(
   contentId: string,
   pinRef: string | undefined,
-  client?: SupabaseClient,
+  client?: AppSupabaseClient,
 ): Promise<ToolPinCover | null> {
   if (!pinRef) return null
 
@@ -94,7 +79,7 @@ async function getToolPinCover(
 
   if (error || !data) return null
 
-  const pin = data as unknown as ToolPinRow
+  const pin = data
   const media = [...pin.pin_media]
     .filter((item) => item.media_asset !== null)
     .sort((a, b) => a.slide_order - b.slide_order)

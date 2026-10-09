@@ -1,10 +1,11 @@
 import { z } from 'zod'
 
 import { supabaseHtmlPackageRepository } from '../infrastructure/supabaseHtmlPackageRepository'
+import { idSchema } from '@/lib/validation/idSchema'
 
 export const publishHtmlPackageVersionSchema = z.object({
-  contentId: z.string().uuid('El identificador del contenido no es válido'),
-  versionId: z.string().uuid('El identificador de la versión no es válido'),
+  contentId: idSchema('content'),
+  versionId: idSchema('version'),
 })
 
 export type PublishHtmlPackageVersionInput = z.infer<

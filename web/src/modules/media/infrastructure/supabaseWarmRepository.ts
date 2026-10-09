@@ -1,11 +1,14 @@
+import type { AppSupabaseClient, Tables } from '@/lib/supabase/database'
+import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
-
-import type { PinRatioValue } from '../domain/closestRatio'
 import type { VideoUsage } from '../domain/warmPlan'
 
+import {
+  pinRatioSchema,
+  type PinRatioValue,
+} from '@/modules/shared/domain/ratio'
 /**
  * Lecturas y escrituras del calentamiento de vídeos (fase 2, contrato §9).
  *
@@ -16,8 +19,6 @@ import type { VideoUsage } from '../domain/warmPlan'
  *    existe para lo que corre en `after()`, donde la sesión (cookies) no está
  *    garantizada.
  */
-
-export type ContentStatus = 'draft' | 'scheduled' | 'published'
 
 export interface WarmCandidate {
   mediaId: string
@@ -31,32 +32,24 @@ export interface ContentWarmInfo {
   candidates: WarmCandidate[]
 }
 
-type PinContentKind = 'case' | 'insight' | 'tool' | 'episode' | 'other'
+type VideoAssetRow = Pick<
+  Tables<'media_asset'>,
+  | 'id'
+  | 'kind'
+  | 'cloudinary_public_id'
+  | 'width'
+  | 'height'
+  | 'duration_seconds'
+  | 'warmed_contract'
+>
 
-type VideoAssetRow = {
-  id: string
-  kind: 'image' | 'video'
-  cloudinary_public_id: string
-  width: number | null
-  height: number | null
-  duration_seconds: number | null
-  warmed_contract: string | null
-}
-
+// `as const` en las plantillas: supabase-js deduce los tipos de la fila a
+// partir del literal del select, y una plantilla sin `as const` es `string`.
 const ASSET_COLUMNS =
-  'id, kind, cloudinary_public_id, width, height, duration_seconds, warmed_contract'
+  'id, kind, cloudinary_public_id, width, height, duration_seconds, warmed_contract' as const
 
 function readError(message: string): Error {
   return new Error(`No se pudieron leer los vídeos a calentar: ${message}`)
-}
-
-function contentKind(type: string): PinContentKind {
-  return type === 'case' ||
-    type === 'insight' ||
-    type === 'tool' ||
-    type === 'episode'
-    ? type
-    : 'other'
 }
 
 function isRatio(value: unknown): value is PinRatioValue {
@@ -85,7 +78,7 @@ export async function readContentWarmInfo(
   if (content.error) throw readError(content.error.message)
   if (!content.data) throw readError('el contenido no existe.')
 
-  const kind = contentKind(content.data.type as string)
+  const kind = content.data.type
   const byId = new Map<string, WarmCandidate>()
 
   function add(asset: VideoAssetRow, usage: VideoUsage) {
@@ -105,17 +98,13 @@ export async function readContentWarmInfo(
   const pins = await supabase
     .from('pin')
     .select(
-      `ratio, autoplay_mode, pin_media ( media_asset ( ${ASSET_COLUMNS} ) )`,
+      `ratio, autoplay_mode, pin_media ( media_asset ( ${ASSET_COLUMNS} ) )` as const,
     )
     .eq('content_id', contentId)
 
   if (pins.error) throw readError(pins.error.message)
 
-  for (const pin of (pins.data ?? []) as unknown as {
-    ratio: string
-    autoplay_mode: 'viewport' | 'hover' | null
-    pin_media: { media_asset: VideoAssetRow | null }[]
-  }[]) {
+  for (const pin of pins.data ?? []) {
     if (!isRatio(pin.ratio)) continue
 
     for (const row of pin.pin_media) {
@@ -133,14 +122,12 @@ export async function readContentWarmInfo(
 
   const carousel = await supabase
     .from('case_detail_media')
-    .select(`media_asset ( ${ASSET_COLUMNS} )`)
+    .select(`media_asset ( ${ASSET_COLUMNS} )` as const)
     .eq('content_id', contentId)
 
   if (carousel.error) throw readError(carousel.error.message)
 
-  for (const row of (carousel.data ?? []) as unknown as {
-    media_asset: VideoAssetRow | null
-  }[]) {
+  for (const row of carousel.data ?? []) {
     const asset = row.media_asset
 
     if (asset && asset.width && asset.height) {
@@ -157,13 +144,13 @@ export async function readContentWarmInfo(
     const cover = await supabase
       .from('media_asset')
       .select(ASSET_COLUMNS)
-      .eq('id', content.data.cover_media_id as string)
+      .eq('id', content.data.cover_media_id)
       .maybeSingle()
 
     if (cover.error) throw readError(cover.error.message)
 
     if (cover.data) {
-      add(cover.data as VideoAssetRow, {
+      add(cover.data, {
         kind: 'otherCover',
         coverRatio: isRatio(content.data.cover_ratio)
           ? content.data.cover_ratio
@@ -173,7 +160,7 @@ export async function readContentWarmInfo(
   }
 
   return {
-    status: content.data.status as ContentStatus,
+    status: content.data.status,
     candidates: [...byId.values()],
   }
 }
@@ -190,7 +177,7 @@ export async function readPinContentId(pinId: string): Promise<string | null> {
 
   if (error) throw readError(error.message)
 
-  return (data?.content_id as string | undefined) ?? null
+  return data?.content_id ?? null
 }
 
 export type WarmMarker = (
@@ -200,12 +187,7 @@ export type WarmMarker = (
 ) => Promise<void>
 
 async function callMark(
-  client: {
-    rpc: (
-      fn: string,
-      args: Record<string, unknown>,
-    ) => PromiseLike<{ error: { message: string } | null }>
-  },
+  client: AppSupabaseClient,
   mediaId: string,
   contract: string,
   error?: string | null,

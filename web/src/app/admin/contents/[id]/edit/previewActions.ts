@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { getContent } from '@/modules/content/application/getContent'
 import { encodePreviewToken } from '@/modules/content/infrastructure/previewToken'
 import { publicContentPath } from '@/modules/content/domain/contentPath'
@@ -19,6 +21,8 @@ export async function generatePreviewLinkAction(
   _previousState: PreviewLinkActionState,
   formData: FormData,
 ): Promise<PreviewLinkActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const id = formData.get('id')
 
   if (typeof id !== 'string' || id.length === 0) {

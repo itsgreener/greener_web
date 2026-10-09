@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { revalidatePath } from 'next/cache'
 
 import {
@@ -12,6 +14,7 @@ import { warmContentAfterResponse } from '@/modules/media/application/warmAfterR
 import { publishContent } from '@/modules/content/application/publishContent'
 import { scheduleContent } from '@/modules/content/application/scheduleContent'
 import { unpublishContent } from '@/modules/content/application/unpublishContent'
+import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
 export type PublishActionState = {
   error?: string
@@ -35,6 +38,8 @@ export async function publishContentAction(
   _previousState: PublishActionState,
   formData: FormData,
 ): Promise<PublishActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = publishContentSchema.safeParse({
     id: formData.get('id'),
   })
@@ -72,6 +77,8 @@ export async function scheduleContentAction(
   _previousState: ScheduleActionState,
   formData: FormData,
 ): Promise<ScheduleActionState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = scheduleContentSchema.safeParse({
     id: formData.get('id'),
     publishAt: formData.get('publishAt'),
@@ -79,7 +86,7 @@ export async function scheduleContentAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 
@@ -120,6 +127,8 @@ export async function unpublishContentAction(
   _previousState: PublishActionState,
   formData: FormData,
 ): Promise<PublishActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = unpublishContentSchema.safeParse({
     id: formData.get('id'),
   })

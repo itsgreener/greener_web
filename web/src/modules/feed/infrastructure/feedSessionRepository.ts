@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
 /**
@@ -27,7 +27,7 @@ export async function createFeedSessionRow(
     filterHash: string | null
     excludeContentId?: string | null
   },
-  client: SupabaseClient = createServiceClient(),
+  client: AppSupabaseClient = createServiceClient(),
 ): Promise<FeedSessionRow> {
   // Seed criptográficamente aleatoria por carga de documento (arquitectura
   // §6.1) — no derivada de nada predecible por el cliente.
@@ -61,7 +61,7 @@ export async function createFeedSessionRow(
 
 export async function getFeedSessionRow(
   sessionId: string,
-  client: SupabaseClient = createServiceClient(),
+  client: AppSupabaseClient = createServiceClient(),
 ): Promise<FeedSessionRow | null> {
   const { data, error } = await client
     .from('feed_session')
@@ -86,7 +86,7 @@ export async function getFeedSessionRow(
 export async function getFeedRound(
   sessionId: string,
   roundIndex: number,
-  client: SupabaseClient = createServiceClient(),
+  client: AppSupabaseClient = createServiceClient(),
 ): Promise<string[] | null> {
   const { data, error } = await client
     .from('feed_round')
@@ -113,7 +113,7 @@ export async function saveFeedRound(
   sessionId: string,
   roundIndex: number,
   orderedPinIds: string[],
-  client: SupabaseClient = createServiceClient(),
+  client: AppSupabaseClient = createServiceClient(),
 ): Promise<void> {
   const { error } = await client.from('feed_round').upsert(
     {

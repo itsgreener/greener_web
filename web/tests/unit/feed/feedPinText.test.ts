@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import {
   buildFeedUnitsForPin,
   getFeedDataset,
@@ -52,7 +52,7 @@ describe('texto del pie del pin según el tipo de contenido', () => {
   it('insight: el título sigue el idioma del pin y cae al idioma por defecto', () => {
     const base = {
       id: 'c1',
-      type: 'insight',
+      type: 'insight' as const,
       slug: 'vozinha',
       default_locale: 'en',
       content_translation: TRANSLATIONS,
@@ -193,11 +193,13 @@ function fakeClient(rows: unknown[]) {
     in: () => builder,
     neq: () => builder,
     single: () => builder,
-    returns: () => Promise.resolve({ data: rows, error: null }),
+    // El builder real es «thenable»: la consulta se ejecuta al hacer await.
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown) =>
+      Promise.resolve({ data: rows, error: null }).then(resolve),
   }
   return {
     selects,
-    client: { from: () => builder } as unknown as SupabaseClient,
+    client: { from: () => builder } as unknown as AppSupabaseClient,
   }
 }
 

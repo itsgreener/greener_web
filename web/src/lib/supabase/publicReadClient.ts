@@ -1,4 +1,5 @@
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/lib/supabase/database'
 import { env } from '@/lib/env'
 
 /**
@@ -10,7 +11,7 @@ import { env } from '@/lib/env'
  * no la tiene.
  */
 export function createPublicReadClient() {
-  return createSupabaseClient(
+  return createSupabaseClient<Database>(
     env.NEXT_PUBLIC_SUPABASE_URL,
     env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
     {

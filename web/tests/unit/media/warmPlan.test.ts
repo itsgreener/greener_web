@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import fc from 'fast-check'
 
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
 import {
   caseVideoRatio,
   TOOL_INSIGHT_FALLBACK_RATIO,
@@ -26,6 +24,10 @@ import {
   buildVideoTransformations,
 } from '@/modules/media/infrastructure/cloudinaryUrl'
 
+import {
+  pinRatioSchema,
+  type PinRatioValue,
+} from '@/modules/shared/domain/ratio'
 const RATIOS = pinRatioSchema.options as readonly PinRatioValue[]
 const ID = 'greener/content/videos/demo'
 const BASE_VIDEO = 'https://res.cloudinary.com/test-cloud/video/upload'

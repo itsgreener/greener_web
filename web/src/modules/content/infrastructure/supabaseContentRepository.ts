@@ -9,13 +9,13 @@ import type {
 import type {
   CreateContentInput,
   DeleteContentInput,
-  Locale,
   PublishContentInput,
   ScheduleContentInput,
   UnpublishContentInput,
   UpdateContentInput,
 } from '../domain/contentSchema'
-
+import type { Locale } from '@/modules/shared/domain/locale'
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 type SupabaseContentRow = {
   id: string
   type: ContentListItem['type']
@@ -62,16 +62,6 @@ function mapContent(row: SupabaseContentRow): ContentDetail {
   }
 }
 
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
-
 export const supabaseContentRepository: ContentRepository = {
   async list() {
     const supabase = await createClient()
@@ -106,7 +96,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    const rows = (data ?? []) as unknown as SupabaseContentRow[]
+    const rows = data ?? []
 
     return rows.map(mapContent)
   },
@@ -147,7 +137,7 @@ export const supabaseContentRepository: ContentRepository = {
       return null
     }
 
-    return mapContent(data as unknown as SupabaseContentRow)
+    return mapContent(data)
   },
 
   async createDraft(input: CreateContentInput) {
@@ -167,7 +157,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async update(input: UpdateContentInput) {
@@ -185,7 +175,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async delete(input: DeleteContentInput) {
@@ -199,7 +189,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async publish(input: PublishContentInput) {
@@ -213,7 +203,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async schedule(input: ScheduleContentInput) {
@@ -229,7 +219,7 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async unpublish(input: UnpublishContentInput) {
@@ -243,6 +233,6 @@ export const supabaseContentRepository: ContentRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

@@ -18,8 +18,12 @@ import { z } from 'zod'
  * que el compilador de Next.js pueda encontrarla y sustituirla.
  */
 const clientEnvSchema = z.object({
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
+  // Cloud name de Cloudinary: con él se construyen las URLs de imagen y
+  // vídeo (cloudinaryUrl.ts). Antes se leía sin validar y, si faltaba, las
+  // URLs salían como `res.cloudinary.com/undefined/...`.
+  NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
 })
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>
@@ -29,6 +33,8 @@ function loadClientEnv(): ClientEnv {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+    NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME:
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
   }
 
   const parsed = clientEnvSchema.safeParse(raw)
@@ -36,7 +42,7 @@ function loadClientEnv(): ClientEnv {
   if (!parsed.success) {
     console.error(
       '❌ Variables de entorno de navegador inválidas o incompletas:\n',
-      parsed.error.flatten().fieldErrors,
+      z.flattenError(parsed.error).fieldErrors,
     )
     throw new Error(
       'Configuración de entorno del navegador inválida. Revisa .env.local contra .env.local.example.',

@@ -198,7 +198,20 @@ describe('validateImageFile', () => {
       fakeFile({
         name: 'animation.png',
         type: 'image/png',
-        bytes: [...pngHeader, ...ascii('acTL')],
+        // Chunk real: longitud (8) + 'acTL' + 8 bytes de datos + CRC.
+        bytes: [
+          ...pngHeader,
+          0,
+          0,
+          0,
+          8,
+          ...ascii('acTL'),
+          ...new Array(8).fill(0),
+          0,
+          0,
+          0,
+          0,
+        ],
       }),
     )
 
@@ -206,6 +219,60 @@ describe('validateImageFile', () => {
       code: 'ANIMATED_IMAGE_NOT_ALLOWED',
       format: 'png',
     })
+  })
+
+  it('auditoría 8 oct: un PNG estático con los bytes "acTL" dentro de IDAT NO se toma por animado', async () => {
+    const pngHeader = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+    const idatData = [1, 2, ...ascii('acTL'), 3, 4]
+
+    const result = await validateImageFile(
+      fakeFile({
+        name: 'foto.png',
+        type: 'image/png',
+        bytes: [
+          ...pngHeader,
+          0,
+          0,
+          0,
+          idatData.length,
+          ...ascii('IDAT'),
+          ...idatData,
+          0,
+          0,
+          0,
+          0,
+        ],
+      }),
+    )
+
+    expect(result).toBeNull()
+  })
+
+  it('auditoría 8 oct: un WebP estático con los bytes "ANIM" dentro de VP8 NO se toma por animado', async () => {
+    const vp8Data = [1, 2, ...ascii('ANIM'), 3, 4]
+
+    const result = await validateImageFile(
+      fakeFile({
+        name: 'foto.webp',
+        type: 'image/webp',
+        bytes: [
+          ...ascii('RIFF'),
+          0,
+          0,
+          0,
+          0,
+          ...ascii('WEBP'),
+          ...ascii('VP8 '),
+          vp8Data.length,
+          0,
+          0,
+          0,
+          ...vp8Data,
+        ],
+      }),
+    )
+
+    expect(result).toBeNull()
   })
 
   it('acepta un PNG estático', async () => {

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { env } from '@/lib/env'
+import { getMailchimpEnv } from '@/lib/serverEnv'
 
 type MailchimpMemberStatus =
   'subscribed' | 'unsubscribed' | 'cleaned' | 'pending' | 'transactional'
@@ -28,12 +28,12 @@ export type MailchimpSubscribeResult =
   | { status: 'confirmation_pending' }
 
 function apiUrl(path: string) {
-  return `https://${env.MAILCHIMP_SERVER_PREFIX}.api.mailchimp.com/3.0${path}`
+  return `https://${getMailchimpEnv().MAILCHIMP_SERVER_PREFIX}.api.mailchimp.com/3.0${path}`
 }
 
 function authHeaders() {
   return {
-    Authorization: `Bearer ${env.MAILCHIMP_API_KEY}`,
+    Authorization: `Bearer ${getMailchimpEnv().MAILCHIMP_API_KEY}`,
     'Content-Type': 'application/json',
   }
 }
@@ -94,7 +94,7 @@ export async function subscribeEmailInMailchimp(
   const normalizedEmail = email.trim().toLowerCase()
   const hash = subscriberHash(normalizedEmail)
   const memberPath = `/lists/${encodeURIComponent(
-    env.MAILCHIMP_AUDIENCE_ID,
+    getMailchimpEnv().MAILCHIMP_AUDIENCE_ID,
   )}/members/${hash}`
 
   const existingResponse = await mailchimpFetch(apiUrl(memberPath), {
@@ -153,7 +153,9 @@ export async function subscribeEmailInMailchimp(
   }
 
   const createResponse = await mailchimpFetch(
-    apiUrl(`/lists/${encodeURIComponent(env.MAILCHIMP_AUDIENCE_ID)}/members`),
+    apiUrl(
+      `/lists/${encodeURIComponent(getMailchimpEnv().MAILCHIMP_AUDIENCE_ID)}/members`,
+    ),
     {
       method: 'POST',
       headers: authHeaders(),

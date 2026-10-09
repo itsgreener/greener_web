@@ -6,16 +6,7 @@ import type {
   DeletePinInput,
   UpdatePinInput,
 } from '../domain/pinSchema'
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabasePinRow = {
   id: string
@@ -88,7 +79,7 @@ export const supabasePinRepository: PinRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return (data as unknown as SupabasePinRow[]).map(mapPin)
+    return data.map(mapPin)
   },
 
   async create(input: CreatePinInput) {
@@ -107,7 +98,7 @@ export const supabasePinRepository: PinRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async update(input: UpdatePinInput) {
@@ -126,7 +117,7 @@ export const supabasePinRepository: PinRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async delete(input: DeletePinInput) {
@@ -140,6 +131,6 @@ export const supabasePinRepository: PinRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

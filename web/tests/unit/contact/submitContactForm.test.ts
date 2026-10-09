@@ -12,7 +12,7 @@ vi.mock('@/modules/contact/infrastructure/mailer', () => ({
   sendContactEmail: vi.fn(),
 }))
 
-vi.mock('@/modules/contact/infrastructure/clientIp', () => ({
+vi.mock('@/lib/http/clientIp', () => ({
   getHashedClientIp: vi.fn(async () => 'hash-1'),
 }))
 

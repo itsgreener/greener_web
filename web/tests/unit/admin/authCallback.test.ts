@@ -53,7 +53,7 @@ describe('GET /auth/callback', () => {
     expect(response.headers.get('location')).toBe('http://localhost:3000/admin')
   })
 
-  it('con next protocol-relative (//evil.com), sigue siendo seguro porque se concatena con origin', async () => {
+  it('con next protocol-relative (//evil.com), lo descarta y vuelve a /admin', async () => {
     const { GET } = await import('@/app/auth/callback/route')
 
     const response = await GET(
@@ -62,17 +62,11 @@ describe('GET /auth/callback', () => {
       ),
     )
 
-    // "//evil.example.com" pasa el startsWith('/'), pero el redirect se
-    // construye como `${origin}${next}` — un string ya con esquema y host
-    // fijos —, así que el resultado es una URL absoluta cuyo host sigue
-    // siendo localhost:3000 y "//evil.example.com" queda como parte del
-    // path, no como un salto de origen. No hace falta reforzar nada aquí.
-    expect(response.headers.get('location')).toBe(
-      'http://localhost:3000//evil.example.com',
-    )
-    expect(new URL(response.headers.get('location')!).host).toBe(
-      'localhost:3000',
-    )
+    // Antes se aceptaba porque `${origin}${next}` mantenía el host; desde la
+    // auditoría del 8 oct la base puede ser NEXT_PUBLIC_SITE_URL y se
+    // prefiere no depender de cómo se concatena: un "//" nunca es un path
+    // interno legítimo.
+    expect(response.headers.get('location')).toBe('http://localhost:3000/admin')
   })
 
   it('sin code, redirige a /admin/login?error=oauth', async () => {

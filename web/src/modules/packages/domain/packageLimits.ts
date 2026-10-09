@@ -28,4 +28,14 @@
  */
 export const PACKAGE_LIMITS = {
   maxZipSizeBytes: 10 * 1000 * 1000,
+
+  /*
+   * Límites del contenido DESCOMPRIMIDO (auditoría 8 oct, P0-3: ZIP bomb).
+   * Los 10 MB de arriba son del ZIP comprimido; sin estos topes, un ZIP
+   * pequeño puede declarar gigas y tumbar el único proceso PM2 al extraerlo.
+   * Holgados para un paquete real (HTML + JS + fuentes + imágenes).
+   */
+  maxEntries: 1000,
+  maxUncompressedBytes: 60 * 1000 * 1000,
+  maxEntryUncompressedBytes: 25 * 1000 * 1000,
 }

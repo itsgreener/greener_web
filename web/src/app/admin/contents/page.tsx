@@ -1,3 +1,4 @@
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import Link from 'next/link'
 
 import { listContents } from '@/modules/content/application/listContents'
@@ -8,17 +9,6 @@ type Props = {
     type?: string
     status?: string
   }>
-}
-
-function formatDateTime(value: string | null) {
-  if (!value) {
-    return '—'
-  }
-
-  return new Date(value).toLocaleString('es-ES', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  })
 }
 
 function getTypeLabel(type: string) {
@@ -265,7 +255,7 @@ export default async function ContentsPage({ searchParams }: Props) {
                       </td>
 
                       <td className="admin-content-date">
-                        {formatDateTime(content.publishAt)}
+                        {formatAdminDateTime(content.publishAt)}
                       </td>
 
                       <td>

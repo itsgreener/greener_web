@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
@@ -185,5 +185,82 @@ describe('appendBatch — regresión: seguir cargando un scope ya marcado sin m�
     // su cuenta — haría falta una ronda nueva que confirme hasMore de
     // verdad, que es justo lo que no pasa aquí a propósito.
     expect(screen.getByTestId('item-count')).toHaveTextContent('2')
+  })
+})
+
+describe('scroll fuera del estado (auditoría 8 oct, P0-5)', () => {
+  function ScrollConsumer({ onRender }: { onRender: () => void }) {
+    const { setScrollY } = useFeedContext()
+    onRender()
+
+    return <button onClick={() => setScrollY('home', 789)}>scroll</button>
+  }
+
+  it('guardar el scroll no re-renderiza ni escribe en sessionStorage', () => {
+    let renders = 0
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+
+    render(
+      <FeedProvider>
+        <ScrollConsumer onRender={() => (renders += 1)} />
+      </FeedProvider>,
+    )
+
+    const rendersBefore = renders
+    setItem.mockClear()
+
+    fireEvent.click(screen.getByRole('button', { name: 'scroll' }))
+    fireEvent.click(screen.getByRole('button', { name: 'scroll' }))
+
+    expect(renders).toBe(rendersBefore)
+    expect(setItem).not.toHaveBeenCalled()
+
+    setItem.mockRestore()
+  })
+
+  it('al ocultar la página se guarda el último scroll', () => {
+    render(
+      <FeedProvider>
+        <ScrollConsumer onRender={() => {}} />
+      </FeedProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'scroll' }))
+    window.dispatchEvent(new Event('pagehide'))
+
+    const saved = JSON.parse(window.sessionStorage.getItem('greener:feed')!)
+
+    // Sin sesión abierta en "home" no hay scope que guardar; abrirla y
+    // repetir confirma que el scroll del ref viaja en la escritura.
+    expect(saved.scopes).toEqual({})
+  })
+
+  it('el scroll guardado viaja con la sesión al escribir el respaldo', () => {
+    function Opener() {
+      const { setSessionId, setScrollY } = useFeedContext()
+      return (
+        <button
+          onClick={() => {
+            setScrollY('home', 321)
+            setSessionId('home', 'session-1')
+          }}
+        >
+          abrir
+        </button>
+      )
+    }
+
+    render(
+      <FeedProvider>
+        <Opener />
+      </FeedProvider>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'abrir' }))
+    window.dispatchEvent(new Event('pagehide'))
+
+    const saved = JSON.parse(window.sessionStorage.getItem('greener:feed')!)
+    expect(saved.scopes.home.sessionId).toBe('session-1')
+    expect(saved.scopes.home.scrollY).toBe(321)
   })
 })

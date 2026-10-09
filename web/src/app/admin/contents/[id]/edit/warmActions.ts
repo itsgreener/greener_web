@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 
-import { createClient } from '@/lib/supabase/server'
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 
 import { warmContentMedia } from '@/modules/media/application/warmContentMedia'
 
@@ -12,7 +12,7 @@ export type WarmActionState = {
   message?: string
 }
 
-const warmSchema = z.object({ id: z.string().uuid() })
+const warmSchema = z.object({ id: z.uuid() })
 
 /**
  * Botón «Calentar vídeos» del ABM: pide a Cloudinary, ahora, las versiones
@@ -27,6 +27,8 @@ export async function warmContentAction(
   _previousState: WarmActionState,
   formData: FormData,
 ): Promise<WarmActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const parsed = warmSchema.safeParse({ id: formData.get('id') })
 
   if (!parsed.success) {
@@ -34,14 +36,6 @@ export async function warmContentAction(
   }
 
   try {
-    const supabase = await createClient()
-
-    const { data: isAdmin, error } = await supabase.rpc('is_admin')
-
-    if (error || !isAdmin) {
-      return { error: 'No tienes permiso para calentar vídeos.' }
-    }
-
     const result = await warmContentMedia(parsed.data.id, {
       includeDraft: true,
     })

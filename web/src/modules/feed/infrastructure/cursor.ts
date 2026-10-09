@@ -1,5 +1,7 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
-import { env } from '@/lib/env'
+import {
+  decodeSignedToken,
+  encodeSignedToken,
+} from '@/lib/security/signedToken'
 
 /**
  * Cursor opaco y firmado (arquitectura §8.5): "el cliente no puede alterar
@@ -13,48 +15,23 @@ export interface FeedCursorPayload {
   roundIndex: number
 }
 
-function sign(payload: string): string {
-  return createHmac('sha256', env.SUPABASE_SECRET_KEY)
-    .update(payload)
-    .digest('base64url')
-}
-
 export function encodeCursor(payload: FeedCursorPayload): string {
-  const json = JSON.stringify(payload)
-  const body = Buffer.from(json, 'utf-8').toString('base64url')
-  const signature = sign(body)
-  return `${body}.${signature}`
+  return encodeSignedToken(payload)
 }
 
 /** Devuelve el payload si la firma es válida; null si el cursor es inválido, ajeno o corrupto. */
 export function decodeCursor(cursor: string): FeedCursorPayload | null {
-  const [body, signature] = cursor.split('.')
-  if (!body || !signature) return null
+  const parsed = decodeSignedToken(cursor) as Partial<FeedCursorPayload> | null
 
-  const expected = sign(body)
-
-  // Evita timing attacks comparando la firma; ambos buffers deben tener
-  // el mismo tamaño o timingSafeEqual lanza en vez de devolver false.
-  const expectedBuf = Buffer.from(expected)
-  const signatureBuf = Buffer.from(signature)
   if (
-    expectedBuf.length !== signatureBuf.length ||
-    !timingSafeEqual(expectedBuf, signatureBuf)
+    !parsed ||
+    typeof parsed.sessionId !== 'string' ||
+    typeof parsed.roundIndex !== 'number' ||
+    !Number.isInteger(parsed.roundIndex) ||
+    parsed.roundIndex < 0
   ) {
     return null
   }
 
-  try {
-    const json = Buffer.from(body, 'base64url').toString('utf-8')
-    const parsed = JSON.parse(json) as FeedCursorPayload
-    if (
-      typeof parsed.sessionId !== 'string' ||
-      typeof parsed.roundIndex !== 'number'
-    ) {
-      return null
-    }
-    return parsed
-  } catch {
-    return null
-  }
+  return { sessionId: parsed.sessionId, roundIndex: parsed.roundIndex }
 }

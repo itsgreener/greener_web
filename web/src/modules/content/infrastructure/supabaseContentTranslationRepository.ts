@@ -7,8 +7,8 @@ import type {
   UpsertContentTranslationInput,
 } from '../domain/contentTranslationSchema'
 
-import type { Locale } from '../domain/contentSchema'
-
+import type { Locale } from '@/modules/shared/domain/locale'
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 type SupabaseTranslationRow = {
   content_id: string
   locale: Locale
@@ -18,16 +18,6 @@ type SupabaseTranslationRow = {
   summary: string | null
   highlight: string | null
   body: string | null
-}
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
 }
 
 function mapTranslation(row: SupabaseTranslationRow): ContentTranslation {
@@ -103,6 +93,6 @@ export const supabaseContentTranslationRepository: ContentTranslationRepository 
         throw createRepositoryError(error.message, error.code)
       }
 
-      return data as string
+      return data
     },
   }

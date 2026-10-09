@@ -1,12 +1,11 @@
 import { describe, it, expect } from 'vitest'
 
 import {
-  pinRatioSchema,
   createPinSchema,
   updatePinSchema,
   deletePinSchema,
 } from '@/modules/pin/domain/pinSchema'
-
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const PIN_ID = '7a1f2e3d-4c5b-6a7d-8e9f-0a1b2c3d4e5f'
 

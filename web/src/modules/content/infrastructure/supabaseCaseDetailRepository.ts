@@ -6,21 +6,12 @@ import type {
   CaseDetail,
   UpsertCaseDetailInput,
 } from '../domain/caseDetailSchema'
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabaseCaseDetailRow = {
   content_id: string
   force: number
   client: string | null
-}
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
 }
 
 function mapCaseDetail(row: SupabaseCaseDetailRow): CaseDetail {
@@ -57,7 +48,7 @@ export const supabaseCaseDetailRepository: CaseDetailRepository = {
       return null
     }
 
-    return mapCaseDetail(data as SupabaseCaseDetailRow)
+    return mapCaseDetail(data)
   },
 
   async upsert(input: UpsertCaseDetailInput) {
@@ -75,6 +66,6 @@ export const supabaseCaseDetailRepository: CaseDetailRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

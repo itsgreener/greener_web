@@ -28,6 +28,11 @@ vi.mock('@/modules/media/application/deleteCoverMedia', () => ({
   deleteCoverMedia: vi.fn(),
 }))
 
+vi.mock('@/modules/media/application/cleanupMedia', () => ({
+  snapshotMedia: vi.fn(),
+  purgeRemovedMedia: vi.fn(),
+}))
+
 vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
   class MockCloudinaryImageVerificationError extends Error {
     constructor(message: string) {
@@ -68,6 +73,11 @@ import { registerCoverImage } from '@/modules/media/application/registerCoverIma
 import { registerCoverVideo } from '@/modules/media/application/registerCoverVideo'
 
 import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
+
+import {
+  purgeRemovedMedia,
+  snapshotMedia,
+} from '@/modules/media/application/cleanupMedia'
 
 import {
   CloudinaryImageVerificationError,
@@ -350,6 +360,20 @@ describe('mediaActions', () => {
   })
 
   describe('deleteCoverMediaAction', () => {
+    const SERVER_REF = {
+      mediaId: MEDIA_ID,
+      cloudinaryPublicId: IMAGE_PUBLIC_ID,
+      kind: 'image' as const,
+    }
+
+    const mockSnapshotMedia = vi.mocked(snapshotMedia)
+    const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
+
+    beforeEach(() => {
+      mockSnapshotMedia.mockResolvedValue([SERVER_REF])
+      mockPurgeRemovedMedia.mockResolvedValue({ purged: 1, failed: 0 })
+    })
+
     it('con datos inválidos, no llega a llamar ni a Postgres ni a Cloudinary', async () => {
       const result = await deleteCoverMediaAction({
         contentId: 'no-es-uuid',
@@ -359,7 +383,7 @@ describe('mediaActions', () => {
 
       expect(mockDeleteCoverMedia).not.toHaveBeenCalled()
 
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
     })
 
     it('si Postgres tiene éxito y Cloudinary también, devuelve ok sin warning', async () => {
@@ -371,10 +395,20 @@ describe('mediaActions', () => {
 
       expect(mockDeleteCoverMedia).toHaveBeenCalledWith(VALID_DELETE_INPUT)
 
-      expect(mockDeleteCloudinaryAsset).toHaveBeenCalledWith(
-        IMAGE_PUBLIC_ID,
-        'image',
-      )
+      expect(mockSnapshotMedia).toHaveBeenCalledWith([MEDIA_ID])
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
+    })
+
+    it('borra el archivo que dice Postgres, nunca el public id que manda el navegador', async () => {
+      await deleteCoverMediaAction({
+        ...VALID_DELETE_INPUT,
+        cloudinaryPublicId: 'otra-cuenta/archivo-ajeno',
+      })
+
+      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
+
+      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
     })
 
     it('si Postgres falla porque el medio ya no coincide con el contenido, aborta sin llamar a Cloudinary', async () => {
@@ -392,7 +426,7 @@ describe('mediaActions', () => {
         expect(result.error).toContain('otra pestaña')
       }
 
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
     })
 
     it('si Postgres falla por violación de FK, aborta y no borra en Cloudinary', async () => {
@@ -413,13 +447,11 @@ describe('mediaActions', () => {
         expect(result.error).toContain('se sigue usando en otro sitio')
       }
 
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
+      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
     })
 
     it('si Postgres tiene éxito pero Cloudinary falla, devuelve ok con warning', async () => {
-      mockDeleteCloudinaryAsset.mockRejectedValueOnce(
-        new Error('Cloudinary no ha podido borrar el recurso.'),
-      )
+      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 1 })
 
       const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
 

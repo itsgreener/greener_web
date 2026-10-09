@@ -133,6 +133,30 @@ describe('getFeedSessionBatch', () => {
     expect(deps.getDataset).toHaveBeenCalledTimes(1)
   })
 
+  it('auditoría 8 oct, P0-6: un pin despublicado después de guardar la ronda se omite, no tumba el lote', async () => {
+    const first = await getFeedSessionBatch(SESSION.id, null, deps)
+    const unpublished = first.items[0].pinId
+
+    // Al releer la ronda guardada, el directorio público ya no tiene ese pin.
+    vi.mocked(deps.getDirectoryByIds).mockImplementationOnce(async (pinIds) =>
+      Object.fromEntries(
+        pinIds
+          .filter((id) => id !== unpublished)
+          .map((id) => [id, DATASET.pinDirectory[id]]),
+      ),
+    )
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const again = await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(again.items.length).toBeGreaterThan(0)
+    expect(again.items.some((item) => item.pinId === unpublished)).toBe(false)
+    expect(again.items.length).toBe(
+      first.items.filter((item) => item.pinId !== unpublished).length,
+    )
+    warn.mockRestore()
+  })
+
   it('una ronda ya cacheada NO vuelve a leer el catálogo completo (getDataset)', async () => {
     const first = await getFeedSessionBatch(SESSION.id, null, deps)
     vi.clearAllMocks()

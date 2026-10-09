@@ -16,8 +16,7 @@ import {
   columnReservationForRatio,
   computeContentBlockGeometry,
 } from '@/modules/masonry/domain/detailLayout'
-import type { PinRatioValue } from '@/modules/media/domain/closestRatio'
-
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Panel de recomendaciones de una página de detalle
  * (especificacion-final-formato-detalle.md §1, §2, §6) — deliberadamente
@@ -211,7 +210,9 @@ export function useRecommendationMasonry(
 
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [items, setItems] = useState<FeedBatchItem[]>([])
-  const [cursor, setCursor] = useState<string | null>(null)
+  // Ref, no estado: `loadMore` está memorizado y leería un cursor congelado
+  // (auditoría 8 oct, P0-4: el panel pedía siempre la ronda 0).
+  const cursorRef = useRef<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -251,7 +252,7 @@ export function useRecommendationMasonry(
       if (cancelled) return
       setSessionId(null)
       setItems([])
-      setCursor(null)
+      cursorRef.current = null
       setHasMore(true)
       setError(null)
     })
@@ -279,10 +280,14 @@ export function useRecommendationMasonry(
     loadingRef.current = true
     setIsLoading(true)
     try {
-      const batch = await fetchBatch(sessionId, cursor)
+      const batch = await fetchBatch(sessionId, cursorRef.current)
+      // Límite de peticiones superado: temporal, no toca ni cursor ni hasMore.
+      if (batch.rateLimited) return
       setItems((prev) => [...prev, ...batch.items])
-      setCursor(batch.cursor)
-      setHasMore(batch.hasMore)
+      cursorRef.current = batch.cursor
+      // Mismo criterio que FeedProvider.appendBatch: una ronda vacía es
+      // definitiva (generateRound es determinista), así que se deja de pedir.
+      setHasMore(batch.items.length > 0 ? batch.hasMore : false)
     } catch (err) {
       setError(
         err instanceof Error
@@ -293,8 +298,6 @@ export function useRecommendationMasonry(
       loadingRef.current = false
       setIsLoading(false)
     }
-    // cursor solo se lee dentro, no debe disparar una recarga por sí solo.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId, hasMore])
 
   useEffect(() => {

@@ -6,11 +6,11 @@ import {
   findExistingMediaIds,
   isPublicIdRegistered,
   listContentMediaRefs,
+  listMediaRefsByIds,
   listPinMediaRefs,
-  type MediaKind,
   type MediaRef,
 } from '../infrastructure/supabaseMediaRefs'
-
+import type { MediaKind } from '@/modules/shared/domain/mediaKind'
 /**
  * Limpieza de Cloudinary (5 oct 2026): con el plan Free no se puede
  * permitir acumular archivos que ya no usa nadie. Hay tres momentos en los
@@ -51,6 +51,22 @@ export async function snapshotContentMedia(
 ): Promise<MediaRef[]> {
   try {
     return await listContentMediaRefs(contentId)
+  } catch (error) {
+    console.error(error)
+    return []
+  }
+}
+
+/**
+ * Medios concretos, leídos de Postgres ANTES de desvincularlos. Nunca lanza.
+ *
+ * Es la única fuente válida del public id que se va a borrar en Cloudinary:
+ * nunca el que manda el navegador (auditoría 8 oct, P0-2), que podría
+ * apuntar a cualquier archivo de la cuenta.
+ */
+export async function snapshotMedia(mediaIds: string[]): Promise<MediaRef[]> {
+  try {
+    return await listMediaRefsByIds(mediaIds)
   } catch (error) {
     console.error(error)
     return []

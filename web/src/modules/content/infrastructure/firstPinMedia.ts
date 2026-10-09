@@ -1,16 +1,6 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import type { PublicContentMedia } from './publicContentSource'
-
-interface FirstPinRow {
-  pin_media: Array<{
-    slide_order: number
-    media_asset: {
-      kind: 'image' | 'video'
-      cloudinary_public_id: string
-    } | null
-  }>
-}
 
 /**
  * Primer medio del primer pin de un contenido (orden de cola, luego
@@ -21,7 +11,7 @@ interface FirstPinRow {
  */
 export async function getFirstPinMedia(
   contentId: string,
-  client?: SupabaseClient,
+  client?: AppSupabaseClient,
 ): Promise<PublicContentMedia | null> {
   const supabase = client ?? createPublicReadClient()
 
@@ -43,7 +33,7 @@ export async function getFirstPinMedia(
 
   if (error || !data) return null
 
-  const first = [...(data as unknown as FirstPinRow).pin_media]
+  const first = [...data.pin_media]
     .filter((item) => item.media_asset !== null)
     .sort((a, b) => a.slide_order - b.slide_order)[0]
 

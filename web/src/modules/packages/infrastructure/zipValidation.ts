@@ -93,8 +93,8 @@ const SERVICE_WORKER_REGEX = /serviceWorker\s*\.\s*register\s*\(/i
 /**
  * Valida un ZIP de tool/insight contra el contrato de §12.2/§12.5 y
  * devuelve sus entradas ya verificadas, listas para subir a Storage.
- * No hace escaneo antivirus (§12.5 lo exige y no hay motor disponible en
- * este entorno) — hueco real, documentado en PROGRESO.md, no fingido aquí.
+ * El escaneo antivirus no va aquí: lo hace `scanZipForViruses`
+ * (Cloudmersive) en `uploadHtmlPackage`, sobre el ZIP en crudo.
  */
 export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   if (buffer.byteLength > PACKAGE_LIMITS.maxZipSizeBytes) {
@@ -115,7 +115,14 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   const entries: ValidatedPackageEntry[] = []
   const entryPaths = new Set<string>()
 
-  for (const entry of zip.getEntries()) {
+  const zipEntries = zip.getEntries()
+
+  // ZIP bomb (auditoría 8 oct, P0-3): se comprueban los tamaños DECLARADOS
+  // antes de descomprimir nada. adm-zip ya corta la descompresión en el
+  // tamaño declarado de cada entrada, así que basta con acotar lo declarado.
+  assertWithinUncompressedLimits(zipEntries)
+
+  for (const entry of zipEntries) {
     if (entry.isDirectory) {
       continue
     }
@@ -266,6 +273,36 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   const checksum = computeContentChecksum(entries)
 
   return { manifest, entries, checksum }
+}
+
+function assertWithinUncompressedLimits(zipEntries: AdmZip.IZipEntry[]): void {
+  if (zipEntries.length > PACKAGE_LIMITS.maxEntries) {
+    throw new PackageValidationError([
+      `El ZIP tiene ${zipEntries.length} ficheros; el máximo es ${PACKAGE_LIMITS.maxEntries}.`,
+    ])
+  }
+
+  let total = 0
+
+  for (const entry of zipEntries) {
+    if (entry.isDirectory) continue
+
+    const size = entry.header.size
+
+    if (size > PACKAGE_LIMITS.maxEntryUncompressedBytes) {
+      throw new PackageValidationError([
+        `"${entry.entryName}" ocupa ${Math.round(size / 1_000_000)} MB descomprimido; el máximo por fichero es ${PACKAGE_LIMITS.maxEntryUncompressedBytes / 1_000_000} MB.`,
+      ])
+    }
+
+    total += size
+  }
+
+  if (total > PACKAGE_LIMITS.maxUncompressedBytes) {
+    throw new PackageValidationError([
+      `El contenido descomprimido del ZIP ocupa ${Math.round(total / 1_000_000)} MB; el máximo es ${PACKAGE_LIMITS.maxUncompressedBytes / 1_000_000} MB.`,
+    ])
+  }
 }
 
 /**

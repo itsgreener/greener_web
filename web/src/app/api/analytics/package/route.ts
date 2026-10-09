@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { clientIpFromHeaders } from '@/lib/http/clientIp'
+import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 
 const ACTION_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/i
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+/**
+ * Límite por IP (auditoría 8 oct): sin él, cualquiera podía inflar «Tool
+ * Used» en bucle (el filtro `sec-fetch-site` no existe fuera de un
+ * navegador). Holgado: una tool real dispara pocos eventos por minuto.
+ */
+const limiter = createFixedWindowRateLimiter({ max: 60, windowMs: 60_000 })
+
+/** Tiempo máximo de la llamada a Plausible: que nunca deje la petición colgada. */
+const PLAUSIBLE_TIMEOUT_MS = 5000
 
 interface PackageAnalyticsBody {
   slug?: unknown
@@ -34,6 +46,12 @@ export async function POST(request: NextRequest) {
     return new NextResponse(null, {
       status: 403,
     })
+  }
+
+  const clientIp = clientIpFromHeaders(request.headers)
+
+  if (!limiter.check(clientIp ?? 'unknown')) {
+    return new NextResponse(null, { status: 429 })
   }
 
   let body: PackageAnalyticsBody
@@ -124,9 +142,6 @@ export async function POST(request: NextRequest) {
 
   const userAgent = request.headers.get('user-agent')
 
-  const clientIp =
-    request.headers.get('x-forwarded-for') ?? request.headers.get('x-real-ip')
-
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'User-Agent': userAgent ?? 'Greener',
@@ -136,24 +151,32 @@ export async function POST(request: NextRequest) {
     headers['X-Forwarded-For'] = clientIp
   }
 
-  const plausibleResponse = await fetch('https://plausible.io/api/event', {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      name: 'Tool Used',
+  let plausibleResponse: Response
 
-      domain,
+  try {
+    plausibleResponse = await fetch('https://plausible.io/api/event', {
+      method: 'POST',
+      signal: AbortSignal.timeout(PLAUSIBLE_TIMEOUT_MS),
+      headers,
+      body: JSON.stringify({
+        name: 'Tool Used',
 
-      url: `https://${domain}/tools/${slug}/app`,
+        domain,
 
-      props: {
-        toolId: content.id,
-        action,
-      },
+        url: `https://${domain}/tools/${slug}/app`,
 
-      interactive: true,
-    }),
-  })
+        props: {
+          toolId: content.id,
+          action,
+        },
+
+        interactive: true,
+      }),
+    })
+  } catch (error) {
+    console.error('Plausible no respondió al registrar Tool Used:', error)
+    return new NextResponse(null, { status: 502 })
+  }
 
   if (!plausibleResponse.ok) {
     return new NextResponse(null, {

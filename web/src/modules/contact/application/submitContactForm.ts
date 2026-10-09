@@ -1,10 +1,11 @@
 import { contactFormSchema } from '../domain/contactSchema'
 import { sendContactEmail } from '../infrastructure/mailer'
-import { getHashedClientIp } from '../infrastructure/clientIp'
+import { getHashedClientIp } from '@/lib/http/clientIp'
 import {
   isRateLimited,
   logContactSubmission,
 } from '../infrastructure/contactSubmissionLog'
+import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
 export type SubmitContactFormResult =
   | { ok: true }
@@ -33,7 +34,7 @@ export async function submitContactForm(
   const parsed = contactFormSchema.safeParse(input)
 
   if (!parsed.success) {
-    return { ok: false, fieldErrors: parsed.error.flatten().fieldErrors }
+    return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
   }
 
   const ipHash = await getHashedClientIp()

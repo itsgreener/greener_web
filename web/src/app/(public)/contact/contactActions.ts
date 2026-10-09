@@ -1,12 +1,9 @@
 'use server'
 
 import { submitContactForm } from '@/modules/contact/application/submitContactForm'
+import type { FormActionState } from '@/lib/forms/formActionState'
 
-export type ContactActionState = {
-  fieldErrors?: Record<string, string[]>
-  formError?: string
-  success?: boolean
-}
+export type ContactActionState = FormActionState
 
 /**
  * El campo honeypot vive en el propio <input> del formulario con el

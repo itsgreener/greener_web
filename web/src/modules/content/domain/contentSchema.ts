@@ -1,14 +1,8 @@
 import { z } from 'zod'
 
-export const contentTypeSchema = z.enum([
-  'case',
-  'insight',
-  'tool',
-  'episode',
-  'other',
-])
-
-export const localeSchema = z.enum(['es', 'en', 'ca'])
+import { contentTypeSchema } from '@/modules/shared/domain/contentType'
+import { localeSchema } from '@/modules/shared/domain/locale'
+import { idSchema } from '@/lib/validation/idSchema'
 
 export const createContentSchema = z.object({
   type: contentTypeSchema,
@@ -25,7 +19,7 @@ export const createContentSchema = z.object({
 })
 
 export const updateContentSchema = z.object({
-  id: z.string().uuid('El identificador del contenido no es válido'),
+  id: idSchema('content'),
 
   slug: z
     .string()
@@ -37,15 +31,15 @@ export const updateContentSchema = z.object({
 })
 
 export const deleteContentSchema = z.object({
-  id: z.string().uuid('El identificador del contenido no es válido'),
+  id: idSchema('content'),
 })
 
 export const publishContentSchema = z.object({
-  id: z.string().uuid('El identificador del contenido no es válido'),
+  id: idSchema('content'),
 })
 
 export const scheduleContentSchema = z.object({
-  id: z.string().uuid('El identificador del contenido no es válido'),
+  id: idSchema('content'),
 
   publishAt: z.coerce
     .date()
@@ -56,12 +50,8 @@ export const scheduleContentSchema = z.object({
 })
 
 export const unpublishContentSchema = z.object({
-  id: z.string().uuid('El identificador del contenido no es válido'),
+  id: idSchema('content'),
 })
-
-export type ContentType = z.infer<typeof contentTypeSchema>
-
-export type Locale = z.infer<typeof localeSchema>
 
 export type CreateContentInput = z.infer<typeof createContentSchema>
 

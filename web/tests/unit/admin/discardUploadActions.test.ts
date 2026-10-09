@@ -2,8 +2,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const rpc = vi.fn()
 
+// Este fichero prueba la comprobación de admin de verdad (no el doble
+// global de tests/setup.ts).
+vi.unmock('@/lib/auth/adminSession')
+
 vi.mock('@/lib/supabase/server', () => ({
-  createClient: vi.fn(async () => ({ rpc })),
+  createClient: vi.fn(async () => ({
+    rpc,
+    auth: {
+      getClaims: vi.fn(async () => ({
+        data: { claims: { sub: 'admin' } },
+        error: null,
+      })),
+    },
+  })),
 }))
 
 vi.mock('@/modules/media/application/cleanupMedia', () => ({

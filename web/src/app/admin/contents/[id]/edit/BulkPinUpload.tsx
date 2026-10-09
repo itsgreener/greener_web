@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
-import type { ContentType } from '@/modules/content/domain/contentSchema'
-
 import {
   parsePinCsv,
   findCsvRowForFile,
@@ -37,6 +35,7 @@ import {
 import { discardUploadQuietly, type UploadedAssetRef } from './discardUpload'
 import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
+import type { ContentType } from '@/modules/shared/domain/contentType'
 type Props = {
   // Huecos de pin que quedan en el contenido (máximo 8 por contenido).
   availableSlots: number

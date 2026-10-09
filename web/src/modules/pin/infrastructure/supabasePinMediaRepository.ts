@@ -6,16 +6,7 @@ import type {
   AttachPinVideoInput,
   DetachPinMediaInput,
 } from '../domain/pinMediaSchema'
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
-}
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabasePinMediaRepository: PinMediaRepository = {
   async attachImage(input: AttachPinImageInput) {
@@ -35,7 +26,7 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async attachVideo(input: AttachPinVideoInput) {
@@ -56,7 +47,7 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 
   async detach(input: DetachPinMediaInput) {
@@ -71,6 +62,6 @@ export const supabasePinMediaRepository: PinMediaRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

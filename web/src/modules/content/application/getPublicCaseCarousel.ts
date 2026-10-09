@@ -1,9 +1,9 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { getPublicCaseCarousel as getPublicCaseCarouselSource } from '../infrastructure/publicCaseSource'
 
 export async function getPublicCaseCarousel(
   contentId: string,
-  client?: SupabaseClient,
+  client?: AppSupabaseClient,
 ) {
   return getPublicCaseCarouselSource(contentId, client)
 }

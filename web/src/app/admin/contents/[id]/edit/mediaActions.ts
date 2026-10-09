@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import { revalidatePath } from 'next/cache'
 
@@ -16,9 +18,13 @@ import { registerCoverVideo } from '@/modules/media/application/registerCoverVid
 import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
 
 import {
+  purgeRemovedMedia,
+  snapshotMedia,
+} from '@/modules/media/application/cleanupMedia'
+
+import {
   CloudinaryImageVerificationError,
   CloudinaryVideoVerificationError,
-  deleteCloudinaryAsset,
   verifyCloudinaryImageAsset,
   verifyCloudinaryVideoAsset,
 } from '@/modules/media/infrastructure/cloudinaryServer'
@@ -49,6 +55,9 @@ export type DeleteMediaActionResult =
 export async function registerCoverImageAction(
   input: unknown,
 ): Promise<RegisterMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = registerCoverImageSchema.safeParse(input)
 
   if (!result.success) {
@@ -114,6 +123,9 @@ export async function registerCoverImageAction(
 export async function registerCoverVideoAction(
   input: unknown,
 ): Promise<RegisterMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = registerCoverVideoSchema.safeParse(input)
 
   if (!result.success) {
@@ -197,12 +209,14 @@ export async function registerCoverVideoAction(
  * contenido, o sigue referenciado en otro lugar), se devuelve error y el
  * ABM no debe continuar con la subida del nuevo archivo. Si Postgres
  * tiene éxito pero Cloudinary falla, se devuelve ok con un warning: no
- * bloquea al admin, pero dice claramente que ha quedado un archivo suelto
- * en Cloudinary que alguien tendrá que borrar a mano.
+ * bloquea al admin y el reconciliador recoge el archivo suelto.
  */
 export async function deleteCoverMediaAction(
   input: unknown,
 ): Promise<DeleteMediaActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
   const result = deleteCoverMediaSchema.safeParse(input)
 
   if (!result.success) {
@@ -211,6 +225,10 @@ export async function deleteCoverMediaAction(
       error: 'Los datos de la portada a sustituir no son válidos.',
     }
   }
+
+  // El archivo a borrar en Cloudinary se lee de Postgres ANTES de
+  // desvincular, nunca del navegador (auditoría 8 oct, P0-2).
+  const mediaRefs = await snapshotMedia([result.data.mediaId])
 
   try {
     await deleteCoverMedia(result.data)
@@ -245,18 +263,15 @@ export async function deleteCoverMediaAction(
     }
   }
 
-  try {
-    await deleteCloudinaryAsset(
-      result.data.cloudinaryPublicId,
-      result.data.kind,
-    )
-  } catch (error) {
-    console.error(error)
+  // unlink_and_delete_cover_media ya borró el media_asset; purgeRemovedMedia
+  // solo borra en Cloudinary lo que ya no existe en Postgres.
+  const purge = await purgeRemovedMedia(mediaRefs)
 
+  if (purge.failed > 0) {
     return {
       ok: true,
       warning:
-        'Se ha desvinculado la portada anterior, pero no se ha podido borrar el archivo en Cloudinary. Revísalo manualmente si el consumo del plan gratuito te preocupa.',
+        'Se ha desvinculado la portada anterior, pero no se ha podido borrar el archivo en Cloudinary. Se limpiará con el reconciliador (scripts/reconcile-cloudinary.mjs).',
     }
   }
 

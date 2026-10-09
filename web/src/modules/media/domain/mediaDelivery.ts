@@ -1,5 +1,4 @@
-import type { PinRatioValue } from './closestRatio'
-
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Contrato de entrega de medios (contrato-medios-fase-1.md §4).
  *

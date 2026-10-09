@@ -2,8 +2,6 @@
 
 import { useActionState } from 'react'
 
-import type { Locale } from '@/modules/content/domain/contentSchema'
-
 import type { ContentTranslation } from '@/modules/content/domain/contentTranslationSchema'
 
 import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
@@ -17,6 +15,7 @@ import {
   type TranslationActionState,
 } from './translationActions'
 
+import type { Locale } from '@/modules/shared/domain/locale'
 type Props = {
   contentId: string
   locale: Locale

@@ -26,7 +26,11 @@ function requestWithCookie(visitorId?: string): NextRequest {
   })
 }
 
-const params = { params: Promise.resolve({ sessionId: 'session-1' }) }
+const params = {
+  params: Promise.resolve({
+    sessionId: '5f0c2b7e-1d2a-4c3b-9e4f-0a1b2c3d4e5f',
+  }),
+}
 
 beforeEach(() => {
   vi.resetModules()
@@ -142,5 +146,18 @@ describe('GET /api/feed/{sessionId} — límite de 50 lotes por minuto', () => {
 
     await GET(requestWithCookie('visitor-1'), params)
     expect(getFeedSessionBatch).toHaveBeenCalledTimes(51)
+  })
+})
+
+describe('validación del sessionId (auditoría 8 oct)', () => {
+  it('un sessionId que no es uuid da 404 sin llegar a Postgres', async () => {
+    const { GET } = await import('@/app/api/feed/[sessionId]/route')
+
+    const response = await GET(requestWithCookie(), {
+      params: Promise.resolve({ sessionId: 'no-es-uuid' }),
+    })
+
+    expect(response.status).toBe(404)
+    expect(getFeedSessionBatch).not.toHaveBeenCalled()
   })
 })

@@ -1,7 +1,6 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 
-import { pinRatioSchema } from '@/modules/pin/domain/pinSchema'
 import {
   DETAIL_VIDEO_RUNGS,
   FEED_VIDEO_WIDTH,
@@ -25,6 +24,7 @@ import {
 import { closestClosedRatio } from '@/modules/media/domain/closestRatio'
 import { PIN_ANIMATION_LIMITS } from '@/modules/media/domain/mediaLimits'
 
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 const ratio = fc.constantFrom(...pinRatioSchema.options)
 
 const usage: fc.Arbitrary<VideoUsage> = fc.oneof(

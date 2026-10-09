@@ -2,13 +2,13 @@ import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
 import { buildAssetEtag, isNotModified } from '../domain/assetCaching'
+import { packageManifestSchema } from '../domain/manifestSchema'
+import { PACKAGE_BUCKET } from '../domain/packageFiles'
 import {
   PackageNotFoundError,
   type PackageManifest,
   type ResolvedPackage,
 } from '../domain/manifest'
-
-const BUCKET = 'html-packages'
 
 /**
  * Resuelve slug -> ResolvedPackage leyendo Supabase en vez de fixtures/
@@ -61,12 +61,20 @@ export async function getStoragePackage(
     throw new PackageNotFoundError(slug)
   }
 
-  const manifest = version.manifest as PackageManifest
+  // El manifest se validó con este mismo schema al subir el ZIP; releerlo
+  // aquí evita fiarse de un `Json` sin forma si alguien toca la fila a mano.
+  const parsedManifest = packageManifestSchema.safeParse(version.manifest)
+
+  if (!parsedManifest.success) {
+    throw new PackageNotFoundError(slug)
+  }
+
+  const manifest: PackageManifest = parsedManifest.data
 
   const serviceClient = createServiceClient()
 
   const { data: file, error: downloadError } = await serviceClient.storage
-    .from(BUCKET)
+    .from(PACKAGE_BUCKET)
     .download(`${version.storage_path}/${manifest.entrypoint}`)
 
   if (downloadError || !file) {
@@ -154,7 +162,7 @@ export async function getStoragePackageAsset(
   const path = `${version.storage_path}/${assetPath.join('/')}`
 
   const { data: file, error: downloadError } = await serviceClient.storage
-    .from(BUCKET)
+    .from(PACKAGE_BUCKET)
     .download(path)
 
   if (downloadError || !file) {

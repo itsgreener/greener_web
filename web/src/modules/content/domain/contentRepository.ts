@@ -1,15 +1,14 @@
 import type {
-  ContentType,
   CreateContentInput,
   DeleteContentInput,
-  Locale,
   PublishContentInput,
   ScheduleContentInput,
   UnpublishContentInput,
   UpdateContentInput,
 } from './contentSchema'
-
-export type ContentStatus = 'draft' | 'scheduled' | 'published'
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { Locale } from '@/modules/shared/domain/locale'
+import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 
 export type ContentListItem = {
   id: string

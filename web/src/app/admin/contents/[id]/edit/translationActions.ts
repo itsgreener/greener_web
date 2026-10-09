@@ -1,26 +1,27 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { revalidatePath } from 'next/cache'
 
 import { contentTranslationSchema } from '@/modules/content/domain/contentTranslationSchema'
 
 import { upsertContentTranslation } from '@/modules/content/application/upsertContentTranslation'
+import {
+  fieldErrorsOf,
+  type FormActionState,
+} from '@/lib/forms/formActionState'
 
-export type TranslationActionState = {
-  fieldErrors?: {
-    contentId?: string[]
-    locale?: string[]
-    title?: string[]
-    seoTitle?: string[]
-    seoDescription?: string[]
-    summary?: string[]
-    highlight?: string[]
-    body?: string[]
-  }
-
-  formError?: string
-  success?: boolean
-}
+export type TranslationActionState = FormActionState<
+  | 'contentId'
+  | 'locale'
+  | 'title'
+  | 'seoTitle'
+  | 'seoDescription'
+  | 'summary'
+  | 'highlight'
+  | 'body'
+>
 
 function nullableText(value: FormDataEntryValue | null): string | null {
   if (typeof value !== 'string') {
@@ -36,6 +37,8 @@ export async function saveTranslationAction(
   _previousState: TranslationActionState,
   formData: FormData,
 ): Promise<TranslationActionState> {
+  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
+
   const result = contentTranslationSchema.safeParse({
     contentId: formData.get('contentId'),
 
@@ -56,7 +59,7 @@ export async function saveTranslationAction(
 
   if (!result.success) {
     return {
-      fieldErrors: result.error.flatten().fieldErrors,
+      fieldErrors: fieldErrorsOf(result.error),
     }
   }
 

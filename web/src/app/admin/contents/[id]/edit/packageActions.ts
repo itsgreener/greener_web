@@ -1,5 +1,7 @@
 'use server'
 
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+
 import { revalidatePath } from 'next/cache'
 
 import { uploadHtmlPackage } from '@/modules/packages/application/uploadHtmlPackage'
@@ -40,6 +42,8 @@ export async function uploadHtmlPackageAction(
   _previousState: UploadPackageActionState,
   formData: FormData,
 ): Promise<UploadPackageActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const contentId = formData.get('contentId')
   const file = formData.get('file')
 
@@ -83,6 +87,8 @@ export async function publishHtmlPackageVersionAction(
   _previousState: PublishPackageActionState,
   formData: FormData,
 ): Promise<PublishPackageActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = publishHtmlPackageVersionSchema.safeParse({
     contentId: formData.get('contentId'),
     versionId: formData.get('versionId'),
@@ -127,6 +133,8 @@ export async function deleteHtmlPackageVersionAction(
   _previousState: DeletePackageActionState,
   formData: FormData,
 ): Promise<DeletePackageActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = deleteHtmlPackageVersionSchema.safeParse({
     contentId: formData.get('contentId'),
     versionId: formData.get('versionId'),
@@ -159,6 +167,8 @@ export async function deleteOldHtmlPackageVersionsAction(
   _previousState: DeletePackageActionState,
   formData: FormData,
 ): Promise<DeletePackageActionState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
   const result = deleteHtmlPackageVersionSchema
     .pick({ contentId: true })
     .safeParse({ contentId: formData.get('contentId') })

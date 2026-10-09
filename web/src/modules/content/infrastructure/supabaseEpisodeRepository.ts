@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { EpisodeRepository } from '../domain/episodeRepository'
 
 import type { Episode, UpsertEpisodeInput } from '../domain/episodeSchema'
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabaseEpisodeRow = {
   content_id: string
@@ -17,16 +18,6 @@ type SupabaseEpisodeRow = {
   embed_id: string
   language: Episode['language']
   episode_kind: Episode['episodeKind']
-}
-
-function createRepositoryError(message: string, code?: string) {
-  const error = new Error(message) as Error & {
-    code?: string
-  }
-
-  error.code = code
-
-  return error
 }
 
 function mapEpisode(row: SupabaseEpisodeRow): Episode {
@@ -90,7 +81,7 @@ export const supabaseEpisodeRepository: EpisodeRepository = {
       return null
     }
 
-    return mapEpisode(data as SupabaseEpisodeRow)
+    return mapEpisode(data)
   },
 
   async upsert(input: UpsertEpisodeInput) {
@@ -126,6 +117,6 @@ export const supabaseEpisodeRepository: EpisodeRepository = {
       throw createRepositoryError(error.message, error.code)
     }
 
-    return data as string
+    return data
   },
 }

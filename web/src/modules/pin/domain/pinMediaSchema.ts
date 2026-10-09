@@ -1,85 +1,60 @@
 import { z } from 'zod'
 
+import { idSchema } from '@/lib/validation/idSchema'
+import { TOOL_PIN_VIDEO_LIMITS } from '@/modules/media/domain/mediaLimits'
 import {
-  IMAGE_LIMITS,
-  VIDEO_LIMITS,
-  TOOL_PIN_VIDEO_LIMITS,
-} from '@/modules/media/domain/mediaLimits'
+  cloudinaryPublicIdField,
+  imageBytesField,
+  mediaDimensionField,
+  videoBytesField,
+  videoDurationField,
+} from '@/modules/media/domain/uploadedMediaFields'
+import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
 
 // Un pin es un único medio (7 oct 2026, §2.41): ya no hay slideOrder.
 // La base de datos lo rellena con 0.
 export const attachPinImageSchema = z.object({
-  pinId: z.string().uuid('El identificador del pin no es válido'),
+  pinId: idSchema('pin'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
+  cloudinaryPublicId: cloudinaryPublicIdField,
 
   format: z.string().trim().optional(),
 
-  width: z.number().int().positive(),
+  width: mediaDimensionField,
 
-  height: z.number().int().positive(),
+  height: mediaDimensionField,
 
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      IMAGE_LIMITS.maxSizeBytes,
-      `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  bytes: imageBytesField,
 })
 
 export const attachPinVideoSchema = z.object({
-  pinId: z.string().uuid('El identificador del pin no es válido'),
+  pinId: idSchema('pin'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
+  cloudinaryPublicId: cloudinaryPublicIdField,
 
   format: z.string().trim().optional(),
 
-  width: z.number().int().positive(),
+  width: mediaDimensionField,
 
-  height: z.number().int().positive(),
+  height: mediaDimensionField,
 
   // Techo ABSOLUTO (el de los pines de tools). El límite real depende del
   // tipo de contenido del pin (8 s en el resto, ver pinVideoLimitsFor) y lo
   // aplica `attach_pin_video` en SQL, que sí conoce el pin; el ABM avisa
   // antes de subir con validatePinVideoUpload.
-  durationSeconds: z
-    .number()
-    .positive()
-    .max(
-      TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds,
-      `El vídeo no puede superar ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} segundos`,
-    )
-    .transform((value) => Math.ceil(value)),
+  durationSeconds: videoDurationField(TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds),
 
-  bytes: z
-    .number()
-    .int()
-    .positive()
-    .max(
-      VIDEO_LIMITS.maxSizeBytes,
-      `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-    ),
+  bytes: videoBytesField,
 })
 
 export const detachPinMediaSchema = z.object({
-  pinId: z.string().uuid('El identificador del pin no es válido'),
+  pinId: idSchema('pin'),
 
-  mediaId: z.string().uuid('El identificador del medio no es válido'),
+  mediaId: idSchema('media'),
 
-  cloudinaryPublicId: z
-    .string()
-    .trim()
-    .min(1, 'Falta el public ID de Cloudinary'),
+  cloudinaryPublicId: cloudinaryPublicIdField,
 
-  kind: z.enum(['image', 'video']),
+  kind: mediaKindSchema,
 })
 
 export type AttachPinImageInput = z.infer<typeof attachPinImageSchema>

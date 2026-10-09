@@ -66,6 +66,34 @@ describe('NEXT_PUBLIC_SITE_URL', () => {
 
     await import('@/lib/env')
 
+    expect(warn).not.toHaveBeenCalledWith(
+      expect.stringContaining('NEXT_PUBLIC_SITE_URL'),
+    )
+  })
+})
+
+describe('secreto de firma (auditoría 8 oct)', () => {
+  it('en producción avisa si APP_SIGNING_SECRET no está definida', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://itsgreener.com')
+    vi.stubEnv('APP_SIGNING_SECRET', '')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await import('@/lib/env')
+
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('APP_SIGNING_SECRET'),
+    )
+  })
+
+  it('con ella definida, no avisa', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://itsgreener.com')
+    vi.stubEnv('APP_SIGNING_SECRET', 'x'.repeat(40))
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await import('@/lib/env')
+
     expect(warn).not.toHaveBeenCalled()
   })
 })
