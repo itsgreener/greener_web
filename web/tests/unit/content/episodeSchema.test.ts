@@ -36,14 +36,20 @@ describe('episodeSchema — campos obligatorios (arquitectura §7.3)', () => {
     ).toBe(false)
   })
 
-  it.each(['youtube', 'vimeo', 'spotify'])(
+  it.each(['youtube', 'spotify'])(
     'acepta cada proveedor real: %s',
     (provider) => {
       expect(episodeSchema.safeParse({ ...base, provider }).success).toBe(true)
     },
   )
 
-  it('rechaza un proveedor que no sea youtube/vimeo/spotify', () => {
+  it('Vimeo se retiró: ya no se acepta como proveedor', () => {
+    expect(
+      episodeSchema.safeParse({ ...base, provider: 'vimeo' }).success,
+    ).toBe(false)
+  })
+
+  it('rechaza un proveedor que no sea youtube/spotify', () => {
     expect(
       episodeSchema.safeParse({ ...base, provider: 'dailymotion' }).success,
     ).toBe(false)

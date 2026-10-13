@@ -2,9 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 
 import type { EpisodeRepository } from '@/modules/content/domain/episodeRepository'
 
-import type {
-  Episode,
-  UpsertEpisodeInput,
+import {
+  episodeProviderSchema,
+  type Episode,
+  type UpsertEpisodeInput,
 } from '@/modules/content/domain/episodeSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
@@ -17,13 +18,22 @@ type SupabaseEpisodeRow = {
   company: string | null
   episode_date: string | null
   duration_seconds: number | null
-  provider: Episode['provider']
+  provider: 'youtube' | 'vimeo' | 'spotify'
   embed_id: string
   language: Episode['language']
   episode_kind: Episode['episodeKind']
 }
 
 function mapEpisode(row: SupabaseEpisodeRow): Episode {
+  const provider = episodeProviderSchema.safeParse(row.provider)
+
+  if (!provider.success) {
+    // Vimeo se retiró (13 oct 2026) pero sigue en el enum de la BBDD.
+    throw new Error(
+      `El episodio ${row.content_id} usa el proveedor «${row.provider}», que ya no se admite. Cámbialo a youtube o spotify (con su embed_id) desde SQL.`,
+    )
+  }
+
   return {
     contentId: row.content_id,
 
@@ -41,7 +51,7 @@ function mapEpisode(row: SupabaseEpisodeRow): Episode {
 
     durationSeconds: row.duration_seconds,
 
-    provider: row.provider,
+    provider: provider.data,
 
     embedId: row.embed_id,
 

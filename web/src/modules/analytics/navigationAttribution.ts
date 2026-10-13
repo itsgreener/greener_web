@@ -9,24 +9,26 @@
  * destino guardado coincide con la ruta actual — así una atribución vieja
  * nunca se asocia a una visita distinta a la que la originó.
  *
- * Vive en sessionStorage, no en el contenido del evento en sí, porque el
- * clic ocurre en un componente (PinCard) y la lectura en otro (la página
- * de destino, tras una navegación completa de cliente) sin relación
- * directa entre ambos. Sin datos personales.
+ * Vive en una variable de módulo (memoria de la pestaña), NO en
+ * sessionStorage ni en ninguna otra forma de almacenamiento del navegador:
+ * la navegación entre páginas de la web es de cliente (el módulo sigue vivo),
+ * y una recarga completa solo hace que la visita cuente como "direct". Así
+ * este dato nunca toca el dispositivo del visitante y no entra en la política
+ * de cookies (ventana de cookies, 13 oct 2026). Sin datos personales.
  */
-
-const STORAGE_KEY = 'greener:analytics:navigation-source'
 
 // Una atribución más vieja que esto se descarta: evita que una pestaña
 // dejada abierta con un clic antiguo sin consumir contamine una visita
 // muy posterior.
 const MAX_AGE_MS = 30 * 60 * 1000
 
-type StoredNavigationSource = {
+type PendingNavigationSource = {
   destinationPath: string
   section: string
   createdAt: number
 }
+
+let pending: PendingNavigationSource | null = null
 
 function normalizePath(value: string): string | null {
   if (typeof window === 'undefined') {
@@ -55,18 +57,10 @@ export function rememberNavigationSource(
     return
   }
 
-  const value: StoredNavigationSource = {
+  pending = {
     destinationPath,
     section: normalizedSection,
     createdAt: Date.now(),
-  }
-
-  try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(value))
-  } catch {
-    // sessionStorage puede estar deshabilitado (navegación privada
-    // estricta) — la navegación debe seguir funcionando igualmente,
-    // simplemente sin atribución.
   }
 }
 
@@ -75,44 +69,20 @@ export function rememberNavigationSource(
  * atribución ya leída nunca se reutilice en una visita posterior.
  */
 export function consumeNavigationSource(): string {
-  if (typeof window === 'undefined') {
+  const value = pending
+  pending = null
+
+  if (typeof window === 'undefined' || !value) {
     return 'direct'
   }
 
-  let raw: string | null = null
-
-  try {
-    raw = window.sessionStorage.getItem(STORAGE_KEY)
-    window.sessionStorage.removeItem(STORAGE_KEY)
-  } catch {
+  if (Date.now() - value.createdAt > MAX_AGE_MS) {
     return 'direct'
   }
 
-  if (!raw) {
+  if (value.destinationPath !== window.location.pathname) {
     return 'direct'
   }
 
-  try {
-    const parsed = JSON.parse(raw) as Partial<StoredNavigationSource>
-
-    if (
-      typeof parsed.destinationPath !== 'string' ||
-      typeof parsed.section !== 'string' ||
-      typeof parsed.createdAt !== 'number'
-    ) {
-      return 'direct'
-    }
-
-    if (Date.now() - parsed.createdAt > MAX_AGE_MS) {
-      return 'direct'
-    }
-
-    if (parsed.destinationPath !== window.location.pathname) {
-      return 'direct'
-    }
-
-    return parsed.section.trim() || 'direct'
-  } catch {
-    return 'direct'
-  }
+  return value.section || 'direct'
 }

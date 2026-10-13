@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react'
 import { buildFeedVideoSources } from '@/modules/media/client/cloudinaryUrl'
 import { canAnimateInFeed } from '@/modules/media/domain/mediaLimits'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
+import { rememberNavigationSource } from '@/modules/analytics/navigationAttribution'
 import { useMotionPreferences } from '@/lib/useMotionPreferences'
 import { useVideoSlot } from '@/components/pin/useVideoSlot'
 import { usePinVideo } from '@/components/pin/usePinVideo'
@@ -134,6 +135,10 @@ export function PinCard({
 
   function handlePinClick() {
     if (!analyticsContext) return
+
+    // Para que la ficha de destino sepa de qué sección vino ("Case Open").
+    // Solo memoria de la pestaña; no se escribe nada en el navegador.
+    rememberNavigationSource(pin.destination, analyticsContext.section)
 
     trackAnalyticsEvent(
       'Pin Click',

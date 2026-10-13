@@ -1,20 +1,121 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  within,
+} from '@testing-library/react'
+import type { ReactElement } from 'react'
 import '@testing-library/jest-dom/vitest'
 import PrivacyPage, { metadata } from '@/app/(public)/privacy/page'
+import { POLICY } from '@/app/(public)/privacy/policyContent'
+import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
+import { CONSENT_TEXT_VERSION } from '@/modules/consent/domain/consent'
+
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: ConsentProvider })
+}
+
+function storedDecision() {
+  const entry = document.cookie
+    .split(';')
+    .map((c) => c.trim())
+    .find((c) => c.startsWith('greener_consent='))
+  return entry ? JSON.parse(decodeURIComponent(entry.split('=')[1])).d : null
+}
 
 describe('/privacy — prueba de humo', () => {
-  it('pinta el título y el aviso de placeholder', () => {
+  it('pinta el título y la fecha de la última actualización', () => {
     render(<PrivacyPage />)
 
     expect(
-      screen.getByRole('heading', { name: 'Privacy & Cookies' }),
+      screen.getByRole('heading', { name: 'Privacy & Cookies', level: 1 }),
     ).toBeInTheDocument()
-    expect(screen.getByText(/placeholder/i)).toBeInTheDocument()
+    expect(screen.getByText('1 October 2026')).toBeInTheDocument()
+    expect(screen.queryByText(/placeholder/i)).not.toBeInTheDocument()
   })
 
   it('el título de la pestaña es "Privacy & Cookies"', () => {
     expect(metadata.title).toBe('Privacy & Cookies')
+  })
+
+  it('la fecha del texto y la versión que reabre la ventana de cookies son la misma', () => {
+    expect(POLICY.lastUpdatedIso).toBe(CONSENT_TEXT_VERSION)
+  })
+
+  it('declara el almacenamiento real: greener:feed, greener_visitor y greener_consent, y no el inexistente greener_seed', () => {
+    render(<PrivacyPage />)
+
+    const table = screen.getAllByRole('table')[0]
+    for (const name of ['greener:feed', 'greener_visitor', 'greener_consent']) {
+      expect(within(table).getByText(name)).toBeInTheDocument()
+    }
+    expect(screen.queryByText('greener_seed')).not.toBeInTheDocument()
+  })
+
+  it('indica dónde se cambia la decisión: en esta página, a la que lleva «Privacy & Cookies» del menú (la web no tiene pie de página)', () => {
+    render(<PrivacyPage />)
+
+    expect(
+      screen.getByText(/Your cookie choice.*Privacy & Cookies/),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/footer/i)).not.toBeInTheDocument()
+  })
+
+  it('el contacto es hi@itsgreener.com y no hello@', () => {
+    const { container } = render(<PrivacyPage />)
+
+    expect(container.textContent).toContain('hi@itsgreener.com')
+    expect(container.textContent).not.toContain('hello@')
+  })
+
+  it('los enlaces a las políticas de los terceros de vídeo abren fuera y de forma segura', () => {
+    render(<PrivacyPage />)
+
+    for (const name of ['Google (YouTube)', 'Spotify']) {
+      const link = screen.getByRole('link', { name })
+      expect(link).toHaveAttribute('target', '_blank')
+      expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
+    }
+  })
+
+  it('tiene el bloque «Your cookie choice» con el ancla a la que lleva «Cookies» del menú', () => {
+    const { container } = render(<PrivacyPage />)
+
+    const block = container.querySelector('#cookie-choice')
+    expect(block).not.toBeNull()
+    expect(
+      within(block as HTMLElement).getByRole('heading', {
+        name: 'Your cookie choice',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('desde el bloque se puede aceptar y volver a rechazar, y el estado se actualiza', () => {
+    document.cookie = 'greener_consent=; Max-Age=0; Path=/'
+    render(<PrivacyPage />)
+
+    expect(screen.getByText(/You have not made a choice yet/)).toBeVisible()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Accept' }))
+    expect(storedDecision()).toBe('accepted')
+    expect(screen.getByText(/cookies accepted/)).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Accept' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject' }))
+    expect(storedDecision()).toBe('rejected')
+    expect(screen.getByText(/cookies rejected/)).toBeVisible()
+  })
+
+  it('Aceptar y Rechazar son iguales (misma clase)', () => {
+    render(<PrivacyPage />)
+
+    expect(screen.getByRole('button', { name: 'Accept' }).className).toBe(
+      screen.getByRole('button', { name: 'Reject' }).className,
+    )
   })
 })

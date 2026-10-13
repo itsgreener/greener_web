@@ -59,6 +59,15 @@ export type AnalyticsEventMap = {
     round: number
     batch: number
   }
+
+  /**
+   * Contador anónimo de la ventana de cookies: qué se eligió y con qué
+   * versión del texto. Sin identificador del visitante.
+   */
+  'Cookie Choice': {
+    choice: 'accept' | 'reject' | 'close'
+    textVersion: string
+  }
 }
 
 type AnalyticsEventName = keyof AnalyticsEventMap

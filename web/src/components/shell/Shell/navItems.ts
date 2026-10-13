@@ -46,7 +46,8 @@ const SOCIAL_ITEMS = [
     icon: 'linkedin',
     external: true,
   },
-  // Política de privacidad y cookies: la guía
+  // Política de privacidad y cookies (con la decisión de cookies al principio
+  // de la página, ancla #cookie-choice): la guía
   // de la AEPD pide que la información sea de acceso fácil y permanente, a
   // no más de dos clics desde cualquier página. Un pie de página no sirve
   // aquí: el feed de la home es infinito y nunca se llegaría a él. El

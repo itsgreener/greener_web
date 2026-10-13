@@ -21,6 +21,16 @@ import { pinAutoplayModeSchema } from '@/modules/pin/domain/pinSchema'
  */
 const ENUMS = Constants.public.Enums
 
+/**
+ * Valores que siguen en el enum de Postgres pero que el código ya no acepta
+ * (Postgres no deja quitar un valor de un enum sin recrear el tipo y las
+ * funciones que lo usan). Cada uno debe estar explicado donde se retiró.
+ */
+const RETIRED: Record<string, readonly string[]> = {
+  // Vimeo, retirado el 13 oct 2026 (episodeSchema.ts).
+  episode_provider: ['vimeo'],
+}
+
 function sorted(values: readonly string[]) {
   return [...values].sort()
 }
@@ -40,7 +50,19 @@ describe('enums de zod frente a los de Postgres', () => {
       pinAutoplayModeSchema.options,
       ENUMS.pin_autoplay_mode,
     ],
-  ])('%s', (_name, zodOptions, dbValues) => {
-    expect(sorted(zodOptions)).toEqual(sorted(dbValues))
+  ])('%s', (name, zodOptions, dbValues) => {
+    const live = dbValues.filter((value) => !RETIRED[name]?.includes(value))
+
+    expect(sorted(zodOptions)).toEqual(sorted(live))
+  })
+
+  it('cada valor retirado sigue existiendo en la BBDD (si no, sobra de RETIRED)', () => {
+    for (const [name, values] of Object.entries(RETIRED)) {
+      const dbValues = (ENUMS as Record<string, readonly string[]>)[name]
+
+      for (const value of values) {
+        expect(dbValues).toContain(value)
+      }
+    }
   })
 })

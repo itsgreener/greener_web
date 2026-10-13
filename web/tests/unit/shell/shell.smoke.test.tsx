@@ -2,9 +2,16 @@
 import { describe, it, expect } from 'vitest'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Shell } from '@/components/shell/Shell'
+import type { ReactElement } from 'react'
+import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
+// Shell y EpisodeDetail leen el consentimiento de cookies: se montan, como en
+// la web real, dentro de su proveedor.
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: ConsentProvider })
+}
 
 describe('Shell — prueba de humo', () => {
   it('pinta el logo, el bloque de navegación y el de redes', () => {
@@ -90,5 +97,20 @@ describe('Shell — prueba de humo', () => {
     expect(
       existsSync(path.resolve(__dirname, '../../../public/icons/privacy.svg')),
     ).toBe(true)
+  })
+
+  it('solo hay una entrada para cookies y privacidad: «Privacy & Cookies» (no hay otra «Cookies» aparte)', () => {
+    render(
+      <Shell>
+        <p>Contenido</p>
+      </Shell>,
+    )
+
+    expect(screen.queryByLabelText('Cookies')).not.toBeInTheDocument()
+    expect(
+      screen
+        .getAllByRole('link')
+        .filter((link) => link.getAttribute('href')?.startsWith('/privacy')),
+    ).toHaveLength(1)
   })
 })

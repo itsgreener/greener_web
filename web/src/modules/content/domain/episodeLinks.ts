@@ -7,7 +7,7 @@ import type { EpisodeProvider } from './episodeSchema'
  * carga nada de terceros en nuestra página.
  *
  * El `embedId` es el que ya se guarda para el embed: el id del vídeo de
- * YouTube, el del vídeo de Vimeo o el del episodio de Spotify (mismo
+ * YouTube o el del episodio de Spotify (mismo
  * supuesto que embedUrl en EpisodeDetail: un episodio, no un show).
  */
 
@@ -22,8 +22,6 @@ export function episodeExternalUrl(
   switch (provider) {
     case 'youtube':
       return `https://www.youtube.com/watch?v=${id}`
-    case 'vimeo':
-      return `https://vimeo.com/${id}`
     case 'spotify':
       return `https://open.spotify.com/episode/${id}`
   }

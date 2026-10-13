@@ -13,7 +13,12 @@ export const episodeProgramSchema = z.enum([
   'brand_to_table',
 ])
 
-export const episodeProviderSchema = z.enum(['youtube', 'vimeo', 'spotify'])
+// Vimeo se retiró el 13 oct 2026 (su reproductor bloqueaba la reproducción por
+// un script de Cloudflare dentro de su iframe y ningún contenido dependía de
+// él). El valor `vimeo` sigue en el enum de Postgres `episode_provider`, que
+// no admite quitar valores sin recrear el tipo y las funciones que lo usan;
+// aquí no se acepta ni se escribe.
+export const episodeProviderSchema = z.enum(['youtube', 'spotify'])
 
 // Enum ampliable (migración del 10 sep): arranca con un único valor real,
 // no es un descuido dejarlo tan corto.

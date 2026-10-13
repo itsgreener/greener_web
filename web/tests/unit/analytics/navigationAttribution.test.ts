@@ -8,6 +8,8 @@ import {
 
 describe('navigationAttribution', () => {
   beforeEach(() => {
+    // Vacía cualquier atribución pendiente que haya dejado un test anterior.
+    consumeNavigationSource()
     window.sessionStorage.clear()
     window.history.replaceState({}, '', '/')
   })
@@ -61,10 +63,22 @@ describe('navigationAttribution', () => {
     expect(consumeNavigationSource()).toBe('home')
   })
 
-  it('ignora un sessionStorage con contenido corrupto sin lanzar', () => {
+  it('no escribe nada en sessionStorage ni en localStorage ni en cookies', () => {
+    rememberNavigationSource('/work/caso-1', 'home')
+
+    expect(window.sessionStorage.length).toBe(0)
+    expect(window.localStorage.length).toBe(0)
+    expect(document.cookie).toBe('')
+  })
+
+  it('ignora lo que haya en sessionStorage: solo cuenta la memoria', () => {
     window.sessionStorage.setItem(
       'greener:analytics:navigation-source',
-      'no es json',
+      JSON.stringify({
+        destinationPath: '/work/caso-1',
+        section: 'home',
+        createdAt: Date.now(),
+      }),
     )
     window.history.replaceState({}, '', '/work/caso-1')
 

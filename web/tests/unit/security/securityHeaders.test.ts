@@ -85,12 +85,12 @@ describe('buildContentSecurityPolicy', () => {
     expect(csp).toContain(`media-src 'self' blob: https://res.cloudinary.com`)
   })
 
-  it('frame-src incluye los tres proveedores de embed de episodio', () => {
+  it('frame-src incluye los dos proveedores de embed de episodio (sin Vimeo)', () => {
     const csp = buildContentSecurityPolicy(INPUT)
 
     expect(csp).toContain('https://www.youtube-nocookie.com')
-    expect(csp).toContain('https://player.vimeo.com')
     expect(csp).toContain('https://open.spotify.com')
+    expect(csp).not.toContain('vimeo')
   })
 
   it('frame-ancestors none — el sitio nunca se embebe a sí mismo en ningún sitio', () => {

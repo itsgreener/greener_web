@@ -1,7 +1,13 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import type { ReactElement } from 'react'
 import '@testing-library/jest-dom/vitest'
 
 vi.mock('@/modules/analytics/analytics', () => ({
@@ -10,8 +16,13 @@ vi.mock('@/modules/analytics/analytics', () => ({
 
 import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
+import {
+  ConsentProvider,
+  useConsent,
+} from '@/modules/consent/client/ConsentProvider'
+import { writeConsentRecord } from '@/modules/consent/client/consentCookie'
+import { createConsentRecord } from '@/modules/consent/domain/consent'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
-import type { PublicEpisode } from '@/modules/content/domain/publicContent'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 const CONTENT: PublicContent = {
@@ -49,6 +60,34 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
     round: 0,
     hasMore,
   }
+}
+
+/** Renderiza dentro del proveedor de consentimiento, como en la web real. */
+function render(ui: ReactElement) {
+  return rtlRender(<ConsentProvider>{ui}</ConsentProvider>)
+}
+
+function clearConsentCookie() {
+  document.cookie = 'greener_consent=; Max-Age=0; Path=/'
+}
+
+function seedConsent(decision: 'accepted' | 'rejected') {
+  writeConsentRecord(createConsentRecord(decision))
+}
+
+/** Pulsa play y, si hace falta, acepta las cookies en la petición. */
+function playAndAccept(name: string) {
+  fireEvent.click(screen.getByRole('button', { name }))
+
+  const accept = screen.queryByRole('button', {
+    name: 'Accept cookies and play',
+  })
+  if (accept) fireEvent.click(accept)
+}
+
+const POSTER = {
+  kind: 'image' as const,
+  cloudinaryPublicId: 'portada-1',
 }
 
 describe('EpisodeDetail — prueba de humo', () => {
@@ -96,128 +135,237 @@ describe('EpisodeDetail — prueba de humo', () => {
 
   beforeEach(() => {
     vi.mocked(trackAnalyticsEvent).mockClear()
+    clearConsentCookie()
     window.history.replaceState({}, '', '/work/mi-episodio')
   })
 
-  it('YouTube tampoco se carga hasta que el usuario pulsa: sin iframe antes, y youtube-nocookie después', () => {
-    const episode: PublicEpisode = {
-      program: 'brand_the_future',
-      provider: 'youtube',
-      embedId: 'abc123',
-      episodeKind: 'podcast',
-    }
-
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
-
-    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Load YouTube content' }),
+  it('antes de aceptar no hay iframe de ningún proveedor, solo la portada y el botón de play', () => {
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        poster={POSTER}
+        episode={{
+          program: 'brand_the_future',
+          provider: 'youtube',
+          embedId: 'abc123',
+          episodeKind: 'podcast',
+        }}
+      />,
     )
 
+    expect(document.querySelector('iframe')).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Play on YouTube' }),
+    ).toBeVisible()
+
+    const img = document.querySelector('img')
+    expect(img?.getAttribute('src')).toContain('res.cloudinary.com')
+    expect(img?.getAttribute('src')).toContain('portada-1')
+    // Ningún recurso que cargue el navegador apunta a un tercero de vídeo
+    // (el enlace «Watch more» es un <a>: no descarga nada).
+    const loaded = Array.from(
+      document.querySelectorAll('[src], [srcset], link[href], script'),
+    ).map((el) => `${el.getAttribute('src')} ${el.getAttribute('srcset')}`)
+    expect(loaded.join(' ')).not.toMatch(/youtube|spotify/i)
+  })
+
+  it.each([
+    [
+      'youtube',
+      'YouTube',
+      'https://www.youtube-nocookie.com/embed/abc123?autoplay=1',
+    ],
+    ['spotify', 'Spotify', 'https://open.spotify.com/embed/episode/abc123'],
+  ] as const)(
+    '%s: sin decisión previa, play pregunta y «Accept cookies and play» monta el reproductor',
+    (provider, label, src) => {
+      render(
+        <EpisodeDetail
+          content={CONTENT}
+          episode={{
+            program: 'brand_the_future',
+            provider,
+            embedId: 'abc123',
+            episodeKind: 'podcast',
+          }}
+        />,
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: `Play on ${label}` }))
+
+      // Pregunta, todavía sin iframe.
+      expect(document.querySelector('iframe')).toBeNull()
+      expect(screen.getByText(new RegExp(`served by ${label}`))).toBeVisible()
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Accept cookies and play' }),
+      )
+
+      expect(screen.getByTitle('Mi episodio')).toHaveAttribute('src', src)
+      expect(document.cookie).toContain('greener_consent=')
+    },
+  )
+
+  it('«Not now» cierra la petición sin cargar nada ni guardar decisión', () => {
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={{
+          program: 'brand_the_future',
+          provider: 'youtube',
+          embedId: 'xyz789',
+          episodeKind: 'podcast',
+        }}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play on YouTube' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }))
+
+    expect(document.querySelector('iframe')).toBeNull()
+    expect(document.cookie).not.toContain('greener_consent')
+    expect(
+      screen.getByRole('button', { name: 'Play on YouTube' }),
+    ).toBeVisible()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalledWith(
+      'Episode Play',
+      expect.anything(),
+      expect.anything(),
+    )
+  })
+
+  it('con cookies ya aceptadas, un clic en play monta el reproductor sin volver a preguntar', () => {
+    seedConsent('accepted')
+
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={{
+          program: 'brand_the_future',
+          provider: 'youtube',
+          embedId: 'abc123',
+          episodeKind: 'podcast',
+        }}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play on YouTube' }))
+
+    expect(
+      screen.queryByRole('button', { name: 'Accept cookies and play' }),
+    ).not.toBeInTheDocument()
     expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
       'https://www.youtube-nocookie.com/embed/abc123?autoplay=1',
     )
   })
 
-  it('no crea el iframe de Vimeo hasta que el usuario pulsa cargar', () => {
-    const episode: PublicEpisode = {
-      program: 'brand_the_future',
-      provider: 'vimeo',
-      embedId: 'xyz789',
-      episodeKind: 'podcast',
-    }
+  it('con cookies rechazadas, play vuelve a preguntar y no monta nada', () => {
+    seedConsent('rejected')
 
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
-
-    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
-
-    const button = screen.getByRole('button', {
-      name: 'Load Vimeo content',
-    })
-
-    expect(button).toBeInTheDocument()
-
-    fireEvent.click(button)
-
-    expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
-      'src',
-      'https://player.vimeo.com/video/xyz789?dnt=1&autoplay=1',
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={{
+          program: 'brand_the_future',
+          provider: 'spotify',
+          embedId: 'ep456',
+          episodeKind: 'podcast',
+        }}
+      />,
     )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play on Spotify' }))
+
+    expect(document.querySelector('iframe')).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Accept cookies and play' }),
+    ).toBeVisible()
   })
 
-  it('no crea el iframe de Spotify hasta que el usuario pulsa cargar', () => {
-    const episode: PublicEpisode = {
-      program: 'brand_the_future',
-      provider: 'spotify',
-      embedId: 'ep456',
-      episodeKind: 'podcast',
+  it('al revocar el consentimiento el reproductor se desmonta', () => {
+    seedConsent('accepted')
+
+    function RevokeButton() {
+      const { reject } = useConsent()
+      return (
+        <button type="button" onClick={reject}>
+          Revoke
+        </button>
+      )
     }
 
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
-
-    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
-
-    const button = screen.getByRole('button', {
-      name: 'Load Spotify content',
-    })
-
-    expect(button).toBeInTheDocument()
-
-    fireEvent.click(button)
-
-    expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
-      'src',
-      'https://open.spotify.com/embed/episode/ep456',
+    render(
+      <>
+        <RevokeButton />
+        <EpisodeDetail
+          content={CONTENT}
+          episode={{
+            program: 'brand_the_future',
+            provider: 'youtube',
+            embedId: 'xyz789',
+            episodeKind: 'podcast',
+          }}
+        />
+      </>,
     )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Play on YouTube' }))
+    expect(screen.getByTitle('Mi episodio')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revoke' }))
+
+    expect(document.querySelector('iframe')).toBeNull()
   })
 
   it('la autorización de un embed no autoriza automáticamente otro episodio', () => {
+    seedConsent('accepted')
+
     const { rerender } = render(
       <EpisodeDetail
         content={CONTENT}
         episode={{
           program: 'brand_the_future',
-          provider: 'vimeo',
+          provider: 'youtube',
           embedId: 'video-1',
           episodeKind: 'podcast',
         }}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Play on YouTube' }))
 
     expect(screen.getByTitle('Mi episodio')).toHaveAttribute(
       'src',
-      'https://player.vimeo.com/video/video-1?dnt=1&autoplay=1',
+      'https://www.youtube-nocookie.com/embed/video-1?autoplay=1',
     )
 
     rerender(
-      <EpisodeDetail
-        content={CONTENT}
-        episode={{
-          program: 'brand_the_future',
-          provider: 'spotify',
-          embedId: 'episode-2',
-          episodeKind: 'podcast',
-        }}
-      />,
+      <ConsentProvider>
+        <EpisodeDetail
+          content={CONTENT}
+          episode={{
+            program: 'brand_the_future',
+            provider: 'spotify',
+            embedId: 'episode-2',
+            episodeKind: 'podcast',
+          }}
+        />
+      </ConsentProvider>,
     )
 
     expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
 
     expect(
-      screen.getByRole('button', { name: 'Load Spotify content' }),
+      screen.getByRole('button', { name: 'Play on Spotify' }),
     ).toBeInTheDocument()
   })
 
   it.each([
     ['youtube', 'YouTube'],
-    ['vimeo', 'Vimeo'],
     ['spotify', 'Spotify'],
   ] as const)(
-    '%s: el aviso nombra al proveedor, enlaza a Privacy & Cookies y no usa lenguaje vago (guía AEPD §3.1.2.1)',
+    '%s: la petición nombra al proveedor, enlaza a Privacy & Cookies y no usa lenguaje vago (guía AEPD §3.1.2.1)',
     (provider, label) => {
       render(
         <EpisodeDetail
@@ -231,16 +379,16 @@ describe('EpisodeDetail — prueba de humo', () => {
         />,
       )
 
+      fireEvent.click(screen.getByRole('button', { name: `Play on ${label}` }))
+
       const notice = screen
         .getByText(new RegExp(`served by ${label}`))
         .closest('div')!
 
       expect(notice.textContent).toContain(
-        `Nothing is loaded from ${label} until you choose to`,
+        `Nothing is loaded from ${label} until you accept cookies`,
       )
-      expect(notice.textContent).toContain(
-        'We do not store your choice, so you will be asked again for each video',
-      )
+      expect(notice.textContent).toContain('Your choice is remembered')
       // La guía desaconseja «puede», «podría», «a menudo»…
       expect(notice.textContent).not.toMatch(
         /\b(may|might|could|possibly|sometimes|often)\b/i,
@@ -251,36 +399,33 @@ describe('EpisodeDetail — prueba de humo', () => {
       expect(link).toHaveAttribute('target', '_blank')
       expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
 
-      // Y hasta pulsar, no hay nada de terceros en la página.
-      expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
+      // Y hasta aceptar, no hay nada de terceros en la página.
       expect(document.querySelector('iframe')).toBeNull()
     },
   )
 
-  it('no guarda la elección: ni cookies ni almacenamiento del navegador, y un nuevo montaje vuelve a preguntar', () => {
+  it('aceptar para reproducir solo guarda la cookie propia de consentimiento, nada en el almacenamiento del navegador', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
-    const episode: PublicEpisode = {
-      program: 'brand_the_future',
-      provider: 'vimeo',
-      embedId: 'xyz789',
-      episodeKind: 'podcast',
-    }
 
-    const first = render(<EpisodeDetail content={CONTENT} episode={episode} />)
+    render(
+      <EpisodeDetail
+        content={CONTENT}
+        episode={{
+          program: 'brand_the_future',
+          provider: 'youtube',
+          embedId: 'xyz789',
+          episodeKind: 'podcast',
+        }}
+      />,
+    )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    playAndAccept('Play on YouTube')
+
     expect(screen.getByTitle('Mi episodio')).toBeInTheDocument()
-
     expect(setItem).not.toHaveBeenCalled()
-    expect(document.cookie).toBe('')
-
-    first.unmount()
-    render(<EpisodeDetail content={CONTENT} episode={episode} />)
-
-    expect(screen.queryByTitle('Mi episodio')).not.toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: 'Load Vimeo content' }),
-    ).toBeInTheDocument()
+      document.cookie.split(';').map((c) => c.trim().split('=')[0]),
+    ).toEqual(['greener_consent'])
   })
 
   it('registra "Episode Play" con program/episodeId/provider al pulsar cargar', () => {
@@ -289,21 +434,21 @@ describe('EpisodeDetail — prueba de humo', () => {
         content={CONTENT}
         episode={{
           program: 'brand_into_europe',
-          provider: 'vimeo',
+          provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
         }}
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load Vimeo content' }))
+    playAndAccept('Play on YouTube')
 
     expect(trackAnalyticsEvent).toHaveBeenCalledWith(
       'Episode Play',
       {
         program: 'brand_into_europe',
         episodeId: 'content-1',
-        provider: 'vimeo',
+        provider: 'youtube',
       },
       { interactive: true },
     )
@@ -324,11 +469,13 @@ describe('EpisodeDetail — prueba de humo', () => {
       />,
     )
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Load Spotify content' }),
-    )
+    playAndAccept('Play on Spotify')
 
-    expect(trackAnalyticsEvent).not.toHaveBeenCalled()
+    expect(trackAnalyticsEvent).not.toHaveBeenCalledWith(
+      'Episode Play',
+      expect.anything(),
+      expect.anything(),
+    )
     // El preview sigue pudiendo reproducirse — solo se excluye la métrica.
     expect(screen.getByTitle('Mi episodio')).toBeInTheDocument()
   })
@@ -339,18 +486,27 @@ describe('EpisodeDetail — prueba de humo', () => {
         content={CONTENT}
         episode={{
           program: 'brand_the_future',
-          provider: 'vimeo',
+          provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
         }}
       />,
     )
 
-    const button = screen.getByRole('button', { name: 'Load Vimeo content' })
-    fireEvent.click(button)
-    fireEvent.click(button)
+    const play = screen.getByRole('button', { name: 'Play on YouTube' })
+    fireEvent.click(play)
+    const accept = screen.getByRole('button', {
+      name: 'Accept cookies and play',
+    })
+    fireEvent.click(accept)
+    // Ya no existen ni el botón ni la petición: un segundo clic no repite.
+    fireEvent.click(accept)
 
-    expect(trackAnalyticsEvent).toHaveBeenCalledTimes(1)
+    expect(
+      vi
+        .mocked(trackAnalyticsEvent)
+        .mock.calls.filter(([name]) => name === 'Episode Play'),
+    ).toHaveLength(1)
   })
 
   it('pinta el título y la etiqueta de tipo, y abre la sesión de recomendaciones excluyéndose a sí mismo', async () => {

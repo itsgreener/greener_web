@@ -44,7 +44,7 @@ describe('saveEpisodeAction — campos ocultos del formulario', () => {
       company: 'Acme',
       episodeDate: '2026-05-01',
       durationSeconds: 2400,
-      provider: 'vimeo',
+      provider: 'spotify',
       embedId: 'old',
       language: 'en',
       episodeKind: 'podcast',

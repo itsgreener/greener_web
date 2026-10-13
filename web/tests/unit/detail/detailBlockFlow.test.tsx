@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, waitFor } from '@testing-library/react'
+import { render as rtlRender, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 vi.mock('@/modules/analytics/analytics', () => ({
@@ -15,6 +15,13 @@ import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { PublicEpisode } from '@/modules/content/domain/publicContent'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import type { ReactElement } from 'react'
+import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
+// Shell y EpisodeDetail leen el consentimiento de cookies: se montan, como en
+// la web real, dentro de su proveedor.
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: ConsentProvider })
+}
 
 /**
  * Tipo B (caso/episodio): el bloque de contenido va EN FLUJO, encima del

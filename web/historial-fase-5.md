@@ -794,6 +794,40 @@ Dos fallos encontrados por Greener en la misma jornada; ninguno se había visto 
 
 **Verificación.** 159 ficheros y **1657 tests** en verde (+1 fichero, +16 tests), `tsc` (con `next typegen`), ESLint y `prettier` (estilo del repositorio) limpios, `npm audit --omit=dev` sin vulnerabilidades.
 
+### 2.63 Ventana de cookies, consentimiento global y portada en los episodios (13 oct 2026)
+
+**Punto de partida.** El 28 de septiembre se decidió la «opción A» (§2.11): sin banner, cada vídeo pide su propio clic y la elección no se guarda. Greener aportó dos documentos: un texto legal provisional («Política de cookies · Cookie Policy», 1 oct) y la especificación de la «Ventana de cookies». Se contrastaron con la funcionalidad real y se acordó, en este orden: correos `hi@`, textos en inglés (la web no tiene selector de idioma; estructura lista para el castellano), aceptar para todos los vídeos con posibilidad de revocar, ventana fija abajo que no bloquea (solo Aceptar, Rechazar o la X la cierran; scroll y clic fuera no), portada del episodio = primer pin, contador anónimo, una sola página legal.
+
+**Inconsistencias del texto legal con la web** (detalle y propuestas en `politica-cookies-cambios.md`): `greener_seed` no existe (es `greener:feed` en `sessionStorage`); faltaba `greener_visitor`; el «pie de página» no existe; Cloudinary no aparecía; faltaba la tabla de cookies de terceros; el aviso de idioma («prevalece la castellana») no tiene versión castellana que mostrar.
+
+**Consentimiento** (`modules/consent`):
+
+- Dominio puro (`consent.ts`): cookie propia `greener_consent`, **no httpOnly** (la lee el cliente), `{d, v, t}` con la decisión, la versión del texto y la fecha, `Max-Age` 730 días, `SameSite=Lax`, `Secure` en https. `parseConsent` devuelve `null` (vuelve a preguntar) si el valor está corrupto, es de otra versión del texto (`CONSENT_TEXT_VERSION`, igual a la fecha de «Última actualización»), tiene más de 24 meses o está fechado claramente en el futuro.
+- `ConsentProvider` arranca en `unknown` (igual en servidor y en el primer render del cliente, sin desajuste de hidratación), lo resuelve al montar leyendo la cookie y trata `unknown` y `undecided` como «no aceptado». Envuelve el feed y el Shell en `(public)/layout.tsx`.
+- `CookieBanner`: `section role="dialog"` con `aria-modal="false"`, fija abajo; Aceptar y Rechazar comparten clase (mismo peso); la X rechaza; no roba el foco al cargar.
+- La decisión se cambia en `/privacy`: `CookieChoice` (ancla `#cookie-choice`, al principio de la página) muestra la decisión vigente y los mismos botones Aceptar / Rechazar. La ventana, una vez decidido, no vuelve a salir. El primer planteamiento era un botón «Cookies» en el menú que la reabría; después, un enlace «Cookies» a la página; finalmente se dejó una sola entrada, «Privacy & Cookies», porque dos entradas a la misma página no tenían sentido.
+- Contador anónimo: evento `Cookie Choice` de Plausible con `choice` (`accept` / `reject` / `close`) y `textVersion`. **Hay que darlo de alta como objetivo en Plausible.** Sin identificador del visitante.
+
+**Episodios.** `EpisodeDetail` ya no pone un botón «Load … content» por proveedor: muestra una portada (primer pin del episodio, `reader.firstPinMedia`, con las mismas cadenas de Cloudinary que la ficha de tool) y un botón de play. Con cookies aceptadas, el clic monta el iframe directamente; con rechazadas o sin decidir, abre en el propio episodio la petición «Accept cookies and play» / «Not now» (nombra al proveedor, enlaza a la política, sin lenguaje vago). Aceptar guarda la decisión para toda la web. Revocar desde «Cookies» desmonta el reproductor al instante (`canRenderEmbed` exige `status === 'accepted'`). «Episode Play» sigue sin contarse en un preview firmado.
+
+**Atribución de «Case Open».** Al leer el código para ver qué había que declarar se vio que `navigationAttribution` guardaba en `sessionStorage` (`greener:analytics:navigation-source`) pero **nadie llamaba a `rememberNavigationSource`**: en producción `sourceSection` salía siempre `direct`. Se cablea desde `handlePinClick` de `PinCard` (con la sección del contexto de analítica) y el dato pasa a una variable de módulo (la navegación entre páginas es de cliente; una recarga completa cuenta como `direct`). Mantiene la caducidad de 30 minutos, la coincidencia de ruta y el consumo único. Con ello deja de haber ese almacenamiento que declarar.
+
+**`/privacy`.** Sustituido el placeholder por el texto provisional en inglés. El contenido está en `policyContent.ts` (datos) y la página solo lo pinta, para que el asesor lo sustituya sin tocar el marcado. Declara `greener:feed`, `greener_visitor` y `greener_consent`, Plausible (y el contador), Cloudinary y los tres reproductores con enlaces a sus políticas. **Falta la tabla de cookies de terceros**, que mide Greener con DevTools.
+
+**Tests nuevos.** `consentDomain.test.ts` (serialización, versión, 24 meses, futuro, valores inválidos, `choiceFor`), `cookieBanner.test.tsx` (no modal, botones iguales, aceptar/rechazar/X con su evento, scroll/clic fuera/Escape no deciden, versión distinta o caducada vuelve a preguntar, reabrir y cambiar, solo se escribe `greener_consent`), `pinCardAttribution.test.tsx`, `privacy.smoke.test.tsx` reescrito y `episodeDetail.smoke.test.tsx` rehecho con el nuevo flujo (portada sin peticiones a terceros, pregunta, aceptar y reproducir, «Not now», cookies ya aceptadas, rechazadas, revocar desmonta, un embed no autoriza otro, una sola «Episode Play»). `shell`, `episodeDetail.design` y `detailBlockFlow` se montan ahora dentro de `ConsentProvider`.
+
+**Qué no cambia.** Las cookies exentas (`greener_visitor`, `greener:feed`), Plausible sin cookies, la CSP (`frame-src`) y el resto del feed. No hay migraciones ni variables nuevas.
+
+**Aviso de la consola con Vimeo.** «Loading the script 'https://player.vimeo.com/cdn-cgi/challenge-platform/…' violates … script-src 'unsafe-inline'» no es la CSP de Greener (la nuestra es `nonce` + `strict-dynamic`): es la CSP del propio reproductor de Vimeo bloqueando un script de Cloudflare dentro de su iframe. No se puede arreglar desde aquí ni afecta a la web; solo importa si el vídeo no llega a reproducirse.
+
+**Vimeo retirado (13 oct).** Ese aviso bloqueaba la reproducción de Vimeo y ningún contenido depende de él (siempre hay YouTube o Spotify), así que se quita el proveedor: `episodeProviderSchema` pasa a `youtube` / `spotify` (el desplegable del ABM sale de ahí), fuera `player.vimeo.com` de `frame-src`, fuera el embed, el enlace «Watch more» y los textos de la ventana, de la petición de reproducir y de `/privacy`. **El enum `episode_provider` de Postgres sigue teniendo `vimeo`:** quitar un valor obliga a recrear el tipo y las funciones `upsert_episode` que lo usan, y no compensa; el código no lo acepta ni lo escribe (`dbEnums.test.ts` lo anota como valor retirado). Una fila antigua con `vimeo` se trata como episodio sin reproductor (404 en la web pública; en el ABM, un error que dice qué cambiar). **Antes de desplegar, comprobar que no hay ninguna:** `select content_id, embed_id from episode where provider = 'vimeo';` (si sale alguna, cambiar `provider` y `embed_id` a YouTube/Spotify desde SQL). Sin migraciones.
+
+**Observaciones sin tocar.** `<html lang>` sigue fijo en `en`; la entrada «Privacy & Cookies» de los documentos de tool `/app` tiene su propio menú; la política de privacidad de los formularios sigue sin existir.
+
+**Verificación.** 162 ficheros y **1699 tests** en verde, `tsc` (con `next typegen`), ESLint y `prettier` (estilo del repositorio, CRLF) limpios.
+
+---
+
 ## Historial de correcciones de `PROGRESO.md` (hasta el 2 de octubre)
 
 Registro fechado de las correcciones y cambios que se fueron anotando en `PROGRESO.md` mientras se escribían las secciones anteriores. Se archivó aquí el 5 de octubre; a partir de esa fecha, los cambios nuevos se anotan en el «Registro de cambios» de `PROGRESO.md`.

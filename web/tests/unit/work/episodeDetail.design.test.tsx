@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render as rtlRender, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 vi.mock('@/modules/analytics/analytics', () => ({
@@ -12,6 +12,13 @@ vi.mock('@/modules/analytics/analytics', () => ({
 import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { PublicEpisode } from '@/modules/content/domain/publicContent'
+import type { ReactElement } from 'react'
+import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
+// Shell y EpisodeDetail leen el consentimiento de cookies: se montan, como en
+// la web real, dentro de su proveedor.
+function render(ui: ReactElement) {
+  return rtlRender(ui, { wrapper: ConsentProvider })
+}
 
 /**
  * Ficha de episodio según el documento de diseño (5 oct 2026): dos grupos
@@ -114,7 +121,6 @@ afterEach(() => {
 describe('EpisodeDetail — segundo CTA «Watch more»', () => {
   it.each([
     ['youtube', 'abc123', 'https://www.youtube.com/watch?v=abc123', 'YouTube'],
-    ['vimeo', '987654', 'https://vimeo.com/987654', 'Vimeo'],
     ['spotify', 'ep456', 'https://open.spotify.com/episode/ep456', 'Spotify'],
   ] as const)(
     '%s: enlaza al episodio en su plataforma, en pestaña nueva y de forma segura',
@@ -136,12 +142,12 @@ describe('EpisodeDetail — segundo CTA «Watch more»', () => {
 
   it('el nombre accesible contiene el texto visible y avisa de que abre pestaña nueva', () => {
     render(
-      <EpisodeDetail content={content()} episode={episode('vimeo', '1')} />,
+      <EpisodeDetail content={content()} episode={episode('spotify', '1')} />,
     )
 
     expect(
       screen.getByRole('link', {
-        name: 'Watch more on Vimeo (opens in a new tab)',
+        name: 'Watch more on Spotify (opens in a new tab)',
       }),
     ).toBeInTheDocument()
   })

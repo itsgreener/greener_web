@@ -11,12 +11,6 @@ describe('episodeExternalUrl — CTA «Watch more» (5 oct 2026)', () => {
     )
   })
 
-  it('Vimeo: página del vídeo', () => {
-    expect(episodeExternalUrl('vimeo', '123456789')).toBe(
-      'https://vimeo.com/123456789',
-    )
-  })
-
   it('Spotify: página del episodio', () => {
     expect(episodeExternalUrl('spotify', '4rOoJ6Egrf8K2IrywzwOMk')).toBe(
       'https://open.spotify.com/episode/4rOoJ6Egrf8K2IrywzwOMk',
@@ -27,8 +21,8 @@ describe('episodeExternalUrl — CTA «Watch more» (5 oct 2026)', () => {
     expect(episodeExternalUrl('youtube', 'abc&evil=1')).toBe(
       'https://www.youtube.com/watch?v=abc%26evil%3D1',
     )
-    expect(episodeExternalUrl('vimeo', '../admin')).toBe(
-      'https://vimeo.com/..%2Fadmin',
+    expect(episodeExternalUrl('spotify', '../admin')).toBe(
+      'https://open.spotify.com/episode/..%2Fadmin',
     )
   })
 

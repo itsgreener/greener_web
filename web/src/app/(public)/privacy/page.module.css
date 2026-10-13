@@ -1,12 +1,65 @@
 .page {
   width: 100%;
   max-width: 72ch;
+  padding-bottom: var(--space-xl);
 }
 
 .title {
   font-size: 1.75rem;
 }
 
-.placeholder {
+.updated {
+  margin: var(--space-sm) 0 var(--space-lg);
   opacity: 0.75;
+}
+
+.section {
+  margin-top: var(--space-lg);
+}
+
+.heading {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.15rem;
+}
+
+.paragraph {
+  margin: 0 0 var(--space-sm);
+  line-height: 1.55;
+}
+
+.list {
+  margin: 0 0 var(--space-sm);
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+/* La tabla de almacenamiento es ancha: se desplaza dentro de su caja en
+   pantallas estrechas en vez de desbordar la página. */
+.tableWrap {
+  margin: 0 0 var(--space-sm);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.table th,
+.table td {
+  padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table thead th {
+  font-weight: 600;
+}
+
+.table tbody th {
+  font-weight: 400;
+  white-space: nowrap;
 }

@@ -76,7 +76,7 @@ Igual que caso, sustituyendo `client` por:
 | ---------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `episode_kind`   | No         | Tipo de episodio — enum ampliable (`podcast`, y lo que haga falta en el futuro), se ve arriba del todo igual que el cliente en un caso                                                                        |
 | Vídeo            | —          | Siempre exactamente uno, embed externo (`provider` + `embed_id`, ya existente) — nunca subida propia                                                                                                          |
-| CTA "Watch more" | —          | No es un campo, sale automático según `provider`: YouTube `youtube.com/watch?v=ID`, Vimeo `vimeo.com/ID`, Spotify `open.spotify.com/episode/ID`; enlace externo en pestaña nueva (implementado el 5 oct 2026) |
+| CTA "Watch more" | —          | No es un campo, sale automático según `provider`: YouTube `youtube.com/watch?v=ID`, Spotify `open.spotify.com/episode/ID`; enlace externo en pestaña nueva (implementado el 5 oct 2026) |
 
 ### Tipo A — Tool / Insight
 

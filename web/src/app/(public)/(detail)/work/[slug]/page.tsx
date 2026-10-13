@@ -81,7 +81,10 @@ export default async function WorkPage({ params, searchParams }: Props) {
     )
   }
 
-  const episode = await reader.episode(content.id)
+  const [episode, poster] = await Promise.all([
+    reader.episode(content.id),
+    reader.firstPinMedia(content.id),
+  ])
 
   // No debería pasar (todo content.type='episode' se crea junto a su fila
   // de episode), pero sin ella no hay nada que embeber — 404 defensivo
@@ -92,7 +95,7 @@ export default async function WorkPage({ params, searchParams }: Props) {
 
   return (
     <>
-      <EpisodeDetail content={content} episode={episode} />
+      <EpisodeDetail content={content} episode={episode} poster={poster} />
     </>
   )
 }

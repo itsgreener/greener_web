@@ -48,10 +48,10 @@ const CLOUDINARY_DELIVERY_ORIGIN = 'https://res.cloudinary.com'
 const CLOUDINARY_UPLOAD_ORIGIN = 'https://api.cloudinary.com'
 
 // Embeds de episodio (§3.3, EpisodeDetail.tsx) — youtube-nocookie,
-// Vimeo y Spotify, los tres proveedores reales que soporta hoy.
+// y Spotify, los dos proveedores que soporta hoy (Vimeo se retiró el 13 oct
+// 2026).
 const EMBED_FRAME_ORIGINS = [
   'https://www.youtube-nocookie.com',
-  'https://player.vimeo.com',
   'https://open.spotify.com',
 ] as const
 

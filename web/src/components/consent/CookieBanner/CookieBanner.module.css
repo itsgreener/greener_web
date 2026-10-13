@@ -1,0 +1,109 @@
+/* Ventana de cookies: fija abajo, a todo el ancho de la zona de contenido
+   (a la derecha del menú lateral), sin tapar la pantalla ni bloquear la
+   navegación. Aceptar y Rechazar comparten la clase .button: mismo tamaño,
+   color y peso tipográfico (requisito del documento «Ventana de cookies»). */
+.banner {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-width);
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md) var(--space-lg);
+  padding: var(--space-md) var(--space-xl) var(--space-md) var(--space-lg);
+  padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg);
+  box-shadow: 0 -8px 24px rgb(0 0 0 / 8%);
+}
+
+.text {
+  flex: 1 1 28rem;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 var(--space-xs);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.body {
+  margin: 0;
+  max-width: 70ch;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-md);
+}
+
+.button {
+  min-width: 6.5rem;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--color-cta);
+  border-radius: var(--radius-cta);
+  background: var(--color-bg);
+  color: var(--color-cta);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--color-surface-hover);
+}
+
+.button:focus-visible,
+.close:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--color-cta);
+  outline-offset: 3px;
+}
+
+.link {
+  color: inherit;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.close {
+  position: absolute;
+  top: var(--space-xs);
+  right: var(--space-sm);
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--color-surface-hover);
+}
+
+/* En móvil el menú lateral sigue ocupando su columna: la ventana respeta el
+   mismo margen izquierdo y apila texto y botones. */
+@media (max-width: 640px) {
+  .banner {
+    padding-right: var(--space-xl);
+  }
+
+  .actions {
+    width: 100%;
+  }
+}

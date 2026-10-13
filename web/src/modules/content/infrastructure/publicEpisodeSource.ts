@@ -1,5 +1,6 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+import { episodeProviderSchema } from '@/modules/content/domain/episodeSchema'
 import type { PublicEpisode } from '@/modules/content/domain/publicContent'
 
 /**
@@ -27,9 +28,15 @@ export async function getPublicEpisode(
 
   if (!data) return null
 
+  // El enum de la BBDD aún tiene `vimeo` (retirado el 13 oct 2026). Una fila
+  // antigua con ese proveedor no se puede embeber: se trata como episodio sin
+  // reproductor y la página responde 404 en vez de romperse.
+  const provider = episodeProviderSchema.safeParse(data.provider)
+  if (!provider.success) return null
+
   return {
     program: data.program,
-    provider: data.provider,
+    provider: provider.data,
     embedId: data.embed_id,
     episodeKind: data.episode_kind,
   }
