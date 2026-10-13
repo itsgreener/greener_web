@@ -9,7 +9,7 @@ import type {
 import { rotateCasePins, circularFillPool } from './rotateQueue'
 import { largestRemainderQuotas } from './quotas'
 import { constrainedMix, type Pools } from './constrainedMix'
-import { deriveRng } from './prng'
+import { deriveRng, shuffled } from './prng'
 
 const EMPTY_QUOTAS = { insights: 0, tools: 0, channel: 0, other: 0 }
 
@@ -25,7 +25,16 @@ export function generateRound(
   roundIndex: number,
 ): GenerateRoundResult {
   // 1. Pines de casos para esta tanda (rotación por cola circular + fuerza).
-  const casePool: GeneratedPin[] = snapshot.cases.flatMap((c) =>
+  // Los casos entran en un orden propio de la sesión y de la ronda: sin
+  // barajarlos saldrían siempre en el orden del catálogo. Se parte del orden
+  // canónico por `contentId` porque el de Supabase no está garantizado.
+  const orderedCases = shuffled(
+    [...snapshot.cases].sort((a, b) =>
+      a.contentId < b.contentId ? -1 : a.contentId > b.contentId ? 1 : 0,
+    ),
+    deriveRng(seed, 'cases', roundIndex),
+  )
+  const casePool: GeneratedPin[] = orderedCases.flatMap((c) =>
     rotateCasePins(seed, roundIndex, c).map((rp) => ({
       pinId: rp.pinId,
       contentId: c.contentId,
@@ -42,8 +51,9 @@ export function generateRound(
   // 16 episodios => 16 posiciones; 23 tools => 23 posiciones.
   //
   // Esto hace que cada contenido aparezca una sola vez antes de empezar
-  // la siguiente vuelta. Cada vuelta puede usar otro pin del mismo
-  // contenido porque circularFillPool ya rota la cola de pines por ronda.
+  // la siguiente vuelta. El orden de cada vuelta es aleatorio (propio de la
+  // sesión) y cada vuelta puede usar otro pin del mismo contenido:
+  // circularFillPool lo resuelve (ver su comentario).
   //
   // En Home / All, mientras haya casos, se conserva exactamente la lógica
   // original de porcentajes y fuerza de casos.

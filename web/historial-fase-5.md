@@ -764,6 +764,36 @@ Dos fallos encontrados por Greener en la misma jornada; ninguno se había visto 
 
 ---
 
+### 2.62 Orden fijo de los pines en el feed: ciclo de contenidos sin estado (13 oct 2026)
+
+**Síntoma.** En `/tools` los pines salían siempre en el mismo orden (la misma tool la primera, la misma la segunda…), recargando o desde otro navegador.
+
+**Causa.** El cambio que hizo que «cada contenido aparezca una sola vez antes de empezar la siguiente vuelta» (una tanda de subhome = una vuelta completa por los contenidos; comentario en `generateRound` §2) **no estaba en este documento ni tenía test que lo cubriera**. `circularFillPool` recorría los contenidos con un round-robin que arrancaba siempre por el primero del catálogo; la seed y la ronda solo movían **qué pin** de cada contenido tocaba (`pointers`), nunca **en qué posición** salía el contenido. Con una cuota igual al número de contenidos (subhome) la secuencia de contenidos era el orden del catálogo en todas las rondas y sesiones. Además, el catálogo se lee de Supabase sin `order by`, de modo que ni siquiera era un orden garantizado.
+
+**Hallazgo añadido (más grave): inanición en la home.** Con una cuota menor que el catálogo, cada ronda volvía a empezar por el principio de la lista, así que solo salían los primeros contenidos de cada tipo. Medido con el motor real y un catálogo de 40 casos, 5 insights, 30 tools, 16 episodios y 4 «other» (cuotas por ronda: 9 insights, 3 tools, 3 episodios, 3 other): en 12 rondas aparecían **solo 3 de las 30 tools, 3 de los 16 episodios y 3 de los 4 «other»**, siempre los mismos. Los casos salían todos en cada ronda, pero también en el orden del catálogo.
+
+**Arreglo** (`modules/feed/domain`, sin migraciones ni cambios de API):
+
+- `circularFillPool` pasa a ser un **ciclo infinito y sin estado**. Cada «vuelta» contiene una vez cada contenido del tipo en un orden barajado con `deriveRng(seed, 'cycle', tipo, vuelta)`. La ronda `r` ocupa los huecos `[r·cuota, (r+1)·cuota)` del ciclo. Resultado: ningún contenido se repite hasta que han salido todos los de su tipo (aunque el tipo aporte 3 pines por ronda), el orden cambia entre sesiones y entre vueltas, y si una vuelta empieza por el contenido con el que acabó la anterior se intercambia con el siguiente.
+- El **pin** elegido de cada contenido avanza un puesto por vuelta (`(inicio + vuelta) mod nº de pines`), así que tampoco se repite pin hasta agotarlos.
+- Los contenidos se ordenan **por `contentId` antes de barajar**: el orden en que llegue el catálogo ya no influye (sesiones y rondas guardadas son reproducibles).
+- Los **casos** se barajan igual por sesión y ronda (`deriveRng(seed, 'cases', ronda)`); seguían saliendo en orden de catálogo.
+- `relaxationLevel` 4 (informe §8.6) solo en los pines cuyo contenido ya había salido antes **en la misma ronda** (cuota mayor que el catálogo, p. ej. 5 insights para 32 posiciones).
+- `prng.ts`: nueva `shuffled(items, rng)` (Fisher-Yates determinista, no muta la entrada).
+
+**Qué no cambia.** `rotateCasePins` (la rotación de pines dentro de un caso), la mezcla `constrainedMix`, los porcentajes y las cuotas, el tamaño de la tanda, el formato de `feed_round` y el cursor. Las rondas ya guardadas no se tocan: una sesión abierta antes de desplegar conserva su orden hasta que caduque o se recargue.
+
+**Tests nuevos** (`tests/unit/feed/contentCycle.test.ts`, 13; `prng.test.ts`, 3): subhome = permutación completa en cada ronda; orden distinto entre seeds y entre rondas; independiente del orden del catálogo; el pin no se repite hasta agotar los del contenido; home: las 30 tools salen una vez cada una en 10 rondas, los 16 episodios no se repiten antes de agotarse, los casos cambian de orden; `circularFillPool` no repite contenido seguido al cruzar vueltas, marca bien el nivel 4 y tolera contenidos vacíos, cuota 0 y un solo contenido. **Con el código anterior fallan 7 de los 13.** Se ajusta además el título de un test de `generateRound.test.ts` que decía «usa batchSize», cosa que ya no era cierta.
+
+**Observaciones que no se han tocado.**
+
+- `feed_config.batch_size` (y `FeedConfig.batchSize`) **ya no influye en nada**: el tamaño de la tanda sin casos es el número de contenidos y con casos lo fijan ellos. El valor se sigue leyendo y pasando, pero el motor no lo usa. Quitarlo o documentarlo en el ABM es una decisión pendiente.
+- Con un catálogo muy corto en una subhome (1–2 contenidos) la tanda es de 1–2 pines y el scroll infinito repite los mismos; es consecuencia directa de «tanda = una vuelta» y se resuelve con contenido, no con código.
+- Con `force > 1`, los pines de un mismo caso van seguidos en el pool de casos y `constrainedMix` no reordena dentro de un tipo, así que la separación mínima se relaja casi siempre. Medido en `/work` con 12 casos de fuerza 3: 35 de 36 pines salen con relajación 4 (sin separación) y los tres pines de cada caso quedan juntos. Se arreglaría intercalando el pool por capas (el pin 1 de todos los casos, luego el 2…); no se ha hecho porque no estaba pedido y cambia el aspecto del feed.
+- La decisión de producto sobre la repetición de pines con catálogo corto (§2.39) sigue abierta; este arreglo reparte las repeticiones en vueltas completas, no las elimina.
+
+**Verificación.** 159 ficheros y **1657 tests** en verde (+1 fichero, +16 tests), `tsc` (con `next typegen`), ESLint y `prettier` (estilo del repositorio) limpios, `npm audit --omit=dev` sin vulnerabilidades.
+
 ## Historial de correcciones de `PROGRESO.md` (hasta el 2 de octubre)
 
 Registro fechado de las correcciones y cambios que se fueron anotando en `PROGRESO.md` mientras se escribían las secciones anteriores. Se archivó aquí el 5 de octubre; a partir de esa fecha, los cambios nuevos se anotan en el «Registro de cambios» de `PROGRESO.md`.

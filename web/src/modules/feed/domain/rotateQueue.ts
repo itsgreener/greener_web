@@ -4,7 +4,7 @@ import type {
   GeneratedPin,
   FeedContentKind,
 } from './types'
-import { hashToSeed } from './prng'
+import { deriveRng, hashToSeed, shuffled } from './prng'
 
 interface RotatedPin {
   pinId: string
@@ -42,12 +42,63 @@ export function rotateCasePins(
   return selected
 }
 
+function byContentId<T extends { contentId: string }>(a: T, b: T): number {
+  return a.contentId < b.contentId ? -1 : a.contentId > b.contentId ? 1 : 0
+}
+
 /**
- * Rellena una cuota de pines para un tipo de contenido (insights, tools,
- * channel, other) recorriendo sus contenidos en round-robin y avanzando la
- * cola circular de cada uno, para no agotar siempre el mismo contenido
- * primero (arquitectura §8.2: "no se repite un pin dentro de la tanda si
- * existe otro disponible").
+ * Orden de los contenidos de una vuelta (`pass`) del ciclo de un tipo. Cada
+ * vuelta es una permutación distinta, derivada de la seed de sesión, del tipo
+ * y del número de vuelta. Se parte siempre del orden canónico por `contentId`
+ * porque el orden en que llega el catálogo no es estable.
+ *
+ * Si el contenido con el que empieza una vuelta es el mismo con el que acabó
+ * la anterior (repetiría seguido al cambiar de vuelta), se intercambia con el
+ * siguiente.
+ */
+function passOrders(
+  seed: string,
+  kind: FeedContentKind,
+  contents: ContentPinQueue[],
+  lastPass: number,
+): ContentPinQueue[][] {
+  const orders: ContentPinQueue[][] = []
+  for (let pass = 0; pass <= lastPass; pass++) {
+    const order = shuffled(contents, deriveRng(seed, 'cycle', kind, pass))
+    const previous = orders[pass - 1]
+    if (
+      previous &&
+      order.length > 1 &&
+      order[0].contentId === previous[previous.length - 1].contentId
+    ) {
+      ;[order[0], order[1]] = [order[1], order[0]]
+    }
+    orders.push(order)
+  }
+  return orders
+}
+
+/**
+ * Rellena la cuota de pines de un tipo de contenido (insights, tools,
+ * channel, other) recorriendo sus contenidos como un ciclo infinito y sin
+ * estado (arquitectura §8.2).
+ *
+ * El ciclo es una sucesión de «vueltas»: en cada una aparece UNA vez cada
+ * contenido del tipo, en un orden aleatorio propio de la sesión. La ronda
+ * `roundIndex` ocupa los huecos `[roundIndex·quota, (roundIndex+1)·quota)`
+ * del ciclo, de modo que:
+ *
+ * - dentro de una sesión, ningún contenido se repite hasta haber salido todos
+ *   los demás de su tipo (aunque el tipo solo aporte 3 pines por ronda);
+ * - el orden cambia de una sesión a otra y de una vuelta a la siguiente;
+ * - el pin elegido de cada contenido avanza un puesto por vuelta, así que
+ *   tampoco se repite pin hasta agotar los del contenido.
+ *
+ * No hay estado entre rondas: el hueco de cada pin se calcula solo con la
+ * seed y el índice de ronda, como el resto del motor. Si la cuota supera el
+ * número de contenidos (5 insights para 32 posiciones, arquitectura §22) la
+ * ronda cruza vueltas y repite contenido; esos pines llevan relaxationLevel 4
+ * para que lo recoja el informe (§8.6).
  */
 export function circularFillPool(
   seed: string,
@@ -56,76 +107,35 @@ export function circularFillPool(
   pool: ContentPinQueue[],
   quota: number,
 ): GeneratedPin[] {
-  if (pool.length === 0 || quota <= 0) return []
+  const contents = pool
+    .filter((content) => content.pinIds.length > 0)
+    .sort(byContentId)
+  const count = contents.length
+  if (count === 0 || quota <= 0) return []
 
-  // Punteros de rotación por contenido, derivados de la seed + ronda, para
-  // que sesiones distintas empiecen en puntos distintos de cada cola.
-  const pointers = new Map<string, number>()
-  for (const content of pool) {
-    const start =
-      content.pinIds.length > 0
-        ? hashToSeed(seed, content.contentId) % content.pinIds.length
-        : 0
-    pointers.set(
-      content.contentId,
-      (start + roundIndex) % Math.max(content.pinIds.length, 1),
-    )
-  }
+  const firstSlot = roundIndex * quota
+  const lastPass = Math.floor((firstSlot + quota - 1) / count)
+  const orders = passOrders(seed, kind, contents, lastPass)
 
   const result: GeneratedPin[] = []
-  const seenOnceThisRound = new Set<string>() // pinId ya usado en esta tanda
+  const seenContents = new Set<string>()
 
-  let poolIndex = 0
-  let guard = 0
-  // Cota de seguridad: el número de contenidos vacíos no debe producir un
-  // bucle infinito si la cuota excede el material disponible real.
-  const maxIterations = quota * pool.length + pool.length + 1
+  for (let i = 0; i < quota; i++) {
+    const slot = firstSlot + i
+    const pass = Math.floor(slot / count)
+    const content = orders[pass][slot % count]
 
-  while (result.length < quota && guard < maxIterations) {
-    guard++
-    const content = pool[poolIndex % pool.length]
-    poolIndex++
+    const start = hashToSeed(seed, content.contentId) % content.pinIds.length
+    const pinId = content.pinIds[(start + pass) % content.pinIds.length]
 
-    if (content.pinIds.length === 0) continue
-
-    const ptr = pointers.get(content.contentId)!
-    const candidatePin = content.pinIds[ptr % content.pinIds.length]
-    pointers.set(content.contentId, ptr + 1)
-
-    // Evita repetir el mismo pin dos veces en la misma tanda si hay alternativa.
-    if (seenOnceThisRound.has(candidatePin) && content.pinIds.length > 1) {
-      continue
-    }
-
-    seenOnceThisRound.add(candidatePin)
     result.push({
-      pinId: candidatePin,
+      pinId,
       contentId: content.contentId,
       kind,
-      relaxationLevel: 0,
+      relaxationLevel: seenContents.has(content.contentId) ? 4 : 0,
     })
+    seenContents.add(content.contentId)
   }
 
-  // Si la cuota supera el material único disponible (catálogo pequeño:
-  // 5 insights, 30 tools — arquitectura §22), se completa repitiendo,
-  // respetando el resto de la mezcla la separación mínima cuando sea posible.
-  if (result.length < quota) {
-    let i = 0
-    while (result.length < quota && pool.some((c) => c.pinIds.length > 0)) {
-      const content = pool[i % pool.length]
-      i++
-      if (content.pinIds.length === 0) continue
-      const ptr = pointers.get(content.contentId)!
-      const pin = content.pinIds[ptr % content.pinIds.length]
-      pointers.set(content.contentId, ptr + 1)
-      result.push({
-        pinId: pin,
-        contentId: content.contentId,
-        kind,
-        relaxationLevel: 4,
-      })
-    }
-  }
-
-  return result.slice(0, quota)
+  return result
 }

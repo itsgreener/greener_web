@@ -26,7 +26,7 @@ const EMPTY_SNAPSHOT: FeedSnapshot = {
  * hubiera contenido real de sobra de otro tipo.
  */
 describe('generateRound — universos sin casos (subhomes)', () => {
-  it('con solo insights (sin ningún caso), usa batchSize como tamaño de tanda en vez de colapsar a 0', () => {
+  it('con solo insights (sin ningún caso), la tanda es una vuelta por los contenidos en vez de colapsar a 0', () => {
     const snapshot: FeedSnapshot = {
       ...EMPTY_SNAPSHOT,
       insights: [

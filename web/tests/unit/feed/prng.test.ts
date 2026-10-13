@@ -4,6 +4,7 @@ import {
   hashToSeed,
   deriveRng,
   randomInt,
+  shuffled,
 } from '@/modules/feed/domain/prng'
 
 describe('mulberry32', () => {
@@ -72,5 +73,30 @@ describe('randomInt', () => {
   it('max<=0 devuelve 0 sin lanzar', () => {
     const rng = mulberry32(7)
     expect(randomInt(rng, 0)).toBe(0)
+  })
+})
+
+describe('shuffled', () => {
+  const items = Array.from({ length: 20 }, (_, i) => i)
+
+  it('devuelve una permutación sin mutar la entrada', () => {
+    const copy = [...items]
+    const out = shuffled(items, mulberry32(7))
+    expect(items).toEqual(copy)
+    expect([...out].sort((a, b) => a - b)).toEqual(items)
+  })
+
+  it('es determinista para el mismo Rng y cambia con otra seed', () => {
+    expect(shuffled(items, mulberry32(7))).toEqual(
+      shuffled(items, mulberry32(7)),
+    )
+    expect(shuffled(items, mulberry32(7))).not.toEqual(
+      shuffled(items, mulberry32(8)),
+    )
+  })
+
+  it('aguanta listas vacías y de un elemento', () => {
+    expect(shuffled([], mulberry32(1))).toEqual([])
+    expect(shuffled(['a'], mulberry32(1))).toEqual(['a'])
   })
 })

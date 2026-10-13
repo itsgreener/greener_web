@@ -37,3 +37,18 @@ export function randomInt(rng: Rng, max: number): number {
   if (max <= 0) return 0
   return Math.floor(rng() * max)
 }
+
+/**
+ * Copia de `items` en un orden aleatorio determinista (Fisher-Yates con el
+ * Rng dado). No muta la entrada. Para que dos llamadas con la misma seed den
+ * el mismo orden, la lista de entrada debe llegar ya en un orden canónico:
+ * el orden en que Supabase devuelve las filas no está garantizado.
+ */
+export function shuffled<T>(items: readonly T[], rng: Rng): T[] {
+  const out = [...items]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = randomInt(rng, i + 1)
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
+}
