@@ -2,10 +2,8 @@ import { describe, it, expect } from 'vitest'
 import AdmZip from 'adm-zip'
 import { randomBytes } from 'node:crypto'
 
-import {
-  validateHtmlPackageZip,
-  PackageValidationError,
-} from '@/modules/packages/infrastructure/zipValidation'
+import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
+import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
 
 const VALID_MANIFEST = {
   kind: 'tool',

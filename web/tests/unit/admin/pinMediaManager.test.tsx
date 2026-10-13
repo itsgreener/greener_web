@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
+const refreshRouter = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => refreshRouter() }),
+}))
+
 /**
  * Subida de un vídeo a un pin (5 oct 2026). Caso real que motivó estos
  * tests: un vídeo de 5 s en un pin de tool se rechazaba con «supera los 15
@@ -15,10 +21,10 @@ const uploadVideoToCloudinary = vi.fn()
 const attachPinVideoAction = vi.fn()
 const discardUploadQuietly = vi.fn()
 
-vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
+vi.mock('@/modules/media/client/cloudinaryUpload', async () => {
   const actual = await vi.importActual<
-    typeof import('@/modules/media/infrastructure/cloudinaryUpload')
-  >('@/modules/media/infrastructure/cloudinaryUpload')
+    typeof import('@/modules/media/client/cloudinaryUpload')
+  >('@/modules/media/client/cloudinaryUpload')
 
   return {
     ...actual,
@@ -28,17 +34,17 @@ vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
   }
 })
 
-vi.mock('@/app/admin/contents/[id]/edit/pinActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({
   attachPinImageAction: vi.fn(),
   attachPinVideoAction: (...args: unknown[]) => attachPinVideoAction(...args),
   detachPinMediaAction: vi.fn(),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/discardUpload', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/discardUpload', () => ({
   discardUploadQuietly: (...args: unknown[]) => discardUploadQuietly(...args),
 }))
 
-import PinMediaManager from '@/app/admin/contents/[id]/edit/PinMediaManager'
+import PinMediaManager from '@/app/admin/(panel)/contents/[id]/edit/PinMediaManager'
 
 // jsdom no decodifica vídeo: se sustituye createElement solo para 'video'.
 function mockVideoElement(duration: number) {
@@ -97,7 +103,7 @@ function renderManager(contentType: string, pinRatio = '16:9') {
       pinId="22222222-2222-4222-8222-222222222222"
       contentType={contentType}
       pinRatio={pinRatio}
-      media={[]}
+      media={null}
     />,
   )
 }

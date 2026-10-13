@@ -3,6 +3,12 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
 
+const refreshRouter = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => refreshRouter() }),
+}))
+
 /**
  * 8 oct: «Quitar todas las diapositivas» y, antes de que acabara, «Borrar
  * todos los pines» (o al revés) dejaban la pantalla con pines ya borrados en
@@ -14,7 +20,7 @@ const removeAllCarousel = vi.fn()
 const deleteAllPins = vi.fn()
 const deletePin = vi.fn()
 
-vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
   addCaseCarouselVideoAction: vi.fn(),
   addCaseCarouselImageAction: vi.fn(),
   removeCaseCarouselMediaAction: vi.fn(),
@@ -22,24 +28,24 @@ vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
     removeAllCarousel(...a),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/pinActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({
   createPinAction: vi.fn(),
   updatePinAction: vi.fn(),
   deletePinAction: (...a: unknown[]) => deletePin(...a),
   deleteAllPinsAction: (...a: unknown[]) => deleteAllPins(...a),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/PinMediaManager', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/PinMediaManager', () => ({
   default: () => null,
 }))
 
-import CaseCarouselManager from '@/app/admin/contents/[id]/edit/CaseCarouselManager'
-import PinList from '@/app/admin/contents/[id]/edit/PinList'
+import CaseCarouselManager from '@/app/admin/(panel)/contents/[id]/edit/CaseCarouselManager'
+import PinList from '@/app/admin/(panel)/contents/[id]/edit/PinList'
 import {
   acquireEditorLock,
   resetEditorLockForTests,
   useEditorBusy,
-} from '@/app/admin/contents/[id]/edit/editorLock'
+} from '@/app/admin/(panel)/contents/[id]/edit/editorLock'
 
 const CONTENT_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -54,7 +60,7 @@ const ITEMS = [
 ]
 
 const PINS = [
-  { id: 'p1', label: 'Pin 1', ratio: '4:5', media: [] },
+  { id: 'p1', label: 'Pin 1', ratio: '4:5', media: null },
 ] as unknown as React.ComponentProps<typeof PinList>['pins']
 
 function deferred<T>() {
@@ -73,11 +79,6 @@ beforeEach(() => {
   vi.clearAllMocks()
   resetEditorLockForTests()
   vi.spyOn(window, 'confirm').mockReturnValue(true)
-  // jsdom no implementa la recarga: se sustituye para observarla.
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...window.location, reload: vi.fn() },
-  })
 })
 
 afterEach(() => {
@@ -155,7 +156,15 @@ describe('borrados simultáneos en el editor', () => {
     expect(deleteAllPins).not.toHaveBeenCalled()
 
     await act(async () => pending.resolve({ ok: true }))
-    expect(window.location.reload).toHaveBeenCalledTimes(1)
+    expect(refreshRouter).toHaveBeenCalledTimes(1)
+
+    // Sin recarga completa la página sigue viva: al acabar el refresco el
+    // cerrojo se suelta y se puede volver a operar.
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /Borrar todos los pines/ }),
+      ).toBeEnabled(),
+    )
   })
 
   it('con «Borrar todos los pines» en marcha, los del carrusel están deshabilitados (al revés)', async () => {
@@ -191,7 +200,7 @@ describe('borrados simultáneos en el editor', () => {
     expect(
       screen.getByRole('button', { name: /Borrar todos los pines/ }),
     ).toBeEnabled()
-    expect(window.location.reload).not.toHaveBeenCalled()
+    expect(refreshRouter).not.toHaveBeenCalled()
   })
 
   it('si la acción lanza (red caída), tampoco se queda bloqueado', async () => {

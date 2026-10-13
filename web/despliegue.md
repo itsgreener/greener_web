@@ -78,6 +78,16 @@ pm2 start ecosystem.config.cjs
 
 Probado con una release real del proyecto: responde en el `PORT` indicado (páginas, `robots.txt`, iconos de `public/`), lee el `.env.local` por el enlace simbólico, y **si el proceso muere (`kill -9`), PM2 lo levanta solo**. Usad para `HOSTNAME` lo mismo que en vuestros despliegues anteriores: no sé si el proxy de Dinahosting corre en la misma máquina (bastaría `127.0.0.1`) o no (haría falta `0.0.0.0`).
 
+### Una sola instancia (no usar `instances` ni `exec_mode: 'cluster'`)
+
+La aplicación guarda estado **en la memoria del proceso**, así que `ecosystem.config.cjs` debe dejar **una única instancia** (el valor por defecto; no añadáis `instances` ni `exec_mode: 'cluster'`):
+
+- **Límites de peticiones** (`modules/feed/infrastructure/feedRateLimit.ts` y `lib/rateLimit/inMemoryRateLimiter.ts`, que usan el feed, la newsletter y la analítica de paquetes): cada proceso cuenta por su cuenta, de modo que con N instancias el límite real sería N veces mayor.
+- **Memoria de «última sesión del visitante»** (`rememberSession`): con varias instancias, una recarga que cae en otro proceso no encuentra la sesión anterior y devuelve una secuencia nueva.
+- **Cachés de Next** (`unstable_cache`: universo publicado del feed y versión publicada de cada tool/insight): la invalidación por etiqueta desde el ABM solo llega al proceso que atendió la acción; el resto seguiría sirviendo lo anterior hasta que caduque el TTL (60 s).
+
+Si algún día hiciera falta más de una instancia, hay que mover primero esos tres estados a un almacén compartido (Redis, o tablas en Supabase para los limitadores).
+
 ## 4. Cambiar de versión sin cortar el sitio (verificado)
 
 Con varias releases en `releases/<nombre>` y un enlace simbólico `current` que apunta a la activa:

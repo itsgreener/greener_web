@@ -1,5 +1,9 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+import type {
+  PublicCaseCarouselItem,
+  PublicCaseDetail,
+} from '@/modules/content/domain/publicContent'
 
 /**
  * Lectura pública de los datos de un caso para /work/[slug] — mismo
@@ -8,12 +12,6 @@ import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
  * ABM (ese sigue la sesión del admin, pensado para editar, no para
  * servir la página pública).
  */
-
-export interface PublicCaseDetail {
-  // force es un parámetro del motor de feed (arquitectura §4.3), nunca se
-  // muestra en el detalle — por eso no se lee aquí.
-  client: string | null
-}
 
 export async function getPublicCaseDetail(
   contentId: string,
@@ -32,16 +30,6 @@ export async function getPublicCaseDetail(
   if (!data) return null
 
   return { client: data.client }
-}
-
-export interface PublicCaseCarouselItem {
-  mediaId: string
-  kind: 'image' | 'video'
-  cloudinaryPublicId: string
-  sortOrder: number
-  alt: string
-  width: number
-  height: number
 }
 
 export async function getPublicCaseCarousel(

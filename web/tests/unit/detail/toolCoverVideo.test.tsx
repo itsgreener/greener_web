@@ -5,7 +5,7 @@ import '@testing-library/jest-dom/vitest'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import { ToolCoverVideo } from '@/components/detail/ToolCoverVideo'
 import { videoPlaybackCoordinator } from '@/components/pin/videoPlaybackCoordinator'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
 
 const BASE: PublicContent = {
   id: 'content-1',

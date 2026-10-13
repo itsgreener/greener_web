@@ -1,12 +1,29 @@
 import {
   registerCoverImageSchema,
   type RegisterCoverImageInput,
-} from '../domain/mediaAssetSchema'
+} from '@/modules/media/domain/mediaAssetSchema'
+import type { MediaAssetRepository } from '@/modules/media/domain/mediaAssetRepository'
+import type { MediaVerifier } from '@/modules/media/domain/mediaVerification'
 
-import { supabaseMediaAssetRepository } from '../infrastructure/supabaseMediaAssetRepository'
+/**
+ * Registra la imagen de portada ya subida por el navegador. Los metadatos
+ * (formato, medidas, peso) se consultan en el almacén: los del navegador no
+ * se usan.
+ *
+ * @throws ImageVerificationError si el archivo no es válido
+ */
+export function makeRegisterCoverImage({
+  media,
+  verifier,
+}: {
+  media: MediaAssetRepository
+  verifier: MediaVerifier
+}) {
+  return async function registerCoverImage(input: RegisterCoverImageInput) {
+    const verified = await verifier.verifyImage(input.cloudinaryPublicId)
 
-export async function registerCoverImage(input: RegisterCoverImageInput) {
-  const validated = registerCoverImageSchema.parse(input)
-
-  return supabaseMediaAssetRepository.registerCoverImage(validated)
+    return media.registerCoverImage(
+      registerCoverImageSchema.parse({ ...input, ...verified }),
+    )
+  }
 }

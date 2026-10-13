@@ -11,13 +11,8 @@ export const PACKAGE_BUCKET = 'html-packages'
 // Tipos con Content-Type propio. Todo lo demás sale como
 // application/octet-stream (ver contrato-zip-tools-insights.md §1).
 //
-// Ampliado el 29 de septiembre: los paquetes de insights reales llegaron
-// con tipografía propia en WOFF2 (Coolvetica) e imágenes JPEG/WebP, que
-// hasta entonces salían como octet-stream — una fuente así no se aplica
-// (el navegador la descarta) y una imagen así puede no reconocerse, según
-// el navegador. contrato-zip-tools-insights.md §1 queda desactualizado en
-// este punto (sigue diciendo "solo js/css/json/png/svg"); actualizar ahí
-// también.
+// Incluye fuentes WOFF2 e imágenes JPEG/WebP: servidas como octet-stream,
+// el navegador descarta una fuente y puede no reconocer una imagen.
 const CONTENT_TYPES: Record<string, string> = {
   html: 'text/html; charset=utf-8',
   htm: 'text/html; charset=utf-8',

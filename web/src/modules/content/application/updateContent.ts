@@ -1,12 +1,17 @@
 import {
   updateContentSchema,
   type UpdateContentInput,
-} from '../domain/contentSchema'
+} from '@/modules/content/domain/contentSchema'
+import type { ContentRepository } from '@/modules/content/domain/contentRepository'
 
-import { supabaseContentRepository } from '../infrastructure/supabaseContentRepository'
+export function makeUpdateContent({
+  contents,
+}: {
+  contents: ContentRepository
+}) {
+  return async function updateContent(input: UpdateContentInput) {
+    const validated = updateContentSchema.parse(input)
 
-export async function updateContent(input: UpdateContentInput) {
-  const validated = updateContentSchema.parse(input)
-
-  return supabaseContentRepository.update(validated)
+    return contents.update(validated)
+  }
 }

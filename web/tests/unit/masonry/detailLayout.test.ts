@@ -426,7 +426,10 @@ describe('computeContentBlockGeometry', () => {
 
   it('CONTENT_BLOCK_TEXT_GAP_PX coincide con el gap real de .contentBlock en el CSS', () => {
     const css = readFileSync(
-      join(process.cwd(), 'src/components/detail/ToolInsightDetail.module.css'),
+      join(
+        process.cwd(),
+        'src/components/detail/ToolInsightDetail/ToolInsightDetail.module.css',
+      ),
       'utf8',
     )
     const globals = readFileSync(
@@ -441,7 +444,10 @@ describe('computeContentBlockGeometry', () => {
 
   it('el CSS de .text usa --text-column-width como ancho (width y flex-basis), no como tope', () => {
     const css = readFileSync(
-      join(process.cwd(), 'src/components/detail/ToolInsightDetail.module.css'),
+      join(
+        process.cwd(),
+        'src/components/detail/ToolInsightDetail/ToolInsightDetail.module.css',
+      ),
       'utf8',
     )
     // `width` y `flex` toman el ancho real que calcula el JS…

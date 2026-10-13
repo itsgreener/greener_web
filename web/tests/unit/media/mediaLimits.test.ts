@@ -11,9 +11,8 @@ import {
   canAnimateInFeed,
   pinVideoLimitsFor,
   validateImageFile,
-  validateImageUpload,
+  validateImageSize,
   validateVideoUpload,
-  validatePinAnimationUpload,
   validatePinVideoUpload,
 } from '@/modules/media/domain/mediaLimits'
 
@@ -45,17 +44,17 @@ function fakeFile({
   }
 }
 
-describe('validateImageUpload', () => {
+describe('validateImageSize', () => {
   it('acepta un tamaño por debajo del límite (5 MB)', () => {
-    expect(validateImageUpload(IMAGE_LIMITS.maxSizeBytes - 1)).toBeNull()
+    expect(validateImageSize(IMAGE_LIMITS.maxSizeBytes - 1)).toBeNull()
   })
 
   it('acepta exactamente el límite', () => {
-    expect(validateImageUpload(IMAGE_LIMITS.maxSizeBytes)).toBeNull()
+    expect(validateImageSize(IMAGE_LIMITS.maxSizeBytes)).toBeNull()
   })
 
   it('rechaza un tamaño por encima del límite con el código IMAGE_TOO_LARGE', () => {
-    const result = validateImageUpload(IMAGE_LIMITS.maxSizeBytes + 1)
+    const result = validateImageSize(IMAGE_LIMITS.maxSizeBytes + 1)
 
     expect(result).toEqual({
       code: 'IMAGE_TOO_LARGE',
@@ -460,44 +459,5 @@ describe('validateVideoUpload', () => {
       code: 'VIDEO_TOO_LONG',
       maxSeconds: VIDEO_LIMITS.maxDurationSeconds,
     })
-  })
-})
-
-describe('validatePinAnimationUpload', () => {
-  it('acepta una animación corta y ligera', () => {
-    expect(validatePinAnimationUpload(2 * 1024 * 1024, 3)).toBeNull()
-  })
-
-  it('acepta exactamente 8 segundos (PIN_ANIMATION_LIMITS.maxDurationSeconds)', () => {
-    expect(
-      validatePinAnimationUpload(
-        2 * 1024 * 1024,
-        PIN_ANIMATION_LIMITS.maxDurationSeconds,
-      ),
-    ).toBeNull()
-  })
-
-  it('rechaza más de 8 segundos con ANIMATION_TOO_LONG, no VIDEO_TOO_LONG', () => {
-    const result = validatePinAnimationUpload(2 * 1024 * 1024, 9)
-
-    expect(result).toEqual({
-      code: 'ANIMATION_TOO_LONG',
-      maxSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
-    })
-  })
-
-  it('rechaza por tamaño usando el límite general de vídeo (100 MB), no uno propio', () => {
-    const result = validatePinAnimationUpload(VIDEO_LIMITS.maxSizeBytes + 1, 3)
-
-    expect(result).toEqual({
-      code: 'VIDEO_TOO_LARGE',
-      maxBytes: VIDEO_LIMITS.maxSizeBytes,
-    })
-  })
-
-  it('el tamaño se comprueba antes que la duración cuando ambos fallan', () => {
-    const result = validatePinAnimationUpload(VIDEO_LIMITS.maxSizeBytes + 1, 10)
-
-    expect(result?.code).toBe('VIDEO_TOO_LARGE')
   })
 })

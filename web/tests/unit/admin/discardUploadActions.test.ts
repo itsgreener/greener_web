@@ -18,14 +18,14 @@ vi.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
-vi.mock('@/modules/media/application/cleanupMedia', () => ({
-  discardUnregisteredUpload: vi.fn(),
+vi.mock('@/modules/media/container', () => ({
+  mediaCleanup: { discardUnregisteredUpload: vi.fn() },
 }))
 
-import { discardUploadedMediaAction } from '@/app/admin/contents/[id]/edit/discardUploadActions'
-import { discardUnregisteredUpload } from '@/modules/media/application/cleanupMedia'
+import { discardUploadedMediaAction } from '@/app/admin/(panel)/contents/[id]/edit/discardUploadActions'
+import { mediaCleanup } from '@/modules/media/container'
 
-const mockDiscard = vi.mocked(discardUnregisteredUpload)
+const mockDiscard = vi.mocked(mediaCleanup.discardUnregisteredUpload)
 
 const VALID = { cloudinaryPublicId: 'greener/content/videos/x', kind: 'video' }
 

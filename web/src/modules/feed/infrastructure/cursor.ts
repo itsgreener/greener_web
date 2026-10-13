@@ -3,6 +3,11 @@ import {
   encodeSignedToken,
 } from '@/lib/security/signedToken'
 
+import type {
+  FeedCursorCodec,
+  FeedCursorPayload,
+} from '@/modules/feed/domain/feedPorts'
+
 /**
  * Cursor opaco y firmado (arquitectura §8.5): "el cliente no puede alterar
  * cuotas ni seed". El cursor solo lleva sessionId + roundIndex — nunca la
@@ -10,11 +15,6 @@ import {
  * feed_session. La firma HMAC evita que alguien fabrique un cursor válido
  * apuntando a otra sesión o a un roundIndex arbitrario sin pasar por la API.
  */
-export interface FeedCursorPayload {
-  sessionId: string
-  roundIndex: number
-}
-
 export function encodeCursor(payload: FeedCursorPayload): string {
   return encodeSignedToken(payload)
 }
@@ -34,4 +34,9 @@ export function decodeCursor(cursor: string): FeedCursorPayload | null {
   }
 
   return { sessionId: parsed.sessionId, roundIndex: parsed.roundIndex }
+}
+
+export const signedFeedCursor: FeedCursorCodec = {
+  encode: encodeCursor,
+  decode: decodeCursor,
 }

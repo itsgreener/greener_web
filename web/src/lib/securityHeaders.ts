@@ -1,33 +1,19 @@
 /**
- * Cabeceras de seguridad globales (arquitectura §17.1; decisión del 22
- * de septiembre). Dominio puro — nada de Next.js/Edge aquí, para poder
- * testear la construcción de la cabecera sin levantar un request real.
+ * Cabeceras de seguridad globales (arquitectura §17.1). Dominio puro — nada
+ * de Next.js/Edge aquí, para testear la construcción sin levantar un request.
  *
  * NUNCA se aplican a `/tools|insights/[slug]/app`: esas rutas llevan su
- * propia CSP, pensada para el contrato del ZIP
- * (`contrato-zip-tools-insights.md` §12.4). Dos cabeceras
- * `Content-Security-Policy` en la misma respuesta no se sustituyen, se
- * combinan (el navegador aplica la intersección de ambas) — mandar las
- * dos a la vez podría romper `worker-src`/`canvas` sin ningún error
- * visible. Ver `src/proxy.ts` para la exclusión real.
+ * propia CSP (`contrato-zip-tools-insights.md` §12.4) y dos
+ * `Content-Security-Policy` en una respuesta se combinan (intersección), lo
+ * que podría romper `worker-src`/`canvas` sin error visible. Ver `src/proxy.ts`.
  *
- * `style-src` se queda en `'unsafe-inline'` a propósito, no es una
- * concesión temporal: los nonces de CSP solo cubren elementos
- * `<style>`, nunca el atributo `style="..."` de un elemento normal, y
- * el panel de recomendaciones (`ToolInsightDetail`/`CaseDetail`/
- * `EpisodeDetail`, `useRecommendationMasonry`) lo usa a propósito para
- * el posicionamiento calculado en cliente del masonry — no hay nonce
- * que cubra eso sin reescribir ese sistema entero a variables CSS.
+ * `style-src` lleva `'unsafe-inline'` a propósito: los nonces solo cubren
+ * `<style>`, no el atributo `style="..."`, y el masonry posiciona sus
+ * tarjetas con estilos calculados en cliente.
  *
- * `script-src` sí lleva nonce + `'strict-dynamic'`, el mecanismo que el
- * propio Next.js documenta: el nonce se manda tanto en la petición
- * (para que el runtime de Next lo aplique a sus propios scripts de
- * hidratación/streaming) como en la respuesta (para que el navegador lo
- * exija) — ver cómo se usa en `src/proxy.ts`. En desarrollo (`isDev`)
- * se añade además `'unsafe-eval'`, solo ahí: React usa `eval()` en modo
- * desarrollo para reconstruir callstacks entre entornos y para Fast
- * Refresh — nunca en producción (decisión del 22 sep, tras verse el
- * aviso real de CSP en `npm run dev`).
+ * `script-src` lleva nonce + `'strict-dynamic'` (el mecanismo documentado por
+ * Next): el nonce va en la petición y en la respuesta (`src/proxy.ts`). Solo
+ * en desarrollo (`isDev`) se añade `'unsafe-eval'`, que React necesita allí.
  */
 
 export interface SecurityHeadersInput {
@@ -44,9 +30,7 @@ export interface SecurityHeadersInput {
   // Plausible está configurado (NEXT_PUBLIC_PLAUSIBLE_DOMAIN). El tracker
   // publica cada evento con `fetch` en https://plausible.io/api/event;
   // sin este origen en `connect-src`, el navegador bloquea la petición en
-  // silencio y NINGÚN evento llega (fallo real encontrado el 28 sep: la CSP
-  // se añadió el 22 de septiembre, un día antes que la integración de
-  // Plausible, y nadie comprobó que encajaran). Solo se abre si hay analítica
+  // silencio y NINGÚN evento llega. Solo se abre si hay analítica
   // configurada: sin ella, ese origen no hace falta.
   analyticsEnabled?: boolean
 }

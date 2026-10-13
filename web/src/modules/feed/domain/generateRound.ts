@@ -24,8 +24,6 @@ export function generateRound(
   seed: string,
   roundIndex: number,
 ): GenerateRoundResult {
-  const startedAt = Date.now()
-
   // 1. Pines de casos para esta tanda (rotación por cola circular + fuerza).
   const casePool: GeneratedPin[] = snapshot.cases.flatMap((c) =>
     rotateCasePins(seed, roundIndex, c).map((rp) => ({
@@ -137,7 +135,6 @@ export function generateRound(
     actualCounts,
     relaxationCounts,
     repeatedContentPins: sequence.filter((p) => p.relaxationLevel >= 4).length,
-    durationMs: Date.now() - startedAt,
   }
 
   return { sequence, report }

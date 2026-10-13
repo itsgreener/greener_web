@@ -3,14 +3,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { FeedProvider } from '@/components/masonry/FeedProvider'
-import WorkPage from '@/app/(public)/work/page'
-import InsightsPage from '@/app/(public)/insights/page'
-import ToolsPage from '@/app/(public)/tools/page'
-import ChannelPage from '@/app/(public)/channel/page'
+import FeedLayout from '@/app/(public)/(feed)/layout'
+import WorkPage from '@/app/(public)/(feed)/work/page'
+import InsightsPage from '@/app/(public)/(feed)/insights/page'
+import ToolsPage from '@/app/(public)/(feed)/tools/page'
+import ChannelPage from '@/app/(public)/(feed)/channel/page'
 
 /**
- * Cada subhome es (AuxNav + Feed) con un scope fijo — este test solo
- * comprueba que cada page.tsx pide la sesión con el scope correcto, no
+ * Cada subhome es un Feed con un scope fijo (el AuxNav lo pone el layout
+ * del grupo (feed)) — este test solo comprueba que cada page.tsx pide la sesión con el scope correcto, no
  * repite toda la cobertura de Feed (ya cubierta en
  * tests/unit/masonry/feed.smoke.test.tsx).
  */
@@ -78,10 +79,12 @@ describe.each([
     })
   })
 
-  it('pinta el AuxNav', () => {
+  it('el layout (feed) pinta el AuxNav alrededor de la página', () => {
     render(
       <FeedProvider>
-        <Page />
+        <FeedLayout>
+          <Page />
+        </FeedLayout>
       </FeedProvider>,
     )
 

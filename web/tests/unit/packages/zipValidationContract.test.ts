@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import AdmZip from 'adm-zip'
 
-import {
-  validateHtmlPackageZip,
-  PackageValidationError,
-} from '@/modules/packages/infrastructure/zipValidation'
+import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
+import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
 
 /**
  * Cada test fija una afirmación concreta de `contrato-zip-tools-insights.md`

@@ -9,9 +9,9 @@ vi.mock('@/modules/analytics/analytics', () => ({
   trackAnalyticsEvent: vi.fn(),
 }))
 
-import { EpisodeDetail } from '@/app/(public)/work/[slug]/EpisodeDetail'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
-import type { PublicEpisode } from '@/modules/content/infrastructure/publicEpisodeSource'
+import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
+import type { PublicEpisode } from '@/modules/content/domain/publicContent'
 
 /**
  * Ficha de episodio según el documento de diseño (5 oct 2026): dos grupos
@@ -57,7 +57,7 @@ function css(): string {
   return readFileSync(
     join(
       process.cwd(),
-      'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+      'src/components/detail/EpisodeDetail/EpisodeDetail.module.css',
     ),
     'utf8',
   )

@@ -11,9 +11,7 @@ import { isSlowDownlink } from '@/modules/media/domain/videoPlayback'
  * - `save-data` o conexión 2G/«slow-2g» (Network Information API, solo
  *   Chromium) — «todo vídeo requiere interacción».
  *
- * Antes de este módulo (5 oct 2026) ninguna de las dos existía en el
- * código. Lo usa el vídeo de la ficha de las tools y, desde la fase 1 del
- * contrato de medios (7 oct), también los pines del feed.
+ * Lo usan el vídeo de la ficha de las tools y los pines del feed.
  *
  * Aparte, `slowConnection` (contrato de medios §6.4): `downlink` por debajo
  * de ~1,5 Mbps (solo Chromium). Solo la usa el FEED (póster fijo, sin

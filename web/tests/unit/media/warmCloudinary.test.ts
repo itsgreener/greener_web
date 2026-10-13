@@ -5,7 +5,7 @@ import {
   DETAIL_VIDEO_RUNGS,
   FEED_VIDEO_WIDTH,
 } from '@/modules/media/domain/mediaDelivery'
-import { buildVideoTransformations } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { buildVideoTransformations } from '@/modules/media/client/cloudinaryUrl'
 import {
   planVideoWarming,
   warmContractId,
@@ -20,7 +20,7 @@ import {
   parseArgs,
   RUNG_M,
   transformationsForUsages,
-} from '../../../scripts/warm-cloudinary.mjs'
+} from '@root/scripts/warm-cloudinary.mjs'
 import { closestClosedRatio } from '@/modules/media/domain/closestRatio'
 import { PIN_ANIMATION_LIMITS } from '@/modules/media/domain/mediaLimits'
 

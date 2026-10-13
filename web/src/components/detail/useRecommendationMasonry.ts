@@ -1,10 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type {
-  FeedBatchItem,
-  FeedBatchResult,
-} from '@/modules/feed/application/getFeedSessionBatch'
+import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
 import {
   computeMasonryLayout,
   columnsForViewport,
@@ -16,13 +13,19 @@ import {
   columnReservationForRatio,
   computeContentBlockGeometry,
 } from '@/modules/masonry/domain/detailLayout'
+import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
+import { fetchFeedBatch, openFeedSession } from '@/components/masonry/feedApi'
+import { useContainerWidth } from '@/components/masonry/useContainerWidth'
+import { useSentinel } from '@/components/masonry/useSentinel'
+import { recommendationsCopy } from './copy'
+
 /**
  * Panel de recomendaciones de una página de detalle
  * (especificacion-final-formato-detalle.md §1, §2, §6) — deliberadamente
  * NO es una variante de useFeed/FeedProvider:
  *
- * - Sin persistencia entre navegaciones (decisión del 21 sep): cada
+ * - Sin persistencia entre navegaciones: cada
  *   entrada a un detalle pide una feedSession nueva, no hay scope que
  *   guardar en sessionStorage ni scroll que restaurar.
  * - El scope lo decide la sección que abre el detalle: tools → tools,
@@ -34,50 +37,14 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  *   (+GAP), el resto a 0 — ver computeMasonryLayout, initialColumnHeights.
  * - Tipo B (caso/episodio, `fullWidthContent`): el bloque de contenido va
  *   en flujo normal ENCIMA del lienzo y el lienzo solo contiene las
- *   recomendaciones, sembradas a 0 (5 oct 2026). Las recomendaciones solo
- *   pueden ir debajo, así que no hace falta posicionar el bloque a mano: el
- *   navegador calcula su altura real (texto debajo del embed incluido) y el
- *   margen entre bloque y recomendaciones es un `margin-bottom` de CSS.
- * - Sin virtualización ni prefetch por sentinel todavía (v1 de este
- *   panel) — con lotes de 40 pines el coste de montar todo no es el
- *   mismo problema que en el scroll infinito de home/subhomes; se añade
- *   si hace falta cuando haya contenido real con el que medirlo.
+ *   recomendaciones, sembradas a 0: el navegador calcula la altura real del
+ *   bloque y el margen es un `margin-bottom` de CSS.
+ * - Sin virtualización ni prefetch por sentinel: con lotes de 40 pines
+ *   montar todo no tiene el coste del scroll infinito de home/subhomes.
  */
 
 export type RecommendationScope =
   'home' | 'work' | 'insights' | 'tools' | 'channel'
-
-async function openRecommendationSession(
-  excludeContentId: string,
-  scope: RecommendationScope,
-): Promise<string> {
-  const res = await fetch('/api/feed/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scope, excludeContentId }),
-  })
-  if (!res.ok) {
-    throw new Error(
-      `No se pudo abrir la sesión de recomendaciones: ${res.status}`,
-    )
-  }
-  const data = (await res.json()) as { sessionId: string }
-  return data.sessionId
-}
-
-async function fetchBatch(
-  sessionId: string,
-  cursor: string | null,
-): Promise<FeedBatchResult> {
-  const url = cursor
-    ? `/api/feed/${sessionId}?cursor=${encodeURIComponent(cursor)}`
-    : `/api/feed/${sessionId}`
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`Fallo al pedir recomendaciones: ${res.status}`)
-  }
-  return res.json()
-}
 
 export interface PositionedRecommendation {
   /**
@@ -93,89 +60,6 @@ export interface PositionedRecommendation {
   y: number
   width: number
   height: number
-}
-
-/*
- * Mismas métricas visuales que PinCard.module.css y useMasonryPositions:
- * el panel de recomendaciones usa el MISMO PinCard, así que también debe
- * reservar el alto realista del texto. Si no, en detalle de Tool/Insight/
- * Other/Case/Episode la siguiente tarjeta se coloca como si el rótulo
- * midiera siempre 28px y acaba visualmente demasiado cerca.
- */
-const LABEL_SIDE_PADDING = 12
-const LABEL_TOP_GAP = 8
-const LABEL_LINE_HEIGHT = 17
-const LABEL_SECONDARY_GAP = 2
-const LABEL_SAFETY = 2
-const APPROX_CHAR_WIDTH = 6.5
-
-function estimateWrappedLines(
-  text: string,
-  availableWidth: number,
-  maxLines: number,
-): number {
-  const normalized = text.trim()
-  if (!normalized) return 0
-
-  const charsPerLine = Math.max(
-    8,
-    Math.floor(availableWidth / APPROX_CHAR_WIDTH),
-  )
-
-  let lines = 1
-  let currentLength = 0
-
-  for (const word of normalized.split(/\s+/)) {
-    const wordLength = word.length
-
-    if (currentLength === 0) {
-      currentLength = wordLength
-      continue
-    }
-
-    if (currentLength + 1 + wordLength <= charsPerLine) {
-      currentLength += 1 + wordLength
-      continue
-    }
-
-    lines += 1
-    currentLength = wordLength
-
-    if (lines >= maxLines) return maxLines
-  }
-
-  return Math.min(lines, maxLines)
-}
-
-function estimateLabelHeight(item: FeedBatchItem, columnWidth: number): number {
-  const availableWidth = Math.max(1, columnWidth - LABEL_SIDE_PADDING * 2)
-
-  // Case / Episode: título automático + cliente/tipo de episodio.
-  if (item.displayTitle) {
-    const primaryLines = estimateWrappedLines(
-      item.displayTitle,
-      availableWidth,
-      2,
-    )
-    const secondaryLines = item.displaySecondary ? 1 : 0
-
-    return (
-      LABEL_TOP_GAP +
-      primaryLines * LABEL_LINE_HEIGHT +
-      (secondaryLines > 0
-        ? LABEL_SECONDARY_GAP + secondaryLines * LABEL_LINE_HEIGHT
-        : 0) +
-      LABEL_SAFETY
-    )
-  }
-
-  // Tool / Insight / Other: frase gancho introducida por el admin.
-  if (item.label) {
-    const lines = estimateWrappedLines(item.label, availableWidth, 2)
-    return LABEL_TOP_GAP + lines * LABEL_LINE_HEIGHT + LABEL_SAFETY
-  }
-
-  return 0
 }
 
 export function useRecommendationMasonry(
@@ -204,8 +88,7 @@ export function useRecommendationMasonry(
 ) {
   const scope = options?.scope ?? 'home'
 
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const [containerWidth, setContainerWidth] = useState(0)
+  const { containerRef, containerWidth } = useContainerWidth()
   const [viewportHeight, setViewportHeight] = useState(0)
 
   const [sessionId, setSessionId] = useState<string | null>(null)
@@ -217,18 +100,6 @@ export function useRecommendationMasonry(
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const loadingRef = useRef(false)
-
-  // Ancho del contenedor (§10.1, mismo mecanismo que useMasonryPositions).
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setContainerWidth(width)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
 
   // Alto de viewport para el 66,7vh del bloque de contenido (§2) — se
   // relee al redimensionar, igual que haría dvh en CSS.
@@ -257,17 +128,14 @@ export function useRecommendationMasonry(
       setError(null)
     })
 
-    openRecommendationSession(excludeContentId, scope)
+    openFeedSession(scope, excludeContentId)
       .then((id) => {
         if (!cancelled) setSessionId(id)
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(
-            err instanceof Error
-              ? err.message
-              : 'No se pudo abrir las recomendaciones.',
-          )
+          console.error(err)
+          setError(recommendationsCopy.loadError)
         }
       })
     return () => {
@@ -280,7 +148,7 @@ export function useRecommendationMasonry(
     loadingRef.current = true
     setIsLoading(true)
     try {
-      const batch = await fetchBatch(sessionId, cursorRef.current)
+      const batch = await fetchFeedBatch(sessionId, cursorRef.current)
       // Límite de peticiones superado: temporal, no toca ni cursor ni hasMore.
       if (batch.rateLimited) return
       setItems((prev) => [...prev, ...batch.items])
@@ -289,11 +157,8 @@ export function useRecommendationMasonry(
       // definitiva (generateRound es determinista), así que se deja de pedir.
       setHasMore(batch.items.length > 0 ? batch.hasMore : false)
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : 'No se pudieron cargar las recomendaciones.',
-      )
+      console.error(err)
+      setError(recommendationsCopy.loadError)
     } finally {
       loadingRef.current = false
       setIsLoading(false)
@@ -392,20 +257,7 @@ export function useRecommendationMasonry(
 
   // Prefetch simple del siguiente lote al entrar en el último tramo
   // (§10.3) — mismo mecanismo que useFeed, sin sesión persistida.
-  useEffect(() => {
-    const sentinel = document.getElementById(
-      `greener-recommendations-sentinel-${excludeContentId}`,
-    )
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore()
-      },
-      { rootMargin: '600px' },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [excludeContentId, loadMore])
+  const sentinelRef = useSentinel(loadMore)
 
   return {
     containerRef,
@@ -422,6 +274,8 @@ export function useRecommendationMasonry(
     itemCount: items.length,
     hasMore,
     error,
-    sentinelId: `greener-recommendations-sentinel-${excludeContentId}`,
+    sentinelRef,
   }
 }
+
+export type RecommendationsState = ReturnType<typeof useRecommendationMasonry>

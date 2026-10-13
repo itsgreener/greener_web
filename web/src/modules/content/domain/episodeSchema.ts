@@ -15,8 +15,8 @@ export const episodeProgramSchema = z.enum([
 
 export const episodeProviderSchema = z.enum(['youtube', 'vimeo', 'spotify'])
 
-// Enum ampliable (arquitectura, migración del 10 sep) — arranca con un
-// único valor real, no es un descuido dejarlo tan corto.
+// Enum ampliable (migración del 10 sep): arranca con un único valor real,
+// no es un descuido dejarlo tan corto.
 export const episodeKindSchema = z.enum(['podcast'])
 
 export type EpisodeProvider = z.infer<typeof episodeProviderSchema>

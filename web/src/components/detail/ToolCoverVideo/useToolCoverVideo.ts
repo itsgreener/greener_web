@@ -23,8 +23,8 @@ import {
 import {
   buildVideoPosterUrl,
   buildVideoSources,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
-import { releaseVideoElement } from '@/modules/media/infrastructure/releaseVideoElement'
+} from '@/modules/media/client/cloudinaryUrl'
+import { releaseVideoElement } from '@/modules/media/client/releaseVideoElement'
 import { useMotionPreferences } from '@/lib/useMotionPreferences'
 
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
@@ -47,13 +47,13 @@ const getDevicePixelRatio = () => window.devicePixelRatio || 1
 const getServerDevicePixelRatio = () => 1
 
 /**
- * Estado y efectos del vídeo de la ficha de una tool (5 oct 2026): mudo, en
+ * Estado y efectos del vídeo de la ficha de una tool: mudo, en
  * bucle, con botón de pausa visible (WCAG 2.2.2: todo movimiento de más de
  * 5 s que arranca solo necesita un mecanismo para pausarlo). Queda FUERA
  * del videoPlaybackCoordinator del feed: es el único vídeo «principal» de
  * la página y no debe competir con las recomendaciones por un hueco.
  *
- * Fase 1 del contrato de medios (7 oct 2026):
+ * Contrato de medios, fase 1:
  * - Escalón M o L según la caja real y el DPR (`pickDetailVideoRung`), dos
  *   fuentes explícitas (WebM/VP9 y MP4/H.264), sin audio.
  * - El póster tapa el vídeo hasta que éste está reproduciendo (`playing`).

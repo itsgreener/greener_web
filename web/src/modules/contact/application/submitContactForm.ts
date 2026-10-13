@@ -1,11 +1,10 @@
-import { contactFormSchema } from '../domain/contactSchema'
-import { sendContactEmail } from '../infrastructure/mailer'
-import { getHashedClientIp } from '@/lib/http/clientIp'
-import {
-  isRateLimited,
-  logContactSubmission,
-} from '../infrastructure/contactSubmissionLog'
 import { fieldErrorsOf } from '@/lib/forms/formActionState'
+
+import type {
+  ContactMailer,
+  ContactSubmissionLog,
+} from '@/modules/contact/domain/contactPorts'
+import { contactFormSchema } from '@/modules/contact/domain/contactSchema'
 
 export type SubmitContactFormResult =
   | { ok: true }
@@ -20,50 +19,60 @@ export type SubmitContactFormResult =
  * schema: es un control anti-spam, no un dato que el usuario decide
  * rellenar. Si viene relleno, se finge éxito sin validar ni enviar nada
  * — no hay que delatar al bot que se le ha detectado (§14.1).
+ *
+ * `clientKey` devuelve el hash de la IP del visitante (nunca la IP en crudo).
  */
-export async function submitContactForm(
-  input: unknown,
-  honeypot: string,
-): Promise<SubmitContactFormResult> {
-  if (honeypot.trim() !== '') {
-    const ipHash = await getHashedClientIp()
-    await logContactSubmission(ipHash, 'honeypot')
+export function makeSubmitContactForm({
+  mailer,
+  log,
+  clientKey,
+}: {
+  mailer: ContactMailer
+  log: ContactSubmissionLog
+  clientKey: () => Promise<string>
+}) {
+  return async function submitContactForm(
+    input: unknown,
+    honeypot: string,
+  ): Promise<SubmitContactFormResult> {
+    if (honeypot.trim() !== '') {
+      await log.record(await clientKey(), 'honeypot')
+      return { ok: true }
+    }
+
+    const parsed = contactFormSchema.safeParse(input)
+
+    if (!parsed.success) {
+      return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
+    }
+
+    const ipHash = await clientKey()
+
+    if (await log.isRateLimited(ipHash)) {
+      await log.record(ipHash, 'rate_limited')
+      return {
+        ok: false,
+        formError: 'You have sent too many messages. Please try again later.',
+      }
+    }
+
+    try {
+      await mailer.send(parsed.data)
+    } catch (error) {
+      await log.record(
+        ipHash,
+        'failed',
+        error instanceof Error ? error.message : 'Error desconocido',
+      )
+      return {
+        ok: false,
+        formError:
+          "We couldn't send your message. Please try again in a few minutes.",
+      }
+    }
+
+    await log.record(ipHash, 'sent')
+
     return { ok: true }
   }
-
-  const parsed = contactFormSchema.safeParse(input)
-
-  if (!parsed.success) {
-    return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
-  }
-
-  const ipHash = await getHashedClientIp()
-
-  if (await isRateLimited(ipHash)) {
-    await logContactSubmission(ipHash, 'rate_limited')
-    return {
-      ok: false,
-      formError:
-        'Has enviado demasiados mensajes. Inténtalo de nuevo más tarde.',
-    }
-  }
-
-  try {
-    await sendContactEmail(parsed.data)
-  } catch (error) {
-    await logContactSubmission(
-      ipHash,
-      'failed',
-      error instanceof Error ? error.message : 'Error desconocido',
-    )
-    return {
-      ok: false,
-      formError:
-        'No se ha podido enviar el mensaje. Inténtalo de nuevo en unos minutos.',
-    }
-  }
-
-  await logContactSubmission(ipHash, 'sent')
-
-  return { ok: true }
 }

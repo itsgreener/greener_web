@@ -1,7 +1,7 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
 
-import type { SitemapContentRow } from '../domain/sitemap'
+import type { SitemapContentRow } from '@/modules/content/domain/sitemap'
 
 // Supabase (PostgREST) devuelve como mucho 1000 filas por petición por
 // defecto. El catálogo previsto (100-300 casos + tools + insights +

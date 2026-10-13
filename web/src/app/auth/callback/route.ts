@@ -16,10 +16,10 @@ function safeNextPath(value: string | null): string {
 
 /**
  * La redirección se construye con NEXT_PUBLIC_SITE_URL cuando está definida,
- * no con el origen de la petición (auditoría 8 oct): detrás del proxy de
+ * no con el origen de la petición: detrás del proxy de
  * Dinahosting, la URL que ve Next puede ser la interna (localhost:<puerto>).
- * Si no está definida se mantiene el origen de la petición, como antes, para
- * no mandar el login de producción a localhost (el valor por defecto de env).
+ * Si no está definida se mantiene el origen de la petición, para no mandar el
+ * login de producción a localhost (el valor por defecto de env).
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)

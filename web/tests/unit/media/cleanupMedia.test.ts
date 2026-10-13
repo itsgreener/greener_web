@@ -1,36 +1,43 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => ({
-  deleteCloudinaryAsset: vi.fn(),
-  isManagedPublicId: (id: string) => id.startsWith('greener/content/'),
-}))
+import { makeMediaCleanup } from '@/modules/media/application/cleanupMedia'
+import type {
+  MediaFileStore,
+  MediaRefsRepository,
+} from '@/modules/media/domain/mediaCleanupPorts'
 
-vi.mock('@/modules/media/infrastructure/supabaseMediaRefs', () => ({
-  findExistingMediaIds: vi.fn(),
-  isPublicIdRegistered: vi.fn(),
-  listContentMediaRefs: vi.fn(),
-  listPinMediaRefs: vi.fn(),
-}))
+/**
+ * `makeMediaCleanup` recibe el repositorio de referencias y el almacén de
+ * archivos por parámetro: se prueba con fakes, sin mockear módulos.
+ */
+const mockDelete = vi.fn<MediaFileStore['delete']>()
+const mockExisting = vi.fn<MediaRefsRepository['findExistingMediaIds']>()
+const mockRegistered = vi.fn<MediaRefsRepository['isPublicIdRegistered']>()
+const mockPinRefs = vi.fn<MediaRefsRepository['listPinMediaRefs']>()
+const mockContentRefs = vi.fn<MediaRefsRepository['listContentMediaRefs']>()
+const mockByIds = vi.fn<MediaRefsRepository['listMediaRefsByIds']>()
 
-import {
+const cleanup = makeMediaCleanup({
+  refs: {
+    findExistingMediaIds: mockExisting,
+    isPublicIdRegistered: mockRegistered,
+    listContentMediaRefs: mockContentRefs,
+    listPinMediaRefs: mockPinRefs,
+    listMediaRefsByIds: mockByIds,
+  },
+  files: {
+    isManaged: (id) => id.startsWith('greener/content/'),
+    delete: mockDelete,
+  },
+})
+
+const {
   discardUnregisteredUpload,
   purgeRemovedMedia,
   snapshotContentMedia,
+  snapshotMedia,
   snapshotPinMedia,
-} from '@/modules/media/application/cleanupMedia'
-import { deleteCloudinaryAsset } from '@/modules/media/infrastructure/cloudinaryServer'
-import {
-  findExistingMediaIds,
-  isPublicIdRegistered,
-  listContentMediaRefs,
-  listPinMediaRefs,
-} from '@/modules/media/infrastructure/supabaseMediaRefs'
-
-const mockDelete = vi.mocked(deleteCloudinaryAsset)
-const mockExisting = vi.mocked(findExistingMediaIds)
-const mockRegistered = vi.mocked(isPublicIdRegistered)
-const mockPinRefs = vi.mocked(listPinMediaRefs)
-const mockContentRefs = vi.mocked(listContentMediaRefs)
+} = cleanup
 
 const IMG = {
   mediaId: 'm1',
@@ -125,6 +132,16 @@ describe('snapshots', () => {
 
     expect(await snapshotPinMedia('p')).toEqual([])
     expect(await snapshotContentMedia('c')).toEqual([])
+  })
+
+  it('snapshotMedia lee por ids (la única fuente válida del public id a borrar)', async () => {
+    mockByIds.mockResolvedValueOnce([IMG])
+
+    expect(await snapshotMedia(['m1'])).toEqual([IMG])
+    expect(mockByIds).toHaveBeenCalledWith(['m1'])
+
+    mockByIds.mockRejectedValueOnce(new Error('x'))
+    expect(await snapshotMedia(['m1'])).toEqual([])
   })
 })
 

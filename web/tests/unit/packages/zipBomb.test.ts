@@ -2,10 +2,8 @@ import { describe, expect, it } from 'vitest'
 import AdmZip from 'adm-zip'
 
 import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
-import {
-  PackageValidationError,
-  validateHtmlPackageZip,
-} from '@/modules/packages/infrastructure/zipValidation'
+import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
+import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
 
 /**
  * Auditoría 8 oct, P0-3: el tope de 10 MB es del ZIP COMPRIMIDO. Un fichero

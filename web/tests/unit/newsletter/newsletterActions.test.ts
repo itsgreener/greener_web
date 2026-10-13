@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/modules/newsletter/application/subscribeToNewsletter', () => ({
+vi.mock('@/modules/newsletter/container', () => ({
   subscribeToNewsletter: vi.fn(),
 }))
 
 import { subscribeNewsletterAction } from '@/app/(public)/contact/newsletterActions'
 import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
-import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
+import { subscribeToNewsletter } from '@/modules/newsletter/container'
 
 const mockSubscribe = vi.mocked(subscribeToNewsletter)
 

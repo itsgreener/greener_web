@@ -8,11 +8,11 @@ vi.mock('@/modules/analytics/analytics', () => ({
   trackAnalyticsEvent: vi.fn(),
 }))
 
-import { EpisodeDetail } from '@/app/(public)/work/[slug]/EpisodeDetail'
+import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
-import type { PublicEpisode } from '@/modules/content/infrastructure/publicEpisodeSource'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
+import type { PublicEpisode } from '@/modules/content/domain/publicContent'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 const CONTENT: PublicContent = {
   id: 'content-1',

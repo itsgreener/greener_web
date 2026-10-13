@@ -1,38 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => ({
-  warmVideoRenditions: vi.fn(),
-}))
-
-vi.mock('@/modules/media/infrastructure/supabaseWarmRepository', () => ({
-  readContentWarmInfo: vi.fn(),
-  markWarmedWithService: vi.fn(),
-  markWarmedWithSession: vi.fn(),
-}))
-
-import {
-  prepareContentWarming,
-  runWarmJobs,
-  countPendingWarming,
-  warmContentMedia,
-} from '@/modules/media/application/warmContentMedia'
-import { warmVideoRenditions } from '@/modules/media/infrastructure/cloudinaryServer'
-import {
-  markWarmedWithService,
-  markWarmedWithSession,
-  readContentWarmInfo,
-} from '@/modules/media/infrastructure/supabaseWarmRepository'
-import { buildVideoTransformations } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { makeContentWarming } from '@/modules/media/application/warmContentMedia'
+import { buildVideoTransformations } from '@/modules/media/client/cloudinaryUrl'
 import { DETAIL_VIDEO_RUNGS } from '@/modules/media/domain/mediaDelivery'
+import type { WarmRepository } from '@/modules/media/domain/warmRepository'
+import type { VideoWarmer } from '@/modules/media/domain/videoWarmer'
 import {
   planVideoWarming,
   warmContractId,
 } from '@/modules/media/domain/warmPlan'
 
-const mockRead = vi.mocked(readContentWarmInfo)
-const mockWarm = vi.mocked(warmVideoRenditions)
-const mockMarkService = vi.mocked(markWarmedWithService)
-const mockMarkSession = vi.mocked(markWarmedWithSession)
+/**
+ * `makeContentWarming` recibe el repositorio y el calentador por parámetro:
+ * se prueba con fakes (el calentador usa las cadenas reales del contrato).
+ */
+const mockRead = vi.fn<WarmRepository['readContentWarmInfo']>()
+const mockMarkService = vi.fn<WarmRepository['markWithService']>()
+const mockMarkSession = vi.fn<WarmRepository['markWithSession']>()
+const mockWarm = vi.fn<VideoWarmer['warm']>()
+
+const {
+  prepareContentWarming,
+  runWarmJobs,
+  countPendingWarming,
+  warmContentMedia,
+} = makeContentWarming({
+  warmRepo: {
+    readContentWarmInfo: mockRead,
+    readPinContentId: vi.fn(),
+    markWithService: mockMarkService,
+    markWithSession: mockMarkSession,
+  },
+  warmer: {
+    transformationsFor: buildVideoTransformations,
+    warm: mockWarm,
+  },
+})
 
 const PUBLIC_ID = 'greener/content/videos/abc'
 

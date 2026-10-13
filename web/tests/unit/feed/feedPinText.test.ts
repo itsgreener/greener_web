@@ -4,8 +4,8 @@ import {
   buildFeedUnitsForPin,
   getFeedDataset,
   getPinDirectoryByIds,
-  INSIGHT_PIN_SECONDARY_TEXT,
 } from '@/modules/feed/infrastructure/supabaseFeedSource'
+import { INSIGHT_PIN_SECONDARY_TEXT } from '@/modules/content/domain/pinFooter'
 
 const PIN = {
   id: 'pin-1',

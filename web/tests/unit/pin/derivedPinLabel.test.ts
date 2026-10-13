@@ -1,3 +1,4 @@
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
@@ -5,7 +6,7 @@ import {
   DERIVED_PIN_LABEL_TYPES,
   hasDerivedPinLabel,
 } from '@/modules/pin/domain/derivedPinLabel'
-import { pinCreationErrorMessage } from '@/modules/pin/application/pinCreationError'
+import { pinCreationErrorMessage } from '@/modules/pin/domain/pinCreationError'
 
 /**
  * Regresión del 7 oct 2026: el rótulo del pin de insight se automatizó en el
@@ -74,7 +75,7 @@ describe('rótulo automático del pin: TypeScript y SQL coinciden', () => {
 
 describe('pinCreationErrorMessage', () => {
   const dbError = (message: string, code?: string) =>
-    Object.assign(new Error(message), { code })
+    createRepositoryError(message, code)
 
   it('muestra tal cual un rechazo de validación de la base de datos (22023)', () => {
     expect(
@@ -82,6 +83,14 @@ describe('pinCreationErrorMessage', () => {
         dbError('El alt del pin es obligatorio', '22023'),
       ),
     ).toBe('El alt del pin es obligatorio')
+  })
+
+  it('el rótulo obligatorio sale con su frase, con el código nuevo y con el texto antiguo', () => {
+    const expected =
+      'El rótulo del pin es obligatorio para este tipo de contenido'
+
+    expect(pinCreationErrorMessage(dbError(expected, 'ZG001'))).toBe(expected)
+    expect(pinCreationErrorMessage(dbError(expected, '22023'))).toBe(expected)
   })
 
   it('no filtra el texto de otros errores de Postgres (permisos, conexión, etc.)', () => {

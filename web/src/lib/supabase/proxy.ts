@@ -3,14 +3,10 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { env } from '@/lib/env'
 
 /**
- * `requestHeaders` (opcional, decisión del 22 sep): las cabeceras que
- * verá el render downstream (páginas del ABM incluidas) en vez de las
- * originales de `request` — así `src/proxy.ts` puede pasar aquí las
- * mismas cabeceras con el nonce de CSP ya inyectado, y las páginas del
- * ABM también hidratan bien bajo la CSP global. Por defecto, las
- * cabeceras originales de `request` — mismo comportamiento que antes de
- * este parámetro para quien llame a `updateSession` sin él (como sigue
- * haciendo `updateSession.test.ts`).
+ * `requestHeaders` (opcional): las cabeceras que verá el render downstream
+ * (páginas del ABM incluidas) en vez de las originales de `request`, para
+ * que `src/proxy.ts` pase las que ya llevan el nonce de CSP y el ABM también
+ * hidrate bajo la CSP global. Por defecto, las originales de `request`.
  */
 export async function updateSession(
   request: NextRequest,

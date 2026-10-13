@@ -10,30 +10,30 @@ import { z } from 'zod'
  * sentido de algo que el usuario decide, son controles anti-spam.
  */
 export const contactFormSchema = z.object({
-  name: z.string().trim().min(1, 'El nombre es obligatorio').max(200),
+  name: z.string().trim().min(1, 'Name is required').max(200),
 
   phone: z
     .string()
     .trim()
-    .min(1, 'El teléfono es obligatorio')
-    .max(40, 'El teléfono no puede superar los 40 caracteres'),
+    .min(1, 'Phone is required')
+    .max(40, "Phone can't be longer than 40 characters"),
 
   email: z
     .string()
     .trim()
-    .min(1, 'El email es obligatorio')
-    .email('El email no es válido'),
+    .min(1, 'Email is required')
+    .email("Email isn't valid"),
 
   message: z
     .string()
     .trim()
-    .min(1, 'El mensaje es obligatorio')
-    .max(5000, 'El mensaje no puede superar los 5000 caracteres'),
+    .min(1, 'Message is required')
+    .max(5000, "Message can't be longer than 5000 characters"),
 
   // "Debe incluir consentimiento de privacidad" (§14.1) — sin aceptar,
   // ni siquiera llega a validarse el resto.
   privacyConsent: z.literal(true, {
-    message: 'Tienes que aceptar la política de privacidad',
+    message: 'You need to accept the privacy policy',
   }),
 })
 

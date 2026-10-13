@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 const BASE_CONTENT: PublicContent = {
   id: 'content-1',

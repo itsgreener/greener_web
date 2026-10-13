@@ -2,9 +2,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { CaseDetail } from '@/app/(public)/work/[slug]/CaseDetail'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import { CaseDetail } from '@/components/detail/CaseDetail'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 const CONTENT: PublicContent = {
   id: 'content-1',
@@ -224,7 +224,9 @@ describe('CaseDetail — prueba de humo', () => {
     const slides = container.querySelectorAll('[class*="slide"]')
     expect(slides.length).toBe(2)
     for (const slide of slides) {
-      expect((slide as HTMLElement).style.aspectRatio).toBe('16 / 9')
+      expect((slide as HTMLElement).style.getPropertyValue('--ratio')).toBe(
+        '16 / 9',
+      )
     }
   })
 
@@ -248,14 +250,14 @@ describe('CaseDetail — prueba de humo', () => {
     )
 
     const slide = container.querySelector('[class*="slide"]') as HTMLElement
-    expect(slide.style.aspectRatio).toBe('1 / 1')
+    expect(slide.style.getPropertyValue('--ratio')).toBe('1 / 1')
   })
 
   it('con una sola traducción disponible, no pinta el selector de idioma', () => {
     render(<CaseDetail content={CONTENT} caseDetail={null} carousel={[]} />)
 
     expect(
-      screen.queryByRole('navigation', { name: 'Idioma' }),
+      screen.queryByRole('navigation', { name: 'Language' }),
     ).not.toBeInTheDocument()
   })
 
@@ -268,7 +270,7 @@ describe('CaseDetail — prueba de humo', () => {
       />,
     )
 
-    const nav = screen.getByRole('navigation', { name: 'Idioma' })
+    const nav = screen.getByRole('navigation', { name: 'Language' })
     expect(nav).toBeInTheDocument()
 
     const esLink = screen.getByRole('link', { name: 'ES' })

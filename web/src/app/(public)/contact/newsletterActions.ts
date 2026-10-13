@@ -1,7 +1,7 @@
 'use server'
 
 import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
-import { subscribeToNewsletter } from '@/modules/newsletter/application/subscribeToNewsletter'
+import { subscribeToNewsletter } from '@/modules/newsletter/container'
 import type { FormActionState } from '@/lib/forms/formActionState'
 
 export type NewsletterActionState = FormActionState & {

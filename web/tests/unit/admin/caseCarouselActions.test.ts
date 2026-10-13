@@ -1,521 +1,217 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { dbError } from '@tests/helpers/dbError'
+
+/**
+ * Las Server Actions del carrusel solo validan la entrada, llaman al caso de
+ * uso del container y traducen el resultado/error para el ABM. La
+ * verificación en Cloudinary, el orden leer → desvincular → purgar y el
+ * calentamiento se prueban en tests/unit/content/caseCarousel.test.ts.
+ */
 
 const CONTENT_ID = '11111111-1111-4111-8111-111111111111'
 
 const MEDIA_ID = '22222222-2222-4222-8222-222222222222'
 
-const IMAGE_PUBLIC_ID = 'greener/content/case-image'
-
-const VIDEO_PUBLIC_ID = 'greener/content/videos/case-video'
-
-vi.mock('@/modules/media/application/warmAfterResponse', () => ({
-  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
 
-vi.mock('@/modules/media/application/addCaseCarouselImage', () => ({
+vi.mock('@/modules/content/container', () => ({
   addCaseCarouselImage: vi.fn(),
-}))
-
-vi.mock('@/modules/media/application/addCaseCarouselVideo', () => ({
   addCaseCarouselVideo: vi.fn(),
-}))
-
-vi.mock('@/modules/content/application/getCaseCarousel', () => ({
-  getCaseCarousel: vi.fn(),
-}))
-
-vi.mock('@/modules/media/application/removeCaseCarouselMedia', () => ({
   removeCaseCarouselMedia: vi.fn(),
+  removeAllCaseCarouselMedia: vi.fn(),
 }))
 
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
-  class MockCloudinaryImageVerificationError extends Error {
-    constructor(message: string) {
-      super(message)
-
-      this.name = 'CloudinaryImageVerificationError'
-    }
-  }
-
-  class MockCloudinaryVideoVerificationError extends Error {
-    constructor(message: string) {
-      super(message)
-
-      this.name = 'CloudinaryVideoVerificationError'
-    }
-  }
-
-  return {
-    CloudinaryImageVerificationError: MockCloudinaryImageVerificationError,
-
-    CloudinaryVideoVerificationError: MockCloudinaryVideoVerificationError,
-
-    verifyCloudinaryImageAsset: vi.fn(),
-
-    verifyCloudinaryVideoAsset: vi.fn(),
-  }
-})
-
-vi.mock('@/modules/media/application/cleanupMedia', () => ({
-  snapshotContentMedia: vi.fn(),
-  purgeRemovedMedia: vi.fn(),
-}))
-
-import {
-  purgeRemovedMedia,
-  snapshotContentMedia,
-} from '@/modules/media/application/cleanupMedia'
-import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import {
   addCaseCarouselImageAction,
   addCaseCarouselVideoAction,
   removeAllCaseCarouselMediaAction,
   removeCaseCarouselMediaAction,
-} from '@/app/admin/contents/[id]/edit/caseCarouselActions'
-
-import { addCaseCarouselImage } from '@/modules/media/application/addCaseCarouselImage'
-
-import { addCaseCarouselVideo } from '@/modules/media/application/addCaseCarouselVideo'
-
-import { removeCaseCarouselMedia } from '@/modules/media/application/removeCaseCarouselMedia'
-
-import { getCaseCarousel } from '@/modules/content/application/getCaseCarousel'
-
+} from '@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions'
 import {
-  CloudinaryImageVerificationError,
-  CloudinaryVideoVerificationError,
-  verifyCloudinaryImageAsset,
-  verifyCloudinaryVideoAsset,
-} from '@/modules/media/infrastructure/cloudinaryServer'
-
-const mockAddCaseCarouselImage = vi.mocked(addCaseCarouselImage)
-
-const mockAddCaseCarouselVideo = vi.mocked(addCaseCarouselVideo)
-
-const mockRemoveCaseCarouselMedia = vi.mocked(removeCaseCarouselMedia)
-
-const mockSnapshotContentMedia = vi.mocked(snapshotContentMedia)
-
-const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
-
-const mockVerifyCloudinaryImageAsset = vi.mocked(verifyCloudinaryImageAsset)
-
-const mockVerifyCloudinaryVideoAsset = vi.mocked(verifyCloudinaryVideoAsset)
+  addCaseCarouselImage,
+  addCaseCarouselVideo,
+  removeAllCaseCarouselMedia,
+  removeCaseCarouselMedia,
+} from '@/modules/content/container'
+import {
+  ImageVerificationError,
+  VideoVerificationError,
+} from '@/modules/media/domain/mediaVerification'
 
 const VALID_IMAGE_INPUT = {
   contentId: CONTENT_ID,
-
-  cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/case-image',
   format: 'jpg',
-
   width: 10,
-
   height: 10,
-
   bytes: 10,
-
   sortOrder: 0,
-
   alt: 'Imagen del caso',
 }
 
 const VALID_VIDEO_INPUT = {
   contentId: CONTENT_ID,
-
-  cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/videos/case-video',
   format: 'mp4',
-
   width: 10,
-
   height: 10,
-
   durationSeconds: 1,
-
   bytes: 10,
-
   sortOrder: 1,
-
   alt: 'Vídeo del caso',
 }
 
 const VALID_REMOVE_INPUT = {
   contentId: CONTENT_ID,
-
   mediaId: MEDIA_ID,
-
-  cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/videos/case-video',
   kind: 'video' as const,
 }
 
-describe('caseCarouselActions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.mocked(addCaseCarouselImage).mockResolvedValue(MEDIA_ID)
+  vi.mocked(addCaseCarouselVideo).mockResolvedValue(MEDIA_ID)
+  vi.mocked(removeCaseCarouselMedia).mockResolvedValue({
+    purged: 1,
+    failed: 0,
+  })
+})
 
-    mockAddCaseCarouselImage.mockResolvedValue(MEDIA_ID)
+describe('addCaseCarouselImageAction', () => {
+  it('registra la imagen con el caso de uso y devuelve el id', async () => {
+    const result = await addCaseCarouselImageAction(VALID_IMAGE_INPUT)
 
-    mockAddCaseCarouselVideo.mockResolvedValue(MEDIA_ID)
-
-    mockVerifyCloudinaryImageAsset.mockImplementation(async (publicId) => ({
-      cloudinaryPublicId: publicId,
-
-      format: 'webp',
-
-      width: 2000,
-
-      height: 1000,
-
-      bytes: 4096,
-    }))
-
-    mockVerifyCloudinaryVideoAsset.mockImplementation(async (publicId) => ({
-      cloudinaryPublicId: publicId,
-
-      format: 'mp4',
-
-      width: 1920,
-
-      height: 1080,
-
-      durationSeconds: 24,
-
-      bytes: 8192,
-    }))
+    expect(result).toEqual({ ok: true, mediaId: MEDIA_ID })
+    expect(addCaseCarouselImage).toHaveBeenCalledWith(VALID_IMAGE_INPUT)
   })
 
-  describe('addCaseCarouselImageAction', () => {
-    it('verifica la imagen en Cloudinary antes de registrarla', async () => {
-      const result = await addCaseCarouselImageAction(VALID_IMAGE_INPUT)
+  it('si el archivo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(addCaseCarouselImage).mockRejectedValueOnce(
+      new ImageVerificationError('No se permiten imágenes animadas.'),
+    )
 
-      expect(result).toEqual({
-        ok: true,
-
-        mediaId: MEDIA_ID,
-      })
-
-      expect(mockVerifyCloudinaryImageAsset).toHaveBeenCalledWith(
-        IMAGE_PUBLIC_ID,
-      )
-
-      expect(mockAddCaseCarouselImage).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
-        format: 'webp',
-
-        width: 2000,
-
-        height: 1000,
-
-        bytes: 4096,
-
-        sortOrder: 0,
-
-        alt: 'Imagen del caso',
-      })
-    })
-
-    it('si Cloudinary rechaza la imagen, no la registra', async () => {
-      mockVerifyCloudinaryImageAsset.mockRejectedValueOnce(
-        new CloudinaryImageVerificationError(
-          'No se permiten imágenes animadas.',
-        ),
-      )
-
-      const result = await addCaseCarouselImageAction(VALID_IMAGE_INPUT)
-
-      expect(result).toEqual({
-        ok: false,
-
-        error: 'No se permiten imágenes animadas.',
-      })
-
-      expect(mockAddCaseCarouselImage).not.toHaveBeenCalled()
+    expect(await addCaseCarouselImageAction(VALID_IMAGE_INPUT)).toEqual({
+      ok: false,
+      error: 'No se permiten imágenes animadas.',
     })
   })
 
-  describe('addCaseCarouselVideoAction', () => {
-    it('verifica el vídeo en Cloudinary y usa los metadatos reales', async () => {
-      const result = await addCaseCarouselVideoAction(VALID_VIDEO_INPUT)
-
-      expect(result).toEqual({
-        ok: true,
-
-        mediaId: MEDIA_ID,
-      })
-
-      expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
-        VIDEO_PUBLIC_ID,
-        1,
-      )
-
-      expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
-
-      expect(mockAddCaseCarouselVideo).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
-        format: 'mp4',
-
-        width: 1920,
-
-        height: 1080,
-
-        durationSeconds: 24,
-
-        bytes: 8192,
-
-        sortOrder: 1,
-
-        alt: 'Vídeo del caso',
-      })
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await addCaseCarouselImageAction({
+      ...VALID_IMAGE_INPUT,
+      contentId: 'no-es-un-uuid',
     })
 
-    it('no confía en duración, tamaño ni dimensiones enviadas por el navegador', async () => {
-      mockVerifyCloudinaryVideoAsset.mockResolvedValueOnce({
-        cloudinaryPublicId: VIDEO_PUBLIC_ID,
+    expect(result.ok).toBe(false)
+    expect(addCaseCarouselImage).not.toHaveBeenCalled()
+  })
+})
 
-        format: 'mp4',
+describe('addCaseCarouselVideoAction', () => {
+  it('registra el vídeo con el caso de uso y devuelve el id', async () => {
+    const result = await addCaseCarouselVideoAction(VALID_VIDEO_INPUT)
 
-        width: 2560,
+    expect(result).toEqual({ ok: true, mediaId: MEDIA_ID })
+    expect(addCaseCarouselVideo).toHaveBeenCalledWith(VALID_VIDEO_INPUT)
+  })
 
-        height: 1440,
+  it('si el archivo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(addCaseCarouselVideo).mockRejectedValueOnce(
+      new VideoVerificationError(
+        'No se ha podido verificar el vídeo en Cloudinary.',
+      ),
+    )
 
-        durationSeconds: 75,
-
-        bytes: 16384,
-      })
-
-      const result = await addCaseCarouselVideoAction({
-        ...VALID_VIDEO_INPUT,
-
-        width: 1,
-
-        height: 1,
-
-        durationSeconds: 1,
-
-        bytes: 1,
-      })
-
-      expect(result.ok).toBe(true)
-
-      expect(mockAddCaseCarouselVideo).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
-        format: 'mp4',
-
-        width: 2560,
-
-        height: 1440,
-
-        durationSeconds: 75,
-
-        bytes: 16384,
-
-        sortOrder: 1,
-
-        alt: 'Vídeo del caso',
-      })
-    })
-
-    it('si Cloudinary rechaza el vídeo, no lo registra en Postgres', async () => {
-      mockVerifyCloudinaryVideoAsset.mockRejectedValueOnce(
-        new CloudinaryVideoVerificationError(
-          'No se ha podido verificar el vídeo en Cloudinary.',
-        ),
-      )
-
-      const result = await addCaseCarouselVideoAction(VALID_VIDEO_INPUT)
-
-      expect(result).toEqual({
-        ok: false,
-
-        error: 'No se ha podido verificar el vídeo en Cloudinary.',
-      })
-
-      expect(mockAddCaseCarouselVideo).not.toHaveBeenCalled()
-    })
-
-    it('con datos inválidos no llega a verificar Cloudinary', async () => {
-      const result = await addCaseCarouselVideoAction({
-        ...VALID_VIDEO_INPUT,
-
-        contentId: 'no-es-un-uuid',
-      })
-
-      expect(result.ok).toBe(false)
-
-      expect(mockVerifyCloudinaryVideoAsset).not.toHaveBeenCalled()
-
-      expect(mockAddCaseCarouselVideo).not.toHaveBeenCalled()
+    expect(await addCaseCarouselVideoAction(VALID_VIDEO_INPUT)).toEqual({
+      ok: false,
+      error: 'No se ha podido verificar el vídeo en Cloudinary.',
     })
   })
 
-  describe('removeCaseCarouselMediaAction', () => {
-    const OWN_REF = {
-      mediaId: MEDIA_ID,
-      cloudinaryPublicId: VIDEO_PUBLIC_ID,
-      kind: 'video' as const,
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await addCaseCarouselVideoAction({
+      ...VALID_VIDEO_INPUT,
+      contentId: 'no-es-un-uuid',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(addCaseCarouselVideo).not.toHaveBeenCalled()
+  })
+})
+
+describe('removeCaseCarouselMediaAction', () => {
+  it('desvincula con el caso de uso', async () => {
+    expect(await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)).toEqual({
+      ok: true,
+    })
+    expect(removeCaseCarouselMedia).toHaveBeenCalledWith(VALID_REMOVE_INPUT)
+  })
+
+  it('si Postgres falla, devuelve el error legible', async () => {
+    vi.mocked(removeCaseCarouselMedia).mockRejectedValueOnce(
+      dbError('ZG014', 'Este medio no pertenece a este caso'),
+    )
+
+    expect(await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)).toEqual({
+      ok: false,
+      error: 'Este medio no pertenece a este caso',
+    })
+  })
+
+  it('si el archivo no se pudo borrar tras desvincular, devuelve warning', async () => {
+    vi.mocked(removeCaseCarouselMedia).mockResolvedValueOnce({
+      purged: 0,
+      failed: 1,
+    })
+
+    const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
+
+    expect(result.ok).toBe(true)
+
+    if (result.ok) {
+      expect(result.warning).toContain('Cloudinary')
     }
+  })
 
-    const OTHER_REF = {
-      mediaId: '99999999-9999-4999-8999-999999999999',
-      cloudinaryPublicId: 'greener/content/otro',
-      kind: 'image' as const,
-    }
-
-    beforeEach(() => {
-      mockSnapshotContentMedia.mockResolvedValue([OWN_REF, OTHER_REF])
-      mockPurgeRemovedMedia.mockResolvedValue({ purged: 1, failed: 0 })
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await removeCaseCarouselMediaAction({
+      ...VALID_REMOVE_INPUT,
+      mediaId: 'nope',
     })
 
-    it('desvincula en Postgres y borra de Cloudinary solo el archivo de ese medio', async () => {
-      const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
-
-      expect(result).toEqual({
-        ok: true,
-      })
-
-      expect(mockRemoveCaseCarouselMedia).toHaveBeenCalledWith(
-        VALID_REMOVE_INPUT,
-      )
-
-      expect(mockSnapshotContentMedia).toHaveBeenCalledWith(CONTENT_ID)
-
-      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([OWN_REF])
-    })
-
-    it('lee el public id en el servidor: ignora el que manda el navegador', async () => {
-      await removeCaseCarouselMediaAction({
-        ...VALID_REMOVE_INPUT,
-        cloudinaryPublicId: 'greener/content/ajeno',
-      })
-
-      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([OWN_REF])
-    })
-
-    it('la lectura va ANTES de desvincular (después ya no se sabría el archivo)', async () => {
-      const order: string[] = []
-
-      mockSnapshotContentMedia.mockImplementationOnce(async () => {
-        order.push('snapshot')
-        return [OWN_REF]
-      })
-      mockRemoveCaseCarouselMedia.mockImplementationOnce(async () => {
-        order.push('remove')
-        return MEDIA_ID
-      })
-      mockPurgeRemovedMedia.mockImplementationOnce(async () => {
-        order.push('purge')
-        return { purged: 1, failed: 0 }
-      })
-
-      await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
-
-      expect(order).toEqual(['snapshot', 'remove', 'purge'])
-    })
-
-    it('si Postgres falla, aborta antes de borrar en Cloudinary', async () => {
-      mockRemoveCaseCarouselMedia.mockRejectedValueOnce(
-        new Error('Este medio no pertenece a este caso'),
-      )
-
-      const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
-
-      expect(result).toEqual({
-        ok: false,
-
-        error: 'Este medio no pertenece a este caso',
-      })
-
-      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
-    })
-
-    it('si Cloudinary falla después de desvincular, devuelve warning', async () => {
-      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 1 })
-
-      const result = await removeCaseCarouselMediaAction(VALID_REMOVE_INPUT)
-
-      expect(result.ok).toBe(true)
-
-      if (result.ok) {
-        expect(result.warning).toContain('Cloudinary')
-      }
-    })
+    expect(result.ok).toBe(false)
+    expect(removeCaseCarouselMedia).not.toHaveBeenCalled()
   })
 })
 
 describe('removeAllCaseCarouselMediaAction', () => {
-  const ITEMS = [
-    {
-      mediaId: '33333333-3333-4333-8333-333333333331',
-      kind: 'image' as const,
-      cloudinaryPublicId: 'greener/content/a',
-      sortOrder: 0,
-      alt: 'a',
-    },
-    {
-      mediaId: '33333333-3333-4333-8333-333333333332',
-      kind: 'video' as const,
-      cloudinaryPublicId: 'greener/content/videos/b',
-      sortOrder: 1,
-      alt: 'b',
-    },
-    {
-      mediaId: '33333333-3333-4333-8333-333333333333',
-      kind: 'image' as const,
-      cloudinaryPublicId: 'greener/content/c',
-      sortOrder: 2,
-      alt: 'c',
-    },
-  ]
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-
-    vi.mocked(getCaseCarousel).mockResolvedValue(ITEMS)
-    vi.mocked(removeCaseCarouselMedia).mockResolvedValue(MEDIA_ID)
-    mockPurgeRemovedMedia.mockImplementation(async (refs) => ({
-      purged: refs.length,
-      failed: 0,
-    }))
+  const outcome = (
+    over: Partial<Awaited<ReturnType<typeof removeAllCaseCarouselMedia>>> = {},
+  ) => ({
+    total: 3,
+    removed: 3,
+    interrupted: false,
+    purge: { purged: 3, failed: 0 },
+    ...over,
   })
 
-  it('quita todas las diapositivas leídas en servidor y borra sus archivos', async () => {
-    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
+  it('quita todas y devuelve ok', async () => {
+    vi.mocked(removeAllCaseCarouselMedia).mockResolvedValue(outcome())
 
-    expect(result).toEqual({ ok: true })
-    expect(removeCaseCarouselMedia).toHaveBeenCalledTimes(3)
-    expect(removeCaseCarouselMedia).toHaveBeenNthCalledWith(2, {
-      contentId: CONTENT_ID,
-      mediaId: ITEMS[1].mediaId,
-      cloudinaryPublicId: 'greener/content/videos/b',
-      kind: 'video',
+    expect(await removeAllCaseCarouselMediaAction(CONTENT_ID)).toEqual({
+      ok: true,
     })
-    expect(mockPurgeRemovedMedia).toHaveBeenCalledWith(
-      ITEMS.map((item) => ({
-        mediaId: item.mediaId,
-        cloudinaryPublicId: item.cloudinaryPublicId,
-        kind: item.kind,
-      })),
-    )
+    expect(removeAllCaseCarouselMedia).toHaveBeenCalledWith(CONTENT_ID)
   })
 
-  it('si falla una, se detiene, informa y solo borra los archivos de las ya quitadas', async () => {
-    vi.mocked(removeCaseCarouselMedia)
-      .mockResolvedValueOnce(MEDIA_ID)
-      .mockRejectedValueOnce(new Error('boom'))
+  it('si se interrumpe, informa de cuántas se quitaron', async () => {
+    vi.mocked(removeAllCaseCarouselMedia).mockResolvedValue(
+      outcome({ removed: 1, interrupted: true }),
+    )
 
     const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
 
@@ -524,19 +220,12 @@ describe('removeAllCaseCarouselMediaAction', () => {
     if (!result.ok) {
       expect(result.error).toContain('Se han quitado 1 de 3 diapositivas')
     }
-
-    expect(removeCaseCarouselMedia).toHaveBeenCalledTimes(2)
-    expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([
-      {
-        mediaId: ITEMS[0].mediaId,
-        cloudinaryPublicId: 'greener/content/a',
-        kind: 'image',
-      },
-    ])
   })
 
   it('si Cloudinary falla en algún archivo, devuelve aviso con el recuento', async () => {
-    mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 2, failed: 1 })
+    vi.mocked(removeAllCaseCarouselMedia).mockResolvedValue(
+      outcome({ purge: { purged: 2, failed: 1 } }),
+    )
 
     const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
 
@@ -547,22 +236,30 @@ describe('removeAllCaseCarouselMediaAction', () => {
     }
   })
 
-  it('un caso sin diapositivas no hace nada', async () => {
-    vi.mocked(getCaseCarousel).mockResolvedValue([])
+  it('un caso sin diapositivas devuelve error', async () => {
+    vi.mocked(removeAllCaseCarouselMedia).mockResolvedValue(
+      outcome({ total: 0, removed: 0 }),
+    )
 
-    const result = await removeAllCaseCarouselMediaAction(CONTENT_ID)
-
-    expect(result).toEqual({
+    expect(await removeAllCaseCarouselMediaAction(CONTENT_ID)).toEqual({
       ok: false,
       error: 'Este caso no tiene diapositivas que quitar.',
     })
-    expect(removeCaseCarouselMedia).not.toHaveBeenCalled()
   })
 
-  it('rechaza un identificador que no es uuid y no lee nada', async () => {
+  it('si no se puede leer el carrusel, devuelve error', async () => {
+    vi.mocked(removeAllCaseCarouselMedia).mockRejectedValue(new Error('x'))
+
+    expect(await removeAllCaseCarouselMediaAction(CONTENT_ID)).toEqual({
+      ok: false,
+      error: 'No se ha podido leer el carrusel del caso.',
+    })
+  })
+
+  it('rechaza un identificador que no es uuid y no llama al caso de uso', async () => {
     const result = await removeAllCaseCarouselMediaAction('nope')
 
     expect(result.ok).toBe(false)
-    expect(getCaseCarousel).not.toHaveBeenCalled()
+    expect(removeAllCaseCarouselMedia).not.toHaveBeenCalled()
   })
 })

@@ -1,16 +1,54 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { makeGetFeedSessionBatch } from '@/modules/feed/application/getFeedSessionBatch'
 import {
-  getFeedSessionBatch,
   FeedSessionNotFoundError,
   InvalidFeedCursorError,
-  type GetFeedSessionBatchDeps,
-} from '@/modules/feed/application/getFeedSessionBatch'
-import { encodeCursor } from '@/modules/feed/infrastructure/cursor'
-import type { FeedSessionRow } from '@/modules/feed/infrastructure/feedSessionRepository'
-import type { PinDirectoryEntry } from '@/modules/feed/infrastructure/supabaseFeedSource'
+} from '@/modules/feed/domain/feedErrors'
+import type {
+  FeedCatalog,
+  FeedSession,
+  FeedSessionRepository,
+} from '@/modules/feed/domain/feedPorts'
+import type { PinDirectoryEntry } from '@/modules/feed/domain/feedReadModels'
+import {
+  encodeCursor,
+  signedFeedCursor,
+} from '@/modules/feed/infrastructure/cursor'
 import type { FeedConfig } from '@/modules/feed/domain'
 
-const SESSION: FeedSessionRow = {
+/** Dobles en memoria de los puertos; se pueden reasignar en cada test. */
+interface GetFeedSessionBatchDeps {
+  getSession: FeedSessionRepository['get']
+  getRound: FeedSessionRepository['getRound']
+  saveRound: FeedSessionRepository['saveRound']
+  getDataset: FeedCatalog['dataset']
+  getConfig: FeedCatalog['config']
+  getDirectoryByIds: FeedCatalog['directoryByIds']
+}
+
+/** El caso de uso sobre los dobles, resolviéndolos en cada llamada. */
+function getFeedSessionBatch(
+  sessionId: string,
+  cursor: string | null,
+  d: GetFeedSessionBatchDeps,
+) {
+  return makeGetFeedSessionBatch({
+    sessions: {
+      create: vi.fn(),
+      get: (id) => d.getSession(id),
+      getRound: (id, index) => d.getRound(id, index),
+      saveRound: (id, index, ids) => d.saveRound(id, index, ids),
+    },
+    catalog: {
+      dataset: (scope, exclude) => d.getDataset(scope, exclude),
+      directoryByIds: (ids) => d.getDirectoryByIds(ids),
+      config: () => d.getConfig(),
+    },
+    cursors: signedFeedCursor,
+  })(sessionId, cursor)
+}
+
+const SESSION: FeedSession = {
   id: 'session-1',
   seed: 'test-seed',
   scope: 'home',
@@ -256,7 +294,7 @@ describe('getFeedSessionBatch', () => {
     // POST /api/feed/sessions { scope: 'home', excludeContentId } y pintan
     // el destino que devuelve esta API tal cual (PinCard). Es el mismo
     // camino que la home: un insight nunca debe apuntar a su detalle.
-    const recSession: FeedSessionRow = {
+    const recSession: FeedSession = {
       ...SESSION,
       excludeContentId: 'case-actual',
     }
@@ -302,7 +340,7 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('para una ronda nueva, pide el dataset con el scope de la sesión, no siempre "home"', async () => {
-    const insightsSession: FeedSessionRow = { ...SESSION, scope: 'insights' }
+    const insightsSession: FeedSession = { ...SESSION, scope: 'insights' }
     deps.getSession = vi.fn(async () => insightsSession)
 
     await getFeedSessionBatch(SESSION.id, null, deps)
@@ -311,7 +349,7 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('panel de recomendaciones (especificacion-final-formato-detalle.md §1, §6): pasa excludeContentId de la sesión al dataset', async () => {
-    const sessionExcluyendoContenido: FeedSessionRow = {
+    const sessionExcluyendoContenido: FeedSession = {
       ...SESSION,
       excludeContentId: 'case-2',
     }
@@ -340,7 +378,7 @@ describe('getFeedSessionBatch', () => {
       } as Record<string, PinDirectoryEntry>,
     }
 
-    const sessionExcluyendoContenido: FeedSessionRow = {
+    const sessionExcluyendoContenido: FeedSession = {
       ...SESSION,
       excludeContentId: 'case-2',
     }

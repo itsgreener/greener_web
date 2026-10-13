@@ -1,23 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
+}))
 
-vi.mock('@/modules/content/application/upsertEpisode', () => ({
+vi.mock('@/modules/content/container', () => ({
+  episodes: { getByContentId: vi.fn() },
+  contents: { getById: vi.fn() },
   upsertEpisode: vi.fn(),
 }))
 
-vi.mock('@/modules/content/application/getEpisode', () => ({
-  getEpisode: vi.fn(),
-}))
+import { saveEpisodeAction } from '@/app/admin/(panel)/contents/[id]/edit/episodeActions'
+import { contents, episodes, upsertEpisode } from '@/modules/content/container'
 
-vi.mock('@/modules/content/application/getContent', () => ({
-  getContent: vi.fn(),
-}))
-
-import { saveEpisodeAction } from '@/app/admin/contents/[id]/edit/episodeActions'
-import { getContent } from '@/modules/content/application/getContent'
-import { getEpisode } from '@/modules/content/application/getEpisode'
-import { upsertEpisode } from '@/modules/content/application/upsertEpisode'
+const getEpisode = vi.mocked(episodes.getByContentId)
+const getContent = vi.mocked(contents.getById)
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 
@@ -37,7 +35,7 @@ describe('saveEpisodeAction — campos ocultos del formulario', () => {
   })
 
   it('conserva número, invitado, cargo, empresa, fecha, duración e idioma ya guardados', async () => {
-    vi.mocked(getEpisode).mockResolvedValue({
+    getEpisode.mockResolvedValue({
       contentId: CONTENT_ID,
       program: 'brand_to_table',
       number: 7,
@@ -72,10 +70,10 @@ describe('saveEpisodeAction — campos ocultos del formulario', () => {
   })
 
   it('en un episodio nuevo deja los opcionales a null y toma el idioma por defecto del contenido', async () => {
-    vi.mocked(getEpisode).mockResolvedValue(null)
-    vi.mocked(getContent).mockResolvedValue({
+    getEpisode.mockResolvedValue(null)
+    getContent.mockResolvedValue({
       defaultLocale: 'es',
-    } as Awaited<ReturnType<typeof getContent>>)
+    } as Awaited<ReturnType<typeof contents.getById>>)
 
     const state = await saveEpisodeAction({}, form())
 
@@ -94,8 +92,8 @@ describe('saveEpisodeAction — campos ocultos del formulario', () => {
   })
 
   it('si el contenido ya no existe, avisa en lugar de guardar', async () => {
-    vi.mocked(getEpisode).mockResolvedValue(null)
-    vi.mocked(getContent).mockResolvedValue(null)
+    getEpisode.mockResolvedValue(null)
+    getContent.mockResolvedValue(null)
 
     const state = await saveEpisodeAction({}, form())
 

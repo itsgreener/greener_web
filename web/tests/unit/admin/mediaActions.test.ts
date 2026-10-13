@@ -1,465 +1,195 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { dbError } from '@tests/helpers/dbError'
+
+/**
+ * Las Server Actions de portada validan la entrada, llaman al caso de uso del
+ * container y traducen resultado/errores para el ABM. La verificación del
+ * archivo real, el calentamiento y el orden de la limpieza se prueban en
+ * tests/unit/media/applicationLayer.test.ts.
+ */
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 
 const MEDIA_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
 
-const IMAGE_PUBLIC_ID = 'greener/content/test-image'
-
-const VIDEO_PUBLIC_ID = 'greener/content/videos/test-video'
-
-vi.mock('@/modules/media/application/warmAfterResponse', () => ({
-  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }))
 
-vi.mock('@/modules/media/application/registerCoverImage', () => ({
+vi.mock('@/modules/media/container', () => ({
   registerCoverImage: vi.fn(),
-}))
-
-vi.mock('@/modules/media/application/registerCoverVideo', () => ({
   registerCoverVideo: vi.fn(),
-}))
-
-vi.mock('@/modules/media/application/deleteCoverMedia', () => ({
   deleteCoverMedia: vi.fn(),
 }))
 
-vi.mock('@/modules/media/application/cleanupMedia', () => ({
-  snapshotMedia: vi.fn(),
-  purgeRemovedMedia: vi.fn(),
-}))
-
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => {
-  class MockCloudinaryImageVerificationError extends Error {
-    constructor(message: string) {
-      super(message)
-      this.name = 'CloudinaryImageVerificationError'
-    }
-  }
-
-  class MockCloudinaryVideoVerificationError extends Error {
-    constructor(message: string) {
-      super(message)
-      this.name = 'CloudinaryVideoVerificationError'
-    }
-  }
-
-  return {
-    CloudinaryImageVerificationError: MockCloudinaryImageVerificationError,
-
-    CloudinaryVideoVerificationError: MockCloudinaryVideoVerificationError,
-
-    verifyCloudinaryImageAsset: vi.fn(),
-
-    verifyCloudinaryVideoAsset: vi.fn(),
-
-    deleteCloudinaryAsset: vi.fn(),
-  }
-})
-
-import { warmContentAfterResponse } from '@/modules/media/application/warmAfterResponse'
 import {
   registerCoverImageAction,
   registerCoverVideoAction,
   deleteCoverMediaAction,
-} from '@/app/admin/contents/[id]/edit/mediaActions'
-
-import { registerCoverImage } from '@/modules/media/application/registerCoverImage'
-
-import { registerCoverVideo } from '@/modules/media/application/registerCoverVideo'
-
-import { deleteCoverMedia } from '@/modules/media/application/deleteCoverMedia'
-
+} from '@/app/admin/(panel)/contents/[id]/edit/mediaActions'
 import {
-  purgeRemovedMedia,
-  snapshotMedia,
-} from '@/modules/media/application/cleanupMedia'
-
+  deleteCoverMedia,
+  registerCoverImage,
+  registerCoverVideo,
+} from '@/modules/media/container'
 import {
-  CloudinaryImageVerificationError,
-  CloudinaryVideoVerificationError,
-  deleteCloudinaryAsset,
-  verifyCloudinaryImageAsset,
-  verifyCloudinaryVideoAsset,
-} from '@/modules/media/infrastructure/cloudinaryServer'
-
-const mockRegisterCoverImage = vi.mocked(registerCoverImage)
-
-const mockRegisterCoverVideo = vi.mocked(registerCoverVideo)
-
-const mockDeleteCoverMedia = vi.mocked(deleteCoverMedia)
-
-const mockDeleteCloudinaryAsset = vi.mocked(deleteCloudinaryAsset)
-
-const mockVerifyCloudinaryImageAsset = vi.mocked(verifyCloudinaryImageAsset)
-
-const mockVerifyCloudinaryVideoAsset = vi.mocked(verifyCloudinaryVideoAsset)
+  ImageVerificationError,
+  VideoVerificationError,
+} from '@/modules/media/domain/mediaVerification'
 
 const VALID_IMAGE_INPUT = {
   contentId: CONTENT_ID,
-
-  cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/test-image',
   format: 'png',
-
   width: 10,
-
   height: 10,
-
   bytes: 10,
-
   ratio: '1:1',
 }
 
 const VALID_VIDEO_INPUT = {
   contentId: CONTENT_ID,
-
-  cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/videos/test-video',
   format: 'mp4',
-
   width: 10,
-
   height: 10,
-
   durationSeconds: 1,
-
   bytes: 10,
-
   ratio: '1:1',
 }
 
 const VALID_DELETE_INPUT = {
   contentId: CONTENT_ID,
-
   mediaId: MEDIA_ID,
-
-  cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
+  cloudinaryPublicId: 'greener/content/test-image',
   kind: 'image' as const,
 }
 
-describe('mediaActions', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
+beforeEach(() => {
+  vi.clearAllMocks()
+  vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.mocked(registerCoverImage).mockResolvedValue(MEDIA_ID)
+  vi.mocked(registerCoverVideo).mockResolvedValue(MEDIA_ID)
+  vi.mocked(deleteCoverMedia).mockResolvedValue({ purged: 1, failed: 0 })
+})
 
-    mockRegisterCoverImage.mockResolvedValue(MEDIA_ID)
+describe('registerCoverImageAction', () => {
+  it('registra la imagen con el caso de uso y devuelve el id', async () => {
+    const result = await registerCoverImageAction(VALID_IMAGE_INPUT)
 
-    mockRegisterCoverVideo.mockResolvedValue(MEDIA_ID)
-
-    mockVerifyCloudinaryImageAsset.mockImplementation(async (publicId) => ({
-      cloudinaryPublicId: publicId,
-
-      format: 'webp',
-
-      width: 2000,
-
-      height: 1000,
-
-      bytes: 4096,
-    }))
-
-    mockVerifyCloudinaryVideoAsset.mockImplementation(async (publicId) => ({
-      cloudinaryPublicId: publicId,
-
-      format: 'mp4',
-
-      width: 1920,
-
-      height: 1080,
-
-      durationSeconds: 12,
-
-      bytes: 8192,
-    }))
+    expect(result).toEqual({ ok: true, mediaId: MEDIA_ID })
+    expect(registerCoverImage).toHaveBeenCalledWith(VALID_IMAGE_INPUT)
   })
 
-  describe('registerCoverImageAction', () => {
-    it('verifica Cloudinary y registra la imagen con los metadatos reales', async () => {
-      const result = await registerCoverImageAction(VALID_IMAGE_INPUT)
+  it('si el archivo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(registerCoverImage).mockRejectedValueOnce(
+      new ImageVerificationError('No se permiten imágenes animadas.'),
+    )
 
-      expect(result).toEqual({
-        ok: true,
-
-        mediaId: MEDIA_ID,
-      })
-
-      expect(mockVerifyCloudinaryImageAsset).toHaveBeenCalledWith(
-        IMAGE_PUBLIC_ID,
-      )
-
-      expect(mockRegisterCoverImage).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
-        format: 'webp',
-
-        width: 2000,
-
-        height: 1000,
-
-        bytes: 4096,
-
-        ratio: '1:1',
-      })
-    })
-
-    it('no confía en los metadatos enviados por el navegador', async () => {
-      await registerCoverImageAction({
-        ...VALID_IMAGE_INPUT,
-
-        format: 'png',
-
-        width: 1,
-
-        height: 1,
-
-        bytes: 1,
-      })
-
-      expect(mockRegisterCoverImage).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: IMAGE_PUBLIC_ID,
-
-        format: 'webp',
-
-        width: 2000,
-
-        height: 1000,
-
-        bytes: 4096,
-
-        ratio: '1:1',
-      })
-    })
-
-    it('si Cloudinary rechaza la imagen, no la registra en Postgres', async () => {
-      mockVerifyCloudinaryImageAsset.mockRejectedValueOnce(
-        new CloudinaryImageVerificationError(
-          'No se permiten imágenes animadas.',
-        ),
-      )
-
-      const result = await registerCoverImageAction(VALID_IMAGE_INPUT)
-
-      expect(result).toEqual({
-        ok: false,
-
-        error: 'No se permiten imágenes animadas.',
-      })
-
-      expect(mockRegisterCoverImage).not.toHaveBeenCalled()
+    expect(await registerCoverImageAction(VALID_IMAGE_INPUT)).toEqual({
+      ok: false,
+      error: 'No se permiten imágenes animadas.',
     })
   })
 
-  describe('registerCoverVideoAction', () => {
-    it('verifica Cloudinary y registra el vídeo con los metadatos reales', async () => {
-      const result = await registerCoverVideoAction(VALID_VIDEO_INPUT)
-
-      expect(result).toEqual({
-        ok: true,
-
-        mediaId: MEDIA_ID,
-      })
-
-      expect(mockVerifyCloudinaryVideoAsset).toHaveBeenCalledWith(
-        VIDEO_PUBLIC_ID,
-        1,
-      )
-
-      expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
-
-      expect(mockRegisterCoverVideo).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
-        format: 'mp4',
-
-        width: 1920,
-
-        height: 1080,
-
-        durationSeconds: 12,
-
-        bytes: 8192,
-
-        ratio: '1:1',
-      })
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await registerCoverImageAction({
+      ...VALID_IMAGE_INPUT,
+      contentId: 'no-es-un-uuid',
     })
 
-    it('no confía en duration, tamaño ni dimensiones enviados por el navegador', async () => {
-      await registerCoverVideoAction({
-        ...VALID_VIDEO_INPUT,
+    expect(result.ok).toBe(false)
+    expect(registerCoverImage).not.toHaveBeenCalled()
+  })
+})
 
-        width: 1,
+describe('registerCoverVideoAction', () => {
+  it('registra el vídeo con el caso de uso y devuelve el id', async () => {
+    const result = await registerCoverVideoAction(VALID_VIDEO_INPUT)
 
-        height: 1,
+    expect(result).toEqual({ ok: true, mediaId: MEDIA_ID })
+    expect(registerCoverVideo).toHaveBeenCalledWith(VALID_VIDEO_INPUT)
+  })
 
-        durationSeconds: 1,
+  it('si el archivo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(registerCoverVideo).mockRejectedValueOnce(
+      new VideoVerificationError(
+        'No se ha podido verificar el vídeo en Cloudinary.',
+      ),
+    )
 
-        bytes: 1,
-      })
-
-      expect(mockRegisterCoverVideo).toHaveBeenCalledWith({
-        contentId: CONTENT_ID,
-
-        cloudinaryPublicId: VIDEO_PUBLIC_ID,
-
-        format: 'mp4',
-
-        width: 1920,
-
-        height: 1080,
-
-        durationSeconds: 12,
-
-        bytes: 8192,
-
-        ratio: '1:1',
-      })
-    })
-
-    it('si Cloudinary rechaza el vídeo, no lo registra en Postgres', async () => {
-      mockVerifyCloudinaryVideoAsset.mockRejectedValueOnce(
-        new CloudinaryVideoVerificationError(
-          'No se ha podido verificar el vídeo en Cloudinary.',
-        ),
-      )
-
-      const result = await registerCoverVideoAction(VALID_VIDEO_INPUT)
-
-      expect(result).toEqual({
-        ok: false,
-
-        error: 'No se ha podido verificar el vídeo en Cloudinary.',
-      })
-
-      expect(mockRegisterCoverVideo).not.toHaveBeenCalled()
-    })
-
-    it('con datos inválidos no llega a verificar Cloudinary', async () => {
-      const result = await registerCoverVideoAction({
-        ...VALID_VIDEO_INPUT,
-
-        contentId: 'no-es-un-uuid',
-      })
-
-      expect(result.ok).toBe(false)
-
-      expect(mockVerifyCloudinaryVideoAsset).not.toHaveBeenCalled()
-
-      expect(mockRegisterCoverVideo).not.toHaveBeenCalled()
+    expect(await registerCoverVideoAction(VALID_VIDEO_INPUT)).toEqual({
+      ok: false,
+      error: 'No se ha podido verificar el vídeo en Cloudinary.',
     })
   })
 
-  describe('deleteCoverMediaAction', () => {
-    const SERVER_REF = {
-      mediaId: MEDIA_ID,
-      cloudinaryPublicId: IMAGE_PUBLIC_ID,
-      kind: 'image' as const,
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await registerCoverVideoAction({
+      ...VALID_VIDEO_INPUT,
+      contentId: 'no-es-un-uuid',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(registerCoverVideo).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteCoverMediaAction', () => {
+  it('con datos inválidos, no llega al caso de uso', async () => {
+    const result = await deleteCoverMediaAction({ contentId: 'no-es-uuid' })
+
+    expect(result.ok).toBe(false)
+    expect(deleteCoverMedia).not.toHaveBeenCalled()
+  })
+
+  it('si todo va bien, devuelve ok sin warning', async () => {
+    expect(await deleteCoverMediaAction(VALID_DELETE_INPUT)).toEqual({
+      ok: true,
+    })
+    expect(deleteCoverMedia).toHaveBeenCalledWith(VALID_DELETE_INPUT)
+  })
+
+  it('si Postgres falla porque el medio ya no coincide con el contenido, devuelve error', async () => {
+    vi.mocked(deleteCoverMedia).mockRejectedValueOnce(
+      dbError(
+        'ZG013',
+        'El contenido ya no apunta a este medio (posible carrera con otra pestaña)',
+      ),
+    )
+
+    const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
+
+    expect(result.ok).toBe(false)
+
+    if (!result.ok) {
+      expect(result.error).toContain('otra pestaña')
     }
+  })
 
-    const mockSnapshotMedia = vi.mocked(snapshotMedia)
-    const mockPurgeRemovedMedia = vi.mocked(purgeRemovedMedia)
+  it('si Postgres falla por violación de FK, devuelve error legible', async () => {
+    vi.mocked(deleteCoverMedia).mockRejectedValueOnce(
+      dbError('23503', 'update or delete violates foreign key constraint'),
+    )
 
-    beforeEach(() => {
-      mockSnapshotMedia.mockResolvedValue([SERVER_REF])
-      mockPurgeRemovedMedia.mockResolvedValue({ purged: 1, failed: 0 })
-    })
+    const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
 
-    it('con datos inválidos, no llega a llamar ni a Postgres ni a Cloudinary', async () => {
-      const result = await deleteCoverMediaAction({
-        contentId: 'no-es-uuid',
-      })
+    expect(result.ok).toBe(false)
 
-      expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error).toContain('se sigue usando en otro sitio')
+    }
+  })
 
-      expect(mockDeleteCoverMedia).not.toHaveBeenCalled()
+  it('si Postgres tiene éxito pero el archivo no se pudo borrar, devuelve ok con warning', async () => {
+    vi.mocked(deleteCoverMedia).mockResolvedValueOnce({ purged: 0, failed: 1 })
 
-      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
-    })
+    const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
 
-    it('si Postgres tiene éxito y Cloudinary también, devuelve ok sin warning', async () => {
-      const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
+    expect(result.ok).toBe(true)
 
-      expect(result).toEqual({
-        ok: true,
-      })
-
-      expect(mockDeleteCoverMedia).toHaveBeenCalledWith(VALID_DELETE_INPUT)
-
-      expect(mockSnapshotMedia).toHaveBeenCalledWith([MEDIA_ID])
-
-      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
-    })
-
-    it('borra el archivo que dice Postgres, nunca el public id que manda el navegador', async () => {
-      await deleteCoverMediaAction({
-        ...VALID_DELETE_INPUT,
-        cloudinaryPublicId: 'otra-cuenta/archivo-ajeno',
-      })
-
-      expect(mockPurgeRemovedMedia).toHaveBeenCalledWith([SERVER_REF])
-
-      expect(mockDeleteCloudinaryAsset).not.toHaveBeenCalled()
-    })
-
-    it('si Postgres falla porque el medio ya no coincide con el contenido, aborta sin llamar a Cloudinary', async () => {
-      mockDeleteCoverMedia.mockRejectedValueOnce(
-        new Error(
-          'El contenido ya no apunta a este medio (posible carrera con otra pestaña)',
-        ),
-      )
-
-      const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
-
-      expect(result.ok).toBe(false)
-
-      if (!result.ok) {
-        expect(result.error).toContain('otra pestaña')
-      }
-
-      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
-    })
-
-    it('si Postgres falla por violación de FK, aborta y no borra en Cloudinary', async () => {
-      const fkError = Object.assign(
-        new Error('update or delete violates foreign key constraint'),
-        {
-          code: '23503',
-        },
-      )
-
-      mockDeleteCoverMedia.mockRejectedValueOnce(fkError)
-
-      const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
-
-      expect(result.ok).toBe(false)
-
-      if (!result.ok) {
-        expect(result.error).toContain('se sigue usando en otro sitio')
-      }
-
-      expect(mockPurgeRemovedMedia).not.toHaveBeenCalled()
-    })
-
-    it('si Postgres tiene éxito pero Cloudinary falla, devuelve ok con warning', async () => {
-      mockPurgeRemovedMedia.mockResolvedValueOnce({ purged: 0, failed: 1 })
-
-      const result = await deleteCoverMediaAction(VALID_DELETE_INPUT)
-
-      expect(result.ok).toBe(true)
-
-      if (result.ok) {
-        expect(result.warning).toContain('Cloudinary')
-      }
-    })
+    if (result.ok) {
+      expect(result.warning).toContain('Cloudinary')
+    }
   })
 })

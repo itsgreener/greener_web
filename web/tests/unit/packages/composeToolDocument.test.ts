@@ -103,7 +103,7 @@ describe('composeToolDocument', () => {
     expect(doc).toContain('src="./assets/main.js"')
   })
 
-  it('incluye el menú lateral real del sitio (useShell.ts): cuatro secciones y cinco enlaces sociales, sin entrada de Casos', () => {
+  it('incluye el menú lateral real del sitio (navItems.ts): cuatro secciones y cinco enlaces sociales, sin entrada de Casos', () => {
     for (const label of ['We did it', 'Podcasts', 'Insights', 'Tools']) {
       expect(doc).toContain(`aria-label="${label}"`)
     }

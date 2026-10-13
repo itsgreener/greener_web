@@ -1,46 +1,31 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { dbError } from '@tests/helpers/dbError'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
-vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
+}))
 
 const deleteHtmlPackageVersion = vi.fn()
 const deleteOldHtmlPackageVersions = vi.fn()
 
-vi.mock('@/modules/packages/application/deleteHtmlPackageVersion', async () => {
-  const actual = await vi.importActual<
-    typeof import('@/modules/packages/application/deleteHtmlPackageVersion')
-  >('@/modules/packages/application/deleteHtmlPackageVersion')
-
-  return {
-    ...actual,
-    deleteHtmlPackageVersion: (...args: unknown[]) =>
-      deleteHtmlPackageVersion(...args),
-    deleteOldHtmlPackageVersions: (...args: unknown[]) =>
-      deleteOldHtmlPackageVersions(...args),
-  }
-})
-
-vi.mock('@/modules/packages/application/uploadHtmlPackage', () => ({
+vi.mock('@/modules/packages/container', () => ({
   uploadHtmlPackage: vi.fn(),
-}))
-vi.mock('@/modules/packages/application/publishHtmlPackageVersion', () => ({
   publishHtmlPackageVersion: vi.fn(),
-  publishHtmlPackageVersionSchema: { safeParse: vi.fn() },
-}))
-vi.mock('@/modules/packages/infrastructure/zipValidation', () => ({
-  PackageValidationError: class extends Error {},
-}))
-vi.mock('@/modules/packages/infrastructure/cloudmersiveVirusScan', () => ({
-  VirusScanError: class extends Error {},
+  deleteHtmlPackageVersion: (...args: unknown[]) =>
+    deleteHtmlPackageVersion(...args),
+  deleteOldHtmlPackageVersions: (...args: unknown[]) =>
+    deleteOldHtmlPackageVersions(...args),
 }))
 
 import {
   deleteHtmlPackageVersionAction,
   deleteOldHtmlPackageVersionsAction,
-} from '@/app/admin/contents/[id]/edit/packageActions'
-import PackageUpload from '@/app/admin/contents/[id]/edit/PackageUpload'
+} from '@/app/admin/(panel)/contents/[id]/edit/packageActions'
+import PackageUpload from '@/app/admin/(panel)/contents/[id]/edit/PackageUpload'
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const VERSION_ID = '9f8e7d6c-5b4a-4f2e-8d0c-b9a8f7e6d5c4'
@@ -86,11 +71,12 @@ describe('deleteHtmlPackageVersionAction', () => {
     expect(state.warning).toContain('4 fichero(s)')
   })
 
-  it('muestra tal cual el rechazo de la base de datos (P0001), p. ej. la versión activa', async () => {
+  it('explica el rechazo de la base de datos, p. ej. la versión activa', async () => {
     deleteHtmlPackageVersion.mockRejectedValue(
-      Object.assign(new Error('No se puede borrar la versión activa.'), {
-        code: 'P0001',
-      }),
+      dbError(
+        'ZG016',
+        'No se puede borrar la versión activa. Publica otra versión antes.',
+      ),
     )
 
     const state = await deleteHtmlPackageVersionAction(
@@ -98,7 +84,9 @@ describe('deleteHtmlPackageVersionAction', () => {
       form({ contentId: CONTENT_ID, versionId: VERSION_ID }),
     )
 
-    expect(state.error).toBe('No se puede borrar la versión activa.')
+    expect(state.error).toBe(
+      'No se puede borrar la versión activa. Publica otra versión antes.',
+    )
   })
 
   it('un error cualquiera no filtra su texto', async () => {

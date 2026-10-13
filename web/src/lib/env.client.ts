@@ -21,8 +21,8 @@ const clientEnvSchema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.url(),
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
   // Cloud name de Cloudinary: con él se construyen las URLs de imagen y
-  // vídeo (cloudinaryUrl.ts). Antes se leía sin validar y, si faltaba, las
-  // URLs salían como `res.cloudinary.com/undefined/...`.
+  // vídeo (cloudinaryUrl.ts). Si faltara, las
+  // URLs saldrían como `res.cloudinary.com/undefined/...`.
   NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: z.string().min(1),
 })
 

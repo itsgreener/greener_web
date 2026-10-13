@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
+const refreshRouter = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => refreshRouter() }),
+}))
+
 /**
  * Parche urgente del 30 sep: leer la duración de un vídeo en el propio
  * navegador (`<video>.onloadedmetadata`) falla con bastantes vídeos
@@ -17,10 +23,10 @@ const uploadVideoToCloudinary = vi.fn()
 const addCaseCarouselVideoAction = vi.fn()
 const removeAllCaseCarouselMediaAction = vi.fn()
 
-vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
+vi.mock('@/modules/media/client/cloudinaryUpload', async () => {
   const actual = await vi.importActual<
-    typeof import('@/modules/media/infrastructure/cloudinaryUpload')
-  >('@/modules/media/infrastructure/cloudinaryUpload')
+    typeof import('@/modules/media/client/cloudinaryUpload')
+  >('@/modules/media/client/cloudinaryUpload')
   return {
     ...actual,
     getSignedVideoUpload: () => getSignedVideoUpload(),
@@ -29,7 +35,7 @@ vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
   }
 })
 
-vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
   addCaseCarouselVideoAction: (...args: unknown[]) =>
     addCaseCarouselVideoAction(...args),
   addCaseCarouselImageAction: vi.fn(),
@@ -38,8 +44,8 @@ vi.mock('@/app/admin/contents/[id]/edit/caseCarouselActions', () => ({
     removeAllCaseCarouselMediaAction(...args),
 }))
 
-import { resetEditorLockForTests } from '@/app/admin/contents/[id]/edit/editorLock'
-import CaseCarouselManager from '@/app/admin/contents/[id]/edit/CaseCarouselManager'
+import { resetEditorLockForTests } from '@/app/admin/(panel)/contents/[id]/edit/editorLock'
+import CaseCarouselManager from '@/app/admin/(panel)/contents/[id]/edit/CaseCarouselManager'
 
 // jsdom no decodifica vídeo de verdad: ni onloadedmetadata ni onerror se
 // disparan solos al asignar `.src`. Se sustituye document.createElement

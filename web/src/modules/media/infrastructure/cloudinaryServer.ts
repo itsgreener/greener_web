@@ -9,6 +9,16 @@ import {
   imageValidationMessage,
 } from '@/modules/media/domain/imageValidationMessage'
 import {
+  ImageVerificationError,
+  VideoVerificationError,
+  type MediaVerifier,
+  type VerifiedImageAsset,
+  type VerifiedVideoAsset,
+} from '@/modules/media/domain/mediaVerification'
+import type { MediaFileStore } from '@/modules/media/domain/mediaCleanupPorts'
+import type { VideoWarmer } from '@/modules/media/domain/videoWarmer'
+import { buildVideoTransformations } from '@/modules/media/client/cloudinaryUrl'
+import {
   IMAGE_LIMITS,
   validateImageFile,
   validateVideoUpload,
@@ -55,38 +65,6 @@ export type SignedMediaUpload = {
   folder: string
   apiKey: string
   cloudName: string
-}
-
-export type VerifiedCloudinaryImageAsset = {
-  cloudinaryPublicId: string
-  format: string
-  width: number
-  height: number
-  bytes: number
-}
-
-export type VerifiedCloudinaryVideoAsset = {
-  cloudinaryPublicId: string
-  format: string
-  width: number
-  height: number
-  /** Duración REAL en segundos (puede traer decimales; el esquema la redondea hacia arriba). */
-  durationSeconds: number
-  bytes: number
-}
-
-export class CloudinaryImageVerificationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'CloudinaryImageVerificationError'
-  }
-}
-
-export class CloudinaryVideoVerificationError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'CloudinaryVideoVerificationError'
-  }
 }
 
 type CloudinaryImageResource = {
@@ -200,12 +178,12 @@ function videoValidationErrorMessage(
  */
 export async function verifyCloudinaryImageAsset(
   publicId: string,
-): Promise<VerifiedCloudinaryImageAsset> {
+): Promise<VerifiedImageAsset> {
   if (
     !publicId.startsWith(`${IMAGE_FOLDER}/`) ||
     publicId.startsWith(`${VIDEO_FOLDER}/`)
   ) {
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'La imagen no pertenece al directorio permitido de Cloudinary.',
     )
   }
@@ -220,7 +198,7 @@ export async function verifyCloudinaryImageAsset(
   } catch (error) {
     console.error(error)
 
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'No se ha podido verificar la imagen en Cloudinary.',
     )
   }
@@ -238,7 +216,7 @@ export async function verifyCloudinaryImageAsset(
     typeof resource.secure_url !== 'string' ||
     resource.secure_url.length === 0
   ) {
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'Cloudinary ha devuelto datos incompletos para la imagen.',
     )
   }
@@ -247,7 +225,7 @@ export async function verifyCloudinaryImageAsset(
     resource.resource_type !== undefined &&
     resource.resource_type !== 'image'
   ) {
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'El recurso de Cloudinary no es una imagen.',
     )
   }
@@ -255,13 +233,13 @@ export async function verifyCloudinaryImageAsset(
   const format = resource.format.toLowerCase()
 
   if (format === 'gif') {
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'No se permiten archivos GIF. Si necesitas animación, súbela como vídeo.',
     )
   }
 
   if (!(IMAGE_LIMITS.allowedExtensions as readonly string[]).includes(format)) {
-    throw new CloudinaryImageVerificationError(IMAGE_FORMAT_NOT_ALLOWED_MESSAGE)
+    throw new ImageVerificationError(IMAGE_FORMAT_NOT_ALLOWED_MESSAGE)
   }
 
   let response: Response
@@ -273,13 +251,13 @@ export async function verifyCloudinaryImageAsset(
   } catch (error) {
     console.error(error)
 
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'No se ha podido descargar la imagen original para verificarla.',
     )
   }
 
   if (!response.ok) {
-    throw new CloudinaryImageVerificationError(
+    throw new ImageVerificationError(
       'No se ha podido descargar la imagen original para verificarla.',
     )
   }
@@ -303,7 +281,7 @@ export async function verifyCloudinaryImageAsset(
   )
 
   if (validationMessage) {
-    throw new CloudinaryImageVerificationError(validationMessage)
+    throw new ImageVerificationError(validationMessage)
   }
 
   return {
@@ -323,15 +301,12 @@ export async function verifyCloudinaryImageAsset(
  * navegador. Los metadatos se obtienen directamente de la Admin API de
  * Cloudinary.
  *
- * DURACIÓN (8 oct 2026). La Admin API solo devuelve `duration` si se pide
- * `image_metadata: true` (comprobado contra Cloudinary real: sin él no
- * viene; con él, 130,73 en un vídeo de 130 s). Si aun así faltara, se usa
- * `reportedDurationSeconds`, la duración que Cloudinary entregó al navegador
- * en la respuesta de la propia subida (real, aunque no verificada por el
- * servidor). NUNCA se inventa una: hasta el 8 oct un `?? 10` guardaba 10 s
- * en los vídeos sin duración (27 filas de `media_asset` con 10,0 exactos),
- * lo que falseaba el límite de 180 s y el coste del calentamiento. Si no
- * hay ninguna de las dos, se rechaza el vídeo.
+ * DURACIÓN. La Admin API solo devuelve `duration` si se pide
+ * `image_metadata: true`. Si aun así faltara, se usa `reportedDurationSeconds`
+ * (la que Cloudinary entregó al navegador en la subida: real, aunque no
+ * verificada por el servidor). NUNCA se inventa una — falsearía el límite de
+ * duración y el coste del calentamiento —: si no hay ninguna de las dos, se
+ * rechaza el vídeo.
  *
  * A diferencia de las imágenes, no se descarga el original completo:
  * un vídeo puede pesar hasta 100 MB y Cloudinary ya ha procesado el asset
@@ -340,9 +315,9 @@ export async function verifyCloudinaryImageAsset(
 export async function verifyCloudinaryVideoAsset(
   publicId: string,
   reportedDurationSeconds?: number,
-): Promise<VerifiedCloudinaryVideoAsset> {
+): Promise<VerifiedVideoAsset> {
   if (!publicId.startsWith(`${VIDEO_FOLDER}/`)) {
-    throw new CloudinaryVideoVerificationError(
+    throw new VideoVerificationError(
       'El vídeo no pertenece al directorio permitido de Cloudinary.',
     )
   }
@@ -353,14 +328,13 @@ export async function verifyCloudinaryVideoAsset(
     rawResource = await sdk().api.resource(publicId, {
       resource_type: 'video',
       type: 'upload',
-      // Sin `image_metadata` la Admin API no devuelve `duration`
-      // (confirmado el 8 oct 2026 contra Cloudinary real).
+      // Sin `image_metadata` la Admin API no devuelve `duration`.
       image_metadata: true,
     })
   } catch (error) {
     console.error(error)
 
-    throw new CloudinaryVideoVerificationError(
+    throw new VideoVerificationError(
       'No se ha podido verificar el vídeo en Cloudinary.',
     )
   }
@@ -377,7 +351,7 @@ export async function verifyCloudinaryVideoAsset(
     )
     duration = reportedDurationSeconds
   } else {
-    throw new CloudinaryVideoVerificationError(
+    throw new VideoVerificationError(
       'Cloudinary no ha devuelto la duración del vídeo.',
     )
   }
@@ -391,7 +365,7 @@ export async function verifyCloudinaryVideoAsset(
     !isPositiveInteger(resource.height) ||
     !isPositiveInteger(resource.bytes)
   ) {
-    throw new CloudinaryVideoVerificationError(
+    throw new VideoVerificationError(
       'Cloudinary ha devuelto datos incompletos para el vídeo.',
     )
   }
@@ -400,9 +374,7 @@ export async function verifyCloudinaryVideoAsset(
     resource.resource_type !== undefined &&
     resource.resource_type !== 'video'
   ) {
-    throw new CloudinaryVideoVerificationError(
-      'El recurso de Cloudinary no es un vídeo.',
-    )
+    throw new VideoVerificationError('El recurso de Cloudinary no es un vídeo.')
   }
 
   const format = resource.format.toLowerCase()
@@ -412,7 +384,7 @@ export async function verifyCloudinaryVideoAsset(
   const validationMessage = videoValidationErrorMessage(validation)
 
   if (validationMessage) {
-    throw new CloudinaryVideoVerificationError(validationMessage)
+    throw new VideoVerificationError(validationMessage)
   }
 
   return {
@@ -462,8 +434,7 @@ export async function deleteCloudinaryAsset(
  * vuelo.
  *
  * Devuelve en cuanto Cloudinary acepta el encargo; NO espera a que termine
- * (comprobado el 8 oct 2026: tarda hasta ~70 s para 2 rendiciones de un vídeo
- * de 130 s). Repetir la llamada con las mismas cadenas NO se reutiliza:
+ * (puede tardar ~70 s para 2 rendiciones de un vídeo de 130 s). Repetir la llamada con las mismas cadenas NO se reutiliza:
  * Cloudinary vuelve a generar y a cobrar, así que quien llama debe saltarse
  * los vídeos ya calentados (`media_asset.warmed_contract`).
  *
@@ -488,4 +459,20 @@ export async function warmVideoRenditions(
     eager: transformations,
     eager_async: true,
   })
+}
+
+/** Cloudinary como implementación de los puertos de medios del dominio. */
+export const cloudinaryMediaVerifier: MediaVerifier = {
+  verifyImage: verifyCloudinaryImageAsset,
+  verifyVideo: verifyCloudinaryVideoAsset,
+}
+
+export const cloudinaryFileStore: MediaFileStore = {
+  isManaged: isManagedPublicId,
+  delete: deleteCloudinaryAsset,
+}
+
+export const cloudinaryVideoWarmer: VideoWarmer = {
+  transformationsFor: buildVideoTransformations,
+  warm: warmVideoRenditions,
 }

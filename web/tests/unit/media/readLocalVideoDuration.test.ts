@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   LOCAL_DURATION_TIMEOUT_MS,
   readLocalVideoDuration,
-} from '@/modules/media/infrastructure/readLocalVideoDuration'
+} from '@/modules/media/client/readLocalVideoDuration'
 
 type FakeVideo = {
   preload: string

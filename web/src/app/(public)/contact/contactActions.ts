@@ -1,6 +1,6 @@
 'use server'
 
-import { submitContactForm } from '@/modules/contact/application/submitContactForm'
+import { submitContactForm } from '@/modules/contact/container'
 import type { FormActionState } from '@/lib/forms/formActionState'
 
 export type ContactActionState = FormActionState

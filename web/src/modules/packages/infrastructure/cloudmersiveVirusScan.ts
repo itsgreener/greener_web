@@ -1,5 +1,8 @@
 import { getCloudmersiveEnv } from '@/lib/serverEnv'
 
+import { VirusScanError } from '@/modules/packages/domain/packageErrors'
+import type { VirusScanner } from '@/modules/packages/domain/packageUploadPorts'
+
 const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
 
 /**
@@ -9,13 +12,6 @@ const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
  * Debe ser >= `PACKAGE_LIMITS.maxZipSizeBytes`; un test lo comprueba.
  */
 export const CLOUDMERSIVE_MAX_FILE_BYTES = 10 * 1000 * 1000
-
-export class VirusScanError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'VirusScanError'
-  }
-}
 
 type CloudmersiveScanResult = {
   CleanResult?: boolean
@@ -98,4 +94,8 @@ export async function scanZipForViruses(buffer: Buffer): Promise<void> {
         : 'El escaneo antivirus no ha confirmado que el archivo esté limpio.',
     )
   }
+}
+
+export const cloudmersiveVirusScanner: VirusScanner = {
+  scan: scanZipForViruses,
 }

@@ -1,12 +1,17 @@
 import {
   createContentSchema,
   type CreateContentInput,
-} from '../domain/contentSchema'
+} from '@/modules/content/domain/contentSchema'
+import type { ContentRepository } from '@/modules/content/domain/contentRepository'
 
-import { supabaseContentRepository } from '../infrastructure/supabaseContentRepository'
+export function makeCreateContent({
+  contents,
+}: {
+  contents: ContentRepository
+}) {
+  return async function createContent(input: CreateContentInput) {
+    const validated = createContentSchema.parse(input)
 
-export async function createContent(input: CreateContentInput) {
-  const validated = createContentSchema.parse(input)
-
-  return supabaseContentRepository.createDraft(validated)
+    return contents.createDraft(validated)
+  }
 }

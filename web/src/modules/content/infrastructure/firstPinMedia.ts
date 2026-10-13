@@ -1,10 +1,10 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import type { PublicContentMedia } from './publicContentSource'
+import type { PublicContentMedia } from '@/modules/content/domain/publicContent'
 
 /**
  * Primer medio del primer pin de un contenido (orden de cola, luego
- * antigüedad). Tool e insight ya no tienen portada propia (§2.40): su
+ * antigüedad). Tool e insight no tienen portada propia (§2.40): su
  * imagen de compartición (OG) sale de aquí. Devuelve null si el contenido
  * no tiene pines con medios o si la lectura falla (los metadatos nunca
  * deben tumbar la página).

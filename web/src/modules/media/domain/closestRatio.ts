@@ -84,8 +84,7 @@ export function mediaMatchesRatio(
 
 /**
  * Ratio fijo de todo el carrusel de detalle de un caso (tipo B —
- * especificacion-final-formato-detalle.md §1, §3), decidido en la sesión
- * del 21 de septiembre: se usa el ratio de la imagen/vídeo MÁS ANCHO del
+ * especificacion-final-formato-detalle.md §1, §3): se usa el ratio de la imagen/vídeo MÁS ANCHO del
  * carrusel (el de mayor width/height) para todas las diapositivas por
  * igual, y el resto se encaja dentro de esa ventana con barras negras
  * (`object-fit: contain`) en vez de recortarlas.
@@ -94,7 +93,7 @@ export function mediaMatchesRatio(
  * UNA VEZ a partir de todos los medios del carrusel (server-side, antes
  * de renderizar) y se queda fijo mientras se navega entre slides — mover
  * la caja de texto en cada cambio de slide porque cada imagen tiene un
- * ratio distinto no tiene sentido visual y se descartó a propósito.
+ * ratio distinto no tiene sentido visual.
  */
 export function widestCarouselRatio(
   media: { width: number; height: number }[],

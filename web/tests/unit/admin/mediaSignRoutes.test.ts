@@ -10,21 +10,23 @@ vi.mock('@/lib/supabase/server', () => ({
   })),
 }))
 
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => ({
-  createSignedImageUpload: vi.fn(() => ({
-    timestamp: 123,
-    signature: 'sig',
-    folder: 'greener/content',
-    apiKey: 'key',
-    cloudName: 'test-cloud',
-  })),
-  createSignedVideoUpload: vi.fn(() => ({
-    timestamp: 123,
-    signature: 'sig',
-    folder: 'greener/content/videos',
-    apiKey: 'key',
-    cloudName: 'test-cloud',
-  })),
+vi.mock('@/modules/media/container', () => ({
+  signedUploads: {
+    image: vi.fn(() => ({
+      timestamp: 123,
+      signature: 'sig',
+      folder: 'greener/content',
+      apiKey: 'key',
+      cloudName: 'test-cloud',
+    })),
+    video: vi.fn(() => ({
+      timestamp: 123,
+      signature: 'sig',
+      folder: 'greener/content/videos',
+      apiKey: 'key',
+      cloudName: 'test-cloud',
+    })),
+  },
 }))
 
 beforeEach(() => {

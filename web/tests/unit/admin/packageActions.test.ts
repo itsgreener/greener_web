@@ -5,39 +5,14 @@ const VERSION_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
 }))
 
-vi.mock('@/modules/packages/application/uploadHtmlPackage', () => ({
+vi.mock('@/modules/packages/container', () => ({
   uploadHtmlPackage: vi.fn(),
-}))
-
-vi.mock(
-  '@/modules/packages/application/publishHtmlPackageVersion',
-  async (importOriginal) => {
-    const actual =
-      await importOriginal<
-        typeof import('@/modules/packages/application/publishHtmlPackageVersion')
-      >()
-
-    return {
-      ...actual,
-      publishHtmlPackageVersion: vi.fn(),
-    }
-  },
-)
-
-vi.mock('@/modules/packages/infrastructure/zipValidation', () => ({
-  PackageValidationError: class PackageValidationError extends Error {
-    issues: string[]
-    constructor(issues: string[]) {
-      super(issues.join(' — '))
-      this.issues = issues
-    }
-  },
-}))
-
-vi.mock('@/modules/packages/infrastructure/cloudmersiveVirusScan', () => ({
-  VirusScanError: class VirusScanError extends Error {},
+  publishHtmlPackageVersion: vi.fn(),
+  deleteHtmlPackageVersion: vi.fn(),
+  deleteOldHtmlPackageVersions: vi.fn(),
 }))
 
 function formData(entries: Record<string, FormDataEntryValue>) {
@@ -57,9 +32,8 @@ beforeEach(() => {
 describe('uploadHtmlPackageAction', () => {
   it('con contentId y archivo válidos, sube y devuelve success', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
 
     vi.mocked(uploadHtmlPackage).mockResolvedValue(VERSION_ID)
 
@@ -79,9 +53,8 @@ describe('uploadHtmlPackageAction', () => {
 
   it('sin archivo, no llega a llamar a uploadHtmlPackage', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
 
     const result = await uploadHtmlPackageAction(
       {},
@@ -94,9 +67,8 @@ describe('uploadHtmlPackageAction', () => {
 
   it('con contentId vacío, no llega a llamar a uploadHtmlPackage', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
 
     const file = new File(['contenido'], 'package.zip')
 
@@ -108,11 +80,10 @@ describe('uploadHtmlPackageAction', () => {
 
   it('si uploadHtmlPackage lanza PackageValidationError, expone los issues', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
     const { PackageValidationError } =
-      await import('@/modules/packages/infrastructure/zipValidation')
+      await import('@/modules/packages/domain/packageErrors')
 
     vi.mocked(uploadHtmlPackage).mockRejectedValue(
       new PackageValidationError([
@@ -137,11 +108,10 @@ describe('uploadHtmlPackageAction', () => {
 
   it('si uploadHtmlPackage lanza VirusScanError, usa su mensaje y no expone issues', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
     const { VirusScanError } =
-      await import('@/modules/packages/infrastructure/cloudmersiveVirusScan')
+      await import('@/modules/packages/domain/packageErrors')
 
     vi.mocked(uploadHtmlPackage).mockRejectedValue(
       new VirusScanError(
@@ -164,9 +134,8 @@ describe('uploadHtmlPackageAction', () => {
 
   it('si uploadHtmlPackage lanza un error genérico, no expone issues', async () => {
     const { uploadHtmlPackageAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } =
-      await import('@/modules/packages/application/uploadHtmlPackage')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { uploadHtmlPackage } = await import('@/modules/packages/container')
 
     vi.mocked(uploadHtmlPackage).mockRejectedValue(new Error('fallo de red'))
 
@@ -185,9 +154,9 @@ describe('uploadHtmlPackageAction', () => {
 describe('publishHtmlPackageVersionAction', () => {
   it('con datos válidos, publica y devuelve success', async () => {
     const { publishHtmlPackageVersionAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
     const { publishHtmlPackageVersion } =
-      await import('@/modules/packages/application/publishHtmlPackageVersion')
+      await import('@/modules/packages/container')
 
     vi.mocked(publishHtmlPackageVersion).mockResolvedValue(VERSION_ID)
 
@@ -205,9 +174,9 @@ describe('publishHtmlPackageVersionAction', () => {
 
   it('con un versionId inválido, no llega a llamar a publishHtmlPackageVersion', async () => {
     const { publishHtmlPackageVersionAction } =
-      await import('@/app/admin/contents/[id]/edit/packageActions')
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
     const { publishHtmlPackageVersion } =
-      await import('@/modules/packages/application/publishHtmlPackageVersion')
+      await import('@/modules/packages/container')
 
     const result = await publishHtmlPackageVersionAction(
       {},

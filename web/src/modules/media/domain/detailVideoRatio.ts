@@ -20,7 +20,7 @@ export const TOOL_INSIGHT_FALLBACK_RATIO: PinRatioValue = '4:5'
 
 /**
  * Ficha de tool / insight / other. En una tool el ratio es el del PIN
- * abierto con `?pin=` (`override`: desde el 7 oct las tools no tienen
+ * abierto con `?pin=` (`override`: las tools no tienen
  * portada propia); en `other`, el de su portada (`coverRatio`).
  */
 export function toolInsightDetailRatio(

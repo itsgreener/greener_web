@@ -1,28 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
- * getStoragePackageAsset contra un Supabase simulado. Lo que importa aquí:
+ * supabasePublishedPackageSource.getAsset contra un Supabase simulado. Lo que importa aquí:
  * (1) el ETag sale del checksum de la versión PUBLICADA, (2) con
  * If-None-Match coincidente NO se descarga nada de Storage, (3) al cambiar
  * la versión publicada (nueva o rollback) el ETag cambia.
  */
 
-type Row = Record<string, unknown> | null
-
-let tables: Record<string, Row>
+// Respuesta de la ÚNICA consulta de versión publicada (content -> paquete ->
+// versión actual) y fallo simulado de Supabase.
+let published: Record<string, unknown> | null
+let queryError: { message: string } | null
 const download = vi.fn()
+const selectSpy = vi.fn()
 
-function chain(table: string) {
+function chain() {
   const builder = {
-    select: () => builder,
+    select: (...args: unknown[]) => {
+      selectSpy(...args)
+      return builder
+    },
     eq: () => builder,
-    maybeSingle: async () => ({ data: tables[table] ?? null }),
+    maybeSingle: async () => ({ data: published, error: queryError }),
   }
   return builder
 }
 
+vi.mock('next/cache', () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+}))
+
 vi.mock('@/lib/supabase/publicReadClient', () => ({
-  createPublicReadClient: () => ({ from: (table: string) => chain(table) }),
+  createPublicReadClient: () => ({ from: () => chain() }),
 }))
 
 vi.mock('@/lib/supabase/serviceClient', () => ({
@@ -32,13 +41,13 @@ vi.mock('@/lib/supabase/serviceClient', () => ({
 }))
 
 function publish(checksum: string, storagePath = 'tools/mi-tool/v1') {
-  tables = {
-    content: { id: 'content-1' },
-    html_package: { current_version_id: 'version-1' },
-    html_package_version: {
-      storage_path: storagePath,
-      status: 'published',
-      checksum,
+  published = {
+    html_package: {
+      current_version: {
+        storage_path: storagePath,
+        status: 'published',
+        checksum,
+      },
     },
   }
 }
@@ -52,17 +61,22 @@ function fileWith(text: string) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  queryError = null
   publish('checksum-v1')
 })
 
-describe('getStoragePackageAsset — caché por ETag', () => {
+describe('getAsset — caché por ETag', () => {
   it('devuelve los bytes y el ETag de la versión publicada la primera vez', async () => {
     download.mockResolvedValue(fileWith('console.log(1)'))
 
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
 
-    const asset = await getStoragePackageAsset('tool', 'mi-tool', ['main.js'])
+    const asset = await supabasePublishedPackageSource.getAsset(
+      'tool',
+      'mi-tool',
+      ['main.js'],
+    )
 
     expect(asset.etag).toBe('"checksum-v1"')
     expect(asset.notModified).toBe(false)
@@ -73,10 +87,10 @@ describe('getStoragePackageAsset — caché por ETag', () => {
   })
 
   it('con If-None-Match coincidente responde notModified SIN descargar de Storage', async () => {
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
 
-    const asset = await getStoragePackageAsset(
+    const asset = await supabasePublishedPackageSource.getAsset(
       'tool',
       'mi-tool',
       ['main.js'],
@@ -88,7 +102,7 @@ describe('getStoragePackageAsset — caché por ETag', () => {
   })
 
   it('al publicar una versión nueva el ETag viejo ya no vale y llega el asset nuevo', async () => {
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
 
     const etagV1 = '"checksum-v1"'
@@ -96,7 +110,7 @@ describe('getStoragePackageAsset — caché por ETag', () => {
     publish('checksum-v2', 'tools/mi-tool/v2')
     download.mockResolvedValue(fileWith('console.log(2)'))
 
-    const asset = await getStoragePackageAsset(
+    const asset = await supabasePublishedPackageSource.getAsset(
       'tool',
       'mi-tool',
       ['main.js'],
@@ -109,14 +123,14 @@ describe('getStoragePackageAsset — caché por ETag', () => {
   })
 
   it('un rollback a una versión anterior también invalida la caché (vuelve el ETag antiguo)', async () => {
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
 
     // El navegador tenía cacheada la v2; el admin hace rollback a la v1.
     publish('checksum-v1', 'tools/mi-tool/v1')
     download.mockResolvedValue(fileWith('console.log(1)'))
 
-    const asset = await getStoragePackageAsset(
+    const asset = await supabasePublishedPackageSource.getAsset(
       'tool',
       'mi-tool',
       ['main.js'],
@@ -128,27 +142,108 @@ describe('getStoragePackageAsset — caché por ETag', () => {
   })
 
   it('sigue rechazando rutas con ".." antes de tocar Storage', async () => {
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
     const { PackageNotFoundError } =
       await import('@/modules/packages/domain/manifest')
 
     await expect(
-      getStoragePackageAsset('tool', 'mi-tool', ['..', 'secreto.txt']),
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', [
+        '..',
+        'secreto.txt',
+      ]),
     ).rejects.toBeInstanceOf(PackageNotFoundError)
     expect(download).not.toHaveBeenCalled()
   })
 
   it('sigue dando PackageNotFoundError si el contenido no está publicado', async () => {
-    tables = { content: null }
+    published = null
 
-    const { getStoragePackageAsset } =
+    const { supabasePublishedPackageSource } =
       await import('@/modules/packages/infrastructure/supabaseStorageSource')
     const { PackageNotFoundError } =
       await import('@/modules/packages/domain/manifest')
 
     await expect(
-      getStoragePackageAsset('tool', 'mi-tool', ['main.js']),
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['main.js']),
+    ).rejects.toBeInstanceOf(PackageNotFoundError)
+  })
+
+  it('la versión publicada se resuelve con UNA sola consulta, no tres en serie', async () => {
+    download.mockResolvedValue(fileWith('x'))
+
+    const { supabasePublishedPackageSource } =
+      await import('@/modules/packages/infrastructure/supabaseStorageSource')
+
+    await supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['a.js'])
+
+    expect(selectSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('una versión que no está publicada (rollback, borrador) es NotFound', async () => {
+    published = {
+      html_package: {
+        current_version: {
+          storage_path: 'x',
+          status: 'rolled_back',
+          checksum: 'c',
+        },
+      },
+    }
+
+    const { supabasePublishedPackageSource } =
+      await import('@/modules/packages/infrastructure/supabaseStorageSource')
+    const { PackageNotFoundError } =
+      await import('@/modules/packages/domain/manifest')
+
+    await expect(
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['a.js']),
+    ).rejects.toBeInstanceOf(PackageNotFoundError)
+  })
+})
+
+describe('getAsset — un corte de Supabase no se disfraza de 404', () => {
+  it('si la consulta de versión falla, lanza PackageSourceUnavailableError', async () => {
+    published = null
+    queryError = { message: 'connection reset' }
+
+    const { supabasePublishedPackageSource } =
+      await import('@/modules/packages/infrastructure/supabaseStorageSource')
+    const { PackageSourceUnavailableError } =
+      await import('@/modules/packages/domain/manifest')
+
+    await expect(
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['a.js']),
+    ).rejects.toBeInstanceOf(PackageSourceUnavailableError)
+  })
+
+  it('si Storage falla de forma genérica, lanza PackageSourceUnavailableError', async () => {
+    download.mockResolvedValue({ data: null, error: new Error('timeout') })
+
+    const { supabasePublishedPackageSource } =
+      await import('@/modules/packages/infrastructure/supabaseStorageSource')
+    const { PackageSourceUnavailableError } =
+      await import('@/modules/packages/domain/manifest')
+
+    await expect(
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['a.js']),
+    ).rejects.toBeInstanceOf(PackageSourceUnavailableError)
+  })
+
+  it('si Storage dice que el objeto no existe (404), es PackageNotFoundError', async () => {
+    const { StorageApiError } = await import('@supabase/supabase-js')
+    download.mockResolvedValue({
+      data: null,
+      error: new StorageApiError('Object not found', 400, '404'),
+    })
+
+    const { supabasePublishedPackageSource } =
+      await import('@/modules/packages/infrastructure/supabaseStorageSource')
+    const { PackageNotFoundError } =
+      await import('@/modules/packages/domain/manifest')
+
+    await expect(
+      supabasePublishedPackageSource.getAsset('tool', 'mi-tool', ['a.js']),
     ).rejects.toBeInstanceOf(PackageNotFoundError)
   })
 })

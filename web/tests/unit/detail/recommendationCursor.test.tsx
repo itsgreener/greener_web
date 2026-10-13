@@ -32,6 +32,13 @@ function oneItem(round: number) {
   }
 }
 
+/** Monta el sentinel como lo haría el componente: pasándolo al ref. */
+function attachSentinel(result: {
+  current: { sentinelRef: (el: HTMLElement | null) => void }
+}) {
+  act(() => result.current.sentinelRef(document.createElement('div')))
+}
+
 function triggerSentinel() {
   ioCallback?.(
     [{ isIntersecting: true } as IntersectionObserverEntry],
@@ -57,9 +64,6 @@ beforeEach(() => {
     disconnect() {}
     unobserve() {}
   } as unknown as typeof IntersectionObserver
-
-  document.body.innerHTML =
-    '<div id="greener-recommendations-sentinel-c1"></div>'
 })
 
 describe('useRecommendationMasonry — paginación', () => {
@@ -78,7 +82,10 @@ describe('useRecommendationMasonry — paginación', () => {
       })
     }) as unknown as typeof fetch
 
-    renderHook(() => useRecommendationMasonry('c1', '1:1', { scope: 'tools' }))
+    const { result } = renderHook(() =>
+      useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
+    )
+    attachSentinel(result)
 
     await waitFor(() => expect(urls).toHaveLength(1))
 
@@ -128,6 +135,7 @@ describe('useRecommendationMasonry — paginación', () => {
     const { result } = renderHook(() =>
       useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
     )
+    attachSentinel(result)
 
     await waitFor(() => expect(urls).toHaveLength(1))
     await act(async () => triggerSentinel())
@@ -151,6 +159,7 @@ describe('useRecommendationMasonry — paginación', () => {
     const { result } = renderHook(() =>
       useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
     )
+    attachSentinel(result)
 
     await waitFor(() => expect(result.current.hasMore).toBe(false))
 

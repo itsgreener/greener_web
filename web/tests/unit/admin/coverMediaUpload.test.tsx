@@ -3,6 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
+const refreshRouter = vi.fn()
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => refreshRouter() }),
+}))
+
 /**
  * Portada de un contenido `other`: el ratio se lee del nombre del archivo
  * (`[nombre]-[proporción]-[tipo].ext`) y, si no hay, se sugiere por las
@@ -10,28 +16,28 @@ import '@testing-library/jest-dom/vitest'
  * de subir.
  */
 
-vi.mock('@/modules/media/infrastructure/cloudinaryUpload', () => ({
+vi.mock('@/modules/media/client/cloudinaryUpload', () => ({
   getSignedImageUpload: vi.fn(),
   getSignedVideoUpload: vi.fn(),
   uploadImageToCloudinary: vi.fn(),
   uploadVideoToCloudinary: vi.fn(),
 }))
 
-vi.mock('@/modules/media/infrastructure/readLocalVideoDuration', () => ({
+vi.mock('@/modules/media/client/readLocalVideoDuration', () => ({
   readLocalVideoDuration: vi.fn(),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/mediaActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/mediaActions', () => ({
   registerCoverImageAction: vi.fn(),
   registerCoverVideoAction: vi.fn(),
   deleteCoverMediaAction: vi.fn(),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/discardUpload', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/discardUpload', () => ({
   discardUploadQuietly: vi.fn(),
 }))
 
-import CoverMediaUpload from '@/app/admin/contents/[id]/edit/CoverMediaUpload'
+import CoverMediaUpload from '@/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload'
 
 // jsdom no decodifica imágenes: se simula con las dimensiones deseadas.
 let nextDimensions = { width: 1080, height: 1080 }

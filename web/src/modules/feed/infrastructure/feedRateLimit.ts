@@ -1,10 +1,11 @@
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 
+import type { FeedRequestLimits } from '@/modules/feed/domain/feedPorts'
+
 /**
  * Límites del feed público (POST /api/feed/sessions, GET
- * /api/feed/{sessionId} — §16.1), decididos el 29 de septiembre
- * (PROGRESO §2.16) tras valorar el coste real de cada uno: crear una
- * sesión es una fila; pedir un lote genera una ronda completa (el
+ * /api/feed/{sessionId} — §16.1; PROGRESO §2.16), según el coste real de
+ * cada uno: crear una sesión es una fila; pedir un lote genera una ronda completa (el
  * algoritmo de cuotas y mezcla contra todo el catálogo, §8), así que
  * merece más margen — una persona haciendo scroll rápido puede pedir
  * varios lotes por minuto sin hacer nada indebido.
@@ -53,14 +54,10 @@ function sweepExpiredSessions(now: number): void {
   }
 }
 
-/**
- * `scope` queda al final y con default 'home' para mantener compatibilidad
- * con los tests/llamadas antiguas de dos argumentos.
- */
 export function rememberSession(
   visitorId: string,
   sessionId: string,
-  scope: string = 'home',
+  scope: string,
 ): void {
   const now = Date.now()
 
@@ -78,7 +75,7 @@ export function rememberSession(
 
 export function getLastSession(
   visitorId: string,
-  scope: string = 'home',
+  scope: string,
 ): string | null {
   const key = memoryKey(visitorId, scope)
   const entry = lastSessionByVisitorAndScope.get(key)
@@ -93,4 +90,11 @@ export function getLastSession(
   }
 
   return entry.sessionId
+}
+
+export const inMemoryFeedRequestLimits: FeedRequestLimits = {
+  canCreateSession,
+  canFetchBatch,
+  rememberSession,
+  getLastSession,
 }

@@ -11,7 +11,7 @@ import styles from './page.module.css'
  * opt-in), que es otro flujo con su propia acción y su propio límite.
  *
  * Ruta e interfaz en inglés (arquitectura §2.4: "interfaz global en
- * inglés") — antes vivía en /contacto, renombrada el 15 sep.
+ * inglés").
  */
 export const metadata: Metadata = {
   title: 'Contact',

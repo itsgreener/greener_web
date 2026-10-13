@@ -1,12 +1,17 @@
 import {
   caseDetailSchema,
   type UpsertCaseDetailInput,
-} from '../domain/caseDetailSchema'
+} from '@/modules/content/domain/caseDetailSchema'
+import type { CaseDetailRepository } from '@/modules/content/domain/caseDetailRepository'
 
-import { supabaseCaseDetailRepository } from '../infrastructure/supabaseCaseDetailRepository'
+export function makeUpsertCaseDetail({
+  caseDetails,
+}: {
+  caseDetails: CaseDetailRepository
+}) {
+  return async function upsertCaseDetail(input: UpsertCaseDetailInput) {
+    const validated = caseDetailSchema.parse(input)
 
-export async function upsertCaseDetail(input: UpsertCaseDetailInput) {
-  const validated = caseDetailSchema.parse(input)
-
-  return supabaseCaseDetailRepository.upsert(validated)
+    return caseDetails.upsert(validated)
+  }
 }

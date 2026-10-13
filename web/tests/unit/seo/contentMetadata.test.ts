@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { getFirstPinMedia } from '@/modules/content/infrastructure/firstPinMedia'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 function content(overrides: Partial<PublicContent> = {}): PublicContent {

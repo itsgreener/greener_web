@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { PinMediaRepository } from '../domain/pinMediaRepository'
+import type { PinMediaRepository } from '@/modules/pin/domain/pinMediaRepository'
 import type {
   AttachPinImageInput,
   AttachPinVideoInput,
   DetachPinMediaInput,
-} from '../domain/pinMediaSchema'
+} from '@/modules/pin/domain/pinMediaSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabasePinMediaRepository: PinMediaRepository = {

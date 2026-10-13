@@ -12,9 +12,8 @@ import {
  * Autocontenido y sin estado a propósito: el propio token lleva firmados
  * `contentId` y `expiresAt`, no hay tabla ni migración nueva que
  * mantener. La contrapartida es que no se puede revocar un token antes
- * de que caduque — solo esperar. Decisión de sesión de trabajo: 7 días
- * de vigencia, suficiente para una revisión con idas y vueltas sin tener
- * que regenerar el link a medias.
+ * de que caduque — solo esperar. Vigencia de 7 días: suficiente para una
+ * revisión con idas y vueltas sin regenerar el link.
  *
  * El preview es para revisar contenido *antes* de que pase por primera
  * vez a `published` — no hay concepto de "borrador sobre lo publicado"

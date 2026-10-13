@@ -6,7 +6,6 @@ import type {
   ContentPinQueue,
   FeedConfig,
   FeedSnapshot,
-  RoundReport,
 } from '@/modules/feed/domain/types'
 
 // Ratios confirmados con Greener (ADR-11): 70/15/5/5/5.
@@ -59,15 +58,6 @@ const snapshotArb: fc.Arbitrary<FeedSnapshot> = fc.record({
 const seedArb = fc.string({ minLength: 1, maxLength: 20 })
 const roundIndexArb = fc.integer({ min: 0, max: 6 })
 
-/** Compara el report ignorando durationMs, que depende del reloj, no del algoritmo. */
-function reportWithoutDuration(
-  report: RoundReport,
-): Omit<RoundReport, 'durationMs'> {
-  const { durationMs, ...rest } = report
-  void durationMs
-  return rest
-}
-
 describe('generateRound — determinismo', () => {
   it('misma seed, config, snapshot y ronda producen exactamente la misma secuencia', () => {
     fc.assert(
@@ -79,10 +69,7 @@ describe('generateRound — determinismo', () => {
           const a = generateRound(snapshot, BASE_CONFIG, seed, roundIndex)
           const b = generateRound(snapshot, BASE_CONFIG, seed, roundIndex)
           expect(a.sequence).toEqual(b.sequence)
-          // durationMs depende del reloj, no del algoritmo: se compara todo lo demás.
-          expect(reportWithoutDuration(a.report)).toEqual(
-            reportWithoutDuration(b.report),
-          )
+          expect(a.report).toEqual(b.report)
         },
       ),
       { numRuns: 2000 },

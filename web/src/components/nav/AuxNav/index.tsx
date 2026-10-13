@@ -12,13 +12,8 @@ import styles from './AuxNav.module.css'
  * componente aparte que cada página home/subhome añade explícitamente,
  * en vez de en el Shell (que sí es global a todo el sitio público).
  *
- * "We did it" apunta a /work (no a /, que ya es "All"): hoy /work sin
- * slug no existe todavía como subhome filtrada por caso — el motor de
- * feed no filtra por scope/etiqueta todavía (PROGRESO.md §3.6) — así
- * que de momento este enlace, como los de Podcasts/Insights/Tools,
- * lleva a una ruta que hoy da 404. Mismo estado que esos mismos
- * destinos ya tienen hoy en el Shell — no es una regresión nueva de
- * este componente.
+ * "We did it" apunta a /work (no a /, que ya es "All"): cada entrada es la
+ * subhome de su scope (feed filtrado por tipo de contenido).
  */
 const AUX_NAV_ITEMS = [
   { href: '/', label: 'All' },
@@ -33,7 +28,7 @@ export function AuxNav() {
   const pathname = usePathname()
 
   return (
-    <nav className={styles.nav} aria-label="Secciones">
+    <nav className={styles.nav} aria-label="Sections">
       <ul className={styles.list}>
         {AUX_NAV_ITEMS.map((item) => (
           <li key={item.href}>

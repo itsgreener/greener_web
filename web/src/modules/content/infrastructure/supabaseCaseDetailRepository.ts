@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { CaseDetailRepository } from '../domain/caseDetailRepository'
+import type { CaseDetailRepository } from '@/modules/content/domain/caseDetailRepository'
 
 import type {
   CaseDetail,
   UpsertCaseDetailInput,
-} from '../domain/caseDetailSchema'
+} from '@/modules/content/domain/caseDetailSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabaseCaseDetailRow = {

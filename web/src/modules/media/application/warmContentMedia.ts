@@ -1,14 +1,13 @@
-import { buildVideoTransformations } from '../infrastructure/cloudinaryUrl'
-import { warmVideoRenditions } from '../infrastructure/cloudinaryServer'
 import {
-  markWarmedWithService,
-  markWarmedWithSession,
-  readContentWarmInfo,
-  type ContentWarmInfo,
-  type WarmMarker,
-} from '../infrastructure/supabaseWarmRepository'
-
-import { planVideoWarming, warmContractId } from '../domain/warmPlan'
+  planVideoWarming,
+  warmContractId,
+} from '@/modules/media/domain/warmPlan'
+import type {
+  ContentWarmInfo,
+  WarmMarker,
+  WarmRepository,
+} from '@/modules/media/domain/warmRepository'
+import type { VideoWarmer } from '@/modules/media/domain/videoWarmer'
 
 /**
  * Calentamiento de los vídeos de un contenido (fase 2 del contrato de
@@ -55,97 +54,114 @@ export interface PrepareOptions {
   force?: boolean
 }
 
-function planJobs(info: ContentWarmInfo, force: boolean): WarmJob[] {
-  const jobs: WarmJob[] = []
-
-  for (const candidate of info.candidates) {
-    const renditions = planVideoWarming(candidate.usages)
-
-    if (renditions.length === 0) continue
-
-    const transformations = renditions.flatMap((rendition) =>
-      buildVideoTransformations(rendition.profile, rendition.size),
-    )
-
-    const contract = warmContractId(transformations)
-
-    if (!force && candidate.warmedContract === contract) continue
-
-    jobs.push({
-      mediaId: candidate.mediaId,
-      cloudinaryPublicId: candidate.cloudinaryPublicId,
-      transformations,
-      contract,
-    })
-  }
-
-  return jobs
-}
-
-export async function prepareContentWarming(
-  contentId: string,
-  { includeDraft = false, force = false }: PrepareOptions = {},
-): Promise<WarmJob[]> {
-  const info = await readContentWarmInfo(contentId)
-
-  if (!includeDraft && info.status === 'draft') return []
-
-  return planJobs(info, force)
-}
-
-/** Cuántos vídeos del contenido (sea cual sea su estado) están sin calentar. */
-export async function countPendingWarming(contentId: string): Promise<number> {
-  return planJobs(await readContentWarmInfo(contentId), false).length
-}
-
 function shortReason(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error)
 
   return message.slice(0, 200)
 }
 
-export async function runWarmJobs(
-  jobs: WarmJob[],
-  mark: WarmMarker = markWarmedWithService,
-): Promise<WarmResult> {
-  const result: WarmResult = { warmed: 0, failed: 0 }
+export function makeContentWarming({
+  warmRepo,
+  warmer,
+}: {
+  warmRepo: WarmRepository
+  warmer: VideoWarmer
+}) {
+  function planJobs(info: ContentWarmInfo, force: boolean): WarmJob[] {
+    const jobs: WarmJob[] = []
 
-  for (const job of jobs) {
-    try {
-      await warmVideoRenditions(job.cloudinaryPublicId, job.transformations)
-    } catch (error) {
-      console.error(error)
-      result.failed += 1
+    for (const candidate of info.candidates) {
+      const renditions = planVideoWarming(candidate.usages)
 
-      try {
-        await mark(job.mediaId, job.contract, shortReason(error))
-      } catch (markError) {
-        console.error(markError)
-      }
+      if (renditions.length === 0) continue
 
-      continue
+      const transformations = renditions.flatMap((rendition) =>
+        warmer.transformationsFor(rendition.profile, rendition.size),
+      )
+
+      const contract = warmContractId(transformations)
+
+      if (!force && candidate.warmedContract === contract) continue
+
+      jobs.push({
+        mediaId: candidate.mediaId,
+        cloudinaryPublicId: candidate.cloudinaryPublicId,
+        transformations,
+        contract,
+      })
     }
 
-    try {
-      await mark(job.mediaId, job.contract)
-      result.warmed += 1
-    } catch (markError) {
-      // Cloudinary sí lo aceptó; solo falló anotarlo. Se contará como fallo
-      // para que se vea, aunque un nuevo intento vuelva a pedirlo.
-      console.error(markError)
-      result.failed += 1
-    }
+    return jobs
   }
 
-  return result
+  async function prepareContentWarming(
+    contentId: string,
+    { includeDraft = false, force = false }: PrepareOptions = {},
+  ): Promise<WarmJob[]> {
+    const info = await warmRepo.readContentWarmInfo(contentId)
+
+    if (!includeDraft && info.status === 'draft') return []
+
+    return planJobs(info, force)
+  }
+
+  /** Cuántos vídeos del contenido (sea cual sea su estado) están sin calentar. */
+  async function countPendingWarming(contentId: string): Promise<number> {
+    return planJobs(await warmRepo.readContentWarmInfo(contentId), false).length
+  }
+
+  async function runWarmJobs(
+    jobs: WarmJob[],
+    mark: WarmMarker = warmRepo.markWithService,
+  ): Promise<WarmResult> {
+    const result: WarmResult = { warmed: 0, failed: 0 }
+
+    for (const job of jobs) {
+      try {
+        await warmer.warm(job.cloudinaryPublicId, job.transformations)
+      } catch (error) {
+        console.error(error)
+        result.failed += 1
+
+        try {
+          await mark(job.mediaId, job.contract, shortReason(error))
+        } catch (markError) {
+          console.error(markError)
+        }
+
+        continue
+      }
+
+      try {
+        await mark(job.mediaId, job.contract)
+        result.warmed += 1
+      } catch (markError) {
+        // Cloudinary sí lo aceptó; solo falló anotarlo. Se contará como fallo
+        // para que se vea, aunque un nuevo intento vuelva a pedirlo.
+        console.error(markError)
+        result.failed += 1
+      }
+    }
+
+    return result
+  }
+
+  /** Botón «Calentar» del ABM: todo con la sesión del admin y en la misma petición. */
+  async function warmContentMedia(
+    contentId: string,
+    options: PrepareOptions = {},
+  ): Promise<WarmResult> {
+    const jobs = await prepareContentWarming(contentId, options)
+
+    return runWarmJobs(jobs, warmRepo.markWithSession)
+  }
+
+  return {
+    prepareContentWarming,
+    countPendingWarming,
+    runWarmJobs,
+    warmContentMedia,
+  }
 }
 
-/** Botón «Calentar» del ABM: todo con la sesión del admin y en la misma petición. */
-export async function warmContentMedia(
-  contentId: string,
-  options: PrepareOptions = {},
-): Promise<WarmResult> {
-  const jobs = await prepareContentWarming(contentId, options)
-
-  return runWarmJobs(jobs, markWarmedWithSession)
-}
+export type ContentWarming = ReturnType<typeof makeContentWarming>

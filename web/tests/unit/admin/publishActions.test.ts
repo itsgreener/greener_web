@@ -1,24 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { updateTag } from 'next/cache'
+import { dbError } from '@tests/helpers/dbError'
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 
-vi.mock('@/modules/media/application/warmAfterResponse', () => ({
-  warmContentAfterResponse: vi.fn().mockResolvedValue(undefined),
-}))
-
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
 }))
 
-vi.mock('@/modules/content/application/publishContent', () => ({
+vi.mock('@/modules/content/container', () => ({
   publishContent: vi.fn(),
-}))
-
-vi.mock('@/modules/content/application/scheduleContent', () => ({
   scheduleContent: vi.fn(),
-}))
-
-vi.mock('@/modules/content/application/unpublishContent', () => ({
   unpublishContent: vi.fn(),
 }))
 
@@ -36,12 +29,13 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+// El calentamiento de vídeos tras publicar/programar ocurre dentro del caso
+// de uso (tests/unit/content/applicationLayer.test.ts).
 describe('publishContentAction', () => {
   it('con un id válido, publica y devuelve success', async () => {
     const { publishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { publishContent } =
-      await import('@/modules/content/application/publishContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { publishContent } = await import('@/modules/content/container')
 
     vi.mocked(publishContent).mockResolvedValue(CONTENT_ID)
 
@@ -49,18 +43,14 @@ describe('publishContentAction', () => {
 
     expect(result.success).toBe(true)
     expect(publishContent).toHaveBeenCalledWith({ id: CONTENT_ID })
-
-    const { warmContentAfterResponse } =
-      await import('@/modules/media/application/warmAfterResponse')
-
-    expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
+    // Publicar cambia el universo del feed: su caché se invalida por etiqueta.
+    expect(updateTag).toHaveBeenCalledWith('feed-dataset')
   })
 
   it('con un id inválido, no llega a llamar a publishContent', async () => {
     const { publishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { publishContent } =
-      await import('@/modules/content/application/publishContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { publishContent } = await import('@/modules/content/container')
 
     const result = await publishContentAction({}, formData({ id: 'malo' }))
 
@@ -68,29 +58,14 @@ describe('publishContentAction', () => {
     expect(publishContent).not.toHaveBeenCalled()
   })
 
-  it('si publicar falla, no se calienta nada', async () => {
-    const { publishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { publishContent } =
-      await import('@/modules/content/application/publishContent')
-    const { warmContentAfterResponse } =
-      await import('@/modules/media/application/warmAfterResponse')
-
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    vi.mocked(publishContent).mockRejectedValue(new Error('boom'))
-
-    await publishContentAction({}, formData({ id: CONTENT_ID }))
-
-    expect(warmContentAfterResponse).not.toHaveBeenCalled()
-  })
-
   it('si publishContent lanza, devuelve un error legible', async () => {
     const { publishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { publishContent } =
-      await import('@/modules/content/application/publishContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { publishContent } = await import('@/modules/content/container')
 
-    vi.mocked(publishContent).mockRejectedValue(new Error('Content not found'))
+    vi.mocked(publishContent).mockRejectedValue(
+      dbError('P0002', 'Content not found'),
+    )
 
     const result = await publishContentAction({}, formData({ id: CONTENT_ID }))
 
@@ -99,12 +74,12 @@ describe('publishContentAction', () => {
 
   it('decisión del 22 sep: sin html_package publicado, traduce el error del RPC a un mensaje específico, no el genérico', async () => {
     const { publishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { publishContent } =
-      await import('@/modules/content/application/publishContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { publishContent } = await import('@/modules/content/container')
 
     vi.mocked(publishContent).mockRejectedValue(
-      new Error(
+      dbError(
+        'ZG009',
         'Esta tool/insight no tiene un paquete HTML publicado — no se puede publicar sin él',
       ),
     )
@@ -118,9 +93,8 @@ describe('publishContentAction', () => {
 describe('scheduleContentAction', () => {
   it('con una fecha futura válida, programa y devuelve success', async () => {
     const { scheduleContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { scheduleContent } =
-      await import('@/modules/content/application/scheduleContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { scheduleContent } = await import('@/modules/content/container')
 
     vi.mocked(scheduleContent).mockResolvedValue(CONTENT_ID)
 
@@ -133,18 +107,12 @@ describe('scheduleContentAction', () => {
 
     expect(result.success).toBe(true)
     expect(scheduleContent).toHaveBeenCalledOnce()
-
-    const { warmContentAfterResponse } =
-      await import('@/modules/media/application/warmAfterResponse')
-
-    expect(warmContentAfterResponse).toHaveBeenCalledWith(CONTENT_ID)
   })
 
   it('con una fecha pasada, el schema la rechaza sin llamar a scheduleContent', async () => {
     const { scheduleContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { scheduleContent } =
-      await import('@/modules/content/application/scheduleContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { scheduleContent } = await import('@/modules/content/container')
 
     const past = new Date(Date.now() - 3_600_000).toISOString()
 
@@ -159,12 +127,11 @@ describe('scheduleContentAction', () => {
 
   it('si scheduleContent lanza el error de fecha futura del SQL, lo traduce a fieldErrors.publishAt', async () => {
     const { scheduleContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { scheduleContent } =
-      await import('@/modules/content/application/scheduleContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { scheduleContent } = await import('@/modules/content/container')
 
     vi.mocked(scheduleContent).mockRejectedValue(
-      new Error('La fecha de publicación debe ser futura'),
+      dbError('ZG010', 'La fecha de publicación debe ser futura'),
     )
 
     const future = new Date(Date.now() + 3_600_000).toISOString()
@@ -179,12 +146,12 @@ describe('scheduleContentAction', () => {
 
   it('decisión del 22 sep: sin html_package publicado, traduce el error del RPC a formError específico', async () => {
     const { scheduleContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { scheduleContent } =
-      await import('@/modules/content/application/scheduleContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { scheduleContent } = await import('@/modules/content/container')
 
     vi.mocked(scheduleContent).mockRejectedValue(
-      new Error(
+      dbError(
+        'ZG009',
         'Esta tool/insight no tiene un paquete HTML publicado — no se puede programar sin él',
       ),
     )
@@ -203,9 +170,8 @@ describe('scheduleContentAction', () => {
 describe('unpublishContentAction', () => {
   it('con un id válido, despublica y devuelve success', async () => {
     const { unpublishContentAction } =
-      await import('@/app/admin/contents/[id]/edit/publishActions')
-    const { unpublishContent } =
-      await import('@/modules/content/application/unpublishContent')
+      await import('@/app/admin/(panel)/contents/[id]/edit/publishActions')
+    const { unpublishContent } = await import('@/modules/content/container')
 
     vi.mocked(unpublishContent).mockResolvedValue(CONTENT_ID)
 
@@ -216,5 +182,6 @@ describe('unpublishContentAction', () => {
 
     expect(result.success).toBe(true)
     expect(unpublishContent).toHaveBeenCalledWith({ id: CONTENT_ID })
+    expect(updateTag).toHaveBeenCalledWith('feed-dataset')
   })
 })

@@ -62,38 +62,38 @@ describe('rememberSession / getLastSession', () => {
     const { getLastSession } =
       await import('@/modules/feed/infrastructure/feedRateLimit')
 
-    expect(getLastSession('visitor-1')).toBeNull()
+    expect(getLastSession('visitor-1', 'home')).toBeNull()
   })
 
   it('devuelve la última sesión recordada para ese visitante', async () => {
     const { rememberSession, getLastSession } =
       await import('@/modules/feed/infrastructure/feedRateLimit')
 
-    rememberSession('visitor-1', 'session-a')
-    rememberSession('visitor-1', 'session-b')
+    rememberSession('visitor-1', 'session-a', 'home')
+    rememberSession('visitor-1', 'session-b', 'home')
 
-    expect(getLastSession('visitor-1')).toBe('session-b')
+    expect(getLastSession('visitor-1', 'home')).toBe('session-b')
   })
 
   it('no mezcla la sesión recordada de visitantes distintos', async () => {
     const { rememberSession, getLastSession } =
       await import('@/modules/feed/infrastructure/feedRateLimit')
 
-    rememberSession('visitor-1', 'session-a')
-    rememberSession('visitor-2', 'session-z')
+    rememberSession('visitor-1', 'session-a', 'home')
+    rememberSession('visitor-2', 'session-z', 'home')
 
-    expect(getLastSession('visitor-1')).toBe('session-a')
-    expect(getLastSession('visitor-2')).toBe('session-z')
+    expect(getLastSession('visitor-1', 'home')).toBe('session-a')
+    expect(getLastSession('visitor-2', 'home')).toBe('session-z')
   })
 
   it('una sesión recordada hace más de 24h ya no se devuelve', async () => {
     const { rememberSession, getLastSession } =
       await import('@/modules/feed/infrastructure/feedRateLimit')
 
-    rememberSession('visitor-1', 'session-a')
+    rememberSession('visitor-1', 'session-a', 'home')
     vi.setSystemTime(new Date('2026-09-30T10:00:01Z')) // 24h + 1s después
 
-    expect(getLastSession('visitor-1')).toBeNull()
+    expect(getLastSession('visitor-1', 'home')).toBeNull()
   })
 })
 
@@ -108,17 +108,6 @@ describe('rememberSession / getLastSession — por visitante Y scope (5 oct 2026
     expect(getLastSession('visitor-1', 'home')).toBe('session-home')
     expect(getLastSession('visitor-1', 'tools')).toBe('session-tools')
     expect(getLastSession('visitor-1', 'channel')).toBeNull()
-  })
-
-  it('sin scope usa home, compatible con las llamadas antiguas de dos argumentos', async () => {
-    const { rememberSession, getLastSession } =
-      await import('@/modules/feed/infrastructure/feedRateLimit')
-
-    rememberSession('visitor-1', 'session-1')
-
-    expect(getLastSession('visitor-1')).toBe('session-1')
-    expect(getLastSession('visitor-1', 'home')).toBe('session-1')
-    expect(getLastSession('visitor-1', 'work')).toBeNull()
   })
 
   it('cada scope recuerda solo su última sesión', async () => {

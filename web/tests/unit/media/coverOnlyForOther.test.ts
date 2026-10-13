@@ -15,7 +15,7 @@ const migration = readFileSync(
   'utf8',
 )
 const adminPage = readFileSync(
-  join(root, 'src/app/admin/contents/[id]/edit/page.tsx'),
+  join(root, 'src/app/admin/(panel)/contents/[id]/edit/page.tsx'),
   'utf8',
 )
 

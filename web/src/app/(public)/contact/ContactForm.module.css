@@ -40,7 +40,7 @@
   & p {
     margin: 0;
     font-size: 0.8rem;
-    color: #c0392b;
+    color: var(--color-error);
   }
 }
 
@@ -56,13 +56,13 @@
   & p {
     margin: var(--space-xs) 0 0;
     font-size: 0.8rem;
-    color: #c0392b;
+    color: var(--color-error);
   }
 }
 
 .formError {
   font-size: 0.85rem;
-  color: #c0392b;
+  color: var(--color-error);
 }
 
 .submit {

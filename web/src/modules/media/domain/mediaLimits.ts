@@ -34,8 +34,7 @@ export const VIDEO_LIMITS = {
 /**
  * Límite de un vídeo de pin «normal» (casos, insights, episodios, other) y,
  * a la vez, umbral por debajo del cual un vídeo se anima en el feed.
- * Pasó de 5 a 8 s el 5 oct 2026: la mayoría de los vídeos que se cargan
- * duran entre 5 y 7 s. Un vídeo de pin de una tool puede durar más (ver
+ * Un vídeo de pin de una tool puede durar más (ver
  * TOOL_PIN_VIDEO_LIMITS), pero por encima de este umbral en el feed solo
  * se enseña su poster — el vídeo completo se descarga solo en el detalle.
  */
@@ -44,7 +43,7 @@ export const PIN_ANIMATION_LIMITS = {
 } as const
 
 /**
- * Vídeos de demostración de una tool (5 oct 2026): viajan en el flujo de
+ * Vídeos de demostración de una tool: viajan en el flujo de
  * pines existente y sustituyen a la imagen de la ficha `/tools/{slug}?pin=`.
  * Más estrictos en peso que el vídeo genérico (100 MB) porque el plan Free
  * de Cloudinary no admite derroche, y más largos que una animación de pin
@@ -144,11 +143,10 @@ function isWebP(bytes: Uint8Array): boolean {
 }
 
 /*
- * Detección de animación recorriendo los CHUNKS del formato (auditoría
- * 8 oct). Antes se buscaba la cadena `ANIM`/`acTL` en todo el fichero, y
- * esos 4 bytes pueden aparecer por azar dentro de los datos comprimidos de
- * una imagen estática de varios MB: un falso positivo rechazaba una foto
- * válida sin explicación posible para quien la sube.
+ * Detección de animación recorriendo los CHUNKS del formato, no buscando la
+ * cadena `ANIM`/`acTL` en todo el fichero: esos 4 bytes pueden aparecer por
+ * azar dentro de los datos comprimidos de una imagen estática y rechazarían
+ * una foto válida sin explicación posible.
  */
 function isAnimatedWebP(bytes: Uint8Array): boolean {
   if (!isWebP(bytes)) {
@@ -207,13 +205,8 @@ function isAnimatedPng(bytes: Uint8Array): boolean {
   return false
 }
 
-/**
- * Conservamos esta función para no romper
- * los usos/tests existentes.
- *
- * Solo valida tamaño.
- */
-export function validateImageUpload(
+/** Valida solo el tamaño de una imagen (la validación completa es `validateImageFile`). */
+export function validateImageSize(
   sizeBytes: number,
 ): MediaValidationError | null {
   if (sizeBytes > IMAGE_LIMITS.maxSizeBytes) {
@@ -241,7 +234,7 @@ export function validateImageUpload(
 export async function validateImageFile(
   file: ImageFileLike,
 ): Promise<MediaValidationError | null> {
-  const sizeValidation = validateImageUpload(file.size)
+  const sizeValidation = validateImageSize(file.size)
 
   if (sizeValidation) {
     return sizeValidation
@@ -336,29 +329,6 @@ export function validateVideoUpload(
       code: 'VIDEO_TOO_LONG',
 
       maxSeconds: VIDEO_LIMITS.maxDurationSeconds,
-    }
-  }
-
-  return null
-}
-
-export function validatePinAnimationUpload(
-  sizeBytes: number,
-  durationSeconds: number,
-): MediaValidationError | null {
-  if (sizeBytes > VIDEO_LIMITS.maxSizeBytes) {
-    return {
-      code: 'VIDEO_TOO_LARGE',
-
-      maxBytes: VIDEO_LIMITS.maxSizeBytes,
-    }
-  }
-
-  if (durationSeconds > PIN_ANIMATION_LIMITS.maxDurationSeconds) {
-    return {
-      code: 'ANIMATION_TOO_LONG',
-
-      maxSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
     }
   }
 

@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type {
   CaseCarouselItem,
   CaseCarouselRepository,
-} from '../domain/caseCarouselRepository'
+} from '@/modules/content/domain/caseCarouselRepository'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabaseCaseCarouselRepository: CaseCarouselRepository = {

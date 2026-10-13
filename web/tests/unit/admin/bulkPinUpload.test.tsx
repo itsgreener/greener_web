@@ -19,10 +19,10 @@ const createPinWithVideoAction = vi.fn()
 const discardUploadQuietly = vi.fn()
 const readLocalVideoDuration = vi.fn()
 
-vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
+vi.mock('@/modules/media/client/cloudinaryUpload', async () => {
   const actual = await vi.importActual<
-    typeof import('@/modules/media/infrastructure/cloudinaryUpload')
-  >('@/modules/media/infrastructure/cloudinaryUpload')
+    typeof import('@/modules/media/client/cloudinaryUpload')
+  >('@/modules/media/client/cloudinaryUpload')
 
   return {
     ...actual,
@@ -35,23 +35,23 @@ vi.mock('@/modules/media/infrastructure/cloudinaryUpload', async () => {
   }
 })
 
-vi.mock('@/modules/media/infrastructure/readLocalVideoDuration', () => ({
+vi.mock('@/modules/media/client/readLocalVideoDuration', () => ({
   readLocalVideoDuration: (...args: unknown[]) =>
     readLocalVideoDuration(...args),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/pinActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({
   createPinWithImageAction: (...args: unknown[]) =>
     createPinWithImageAction(...args),
   createPinWithVideoAction: (...args: unknown[]) =>
     createPinWithVideoAction(...args),
 }))
 
-vi.mock('@/app/admin/contents/[id]/edit/discardUpload', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/discardUpload', () => ({
   discardUploadQuietly: (...args: unknown[]) => discardUploadQuietly(...args),
 }))
 
-import BulkPinUpload from '@/app/admin/contents/[id]/edit/BulkPinUpload'
+import BulkPinUpload from '@/app/admin/(panel)/contents/[id]/edit/BulkPinUpload'
 import { DERIVED_PIN_LABEL_TYPES } from '@/modules/pin/domain/derivedPinLabel'
 
 const SIGNED = {

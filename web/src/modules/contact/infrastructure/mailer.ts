@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer'
 import { getContactEnv } from '@/lib/serverEnv'
-import type { ContactFormInput } from '../domain/contactSchema'
+import type { ContactMailer } from '@/modules/contact/domain/contactPorts'
+import type { ContactFormInput } from '@/modules/contact/domain/contactSchema'
 
 /**
  * Un transporter por proceso, no uno por envío — nodemailer reutiliza la
@@ -71,3 +72,5 @@ export async function sendContactEmail(input: ContactFormInput): Promise<void> {
     html,
   })
 }
+
+export const smtpContactMailer: ContactMailer = { send: sendContactEmail }

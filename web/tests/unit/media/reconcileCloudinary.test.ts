@@ -9,7 +9,7 @@ import {
   listReferencedMediaIds,
   MANAGED_PREFIX,
   parseArgs,
-} from '../../../scripts/reconcile-cloudinary.mjs'
+} from '@root/scripts/reconcile-cloudinary.mjs'
 
 const NOW = Date.parse('2026-10-05T12:00:00Z')
 const HOUR = 60 * 60 * 1000

@@ -7,8 +7,10 @@
  * prefetch, cuándo se rinde, cuándo se reintenta) se prueba con tests puros.
  */
 
+import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
+
 /** Mismo umbral «móvil» que el primer breakpoint del masonry (<640 px). */
-export const MOBILE_BREAKPOINT_PX = 640
+export const MOBILE_BREAKPOINT_PX = BREAKPOINT_PX.mobile
 
 /**
  * Prefetch: el `<video>` se monta (oculto bajo el póster) cuando la tarjeta

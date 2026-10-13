@@ -1,12 +1,17 @@
 import {
   unpublishContentSchema,
   type UnpublishContentInput,
-} from '../domain/contentSchema'
+} from '@/modules/content/domain/contentSchema'
+import type { ContentRepository } from '@/modules/content/domain/contentRepository'
 
-import { supabaseContentRepository } from '../infrastructure/supabaseContentRepository'
+export function makeUnpublishContent({
+  contents,
+}: {
+  contents: ContentRepository
+}) {
+  return async function unpublishContent(input: UnpublishContentInput) {
+    const validated = unpublishContentSchema.parse(input)
 
-export async function unpublishContent(input: UnpublishContentInput) {
-  const validated = unpublishContentSchema.parse(input)
-
-  return supabaseContentRepository.unpublish(validated)
+    return contents.unpublish(validated)
+  }
 }

@@ -10,8 +10,7 @@ interface Bucket {
 
 /**
  * Limitador de ventana fija, en memoria del propio proceso — no en
- * Supabase ni en ningún almacén compartido (decisión del 29 sep, ver
- * PROGRESO §2.16): pensado para amortiguar ruido y tráfico automatizado
+ * Supabase ni en ningún almacén compartido (PROGRESO §2.16): pensado para amortiguar ruido y tráfico automatizado
  * en endpoints públicos de alto volumen (cada visita normal los toca),
  * no como una defensa real contra abuso deliberado. Quien controla sus
  * propias peticiones puede rotar de identificador tan fácilmente como
@@ -19,12 +18,9 @@ interface Bucket {
  *
  * Ventana FIJA, no deslizante: empieza en la primera petición de esa
  * `key` y se reinicia entera al expirar; no se prolonga con cada
- * petición nueva. Es una distinción real, no un detalle de implementación
- * — una ventana que se prolongara en cada toque nunca volvería a
- * reiniciarse para un visitante activo a un ritmo bajo pero constante
- * (una petición cada pocos segundos, sin hueco nunca de duración
- * `windowMs`), y acabaría bloqueándolo para siempre sin haber hecho
- * nada indebido.
+ * petición nueva. Una ventana que se prolongara en cada toque nunca
+ * se reiniciaría para un visitante activo a ritmo bajo pero constante, y
+ * acabaría bloqueándolo para siempre sin haber hecho nada indebido.
  *
  * Costes aceptados a propósito, por ser en memoria de proceso: no se
  * comparte entre procesos (si algún día la app corre en más de un

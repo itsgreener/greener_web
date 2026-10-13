@@ -7,9 +7,12 @@ import type {
   HtmlPackageVersionSummary,
   PublishHtmlPackageVersionInput,
   UploadHtmlPackageVersionInput,
-} from '../domain/htmlPackageRepository'
+} from '@/modules/packages/domain/htmlPackageRepository'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
-import { contentTypeFor, PACKAGE_BUCKET } from '../domain/packageFiles'
+import {
+  contentTypeFor,
+  PACKAGE_BUCKET,
+} from '@/modules/packages/domain/packageFiles'
 
 type StorageClient = Awaited<ReturnType<typeof createClient>>['storage']
 
@@ -90,9 +93,9 @@ export const supabaseHtmlPackageRepository: HtmlPackageRepository = {
 
     // Dos subidas simultáneas calcularían la misma versión: lo impiden
     // `upsert: false` en Storage y el unique(package_id, version) en
-    // Postgres. Lo que faltaba (auditoría 8 oct, P0-10) es no dejar ficheros
-    // huérfanos en Storage si algo falla a mitad: se borran los que ESTA
-    // subida llegó a escribir (nunca los de otra).
+    // Postgres. Si algo falla a mitad no deben quedar ficheros huérfanos en
+    // Storage: se borran los que ESTA subida llegó a escribir (nunca los de
+    // otra).
     const uploadedPaths: string[] = []
 
     try {

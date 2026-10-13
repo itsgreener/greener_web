@@ -5,7 +5,8 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { Feed } from '@/components/masonry/Feed'
 import { FeedProvider } from '@/components/masonry/FeedProvider'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import { feedCopy } from '@/components/masonry/copy'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 const SESSION_IDS: Record<string, string> = {
   home: 'session-home',
@@ -139,9 +140,7 @@ describe('Feed — prueba de humo', () => {
     renderFeed('tools')
 
     await waitFor(() => {
-      expect(
-        screen.getByText('No se ha podido cargar el feed. Recarga la página.'),
-      ).toBeInTheDocument()
+      expect(screen.getByText(feedCopy.loadError)).toBeInTheDocument()
     })
   })
 
@@ -276,9 +275,7 @@ describe('Feed — prueba de humo', () => {
     renderFeed('insights')
 
     await waitFor(() => {
-      expect(
-        screen.getByText('Todavía no hay contenido publicado en esta sección.'),
-      ).toBeInTheDocument()
+      expect(screen.getByText(feedCopy.empty)).toBeInTheDocument()
     })
 
     const fetchCallsAfterEmptyRound = vi.mocked(global.fetch).mock.calls.length

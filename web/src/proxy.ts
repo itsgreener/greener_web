@@ -16,10 +16,8 @@ function isAdminRoute(pathname: string): boolean {
 
 /**
  * Cabeceras de seguridad globales (arquitectura §17.1) + verificación de
- * dominio del ABM (§15.2, ya existía). Decisión del 22 de septiembre:
- * nonce + 'strict-dynamic' para script-src, siguiendo el mecanismo que
- * el propio Next.js documenta — ver `src/lib/securityHeaders.ts` para el
- * porqué de cada directiva.
+ * dominio del ABM (§15.2). El porqué de cada directiva (nonce +
+ * 'strict-dynamic' para script-src) está en `src/lib/securityHeaders.ts`.
  */
 export async function proxy(request: NextRequest) {
   const pathname = new URL(request.url).pathname

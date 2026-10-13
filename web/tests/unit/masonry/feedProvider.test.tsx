@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 import { FeedProvider, useFeedContext } from '@/components/masonry/FeedProvider'
-import type { FeedBatchItem } from '@/modules/feed/application/getFeedSessionBatch'
+import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
 
 /**
  * appendBatch (FeedProvider.tsx) es donde vivía el bug real corregido el

@@ -2,9 +2,9 @@
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
-import ContentTranslations from '@/app/admin/contents/[id]/edit/ContentTranslations'
+import ContentTranslations from '@/app/admin/(panel)/contents/[id]/edit/ContentTranslations'
 
-vi.mock('@/app/admin/contents/[id]/edit/translationActions', () => ({
+vi.mock('@/app/admin/(panel)/contents/[id]/edit/translationActions', () => ({
   saveTranslationAction: vi.fn(),
 }))
 

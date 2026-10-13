@@ -8,21 +8,22 @@ import { NextRequest } from 'next/server'
 
 const getStoragePackageAsset = vi.fn()
 
-vi.mock('@/modules/packages/infrastructure/supabaseStorageSource', () => ({
-  getStoragePackageAsset: (...args: unknown[]) =>
-    getStoragePackageAsset(...args),
+vi.mock('@/modules/packages/container', () => ({
+  publishedPackages: {
+    getAsset: (...args: unknown[]) => getStoragePackageAsset(...args),
+  },
 }))
 
 const ROUTES = [
   {
     kind: 'tool' as const,
     load: () =>
-      import('@/app/(public)/tools/[slug]/app/assets/[...file]/route'),
+      import('@/app/(public)/(detail)/tools/[slug]/app/assets/[...file]/route'),
   },
   {
     kind: 'insight' as const,
     load: () =>
-      import('@/app/(public)/insights/[slug]/app/assets/[...file]/route'),
+      import('@/app/(public)/(detail)/insights/[slug]/app/assets/[...file]/route'),
   },
 ]
 
@@ -68,12 +69,8 @@ describe.each(ROUTES)('ruta de assets de $kind', ({ kind, load }) => {
 
     await GET(request('"abc"'), params(['assets-sub', 'main.js']))
 
-    // Bug real corregido el 29 sep: la ruta debe volver a anteponer
-    // 'assets' — Next.js ya lo consume como segmento fijo de la propia
-    // ruta antes de pasarle `file`, pero en Storage el asset vive bajo
-    // <storage_path>/assets/... (todo lo que no sea index.html/manifest.json
-    // sube conservando su ruta dentro del ZIP). Sin este prefijo, TODO
-    // asset de TODO paquete daba 404 contra Storage real.
+    // Next consume `assets` como segmento fijo, pero en Storage el asset vive
+    // bajo <storage_path>/assets/...: la ruta tiene que volver a anteponerlo.
     expect(getStoragePackageAsset).toHaveBeenCalledWith(
       kind,
       'mi-slug',
@@ -123,6 +120,20 @@ describe.each(ROUTES)('ruta de assets de $kind', ({ kind, load }) => {
     const response = await GET(request(), params(['nada.js']))
 
     expect(response.status).toBe(404)
+  })
+
+  it('503 con Retry-After si Supabase o Storage no responden (no un 404)', async () => {
+    const { PackageSourceUnavailableError } =
+      await import('@/modules/packages/domain/manifest')
+    getStoragePackageAsset.mockRejectedValue(
+      new PackageSourceUnavailableError('x'),
+    )
+    const { GET } = await load()
+
+    const response = await GET(request(), params(['main.js']))
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('retry-after')).toBe('30')
   })
 
   it('un error inesperado no se disfraza de 404', async () => {

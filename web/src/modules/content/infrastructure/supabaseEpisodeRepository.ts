@@ -1,8 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { EpisodeRepository } from '../domain/episodeRepository'
+import type { EpisodeRepository } from '@/modules/content/domain/episodeRepository'
 
-import type { Episode, UpsertEpisodeInput } from '../domain/episodeSchema'
+import type {
+  Episode,
+  UpsertEpisodeInput,
+} from '@/modules/content/domain/episodeSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabaseEpisodeRow = {

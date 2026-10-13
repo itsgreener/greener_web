@@ -72,9 +72,11 @@ describe('migración 20261007120000', () => {
 
 describe('ABM y feed sin carrusel de pines', () => {
   const files = [
-    'src/app/admin/contents/[id]/edit/PinList.tsx',
-    'src/app/admin/contents/[id]/edit/BulkPinUpload.tsx',
-    'src/app/admin/contents/[id]/edit/pinActions.ts',
+    'src/app/admin/(panel)/contents/[id]/edit/PinList/index.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/PinList/EditPinForm.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/index.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/useBulkPinUpload.ts',
+    'src/app/admin/(panel)/contents/[id]/edit/pinActions.ts',
     'src/components/pin/PinCard/index.tsx',
     'src/modules/feed/infrastructure/supabaseFeedSource.ts',
     'src/modules/pin/infrastructure/supabasePinRepository.ts',
@@ -96,7 +98,7 @@ describe('ABM y feed sin carrusel de pines', () => {
   })
 
   it('la ficha de tool ya no lee ?slide=', () => {
-    expect(read('src/app/(public)/tools/[slug]/page.tsx')).not.toMatch(
+    expect(read('src/app/(public)/(detail)/tools/[slug]/page.tsx')).not.toMatch(
       /slide\b(?!_order)/,
     )
   })
@@ -122,9 +124,11 @@ describe('migración 20261007130000 — orden en cola automático', () => {
   })
 
   it.each([
-    'src/app/admin/contents/[id]/edit/PinList.tsx',
-    'src/app/admin/contents/[id]/edit/BulkPinUpload.tsx',
-    'src/app/admin/contents/[id]/edit/pinActions.ts',
+    'src/app/admin/(panel)/contents/[id]/edit/PinList/index.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/PinList/EditPinForm.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/index.tsx',
+    'src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/useBulkPinUpload.ts',
+    'src/app/admin/(panel)/contents/[id]/edit/pinActions.ts',
     'src/modules/pin/infrastructure/supabasePinRepository.ts',
   ])('%s no pide ni envía queueOrder', (file) => {
     expect(read(file)).not.toMatch(/queueOrder|p_queue_order/)

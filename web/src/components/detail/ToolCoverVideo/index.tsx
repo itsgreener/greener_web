@@ -9,7 +9,7 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  * tool (`/tools/{slug}?pin=...`), con la misma caja que tendría la imagen.
  * Mudo y en bucle; botón de pausa siempre visible. Con
  * `prefers-reduced-motion` o `save-data` no arranca solo: poster + «Play».
- * Sin analítica (decisión del 5 oct 2026).
+ * Sin analítica.
  *
  * El póster cubre el vídeo hasta que éste está reproduciendo; si no llega a
  * hacerlo en ~10 s, se queda el póster con el botón de reproducir (contrato

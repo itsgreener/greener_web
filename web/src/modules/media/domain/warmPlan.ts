@@ -21,16 +21,11 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  * construye después `buildVideoTransformations` (infrastructure), la misma
  * función que construye las URL de entrega: una sola fuente de verdad.
  *
- * Decisiones de Greener (7 oct 2026, §9.2): feed (ancho 480) + escalón M de
- * la ficha, siempre en los dos formatos (eso lo añade quien construye las
- * cadenas); nunca imágenes.
- *
- * CORRECCIÓN DEL 8 oct: el vídeo de la ficha de una TOOL también se calienta
- * en el escalón L. «Sin escalón L» (decisión del 7 oct) partía de que L no se
- * serviría, pero `useToolCoverVideo` sí lo pide (`pickDetailVideoRung`) en
- * pantallas grandes o con DPR alto, y el primer visitante tendría que
- * esperar a que Cloudinary lo generara (decenas de segundos, con el vídeo a
- * trompicones). El carrusel de caso y la portada de `other` solo usan M
+ * Se calienta el feed (ancho 480) + el escalón M de la ficha, siempre en los
+ * dos formatos (lo añade quien construye las cadenas); nunca imágenes. El
+ * vídeo de la ficha de una TOOL se calienta además en el escalón L, porque
+ * `useToolCoverVideo` lo pide (`pickDetailVideoRung`) en pantallas grandes o
+ * con DPR alto; el carrusel de caso y la portada de `other` solo usan M
  * (`detailVideoRungM`), así que ahí L no se calienta.
  */
 

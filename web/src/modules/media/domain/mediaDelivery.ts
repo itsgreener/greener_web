@@ -25,13 +25,11 @@ export type MediaQuality = 'auto' | 'auto:eco' | 'auto:low'
 
 /**
  * Calidades del contrato. PUNTO ÚNICO de la prueba A/B de Greener
- * (contrato-medios-fase-1.md §7 paso 3 y §12). Decidido el 7 oct 2026 tras
- * la prueba real de Greener: `auto:eco` en el feed (imagen, póster y vídeo;
- * también las miniaturas del ABM, que salen por el escalón del feed) y
- * `auto` en las fichas, donde se mira de cerca. Medido: vídeo 720×1280,
- * 744 KB → 424 KB (-43 %, SSIM 0,968); imágenes -10 %/-11 %/-20 % sin
- * diferencia visible. Cambiarlo regenera versiones: se hace de golpe y se
- * despliega ANTES de la carga real de contenido.
+ * (contrato-medios-fase-1.md §7 paso 3 y §12): `auto:eco` en el feed
+ * (imagen, póster y vídeo; también las miniaturas del ABM, que salen por el
+ * escalón del feed) y `auto` en las fichas, donde se mira de cerca.
+ * Cambiarlo regenera versiones: se hace de golpe y se despliega ANTES de la
+ * carga real de contenido.
  */
 export const MEDIA_QUALITY: Record<
   'feedImage' | 'feedVideo' | 'detailVideo',

@@ -23,9 +23,8 @@ export function publicContentPath(type: ContentType, slug: string): string {
  *
  * Igual que `publicContentPath` salvo en insights: el pin salta la página
  * de detalle (/insights/[slug]) y abre directamente el contenido real en
- * /insights/[slug]/app (decisión del 2 oct 2026). La página de detalle se
- * mantiene intacta y sigue siendo la URL canónica (sitemap, preview,
- * compartir); solo el feed deja de pasar por ella.
+ * /insights/[slug]/app. La página de detalle sigue siendo la URL canónica
+ * (sitemap, preview, compartir); solo el feed no pasa por ella.
  *
  * Las tools NO cambian: siguen yendo a /tools/[slug].
  */

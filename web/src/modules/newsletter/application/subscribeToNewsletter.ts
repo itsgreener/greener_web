@@ -1,8 +1,11 @@
-import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
-import { getHashedClientIp } from '@/lib/http/clientIp'
-import { newsletterSchema } from '../domain/newsletterSchema'
-import { subscribeEmailInMailchimp } from '../infrastructure/mailchimpNewsletter'
 import { fieldErrorsOf } from '@/lib/forms/formActionState'
+
+import { UndeliverableEmailError } from '@/modules/newsletter/domain/newsletterErrors'
+import type {
+  AttemptLimiter,
+  NewsletterSubscriber,
+} from '@/modules/newsletter/domain/newsletterPorts'
+import { newsletterSchema } from '@/modules/newsletter/domain/newsletterSchema'
 
 /**
  * Límite por IP. 5/hora (el valor inicial) era demasiado bajo: varias
@@ -14,11 +17,6 @@ import { fieldErrorsOf } from '@/lib/forms/formActionState'
  */
 export const NEWSLETTER_MAX_PER_WINDOW = 30
 export const NEWSLETTER_WINDOW_MS = 60 * 60 * 1000
-
-const newsletterLimiter = createFixedWindowRateLimiter({
-  max: NEWSLETTER_MAX_PER_WINDOW,
-  windowMs: NEWSLETTER_WINDOW_MS,
-})
 
 export type SubscribeNewsletterResult =
   | {
@@ -35,45 +33,55 @@ export type SubscribeNewsletterResult =
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string }
 
-export async function subscribeToNewsletter(
-  input: unknown,
-  honeypot: string,
-): Promise<SubscribeNewsletterResult> {
-  // Bots que rellenan el honeypot reciben éxito silencioso para no darles
-  // información sobre el filtro.
-  if (honeypot.trim()) {
-    return { ok: true, status: 'confirmation_sent', newSubscription: false }
-  }
-
-  const parsed = newsletterSchema.safeParse(input)
-
-  if (!parsed.success) {
-    return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
-  }
-
-  const visitorKey = await getHashedClientIp()
-  if (!newsletterLimiter.check(visitorKey)) {
-    return {
-      ok: false,
-      formError: 'Too many attempts. Please try again later.',
+export function makeSubscribeToNewsletter({
+  subscriber,
+  limiter,
+  visitorKey,
+}: {
+  subscriber: NewsletterSubscriber
+  limiter: AttemptLimiter
+  /** Clave del visitante para el límite (hash de su IP). */
+  visitorKey: () => Promise<string>
+}) {
+  return async function subscribeToNewsletter(
+    input: unknown,
+    honeypot: string,
+  ): Promise<SubscribeNewsletterResult> {
+    // Bots que rellenan el honeypot reciben éxito silencioso para no darles
+    // información sobre el filtro.
+    if (honeypot.trim()) {
+      return { ok: true, status: 'confirmation_sent', newSubscription: false }
     }
-  }
 
-  try {
-    const result = await subscribeEmailInMailchimp(parsed.data.email)
-    return {
-      ok: true,
-      status: result.status,
-      newSubscription: result.status === 'confirmation_sent',
+    const parsed = newsletterSchema.safeParse(input)
+
+    if (!parsed.success) {
+      return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
     }
-  } catch (error) {
-    console.error(error)
-    return {
-      ok: false,
-      formError:
-        error instanceof Error && error.message.includes('undeliverable')
-          ? 'This email address cannot be subscribed. Please use another one.'
-          : 'We could not subscribe you right now. Please try again later.',
+
+    if (!limiter.check(await visitorKey())) {
+      return {
+        ok: false,
+        formError: 'Too many attempts. Please try again later.',
+      }
+    }
+
+    try {
+      const result = await subscriber.subscribe(parsed.data.email)
+      return {
+        ok: true,
+        status: result.status,
+        newSubscription: result.status === 'confirmation_sent',
+      }
+    } catch (error) {
+      console.error(error)
+      return {
+        ok: false,
+        formError:
+          error instanceof UndeliverableEmailError
+            ? 'This email address cannot be subscribed. Please use another one.'
+            : 'We could not subscribe you right now. Please try again later.',
+      }
     }
   }
 }

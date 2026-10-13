@@ -6,6 +6,8 @@
  * posicionar con `transform` en vez de dejar que el navegador reflowee.
  */
 
+import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
+
 export type PinRatio = '1:1' | '4:3' | '4:5' | '3:4' | '2:3' | '9:16' | '16:9'
 
 const RATIO_HEIGHT_FACTOR: Record<PinRatio, number> = {
@@ -29,12 +31,11 @@ export function heightForRatio(ratio: PinRatio, columnWidth: number): number {
  * (viewport − 64 px de menú − 32 de padding), no el del viewport.
  */
 export const BREAKPOINTS = [
-  { maxWidth: 640, columns: 2 },
-  { maxWidth: 900, columns: 3 },
-  { maxWidth: 1200, columns: 4 },
-  // Escritorio: 6 columnas a partir de 1200 (decisión de Greener, 2 oct
-  // 2026). Antes había un tramo intermedio de 5 columnas entre 1200 y 1600
-  // que ya no tiene hueco: ver PROGRESO §2.28.
+  { maxWidth: BREAKPOINT_PX.mobile, columns: 2 },
+  { maxWidth: BREAKPOINT_PX.tablet, columns: 3 },
+  { maxWidth: BREAKPOINT_PX.desktop, columns: 4 },
+  // Escritorio: 6 columnas a partir de 1200 (decisión de Greener; PROGRESO
+  // §2.28).
   { maxWidth: Infinity, columns: 6 },
 ] as const
 

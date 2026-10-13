@@ -1,11 +1,14 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { PinRepository, PinListItem } from '../domain/pinRepository'
+import type {
+  PinRepository,
+  PinListItem,
+} from '@/modules/pin/domain/pinRepository'
 import type {
   CreatePinInput,
   DeletePinInput,
   UpdatePinInput,
-} from '../domain/pinSchema'
+} from '@/modules/pin/domain/pinSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 type SupabasePinRow = {
@@ -19,12 +22,23 @@ type SupabasePinRow = {
   created_at: string
   pin_media: Array<{
     media_id: string
-    slide_order: number
     media_asset: {
       kind: 'image' | 'video'
       cloudinary_public_id: string
     } | null
   }>
+}
+
+function toPinMedia(rows: SupabasePinRow['pin_media']): PinListItem['media'] {
+  const first = rows.find((pm) => pm.media_asset !== null)
+
+  if (!first?.media_asset) return null
+
+  return {
+    id: first.media_id,
+    kind: first.media_asset.kind,
+    cloudinaryPublicId: first.media_asset.cloudinary_public_id,
+  }
 }
 
 function mapPin(row: SupabasePinRow): PinListItem {
@@ -37,15 +51,7 @@ function mapPin(row: SupabasePinRow): PinListItem {
     autoplayMode: row.autoplay_mode,
     alt: row.alt,
     createdAt: row.created_at,
-    media: row.pin_media
-      .filter((pm) => pm.media_asset !== null)
-      .map((pm) => ({
-        id: pm.media_id,
-        kind: pm.media_asset!.kind,
-        cloudinaryPublicId: pm.media_asset!.cloudinary_public_id,
-        slideOrder: pm.slide_order,
-      }))
-      .sort((a, b) => a.slideOrder - b.slideOrder),
+    media: toPinMedia(row.pin_media),
   }
 }
 
@@ -67,7 +73,6 @@ export const supabasePinRepository: PinRepository = {
         created_at,
         pin_media (
           media_id,
-          slide_order,
           media_asset ( kind, cloudinary_public_id )
         )
       `,

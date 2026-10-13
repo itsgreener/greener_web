@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { MediaAssetRepository } from '../domain/mediaAssetRepository'
+import type { MediaAssetRepository } from '@/modules/media/domain/mediaAssetRepository'
 
 import type {
   AddCaseCarouselImageInput,
@@ -9,7 +9,7 @@ import type {
   RegisterCoverImageInput,
   RegisterCoverVideoInput,
   RemoveCaseCarouselMediaInput,
-} from '../domain/mediaAssetSchema'
+} from '@/modules/media/domain/mediaAssetSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 
 export const supabaseMediaAssetRepository: MediaAssetRepository = {

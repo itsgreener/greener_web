@@ -6,7 +6,7 @@ import {
   buildVideoPosterSrcSet,
   buildVideoSources,
   buildFeedVideoSources,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+} from '@/modules/media/client/cloudinaryUrl'
 import {
   IMAGE_DELIVERY,
   pickDetailWidth,

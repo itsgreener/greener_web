@@ -1,89 +1,24 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import { episodePinSecondaryText } from '@/modules/content/domain/episodeLabels'
+import { derivedFeedText } from '@/modules/content/domain/pinFooter'
 import type { ContentType } from '@/modules/shared/domain/contentType'
-import { feedRatiosSchema } from '../domain/feedConfigSchema'
+import { feedRatiosSchema } from '@/modules/feed/domain/feedConfigSchema'
+import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
+import type {
+  FeedDataset,
+  FeedItemMedia,
+  PinDirectoryEntry,
+} from '@/modules/feed/domain/feedReadModels'
+import {
+  CONTENT_TYPE_TO_KIND,
+  typesForScope,
+} from '@/modules/feed/domain/feedScope'
 import type {
   CaseInput,
   ContentPinQueue,
   FeedConfig,
   FeedSnapshot,
-} from '../domain/types'
-
-export interface FeedItemMedia {
-  kind: 'image' | 'video'
-  cloudinaryPublicId: string
-  // Solo vídeo. Decide si se anima en el feed (canAnimateInFeed): por
-  // encima de PIN_ANIMATION_LIMITS.maxDurationSeconds solo se enseña el
-  // poster. Ausente/null = se desconoce y se trata como animable.
-  durationSeconds?: number | null
-}
-
-export interface PinDirectoryEntry {
-  contentId: string
-  contentType: ContentType
-  contentSlug: string
-  ratio: string
-  // Other sigue usando el rótulo escrito por el admin.
-  // Case/episode/insight derivan sus líneas del propio contenido.
-  // Tool reutiliza el rótulo del pin como descripción superior y deriva
-  // automáticamente el nombre de la herramienta como segunda línea.
-  label: string | null
-  // Texto de la primera línea cuando el pin usa formato de dos líneas:
-  // título del contenido en Case/Episode/Insight, descripción del pin
-  // (pin.label) en Tool.
-  displayTitle?: string | null
-  // Segunda línea en negrita: cliente en Case, nombre de la Tool en Tool,
-  // «programa + tipo» en Episode y el texto fijo INSIGHT_PIN_SECONDARY_TEXT
-  // en Insight.
-  displaySecondary?: string | null
-  alt: string
-  // Solo tiene efecto real en un pin de vídeo (§9.1): 'viewport' lo
-  // reproduce vía IntersectionObserver (compite por el hueco global del
-  // feed, videoPlaybackCoordinator.ts), 'hover' solo mientras el puntero
-  // está encima (no compite por el hueco — es una acción explícita del
-  // usuario, no reproducción ambiental), null no reproduce nunca.
-  autoplayMode: 'viewport' | 'hover' | null
-  // Un pin es un único medio (7 oct 2026, §2.41): siempre 1 elemento.
-  media: FeedItemMedia[]
-}
-
-export interface FeedDataset {
-  snapshot: FeedSnapshot
-  pinDirectory: Record<string, PinDirectoryEntry>
-}
-
-/**
- * Texto en negrita bajo el título en el pin de un insight (2 oct 2026,
- * petición de Greener). Ocupa el lugar que en un caso ocupa el cliente,
- * pero es FIJO: el mismo para todos los insights, sin campo en el ABM.
- * El texto está en inglés porque la interfaz global lo está (§2.4).
- */
-export const INSIGHT_PIN_SECONDARY_TEXT = 'Insights by Greener'
-
-const CONTENT_TYPE_TO_KIND: Record<ContentType, keyof FeedSnapshot> = {
-  case: 'cases',
-  insight: 'insights',
-  tool: 'tools',
-  episode: 'channel',
-  other: 'other',
-}
-
-/**
- * Qué tipos de contenido entran en el universo según el scope de la
- * feedSession (arquitectura §6.1, §8.2). 'home' es el feed mixto de
- * siempre; cada subhome filtra a un único tipo — "el 100% de los
- * contenidos del scope forma el universo", no una mezcla con cuotas.
- * 'other' no tiene subhome propia (no hay ruta /other en el brief), así
- * que no aparece como scope aquí — solo se sirve dentro de 'home'.
- */
-const SCOPE_TO_TYPES: Record<string, readonly ContentType[]> = {
-  home: ['case', 'insight', 'tool', 'episode', 'other'],
-  work: ['case'],
-  insights: ['insight'],
-  tools: ['tool'],
-  channel: ['episode'],
-}
+} from '@/modules/feed/domain/types'
 
 type ContentTranslationRow = {
   locale: string
@@ -137,89 +72,6 @@ const PIN_SELECT = `
   )
 ` as const
 
-function resolveContentTitle(
-  content: FeedContentMeta,
-  pinLanguage: string,
-): string | null {
-  const translations = content.content_translation ?? []
-
-  return (
-    translations.find((translation) => translation.locale === pinLanguage)
-      ?.title ??
-    translations.find(
-      (translation) => translation.locale === content.default_locale,
-    )?.title ??
-    translations[0]?.title ??
-    null
-  )
-}
-
-function derivedFeedText(
-  pin: PinRow,
-  content: FeedContentMeta,
-): {
-  label: string | null
-  displayTitle: string | null
-  displaySecondary: string | null
-} {
-  const contentType = content.type
-
-  if (contentType === 'case') {
-    return {
-      // Importante: cualquier label antigua guardada por el ABM queda
-      // deliberadamente ignorada para case.
-      label: null,
-      displayTitle: resolveContentTitle(content, pin.language),
-      displaySecondary: content.case_detail?.client?.trim() || null,
-    }
-  }
-
-  if (contentType === 'tool') {
-    return {
-      // Para Tool mantenemos el texto específico de cada pin que ya existe
-      // en `pin.label`, pero deja de renderizarse como rótulo de una sola
-      // línea: pasa a ser la descripción superior. La segunda línea es el
-      // nombre de la herramienta, obtenido automáticamente del contenido.
-      // Así una Tool puede tener muchos pines con descripciones distintas
-      // sin duplicar el contenido ni repetir manualmente su nombre.
-      label: null,
-      displayTitle: pin.label?.trim() || null,
-      displaySecondary: resolveContentTitle(content, pin.language),
-    }
-  }
-
-  if (contentType === 'insight') {
-    return {
-      // La frase gancho antigua (pin.label) ya no se muestra en insights:
-      // el título del insight basta y no se repite texto debajo.
-      label: null,
-      displayTitle: resolveContentTitle(content, pin.language),
-      displaySecondary: INSIGHT_PIN_SECONDARY_TEXT,
-    }
-  }
-
-  if (contentType === 'episode') {
-    return {
-      // Mismo criterio para episode: el admin no decide el rótulo del feed.
-      label: null,
-      displayTitle: resolveContentTitle(content, pin.language),
-      // En el formato B final, episode sustituye `client` por el programa
-      // + el tipo: «Brand the Future Podcast» (2 oct 2026). El programa es
-      // el campo «Programa» del ABM; el tipo, «Tipo de episodio».
-      displaySecondary: episodePinSecondaryText(
-        content.episode?.program,
-        content.episode?.episode_kind,
-      ),
-    }
-  }
-
-  return {
-    label: pin.label,
-    displayTitle: null,
-    displaySecondary: null,
-  }
-}
-
 /**
  * Convierte un pin en su unidad de feed (§2.41): un pin es un único medio
  * y cada pin es una unidad independiente — unitId = pin.id. Los pines sin
@@ -242,7 +94,17 @@ export function buildFeedUnitsForPin(
     durationSeconds: first.media_asset!.duration_seconds ?? null,
   }
 
-  const text = derivedFeedText(pin, content)
+  const text = derivedFeedText(
+    { label: pin.label, language: pin.language },
+    {
+      type: content.type,
+      defaultLocale: content.default_locale,
+      translations: content.content_translation ?? [],
+      caseClient: content.case_detail?.client,
+      episodeProgram: content.episode?.program,
+      episodeKind: content.episode?.episode_kind,
+    },
+  )
 
   return [
     {
@@ -281,24 +143,22 @@ function toFeedItemMedia(m: {
 /**
  * Construye el FeedSnapshot real desde Supabase: todo el contenido
  * publicado con al menos un pin, agrupado por tipo (arquitectura §7,
- * §8.2). Reemplaza a modules/feed/infrastructure/demoSnapshotSource.ts
- * tal como ya preveía su propio comentario ("stand-in deliberado").
+ * §8.2).
  *
  * Usa el cliente de lectura pública (respeta RLS: solo status=published,
  * §15.2/§17.1) — no hace falta la service role key para esto, a
  * diferencia de feed_session/feed_round (ver serviceClient.ts).
  *
  * `scope` filtra qué tipos de contenido entran en el universo (ver
- * SCOPE_TO_TYPES) — 'home' por defecto, el feed mixto de siempre. Un
- * scope no reconocido cae también en 'home': createFeedSession.ts ya
- * valida el scope antes de llegar aquí, así que esto es solo defensivo.
+ * typesForScope). Un scope desconocido cae en 'home'; createFeedSession.ts
+ * ya lo valida antes, así que eso es solo defensivo.
  */
 export async function getFeedDataset(
-  scope: string = 'home',
+  scope: string,
   excludeContentId?: string | null,
   client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<FeedDataset> {
-  const types = SCOPE_TO_TYPES[scope] ?? SCOPE_TO_TYPES.home
+  const types = typesForScope(scope)
 
   let query = client
     .from('content')
@@ -315,7 +175,7 @@ export async function getFeedDataset(
     ` as const,
     )
     .eq('status', 'published')
-    .in('type', types)
+    .in('type', [...types])
 
   // Panel de recomendaciones de una página de detalle
   // (especificacion-final-formato-detalle.md §1, §6): el contenido que se
@@ -457,4 +317,10 @@ export async function getFeedConfig(
     distanceWindow: data.distance_window,
     batchSize: data.batch_size,
   }
+}
+
+export const supabaseFeedCatalog: FeedCatalog = {
+  dataset: (scope, excludeContentId) => getFeedDataset(scope, excludeContentId),
+  directoryByIds: (unitIds) => getPinDirectoryByIds(unitIds),
+  config: () => getFeedConfig(),
 }

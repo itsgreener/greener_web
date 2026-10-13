@@ -4,6 +4,7 @@ import {
   MAILCHIMP_TIMEOUT_MS,
   subscribeEmailInMailchimp,
 } from '@/modules/newsletter/infrastructure/mailchimpNewsletter'
+import { UndeliverableEmailError } from '@/modules/newsletter/domain/newsletterErrors'
 
 // md5('test@example.com'), calculado aparte: así el test falla si cambia
 // la normalización o el algoritmo del hash que exige Mailchimp.
@@ -106,9 +107,9 @@ describe('subscribeEmailInMailchimp', () => {
   it('cleaned: no fuerza el alta y lanza un error reconocible (undeliverable)', async () => {
     fetchMock.mockResolvedValueOnce(json({ status: 'cleaned' }))
 
-    await expect(subscribeEmailInMailchimp('test@example.com')).rejects.toThrow(
-      /undeliverable/,
-    )
+    await expect(
+      subscribeEmailInMailchimp('test@example.com'),
+    ).rejects.toBeInstanceOf(UndeliverableEmailError)
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 

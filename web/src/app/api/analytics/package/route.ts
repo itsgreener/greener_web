@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { clientIpFromHeaders } from '@/lib/http/clientIp'
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
-import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
+import { publicContent } from '@/modules/content/container'
 
 const ACTION_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/i
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 
 /**
- * Límite por IP (auditoría 8 oct): sin él, cualquiera podía inflar «Tool
+ * Límite por IP: sin él, cualquiera podía inflar «Tool
  * Used» en bucle (el filtro `sec-fetch-site` no existe fuera de un
  * navegador). Holgado: una tool real dispara pocos eventos por minuto.
  */
@@ -108,17 +108,13 @@ export async function POST(request: NextRequest) {
     return noContent()
   }
 
-  const client = createPublicReadClient()
+  let toolId: string | null
 
-  const { data: content, error } = await client
-    .from('content')
-    .select('id')
-    .eq('type', 'tool')
-    .eq('slug', slug)
-    .eq('status', 'published')
-    .maybeSingle()
+  try {
+    toolId = await publicContent.publishedContentId('tool', slug)
+  } catch (error) {
+    console.error(error)
 
-  if (error) {
     return NextResponse.json(
       {
         error: 'No se pudo resolver la Tool.',
@@ -129,7 +125,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (!content) {
+  if (!toolId) {
     return NextResponse.json(
       {
         error: 'Tool no encontrada.',
@@ -166,7 +162,7 @@ export async function POST(request: NextRequest) {
         url: `https://${domain}/tools/${slug}/app`,
 
         props: {
-          toolId: content.id,
+          toolId,
           action,
         },
 

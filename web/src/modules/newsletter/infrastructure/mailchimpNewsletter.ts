@@ -1,5 +1,10 @@
 import { createHash } from 'node:crypto'
 import { getMailchimpEnv } from '@/lib/serverEnv'
+import { UndeliverableEmailError } from '@/modules/newsletter/domain/newsletterErrors'
+import type {
+  NewsletterSubscribeResult,
+  NewsletterSubscriber,
+} from '@/modules/newsletter/domain/newsletterPorts'
 
 type MailchimpMemberStatus =
   'subscribed' | 'unsubscribed' | 'cleaned' | 'pending' | 'transactional'
@@ -22,10 +27,7 @@ type MailchimpError = {
  */
 export const MAILCHIMP_TIMEOUT_MS = 8000
 
-export type MailchimpSubscribeResult =
-  | { status: 'confirmation_sent' }
-  | { status: 'already_subscribed' }
-  | { status: 'confirmation_pending' }
+export type MailchimpSubscribeResult = NewsletterSubscribeResult
 
 function apiUrl(path: string) {
   return `https://${getMailchimpEnv().MAILCHIMP_SERVER_PREFIX}.api.mailchimp.com/3.0${path}`
@@ -115,9 +117,7 @@ export async function subscribeEmailInMailchimp(
     }
 
     if (existing.status === 'cleaned') {
-      throw new Error(
-        'This email cannot be subscribed because Mailchimp marked it as undeliverable.',
-      )
+      throw new UndeliverableEmailError()
     }
 
     const updateResponse = await mailchimpFetch(apiUrl(memberPath), {
@@ -179,4 +179,8 @@ export async function subscribeEmailInMailchimp(
   }
 
   return { status: 'confirmation_sent' }
+}
+
+export const mailchimpNewsletterSubscriber: NewsletterSubscriber = {
+  subscribe: subscribeEmailInMailchimp,
 }

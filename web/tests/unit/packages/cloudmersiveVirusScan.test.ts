@@ -1,9 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import {
-  scanZipForViruses,
-  VirusScanError,
-} from '@/modules/packages/infrastructure/cloudmersiveVirusScan'
+import { scanZipForViruses } from '@/modules/packages/infrastructure/cloudmersiveVirusScan'
+import { VirusScanError } from '@/modules/packages/domain/packageErrors'
 
 function fakeResponse(body: unknown, init?: { ok?: boolean; status?: number }) {
   return {

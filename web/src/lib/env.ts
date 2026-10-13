@@ -20,8 +20,7 @@ const envSchema = z.object({
   SUPABASE_SECRET_KEY: z.string().min(1),
 
   // Secreto propio para firmar el cursor del feed y los links de preview
-  // (auditoría 8 oct). Opcional por ahora: sin él se usa SUPABASE_SECRET_KEY,
-  // como antes. Fijarlo invalida los cursores y previews ya emitidos (24 h y
+  // Opcional: sin él se usa SUPABASE_SECRET_KEY. Fijarlo invalida los cursores y previews ya emitidos (24 h y
   // 7 días de vida respectivamente), nada más.
   APP_SIGNING_SECRET: z.preprocess(
     (value) => (value === '' ? undefined : value),

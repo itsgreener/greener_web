@@ -1,5 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
+import type {
+  ContactSubmissionLog,
+  ContactSubmissionStatus,
+} from '@/modules/contact/domain/contactPorts'
+
 /**
  * Límite de envíos por IP (arquitectura §14.1) — 5 envíos por hora, valor
  * de partida razonable para un formulario de contacto normal; ajustable
@@ -7,8 +12,6 @@ import { createServiceClient } from '@/lib/supabase/serviceClient'
  */
 export const RATE_LIMIT_MAX_SUBMISSIONS = 5
 export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
-
-type SubmissionStatus = 'sent' | 'failed' | 'rate_limited' | 'honeypot'
 
 /**
  * Cuenta los envíos reales ("sent") de esta IP en la última hora — los
@@ -41,7 +44,7 @@ export async function isRateLimited(ipHash: string): Promise<boolean> {
 
 export async function logContactSubmission(
   ipHash: string,
-  status: SubmissionStatus,
+  status: ContactSubmissionStatus,
   error?: string,
 ): Promise<void> {
   const client = createServiceClient()
@@ -60,4 +63,9 @@ export async function logContactSubmission(
     // (§14.1), no la parte crítica del flujo.
     console.error('No se pudo registrar el envío de contacto:', insertError)
   }
+}
+
+export const supabaseContactSubmissionLog: ContactSubmissionLog = {
+  isRateLimited,
+  record: logContactSubmission,
 }

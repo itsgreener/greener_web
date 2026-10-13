@@ -45,10 +45,8 @@ export interface ColumnReservation {
  * total de columnas dado.
  *
  * Por debajo de 3 columnas totales (móvil, <640px) el documento deja el
- * móvil explícitamente fuera de esta tabla ("diseño entrega un
- * rediseño propio aparte") — aquí se resuelve como caso base sin panel
- * lateral (todo el ancho para el contenido, 0 de recomendación), que es
- * el placeholder acordado hasta que exista ese rediseño. Para tipo B
+ * móvil fuera de esta tabla: se resuelve como caso base sin panel lateral
+ * (todo el ancho para el contenido, 0 de recomendación). Para tipo B
  * (caso/episodio), que siempre reserva 6/6 sin importar el ratio, el
  * llamador simplemente no usa esta función — pasa por el mismo camino
  * genérico sembrando todas las columnas por igual (ver
@@ -130,13 +128,10 @@ export function contentBlockImageDimensions(
 }
 
 /**
- * Móvil (<640px, <3 columnas totales) — placeholder acordado el 21 sep:
- * la tabla de columnas del §2 deja el móvil fuera a propósito ("diseño
- * entrega un rediseño propio aparte"), así que aquí no tiene sentido
- * fingir que existe un panel lateral con el que coordinarse. La imagen
- * va a su ratio natural, a todo el ancho disponible — sin la regla de
- * 66,7vh de altura fija, que solo existe para poder repartir columnas
- * junto a un panel lateral que en móvil no existe.
+ * Móvil (<640px, <3 columnas totales): la tabla del §2 deja el móvil fuera
+ * a propósito, así que no hay panel lateral con el que coordinarse. La
+ * imagen va a su ratio natural, a todo el ancho — sin la regla de 66,7vh de
+ * altura fija, que solo existe para repartir columnas junto a un panel.
  */
 export function mobileContentImageDimensions(
   ratio: PinRatioValue,
@@ -185,13 +180,11 @@ const EMPTY_GEOMETRY: ContentBlockGeometry = {
 
 /**
  * Geometría completa del bloque de contenido de una página de detalle:
- * ancho reservado, imagen y (tipo A) ancho real restante para el texto. Es la
- * fórmula que antes vivía dentro de `useRecommendationMasonry`, sacada al
+ * ancho reservado, imagen y (tipo A) ancho real restante para el texto. Vive en el
  * dominio para poder probarla sin React.
  *
- * Móvil (<3 columnas, §2: fuera de la tabla a propósito): placeholder del
- * 21 sep — imagen a ancho completo y SIN la regla de una columna para el
- * texto (necesitaría apilar imagen y texto, que depende del rediseño móvil).
+ * Móvil (<3 columnas, §2): imagen a ancho completo y SIN la regla de una
+ * columna para el texto (necesitaría apilar imagen y texto).
  */
 export function computeContentBlockGeometry(
   input: ContentBlockGeometryInput,

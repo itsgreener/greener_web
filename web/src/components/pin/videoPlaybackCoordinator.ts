@@ -33,10 +33,6 @@ import {
  * useVideoSlot.ts y usePinVideo.ts, que conectan esto con el DOM.
  */
 
-// Re-exportado: el valor vive en el dominio (único módulo de constantes de
-// reproducción), pero este era su sitio histórico.
-export { MOBILE_BREAKPOINT_PX }
-
 export function getVideoSlotLimit(viewportWidth: number): number {
   return viewportWidth < MOBILE_BREAKPOINT_PX ? 1 : 2
 }

@@ -1,21 +1,19 @@
-import { z } from 'zod'
+import type {
+  HtmlPackageRepository,
+  PublishHtmlPackageVersionInput,
+} from '@/modules/packages/domain/htmlPackageRepository'
+import { publishHtmlPackageVersionSchema } from '@/modules/packages/domain/packageVersionSchema'
 
-import { supabaseHtmlPackageRepository } from '../infrastructure/supabaseHtmlPackageRepository'
-import { idSchema } from '@/lib/validation/idSchema'
+export function makePublishHtmlPackageVersion({
+  packages,
+}: {
+  packages: HtmlPackageRepository
+}) {
+  return async function publishHtmlPackageVersion(
+    input: PublishHtmlPackageVersionInput,
+  ) {
+    const validated = publishHtmlPackageVersionSchema.parse(input)
 
-export const publishHtmlPackageVersionSchema = z.object({
-  contentId: idSchema('content'),
-  versionId: idSchema('version'),
-})
-
-export type PublishHtmlPackageVersionInput = z.infer<
-  typeof publishHtmlPackageVersionSchema
->
-
-export async function publishHtmlPackageVersion(
-  input: PublishHtmlPackageVersionInput,
-) {
-  const validated = publishHtmlPackageVersionSchema.parse(input)
-
-  return supabaseHtmlPackageRepository.publishVersion(validated)
+    return packages.publishVersion(validated)
+  }
 }

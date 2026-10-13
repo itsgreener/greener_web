@@ -58,8 +58,10 @@ import {
 } from '@/modules/media/domain/mediaLimits'
 
 import {
-  CloudinaryImageVerificationError,
-  CloudinaryVideoVerificationError,
+  ImageVerificationError,
+  VideoVerificationError,
+} from '@/modules/media/domain/mediaVerification'
+import {
   createSignedImageUpload,
   createSignedVideoUpload,
   deleteCloudinaryAsset,
@@ -217,7 +219,7 @@ describe('cloudinaryServer', () => {
 
     it('rechaza como imagen un asset del directorio de vídeos', async () => {
       await expect(verifyCloudinaryImageAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
-        CloudinaryImageVerificationError,
+        ImageVerificationError,
       )
 
       expect(mockResource).not.toHaveBeenCalled()
@@ -253,7 +255,7 @@ describe('cloudinaryServer', () => {
       })
 
       await expect(verifyCloudinaryImageAsset(IMAGE_PUBLIC_ID)).rejects.toThrow(
-        CloudinaryImageVerificationError,
+        ImageVerificationError,
       )
     })
 
@@ -484,7 +486,7 @@ describe('cloudinaryServer', () => {
       })
 
       await expect(verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
-        CloudinaryVideoVerificationError,
+        VideoVerificationError,
       )
     })
 
@@ -514,7 +516,7 @@ describe('cloudinaryServer', () => {
       })
 
       await expect(verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
-        CloudinaryVideoVerificationError,
+        VideoVerificationError,
       )
 
       expect(mockValidateVideoUpload).toHaveBeenCalledWith(8192, 181)
@@ -536,7 +538,7 @@ describe('cloudinaryServer', () => {
       })
 
       await expect(verifyCloudinaryVideoAsset(VIDEO_PUBLIC_ID)).rejects.toThrow(
-        CloudinaryVideoVerificationError,
+        VideoVerificationError,
       )
 
       expect(mockValidateVideoUpload).toHaveBeenCalledWith(TOO_LARGE, 42.5)

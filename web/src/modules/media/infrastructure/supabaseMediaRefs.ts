@@ -1,17 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import type { MediaKind } from '@/modules/shared/domain/mediaKind'
+import type {
+  MediaRef,
+  MediaRefsRepository,
+} from '@/modules/media/domain/mediaCleanupPorts'
 
 /**
  * Lecturas de «qué archivos de Cloudinary cuelgan de qué» que necesita la
  * limpieza de medios (cleanupMedia.ts). Van con el cliente del admin
  * (RLS: solo `is_admin()` ve `media_asset` sin publicar).
  */
-
-export interface MediaRef {
-  mediaId: string
-  cloudinaryPublicId: string
-  kind: MediaKind
-}
 
 type MediaAssetRow = {
   id: string
@@ -63,51 +61,44 @@ export async function listContentMediaRefs(
 
   const refs: MediaRef[] = []
 
-  const content = await supabase
-    .from('content')
-    .select('cover_media_id, og_media_id')
-    .eq('id', contentId)
-    .maybeSingle()
+  // Las tres lecturas son independientes: van a la vez. Portada y og viajan
+  // embebidas en la del contenido.
+  const [content, pins, carousel] = await Promise.all([
+    supabase
+      .from('content')
+      .select(
+        `
+        cover:media_asset!cover_media_id ( id, kind, cloudinary_public_id ),
+        og:media_asset!og_media_id ( id, kind, cloudinary_public_id )
+      ` as const,
+      )
+      .eq('id', contentId)
+      .maybeSingle(),
+    supabase
+      .from('pin')
+      .select(
+        'id, pin_media ( media_id, media_asset ( id, kind, cloudinary_public_id ) )',
+      )
+      .eq('content_id', contentId),
+    supabase
+      .from('case_detail_media')
+      .select('media_id, media_asset ( id, kind, cloudinary_public_id )')
+      .eq('content_id', contentId),
+  ])
 
   if (content.error) throw repositoryError(content.error.message)
-
-  const directIds = [
-    content.data?.cover_media_id,
-    content.data?.og_media_id,
-  ].filter((id): id is string => typeof id === 'string')
-
-  if (directIds.length > 0) {
-    const direct = await supabase
-      .from('media_asset')
-      .select('id, kind, cloudinary_public_id')
-      .in('id', directIds)
-
-    if (direct.error) throw repositoryError(direct.error.message)
-
-    refs.push(...(direct.data ?? []).map(toRef))
-  }
-
-  const pins = await supabase
-    .from('pin')
-    .select(
-      'id, pin_media ( media_id, media_asset ( id, kind, cloudinary_public_id ) )',
-    )
-    .eq('content_id', contentId)
-
   if (pins.error) throw repositoryError(pins.error.message)
+  if (carousel.error) throw repositoryError(carousel.error.message)
+
+  for (const direct of [content.data?.cover, content.data?.og]) {
+    if (direct) refs.push(toRef(direct))
+  }
 
   for (const pin of pins.data ?? []) {
     for (const row of pin.pin_media) {
       if (row.media_asset) refs.push(toRef(row.media_asset))
     }
   }
-
-  const carousel = await supabase
-    .from('case_detail_media')
-    .select('media_id, media_asset ( id, kind, cloudinary_public_id )')
-    .eq('content_id', contentId)
-
-  if (carousel.error) throw repositoryError(carousel.error.message)
 
   for (const row of carousel.data ?? []) {
     if (row.media_asset) refs.push(toRef(row.media_asset))
@@ -165,4 +156,12 @@ export async function isPublicIdRegistered(publicId: string): Promise<boolean> {
   if (error) throw repositoryError(error.message)
 
   return (data ?? []).length > 0
+}
+
+export const supabaseMediaRefsRepository: MediaRefsRepository = {
+  listPinMediaRefs,
+  listContentMediaRefs,
+  listMediaRefsByIds,
+  findExistingMediaIds,
+  isPublicIdRegistered,
 }

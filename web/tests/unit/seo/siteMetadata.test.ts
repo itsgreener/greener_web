@@ -124,7 +124,7 @@ describe('robots.txt', () => {
     expect(rules).toHaveLength(1)
     expect(rules[0].userAgent).toBe('*')
     expect(rules[0].allow).toBe('/')
-    expect(rules[0].disallow).toEqual(['/admin', '/api/', '/auth', '/preview'])
+    expect(rules[0].disallow).toEqual(['/admin', '/api/', '/auth'])
   })
 
   it('apunta al sitemap con el dominio público y sin «//», venga o no con barra final la variable', async () => {

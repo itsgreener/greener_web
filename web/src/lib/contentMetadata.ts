@@ -2,11 +2,11 @@ import type { Metadata } from 'next'
 import {
   buildImageUrl,
   buildVideoPosterUrl,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+} from '@/modules/media/client/cloudinaryUrl'
 import type {
   PublicContent,
   PublicContentMedia,
-} from '@/modules/content/infrastructure/publicContentSource'
+} from '@/modules/content/domain/publicContent'
 
 /**
  * generateMetadata compartido por las plantillas de detalle que usan

@@ -5,5 +5,5 @@
 
 .over {
   font-size: 0.8rem;
-  color: #c0392b;
+  color: var(--color-error);
 }

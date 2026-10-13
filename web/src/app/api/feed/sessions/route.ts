@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  createFeedSession,
-  UnsupportedScopeError,
-} from '@/modules/feed/application/createFeedSession'
-import {
-  canCreateSession,
-  getLastSession,
-  rememberSession,
-} from '@/modules/feed/infrastructure/feedRateLimit'
+import { createFeedSession, feedLimits } from '@/modules/feed/container'
+import { UnsupportedScopeError } from '@/modules/feed/domain/feedErrors'
 import {
   attachVisitorCookie,
   getOrCreateVisitorId,
@@ -16,11 +9,9 @@ import { isUuid } from '@/lib/validation/uuid'
 
 /**
  * POST /api/feed/sessions (§16.1): crea una feedSession real, persistida
- * en Supabase (feed_session). Sustituye a /api/feed/demo para todo lo que
- * sea abrir sesión — ese endpoint sigue existiendo como prototipo aislado
- * (Fase 1, Anexo E.2), no se toca aquí.
+ * en Supabase (feed_session).
  *
- * Límite de peticiones (29 sep, PROGRESO §2.16): 12 creaciones de sesión
+ * Límite de peticiones (PROGRESO §2.16): 12 creaciones de sesión
  * por minuto y visitante (cookie anónima, `visitorCookie.ts`). Al
  * superarlo, en vez de un error, se devuelve la sesión más reciente de
  * ese visitante — silencioso, sin romper la carga; el efecto secundario
@@ -79,8 +70,8 @@ export async function POST(request: NextRequest) {
       ? (filter as Record<string, string>)
       : undefined
 
-  if (!canCreateSession(visitorId)) {
-    const lastSessionId = getLastSession(visitorId, scope)
+  if (!feedLimits.canCreateSession(visitorId)) {
+    const lastSessionId = feedLimits.getLastSession(visitorId, scope)
 
     // Con algo que devolver, se devuelve en vez de crear una sesión
     // nueva (§2.16). Sin nada que devolver — un visitante que agota el
@@ -101,7 +92,7 @@ export async function POST(request: NextRequest) {
       filter: parsedFilter,
       excludeContentId,
     })
-    rememberSession(visitorId, result.sessionId, scope)
+    feedLimits.rememberSession(visitorId, result.sessionId, scope)
     return respond(result, {
       status: 201,
       headers: { 'Cache-Control': 'no-store' },

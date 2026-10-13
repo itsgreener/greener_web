@@ -1,32 +1,40 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/http/clientIp', () => ({
-  getHashedClientIp: vi.fn(async () => 'ip-hash-1'),
-}))
-
-vi.mock('@/modules/newsletter/infrastructure/mailchimpNewsletter', () => ({
-  subscribeEmailInMailchimp: vi.fn(),
-}))
-
-import { getHashedClientIp } from '@/lib/http/clientIp'
 import {
   NEWSLETTER_MAX_PER_WINDOW,
-  subscribeToNewsletter,
+  NEWSLETTER_WINDOW_MS,
+  makeSubscribeToNewsletter,
 } from '@/modules/newsletter/application/subscribeToNewsletter'
-import { subscribeEmailInMailchimp } from '@/modules/newsletter/infrastructure/mailchimpNewsletter'
+import { UndeliverableEmailError } from '@/modules/newsletter/domain/newsletterErrors'
+import type { NewsletterSubscribeResult } from '@/modules/newsletter/domain/newsletterPorts'
+import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 
-const mockMailchimp = vi.mocked(subscribeEmailInMailchimp)
-const mockIp = vi.mocked(getHashedClientIp)
+const mockMailchimp =
+  vi.fn<(email: string) => Promise<NewsletterSubscribeResult>>()
+const mockIp = vi.fn<() => Promise<string>>()
 
-let ipCounter = 0
+/** El caso de uso sobre puertos falsos y un limitador nuevo en cada test. */
+function subscribeToNewsletter(input: unknown, honeypot: string) {
+  return makeSubscribeToNewsletter({
+    subscriber: { subscribe: mockMailchimp },
+    limiter: limiter,
+    visitorKey: mockIp,
+  })(input, honeypot)
+}
+
+let limiter = createFixedWindowRateLimiter({
+  max: NEWSLETTER_MAX_PER_WINDOW,
+  windowMs: NEWSLETTER_WINDOW_MS,
+})
 
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => {})
-  // El limitador vive en el módulo: cada test usa una IP distinta para no
-  // heredar el contador del anterior.
-  ipCounter += 1
-  mockIp.mockResolvedValue(`ip-hash-${ipCounter}`)
+  limiter = createFixedWindowRateLimiter({
+    max: NEWSLETTER_MAX_PER_WINDOW,
+    windowMs: NEWSLETTER_WINDOW_MS,
+  })
+  mockIp.mockResolvedValue('ip-hash-1')
   mockMailchimp.mockResolvedValue({ status: 'confirmation_sent' })
 })
 
@@ -125,9 +133,7 @@ describe('subscribeToNewsletter', () => {
   })
 
   it('dirección no entregable (cleaned): mensaje específico', async () => {
-    mockMailchimp.mockRejectedValueOnce(
-      new Error('This email cannot be subscribed ... undeliverable.'),
-    )
+    mockMailchimp.mockRejectedValueOnce(new UndeliverableEmailError())
 
     const result = await subscribeToNewsletter({ email: 'a@example.com' }, '')
 

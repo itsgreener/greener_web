@@ -1,6 +1,12 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
+import type {
+  FeedSession,
+  FeedSessionRepository,
+  NewFeedSession,
+} from '@/modules/feed/domain/feedPorts'
+
 /**
  * Persistencia de feed_session/feed_round (arquitectura §8.5). Usa
  * siempre la service role key (serviceClient.ts) porque estas dos tablas
@@ -8,27 +14,10 @@ import { createServiceClient } from '@/lib/supabase/serviceClient'
  * comentario en supabase/migrations/20260806090700_rls_policies.sql).
  */
 
-export interface FeedSessionRow {
-  id: string
-  seed: string
-  scope: string
-  expiresAt: string
-  /**
-   * Contenido a excluir del universo de esta sesión (panel de
-   * recomendaciones de una página de detalle — no debe recomendarse a sí
-   * misma). `null` en toda sesión de home/subhome normal.
-   */
-  excludeContentId: string | null
-}
-
 export async function createFeedSessionRow(
-  params: {
-    scope: string
-    filterHash: string | null
-    excludeContentId?: string | null
-  },
+  params: NewFeedSession,
   client: AppSupabaseClient = createServiceClient(),
-): Promise<FeedSessionRow> {
+): Promise<FeedSession> {
   // Seed criptográficamente aleatoria por carga de documento (arquitectura
   // §6.1) — no derivada de nada predecible por el cliente.
   const seed = crypto.randomUUID()
@@ -62,7 +51,7 @@ export async function createFeedSessionRow(
 export async function getFeedSessionRow(
   sessionId: string,
   client: AppSupabaseClient = createServiceClient(),
-): Promise<FeedSessionRow | null> {
+): Promise<FeedSession | null> {
   const { data, error } = await client
     .from('feed_session')
     .select('id, seed, scope, expires_at, exclude_content_id')
@@ -127,4 +116,12 @@ export async function saveFeedRound(
   if (error) {
     throw new Error(`No se pudo guardar la ronda del feed: ${error.message}`)
   }
+}
+
+export const supabaseFeedSessionRepository: FeedSessionRepository = {
+  create: (params) => createFeedSessionRow(params),
+  get: (sessionId) => getFeedSessionRow(sessionId),
+  getRound: (sessionId, roundIndex) => getFeedRound(sessionId, roundIndex),
+  saveRound: (sessionId, roundIndex, orderedPinIds) =>
+    saveFeedRound(sessionId, roundIndex, orderedPinIds),
 }

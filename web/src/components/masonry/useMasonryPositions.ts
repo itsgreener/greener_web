@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   computeMasonryLayout,
   columnsForViewport,
@@ -12,13 +12,14 @@ import {
   computeVirtualization,
   type BatchHeight,
 } from '@/modules/masonry/domain/virtualization'
+import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
 import type { PinCardData } from '@/components/pin/PinCard'
+import { useContainerWidth } from './useContainerWidth'
 
 /**
- * Posicionamiento masonry + virtualización, extraído de lo que antes vivía
- * dentro de useMasonryFeed.ts (Fase 1) para que lo compartan el prototipo
- * de demo y el feed real de la home — ninguno de los dos necesita saber
- * cómo se posiciona ni se virtualiza, solo darle una lista de items.
+ * Posicionamiento masonry + virtualización, compartido por el feed de la
+ * home/subhomes y por las recomendaciones de las fichas: quien lo usa solo
+ * da una lista de items, no sabe cómo se posiciona ni se virtualiza.
  *
  * `batchSizes` son los tamaños REALES de cada lote según fue llegando
  * (arquitectura §8.2): las cuotas del feed no garantizan exactamente 40
@@ -53,114 +54,11 @@ function batchIndexForItem(index: number, batchSizes: number[]): number {
   return Math.max(0, batchSizes.length - 1)
 }
 
-/*
- * Debe mantenerse coordinado con PinCard.module.css:
- * - padding horizontal del texto: 12px por lado
- * - margin-top del texto: 8px
- * - font-size: 0.8rem = 12.8px sobre base 16
- * - line-height: 1.3 ≈ 16.64px
- * - separación title/secondary: 2px
- *
- * El layout es absoluto: si no reservamos aquí el alto REALISTA del texto,
- * la siguiente tarjeta empieza antes de que termine el rótulo. Ese era el
- * motivo de que visualmente la imagen de abajo quedase demasiado pegada.
- */
-const LABEL_SIDE_PADDING = 12
-const LABEL_TOP_GAP = 8
-const LABEL_LINE_HEIGHT = 17
-const LABEL_SECONDARY_GAP = 2
-const LABEL_SAFETY = 2
-const APPROX_CHAR_WIDTH = 6.5
-
-function estimateWrappedLines(
-  text: string,
-  availableWidth: number,
-  maxLines: number,
-): number {
-  const normalized = text.trim()
-  if (!normalized) return 0
-
-  const charsPerLine = Math.max(
-    8,
-    Math.floor(availableWidth / APPROX_CHAR_WIDTH),
-  )
-
-  let lines = 1
-  let currentLength = 0
-
-  for (const word of normalized.split(/\s+/)) {
-    const wordLength = word.length
-
-    if (currentLength === 0) {
-      currentLength = wordLength
-      continue
-    }
-
-    if (currentLength + 1 + wordLength <= charsPerLine) {
-      currentLength += 1 + wordLength
-      continue
-    }
-
-    lines += 1
-    currentLength = wordLength
-
-    if (lines >= maxLines) return maxLines
-  }
-
-  return Math.min(lines, maxLines)
-}
-
-function estimateLabelHeight(item: PinCardData, columnWidth: number): number {
-  const availableWidth = Math.max(1, columnWidth - LABEL_SIDE_PADDING * 2)
-
-  // Case / Episode: título automático + dato secundario en negrita.
-  if (item.displayTitle) {
-    const primaryLines = estimateWrappedLines(
-      item.displayTitle,
-      availableWidth,
-      2,
-    )
-    const secondaryLines = item.displaySecondary ? 1 : 0
-
-    return (
-      LABEL_TOP_GAP +
-      primaryLines * LABEL_LINE_HEIGHT +
-      (secondaryLines > 0
-        ? LABEL_SECONDARY_GAP + secondaryLines * LABEL_LINE_HEIGHT
-        : 0) +
-      LABEL_SAFETY
-    )
-  }
-
-  // Tool / Insight / Other: gancho libre del admin, máximo dos líneas.
-  if (item.label) {
-    const lines = estimateWrappedLines(item.label, availableWidth, 2)
-    return LABEL_TOP_GAP + lines * LABEL_LINE_HEIGHT + LABEL_SAFETY
-  }
-
-  // No hay texto bajo el medio: no reservar el antiguo alto por defecto.
-  return 0
-}
-
 export function useMasonryPositions(
   items: PinCardData[],
   batchSizes: number[],
 ) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const [containerWidth, setContainerWidth] = useState(0)
-
-  // Ancho del contenedor — determina columnas (§10.1) sin depender del
-  // ancho de window completo (el shell reserva la barra lateral).
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width
-      if (width) setContainerWidth(width)
-    })
-    observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+  const { containerRef, containerWidth } = useContainerWidth()
 
   // Centro del viewport relativo al contenedor, para estimar qué batch
   // está "visible" (heurística — la versión de producción usaría
@@ -183,7 +81,7 @@ export function useMasonryPositions(
       window.removeEventListener('scroll', onScroll)
       cancelAnimationFrame(raf)
     }
-  }, [])
+  }, [containerRef])
 
   const columnCount = columnsForViewport(containerWidth || 1200)
 

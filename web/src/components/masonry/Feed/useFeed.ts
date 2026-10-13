@@ -1,52 +1,22 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
-import { useMasonryPositions } from '../useMasonryPositions'
-import { useFeedContext } from '../FeedProvider'
+import { useMasonryPositions } from '@/components/masonry/useMasonryPositions'
+import { useFeedContext } from '@/components/masonry/FeedProvider'
+import { fetchFeedBatch, openFeedSession } from '@/components/masonry/feedApi'
+import { useSentinel } from '@/components/masonry/useSentinel'
 
 /**
  * Feed real de la home y las subhomes: abre una feedSession (POST
  * /api/feed/sessions, arquitectura §6.1) con el scope indicado y pagina
  * por cursor (GET /api/feed/{sessionId}, §16.1).
  *
- * 15 sep: generalizado de "solo home" (useHomeFeed) a cualquier scope —
- * cada scope tiene su propio hueco de estado en FeedProvider (sesión,
- * pines, cursor, scroll), así que dos <Feed> con scope distinto en la
- * misma carga de documento no se pisan entre sí.
- *
- * Primera versión, a propósito lo más simple posible: una sesión por
- * scope y por carga completa del documento, sin filtrar más (por
- * etiqueta, idioma...) — eso es una capa aparte, no de este hook.
+ * Cada scope tiene su propio hueco de estado en FeedProvider (sesión, pines,
+ * cursor, scroll), así que dos <Feed> con scope distinto en la misma carga
+ * de documento no se pisan. Una sesión por scope y por carga completa del
+ * documento; filtrar más (etiqueta, idioma…) sería otra capa, no este hook.
  */
-
-async function openFeedSession(scope: string): Promise<string> {
-  const res = await fetch('/api/feed/sessions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scope }),
-  })
-  if (!res.ok) {
-    throw new Error(`No se pudo abrir la sesión de feed: ${res.status}`)
-  }
-  const data = (await res.json()) as { sessionId: string }
-  return data.sessionId
-}
-
-async function fetchBatch(
-  sessionId: string,
-  cursor: string | null,
-): Promise<FeedBatchResult> {
-  const url = cursor
-    ? `/api/feed/${sessionId}?cursor=${encodeURIComponent(cursor)}`
-    : `/api/feed/${sessionId}`
-  const res = await fetch(url)
-  if (!res.ok) {
-    throw new Error(`Fallo al pedir el lote del feed: ${res.status}`)
-  }
-  return res.json()
-}
 
 export function useFeed(scope: string) {
   const { getState, setSessionId, appendBatch, setScrollY } = useFeedContext()
@@ -77,8 +47,7 @@ export function useFeed(scope: string) {
       cancelled = true
     }
     // Solo al montar / cuando todavía no hay sesión para este scope.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, state.sessionId])
+  }, [scope, state.sessionId, setSessionId])
 
   const loadMore = useCallback(async () => {
     const current = getState(scope)
@@ -86,7 +55,7 @@ export function useFeed(scope: string) {
     loadingRef.current = true
     setIsLoading(true)
     try {
-      const batch = await fetchBatch(current.sessionId, current.cursor)
+      const batch = await fetchFeedBatch(current.sessionId, current.cursor)
 
       appendBatch(scope, batch)
 
@@ -126,19 +95,8 @@ export function useFeed(scope: string) {
   }, [scope, state.sessionId])
 
   // Prefetch del siguiente lote al entrar en el último tramo del scroll
-  // (arquitectura §10.3), aproximado con un sentinel al final del documento.
-  useEffect(() => {
-    const sentinel = document.getElementById(`greener-feed-sentinel-${scope}`)
-    if (!sentinel) return
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0]?.isIntersecting) loadMore()
-      },
-      { rootMargin: '600px' },
-    )
-    observer.observe(sentinel)
-    return () => observer.disconnect()
-  }, [scope, loadMore])
+  // (arquitectura §10.3).
+  const sentinelRef = useSentinel(loadMore)
 
   // Guarda la posición de scroll continuamente (throttled por rAF) para
   // poder restaurarla si se vuelve de un detalle.
@@ -181,6 +139,6 @@ export function useFeed(scope: string) {
     itemCount: state.items.length,
     hasMore: state.hasMore,
     error,
-    sentinelId: `greener-feed-sentinel-${scope}`,
+    sentinelRef,
   }
 }

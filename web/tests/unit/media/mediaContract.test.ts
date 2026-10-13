@@ -7,7 +7,7 @@ import {
   buildVideoPosterUrl,
   buildVideoSources,
   buildVideoTransformations,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+} from '@/modules/media/client/cloudinaryUrl'
 import {
   ADMIN_THUMBNAIL_WIDTH,
   DETAIL_VIDEO_RUNGS,

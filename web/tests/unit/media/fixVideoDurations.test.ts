@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   parseArgs,
   planDurationFixes,
-} from '../../../scripts/fix-video-durations.mjs'
+} from '@root/scripts/fix-video-durations.mjs'
 
 describe('scripts/fix-video-durations.mjs', () => {
   const rows = [

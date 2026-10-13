@@ -47,6 +47,13 @@ export const attachPinVideoSchema = z.object({
   bytes: videoBytesField,
 })
 
+/**
+ * Lo mismo sin `pinId`: el archivo se valida antes de que exista el pin
+ * (carga masiva «crear pin + medio»).
+ */
+export const pinImageUploadSchema = attachPinImageSchema.omit({ pinId: true })
+export const pinVideoUploadSchema = attachPinVideoSchema.omit({ pinId: true })
+
 export const detachPinMediaSchema = z.object({
   pinId: idSchema('pin'),
 
@@ -57,6 +64,8 @@ export const detachPinMediaSchema = z.object({
   kind: mediaKindSchema,
 })
 
+export type PinImageUpload = z.infer<typeof pinImageUploadSchema>
+export type PinVideoUpload = z.infer<typeof pinVideoUploadSchema>
 export type AttachPinImageInput = z.infer<typeof attachPinImageSchema>
 export type AttachPinVideoInput = z.infer<typeof attachPinVideoSchema>
 export type DetachPinMediaInput = z.infer<typeof detachPinMediaSchema>

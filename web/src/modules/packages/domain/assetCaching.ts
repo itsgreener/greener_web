@@ -2,14 +2,13 @@
  * Caché de los assets de un paquete (CSS, JS, Worker, imágenes) servidos
  * bajo `/tools|insights/[slug]/app/assets/...`.
  *
- * Problema que resuelve (28 sep): la URL de un asset NO lleva la versión
- * del paquete (`/tools/mi-tool/app/assets/main.js` es la misma en la v1 y
- * en la v2), así que el `Cache-Control: immutable, max-age=1 año` anterior
- * dejaba a los visitantes con el JS/CSS viejo durante un año tras publicar
- * una versión nueva, o tras un rollback. Una caché "para siempre" solo es
- * correcta si la URL cambia cuando cambia el contenido, y aquí no cambia.
+ * La URL de un asset NO lleva la versión del paquete
+ * (`/tools/mi-tool/app/assets/main.js` es la misma en la v1 y en la v2), así
+ * que una caché `immutable` dejaría a los visitantes con el JS/CSS viejo tras
+ * publicar una versión nueva o hacer rollback: «para siempre» solo es
+ * correcto si la URL cambia cuando cambia el contenido.
  *
- * Solución: revalidación con ETag. El checksum de contenido que ya guarda
+ * Por eso se revalida con ETag. El checksum de contenido que ya guarda
  * `html_package_version` (inmutable por versión, ver
  * `zipValidation.computeContentChecksum`) sirve de ETag: si la versión
  * publicada es la misma, el navegador recibe un 304 sin bytes; si es otra

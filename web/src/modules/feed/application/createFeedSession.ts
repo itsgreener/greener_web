@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto'
-import {
-  createFeedSessionRow,
-  type FeedSessionRow,
-} from '../infrastructure/feedSessionRepository'
+
+import { UnsupportedScopeError } from '@/modules/feed/domain/feedErrors'
+import type { FeedSessionRepository } from '@/modules/feed/domain/feedPorts'
+import { isFeedScope } from '@/modules/feed/domain/feedScope'
 
 export interface CreateFeedSessionInput {
   scope: string
@@ -20,28 +20,6 @@ export interface CreateFeedSessionResult {
   sessionId: string
 }
 
-// Arquitectura Anexo E.4 / §8.2: 'home' es el feed mixto; cada subhome
-// filtra a un único tipo de contenido ("el 100% de los contenidos del
-// scope forma el universo"). scope=related-cases (relacionados dentro de
-// una página de caso) sigue sin implementarse — no hace falta todavía,
-// no hay ninguna pantalla que lo pida.
-const SUPPORTED_SCOPES = new Set([
-  'home',
-  'work',
-  'insights',
-  'tools',
-  'channel',
-])
-
-export class UnsupportedScopeError extends Error {
-  constructor(scope: string) {
-    super(
-      `El scope '${scope}' todavía no está soportado (solo 'home' por ahora).`,
-    )
-    this.name = 'UnsupportedScopeError'
-  }
-}
-
 function hashFilter(filter: Record<string, string> | undefined): string | null {
   if (!filter || Object.keys(filter).length === 0) return null
   const sorted = Object.keys(filter)
@@ -55,23 +33,27 @@ function hashFilter(filter: Record<string, string> | undefined): string | null {
  * Caso de uso: "abre una feedSession para esta seed y este scope"
  * (arquitectura §6.1). No genera ninguna tanda todavía — eso lo hace
  * getFeedSessionBatch en la primera petición de lote.
+ *
+ * @throws UnsupportedScopeError si el scope no existe
  */
-export async function createFeedSession(
-  input: CreateFeedSessionInput,
-  createRow: (params: {
-    scope: string
-    filterHash: string | null
-    excludeContentId?: string | null
-  }) => Promise<FeedSessionRow> = createFeedSessionRow,
-): Promise<CreateFeedSessionResult> {
-  if (!SUPPORTED_SCOPES.has(input.scope)) {
-    throw new UnsupportedScopeError(input.scope)
-  }
+export function makeCreateFeedSession({
+  sessions,
+}: {
+  sessions: Pick<FeedSessionRepository, 'create'>
+}) {
+  return async function createFeedSession(
+    input: CreateFeedSessionInput,
+  ): Promise<CreateFeedSessionResult> {
+    if (!isFeedScope(input.scope)) {
+      throw new UnsupportedScopeError(input.scope)
+    }
 
-  const row = await createRow({
-    scope: input.scope,
-    filterHash: hashFilter(input.filter),
-    excludeContentId: input.excludeContentId,
-  })
-  return { sessionId: row.id }
+    const row = await sessions.create({
+      scope: input.scope,
+      filterHash: hashFilter(input.filter),
+      excludeContentId: input.excludeContentId,
+    })
+
+    return { sessionId: row.id }
+  }
 }

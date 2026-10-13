@@ -1,32 +1,14 @@
 import AdmZip from 'adm-zip'
 import { createHash } from 'node:crypto'
 
-import {
-  packageManifestSchema,
-  type PackageManifestInput,
-} from '../domain/manifestSchema'
-import { PACKAGE_LIMITS } from '../domain/packageLimits'
-
-export class PackageValidationError extends Error {
-  issues: string[]
-
-  constructor(issues: string[]) {
-    super(issues.join(' — '))
-    this.name = 'PackageValidationError'
-    this.issues = issues
-  }
-}
-
-export type ValidatedPackageEntry = {
-  path: string
-  data: Buffer
-}
-
-export type ValidatedPackage = {
-  manifest: PackageManifestInput
-  entries: ValidatedPackageEntry[]
-  checksum: string
-}
+import { packageManifestSchema } from '@/modules/packages/domain/manifestSchema'
+import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
+import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
+import type {
+  PackageZipValidator,
+  ValidatedPackage,
+  ValidatedPackageEntry,
+} from '@/modules/packages/domain/packageUploadPorts'
 
 const TEXT_EXTENSIONS = new Set(['html', 'htm', 'js', 'mjs', 'css', 'json'])
 
@@ -47,8 +29,7 @@ const ABSOLUTE_URL_REGEX = /https?:\/\/([a-z0-9.-]+)/gi
 // referencia real a contenido de ese dominio. Sin esta lista, CUALQUIER
 // SVG inline (`xmlns="http://www.w3.org/2000/svg"`) rechazaba la subida
 // por "referenciar www.w3.org", incluso en un paquete sin ningún recurso
-// externo real (falso positivo real, encontrado el 28 de septiembre —
-// contrato-zip-tools-insights.md §3 — y corregido aquí el 29).
+// externo real (contrato-zip-tools-insights.md §3).
 //
 // Coincidencia exacta de la cadena completa (con límite de palabra, ver
 // más abajo), no solo del dominio: si algún día un paquete referenciara
@@ -117,7 +98,7 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
 
   const zipEntries = zip.getEntries()
 
-  // ZIP bomb (auditoría 8 oct, P0-3): se comprueban los tamaños DECLARADOS
+  // ZIP bomb: se comprueban los tamaños DECLARADOS
   // antes de descomprimir nada. adm-zip ya corta la descompresión en el
   // tamaño declarado de cada entrada, así que basta con acotar lo declarado.
   assertWithinUncompressedLimits(zipEntries)
@@ -162,12 +143,9 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   }
 
   // Todo lo que no sea index.html/manifest.json debe vivir bajo assets/
-  // (contrato §1). Antes de esta comprobación (29 sep), un archivo mal
-  // colocado en la raíz pasaba la validación sin avisar y luego daba 404
-  // en la página publicada, porque la ruta que sirve los assets siempre
-  // busca en Storage bajo `<versión>/assets/...` (ver
-  // `getStoragePackageAsset` / bug real corregido en la misma sesión).
-  // Mejor rechazarlo aquí, con un mensaje claro, que descubrirlo así.
+  // (contrato §1). La ruta de assets siempre busca en Storage bajo
+  // `<versión>/assets/...`: un archivo suelto en la raíz daría 404 ya
+  // publicado, y es mejor rechazarlo aquí con un mensaje claro.
   const misplacedEntries = entries.filter(
     (entry) =>
       entry.path !== 'index.html' &&
@@ -324,4 +302,8 @@ function computeContentChecksum(entries: ValidatedPackageEntry[]): string {
   }
 
   return hash.digest('hex')
+}
+
+export const zipPackageValidator: PackageZipValidator = {
+  validate: validateHtmlPackageZip,
 }

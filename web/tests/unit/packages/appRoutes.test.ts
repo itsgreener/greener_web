@@ -12,9 +12,17 @@ import { NextRequest } from 'next/server'
 
 const getStoragePackage = vi.fn()
 
-vi.mock('@/modules/packages/infrastructure/supabaseStorageSource', () => ({
-  getStoragePackage: (...args: unknown[]) => getStoragePackage(...args),
-}))
+vi.mock('@/modules/packages/container', async () => {
+  const { composeToolDocument } =
+    await import('@/modules/packages/application/composeToolDocument')
+
+  return {
+    composeToolDocument,
+    publishedPackages: {
+      getPackage: (...args: unknown[]) => getStoragePackage(...args),
+    },
+  }
+})
 
 const SAMPLE_PACKAGE = {
   slug: 'mi-tool',
@@ -32,11 +40,11 @@ const SAMPLE_PACKAGE = {
 const ROUTES = [
   {
     kind: 'tool' as const,
-    load: () => import('@/app/(public)/tools/[slug]/app/route'),
+    load: () => import('@/app/(public)/(detail)/tools/[slug]/app/route'),
   },
   {
     kind: 'insight' as const,
-    load: () => import('@/app/(public)/insights/[slug]/app/route'),
+    load: () => import('@/app/(public)/(detail)/insights/[slug]/app/route'),
   },
 ]
 
@@ -79,5 +87,19 @@ describe.each(ROUTES)('/$kind/[slug]/app', ({ kind, load }) => {
     const response = await GET(request(), params)
 
     expect(response.status).toBe(404)
+  })
+
+  it('503 con Retry-After si el origen no responde', async () => {
+    const { PackageSourceUnavailableError } =
+      await import('@/modules/packages/domain/manifest')
+    getStoragePackage.mockRejectedValue(
+      new PackageSourceUnavailableError('mi-tool'),
+    )
+    const { GET } = await load()
+
+    const response = await GET(request(), params)
+
+    expect(response.status).toBe(503)
+    expect(response.headers.get('retry-after')).toBe('30')
   })
 })

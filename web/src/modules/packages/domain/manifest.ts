@@ -26,3 +26,14 @@ export class PackageNotFoundError extends Error {
     this.name = 'PackageNotFoundError'
   }
 }
+
+/** Supabase o Storage han fallado: no sabemos si el paquete existe. */
+export class PackageSourceUnavailableError extends Error {
+  constructor(slug: string, options?: { cause?: unknown }) {
+    super(
+      `No se pudo leer el paquete "${slug}" (origen no disponible).`,
+      options,
+    )
+    this.name = 'PackageSourceUnavailableError'
+  }
+}

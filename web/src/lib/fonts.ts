@@ -1,7 +1,7 @@
 import localFont from 'next/font/local'
 
 /**
- * Tipografías del sitio (2 oct 2026). Se autoalojan con `next/font/local`:
+ * Tipografías del sitio. Se autoalojan con `next/font/local`:
  * Next las sirve desde el propio dominio con URL con hash e `immutable`,
  * precarga las de uso global y genera una tipografía de respaldo con las
  * métricas ajustadas para evitar saltos de maquetación (CLS, §18.3).

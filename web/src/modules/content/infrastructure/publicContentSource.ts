@@ -1,8 +1,7 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { Locale } from '@/modules/shared/domain/locale'
-import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Lectura pública de un contenido por slug — para las plantillas de
  * detalle (/work/[slug], /tools|insights/[slug]). A propósito NO
@@ -15,42 +14,6 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  * sobre createPublicReadClient(), que ya respeta RLS ("solo contenido
  * publicado") sin necesitar sesión de usuario.
  */
-
-export interface PublicContentMedia {
-  kind: 'image' | 'video'
-  cloudinaryPublicId: string
-}
-
-export interface PublicContent {
-  id: string
-  type: ContentType
-  slug: string
-  defaultLocale: Locale
-  // El locale de la traducción devuelta — normalmente igual a
-  // defaultLocale (ruta canónica /work/[slug]), o el pedido
-  // explícitamente en /work/[slug]/[locale] (arquitectura §7.7).
-  locale: Locale
-  // Todos los locales con content_translation publicada para este
-  // contenido — "el selector de idioma... solo muestra los locales con
-  // content_translation publicada, nunca los tres por defecto" (§7.7).
-  // Para tool/insight/other/episode esto es siempre un único elemento
-  // (default_locale): son de un solo idioma (§7.4, episode) o
-  // simplemente no tienen selector construido todavía.
-  availableLocales: Locale[]
-  title: string
-  seoTitle: string | null
-  seoDescription: string | null
-  summary: string | null
-  highlight: string | null
-  body: string | null
-  coverMedia: PublicContentMedia | null
-  // especificacion-final-formato-detalle.md §2, §4: gobierna el grupo de
-  // columnas del bloque de contenido en tipo A/libre. null solo en
-  // contenido sin portada todavía, o que no admite cover_ratio (caso,
-  // episodio — ahí el ratio del bloque sale de otro sitio, §2 del 21
-  // sep: el medio más ancho del carrusel, no de este campo).
-  coverRatio: PinRatioValue | null
-}
 
 /**
  * Devuelve null si no existe ningún contenido publicado con ese slug, o

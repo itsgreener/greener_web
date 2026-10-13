@@ -11,6 +11,7 @@
 .media {
   position: relative;
   width: 100%;
+  aspect-ratio: var(--ratio);
   overflow: hidden;
   border-radius: 12px;
   background: var(--color-surface-hover);

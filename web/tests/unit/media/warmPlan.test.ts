@@ -22,7 +22,7 @@ import {
   buildFeedVideoSources,
   buildVideoSources,
   buildVideoTransformations,
-} from '@/modules/media/infrastructure/cloudinaryUrl'
+} from '@/modules/media/client/cloudinaryUrl'
 
 import {
   pinRatioSchema,

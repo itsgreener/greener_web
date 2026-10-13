@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-import nextConfig from '../../../next.config'
+import nextConfig from '@root/next.config'
 import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
 import {
   CLOUDMERSIVE_MAX_FILE_BYTES,
   scanZipForViruses,
-  VirusScanError,
 } from '@/modules/packages/infrastructure/cloudmersiveVirusScan'
+import { VirusScanError } from '@/modules/packages/domain/packageErrors'
 import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
 
 /**

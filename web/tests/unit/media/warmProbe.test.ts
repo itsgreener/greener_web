@@ -5,7 +5,7 @@ import {
   FEED_VIDEO_WIDTH,
   MEDIA_QUALITY,
 } from '@/modules/media/domain/mediaDelivery'
-import { buildVideoTransformations } from '@/modules/media/infrastructure/cloudinaryUrl'
+import { buildVideoTransformations } from '@/modules/media/client/cloudinaryUrl'
 import {
   BIG_MIN_BYTES,
   checkBigVideo,
@@ -19,7 +19,7 @@ import {
   FEED_WIDTH,
   parseArgs,
   RUNG_M,
-} from '../../../scripts/warm-probe.mjs'
+} from '@root/scripts/warm-probe.mjs'
 
 import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 /**

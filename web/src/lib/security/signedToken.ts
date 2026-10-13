@@ -4,12 +4,11 @@ import { env } from '@/lib/env'
 
 /**
  * Tokens firmados con HMAC-SHA256: `<payload JSON en base64url>.<firma>`.
- * Lo comparten el cursor del feed y el link de preview (antes eran dos
- * copias del mismo código, auditoría 8 oct).
+ * Lo comparten el cursor del feed y el link de preview.
  *
  * La clave es `APP_SIGNING_SECRET` si existe; si no, `SUPABASE_SECRET_KEY`,
- * que es lo que se usaba hasta ahora: sin la variable nueva, los cursores y
- * links de preview ya emitidos siguen siendo válidos. Cada consumidor valida
+ * para que fijar la variable nueva sea opcional y no invalide lo ya emitido
+ * hasta entonces. Cada consumidor valida
  * la FORMA de su payload, así que un cursor no sirve como preview ni al revés.
  */
 

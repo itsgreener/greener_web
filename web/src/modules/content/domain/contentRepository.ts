@@ -9,6 +9,7 @@ import type {
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
+import type { ContentListQuery } from './contentListQuery'
 
 export type ContentListItem = {
   id: string
@@ -37,8 +38,20 @@ export type ContentDetail = {
   } | null
 }
 
+export type ContentListPage = {
+  items: ContentListItem[]
+  /** Total que cumple los filtros (no solo los de esta página). */
+  total: number
+}
+
+export type ContentCounts = Record<ContentStatus, number>
+
 export interface ContentRepository {
-  list(): Promise<ContentListItem[]>
+  /** Una página de la lista, más reciente primero, ya filtrada. */
+  list(query: ContentListQuery): Promise<ContentListPage>
+
+  /** Cuántos contenidos hay en cada estado, sin traerlos. */
+  counts(): Promise<ContentCounts>
 
   getById(id: string): Promise<ContentDetail | null>
 

@@ -29,3 +29,13 @@ export const RATIO_DECIMAL_VALUE: Record<PinRatioValue, number> = {
   '9:16': 9 / 16,
   '16:9': 16 / 9,
 }
+
+/**
+ * `aspect-ratio` de CSS usa «ancho / alto»; los ratios del proyecto, «ancho:alto».
+ * Es solo el cambio de sintaxis, no una lista de ratios.
+ */
+export function cssAspectRatio(ratio: string): string {
+  const [width, height] = ratio.split(':')
+
+  return `${width} / ${height}`
+}

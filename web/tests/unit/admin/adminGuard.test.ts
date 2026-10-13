@@ -6,31 +6,34 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  * Action se puede invocar con un POST a cualquier ruta, no solo desde el ABM.
  */
 
-vi.mock('@/modules/media/infrastructure/cloudinaryServer', () => ({
-  CloudinaryImageVerificationError: class extends Error {},
-  CloudinaryVideoVerificationError: class extends Error {},
-  verifyCloudinaryImageAsset: vi.fn(),
-  verifyCloudinaryVideoAsset: vi.fn(),
+vi.mock('@/modules/pin/container', () => ({
+  attachPinImage: vi.fn(),
+  attachPinVideo: vi.fn(),
+  createPin: vi.fn(),
+  createPinWithImage: vi.fn(),
+  createPinWithVideo: vi.fn(),
+  deleteAllPins: vi.fn(),
+  deletePin: vi.fn(),
+  detachPinMedia: vi.fn(),
+  updatePin: vi.fn(),
 }))
 
-vi.mock('@/modules/pin/application/createPin', () => ({ createPin: vi.fn() }))
-
-vi.mock('@/modules/content/application/getContent', () => ({
-  getContent: vi.fn(),
+vi.mock('@/modules/content/container', () => ({
+  generatePreviewLink: vi.fn(),
 }))
 
 import { isAdminRequest } from '@/lib/auth/adminSession'
 import {
   createPinWithImageAction,
   createPinWithVideoAction,
-} from '@/app/admin/contents/[id]/edit/pinActions'
-import { generatePreviewLinkAction } from '@/app/admin/contents/[id]/edit/previewActions'
+} from '@/app/admin/(panel)/contents/[id]/edit/pinActions'
+import { generatePreviewLinkAction } from '@/app/admin/(panel)/contents/[id]/edit/previewActions'
+import { generatePreviewLink } from '@/modules/content/container'
 import {
-  verifyCloudinaryImageAsset,
-  verifyCloudinaryVideoAsset,
-} from '@/modules/media/infrastructure/cloudinaryServer'
-import { createPin } from '@/modules/pin/application/createPin'
-import { getContent } from '@/modules/content/application/getContent'
+  createPin,
+  createPinWithImage,
+  createPinWithVideo,
+} from '@/modules/pin/container'
 
 const CONTENT_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -40,7 +43,7 @@ beforeEach(() => {
 })
 
 describe('Server Actions del ABM sin sesión de admin', () => {
-  it('createPinWithVideoAction no consulta Cloudinary ni crea el pin', async () => {
+  it('createPinWithVideoAction no crea el pin ni toca nada', async () => {
     const result = await createPinWithVideoAction({
       contentId: CONTENT_ID,
       ratio: '1:1',
@@ -54,11 +57,11 @@ describe('Server Actions del ABM sin sesión de admin', () => {
     })
 
     expect(result.ok).toBe(false)
-    expect(verifyCloudinaryVideoAsset).not.toHaveBeenCalled()
+    expect(createPinWithVideo).not.toHaveBeenCalled()
     expect(createPin).not.toHaveBeenCalled()
   })
 
-  it('createPinWithImageAction no consulta Cloudinary ni crea el pin', async () => {
+  it('createPinWithImageAction no crea el pin ni toca nada', async () => {
     const result = await createPinWithImageAction({
       contentId: CONTENT_ID,
       ratio: '1:1',
@@ -71,7 +74,7 @@ describe('Server Actions del ABM sin sesión de admin', () => {
     })
 
     expect(result.ok).toBe(false)
-    expect(verifyCloudinaryImageAsset).not.toHaveBeenCalled()
+    expect(createPinWithImage).not.toHaveBeenCalled()
     expect(createPin).not.toHaveBeenCalled()
   })
 
@@ -83,6 +86,6 @@ describe('Server Actions del ABM sin sesión de admin', () => {
 
     expect(result.url).toBeUndefined()
     expect(result.error).toBeDefined()
-    expect(getContent).not.toHaveBeenCalled()
+    expect(generatePreviewLink).not.toHaveBeenCalled()
   })
 })

@@ -1,9 +1,14 @@
 import type { AppSupabaseClient, Tables } from '@/lib/supabase/database'
-import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 
-import type { VideoUsage } from '../domain/warmPlan'
+import type { VideoUsage } from '@/modules/media/domain/warmPlan'
+import type {
+  ContentWarmInfo,
+  WarmCandidate,
+  WarmMarker,
+  WarmRepository,
+} from '@/modules/media/domain/warmRepository'
 
 import {
   pinRatioSchema,
@@ -19,18 +24,6 @@ import {
  *    existe para lo que corre en `after()`, donde la sesión (cookies) no está
  *    garantizada.
  */
-
-export interface WarmCandidate {
-  mediaId: string
-  cloudinaryPublicId: string
-  warmedContract: string | null
-  usages: VideoUsage[]
-}
-
-export interface ContentWarmInfo {
-  status: ContentStatus
-  candidates: WarmCandidate[]
-}
 
 type VideoAssetRow = Pick<
   Tables<'media_asset'>,
@@ -69,14 +62,32 @@ export async function readContentWarmInfo(
 ): Promise<ContentWarmInfo> {
   const supabase = await createClient()
 
-  const content = await supabase
-    .from('content')
-    .select('type, status, cover_media_id, cover_ratio')
-    .eq('id', contentId)
-    .maybeSingle()
+  // Las tres lecturas son independientes: van a la vez. La portada viaja
+  // embebida en la del contenido (solo se usa en el tipo «other»).
+  const [content, pins, carousel] = await Promise.all([
+    supabase
+      .from('content')
+      .select(
+        `type, status, cover_media_id, cover_ratio, cover:media_asset!cover_media_id ( ${ASSET_COLUMNS} )` as const,
+      )
+      .eq('id', contentId)
+      .maybeSingle(),
+    supabase
+      .from('pin')
+      .select(
+        `ratio, autoplay_mode, pin_media ( media_asset ( ${ASSET_COLUMNS} ) )` as const,
+      )
+      .eq('content_id', contentId),
+    supabase
+      .from('case_detail_media')
+      .select(`media_asset ( ${ASSET_COLUMNS} )` as const)
+      .eq('content_id', contentId),
+  ])
 
   if (content.error) throw readError(content.error.message)
   if (!content.data) throw readError('el contenido no existe.')
+  if (pins.error) throw readError(pins.error.message)
+  if (carousel.error) throw readError(carousel.error.message)
 
   const kind = content.data.type
   const byId = new Map<string, WarmCandidate>()
@@ -95,15 +106,6 @@ export async function readContentWarmInfo(
     byId.set(asset.id, current)
   }
 
-  const pins = await supabase
-    .from('pin')
-    .select(
-      `ratio, autoplay_mode, pin_media ( media_asset ( ${ASSET_COLUMNS} ) )` as const,
-    )
-    .eq('content_id', contentId)
-
-  if (pins.error) throw readError(pins.error.message)
-
   for (const pin of pins.data ?? []) {
     if (!isRatio(pin.ratio)) continue
 
@@ -120,13 +122,6 @@ export async function readContentWarmInfo(
     }
   }
 
-  const carousel = await supabase
-    .from('case_detail_media')
-    .select(`media_asset ( ${ASSET_COLUMNS} )` as const)
-    .eq('content_id', contentId)
-
-  if (carousel.error) throw readError(carousel.error.message)
-
   for (const row of carousel.data ?? []) {
     const asset = row.media_asset
 
@@ -140,23 +135,13 @@ export async function readContentWarmInfo(
   }
 
   // La portada solo existe en contenido libre («other»).
-  if (kind === 'other' && content.data.cover_media_id) {
-    const cover = await supabase
-      .from('media_asset')
-      .select(ASSET_COLUMNS)
-      .eq('id', content.data.cover_media_id)
-      .maybeSingle()
-
-    if (cover.error) throw readError(cover.error.message)
-
-    if (cover.data) {
-      add(cover.data, {
-        kind: 'otherCover',
-        coverRatio: isRatio(content.data.cover_ratio)
-          ? content.data.cover_ratio
-          : null,
-      })
-    }
+  if (kind === 'other' && content.data.cover) {
+    add(content.data.cover, {
+      kind: 'otherCover',
+      coverRatio: isRatio(content.data.cover_ratio)
+        ? content.data.cover_ratio
+        : null,
+    })
   }
 
   return {
@@ -179,12 +164,6 @@ export async function readPinContentId(pinId: string): Promise<string | null> {
 
   return data?.content_id ?? null
 }
-
-export type WarmMarker = (
-  mediaId: string,
-  contract: string,
-  error?: string | null,
-) => Promise<void>
 
 async function callMark(
   client: AppSupabaseClient,
@@ -213,4 +192,11 @@ export const markWarmedWithSession: WarmMarker = async (...args) => {
 /** Anota con la clave de servicio (tareas en `after()`, sin sesión fiable). */
 export const markWarmedWithService: WarmMarker = async (...args) => {
   await callMark(createServiceClient(), ...args)
+}
+
+export const supabaseWarmRepository: WarmRepository = {
+  readContentWarmInfo,
+  readPinContentId,
+  markWithSession: markWarmedWithSession,
+  markWithService: markWarmedWithService,
 }

@@ -1,5 +1,5 @@
 import * as cheerio from 'cheerio'
-import type { ResolvedPackage } from '../domain/manifest'
+import type { ResolvedPackage } from '@/modules/packages/domain/manifest'
 
 export interface Viewport {
   width: number | string
@@ -13,16 +13,10 @@ export interface Viewport {
  * documento HTML autónomo compuesto a mano con cheerio (arquitectura
  * §12.1, sin iframe). No puede importar el componente ni su CSS Module.
  *
- * Corregido el 29 de septiembre (PROGRESO §4.8): hasta entonces era una
- * mini-nav aparte, con solo 5 enlaces por inicial (sin iconos reales),
- * "Contacto" en español y `lang="es"` fijo — visualmente distinta del
- * resto del sitio en cada página de tool e insight. Mantener dos
- * implementaciones del mismo menú es el riesgo real: si el Shell cambia
- * (useShell.ts) y esta copia no se actualiza, vuelven a divergir. No hay
- * forma de evitarlo del todo sin unificar el mecanismo de composición
- * (fuera de alcance aquí) — mientras tanto, ambas listas de items viven
- * una junto a la otra con la MISMA estructura que useShell.ts, para que
- * revisarlas en paralelo sea fácil.
+ * Mantener dos implementaciones del mismo menú es el riesgo: si el Shell
+ * cambia (navItems.ts) y esta copia no se actualiza, vuelven a divergir. Las
+ * dos listas de items tienen la MISMA estructura para revisarlas en
+ * paralelo (PROGRESO §4.8).
  */
 type NavItem = {
   href: string
@@ -30,7 +24,7 @@ type NavItem = {
   icon: string
 }
 
-// Mismos labels, iconos y orden que useShell.ts NAV_ITEMS (los cuatro con
+// Mismos labels, iconos y orden que navItems.ts NAV_ITEMS (los cuatro con
 // visible: true — Shop queda fuera de alcance de V1). Inglés: arquitectura
 // §2.4, "interfaz global en inglés".
 const NAV_ITEMS: NavItem[] = [
@@ -40,7 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/tools', label: 'Tools', icon: 'tools' },
 ]
 
-// Mismos labels, iconos y orden que useShell.ts SOCIAL_ITEMS.
+// Mismos labels, iconos y orden que navItems.ts SOCIAL_ITEMS.
 const SOCIAL_ITEMS: (NavItem & { external: boolean })[] = [
   { href: '/contact', label: 'Contact', icon: 'contact', external: false },
   {
@@ -90,7 +84,7 @@ function renderSidebar(): string {
   const socialItems = SOCIAL_ITEMS.map(renderIconLink).join('')
 
   return (
-    '<nav class="greener-sidebar" aria-label="Navegación principal">' +
+    '<nav class="greener-sidebar" aria-label="Main navigation">' +
     '<a class="greener-logo" href="/" aria-label="Greener"><img src="/icons/logo_greener.svg" alt="" /></a>' +
     `<ul class="greener-nav-group">${navItems}</ul>` +
     `<ul class="greener-social-group">${socialItems}</ul>` +
@@ -99,24 +93,17 @@ function renderSidebar(): string {
 }
 
 /**
- * Runtime de analítica de los paquetes (29 sep, integrado desde otra rama
- * de trabajo — ver PROGRESO §2.17): un script estático
+ * Runtime de analítica de los paquetes: un script estático
  * (`public/greener-package-analytics.js`) que escucha el evento
- * `greener:tool-used` (o `window.GreenerAnalytics.toolUsed(action)`) que
- * la PROPIA tool puede disparar tras una interacción real, y lo reenvía
- * a `POST /api/analytics/package` (mismo origen, permitido por la CSP de
- * esta ruta) — que resuelve el slug al UUID real de `content` antes de
- * mandarlo a Plausible como "Tool Used", con el mismo toolId que usa
- * "Tool Open" (cruzables entre sí en el dashboard de Plausible).
+ * `greener:tool-used` (o `window.GreenerAnalytics.toolUsed(action)`) que la
+ * PROPIA tool dispara tras una interacción real, y lo reenvía a
+ * `POST /api/analytics/package` (mismo origen, permitido por la CSP de esta
+ * ruta). Esa ruta resuelve el slug al UUID real de `content` y lo manda a
+ * Plausible como «Tool Used», con el mismo toolId que «Tool Open» (cruzables
+ * en el dashboard).
  *
- * Solo en Tools, nunca en Insights: aparcado explícitamente para
- * Insights (29 sep, conversación con el usuario).
- *
- * Es el ÚNICO mecanismo para "Tool Used": existió brevemente un segundo
- * mecanismo (servidor, automático al entrar en la ruta, sin pasar por la
- * propia tool — `serverAnalytics.ts`), retirado el mismo día porque el
- * usuario prefirió quedarse con este, precisamente por poder cruzarlo con
- * "Tool Open" (PROGRESO §2.17-§2.18).
+ * Solo en Tools, no en Insights. Es el ÚNICO mecanismo de «Tool Used»
+ * (PROGRESO §2.17-§2.18).
  */
 function renderPackageAnalyticsRuntime(pkg: ResolvedPackage): string {
   if (pkg.manifest.kind !== 'tool') {

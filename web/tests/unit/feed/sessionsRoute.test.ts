@@ -11,11 +11,6 @@ import { NextRequest } from 'next/server'
 
 const createFeedSession = vi.fn()
 
-vi.mock('@/modules/feed/application/createFeedSession', () => ({
-  createFeedSession: (...args: unknown[]) => createFeedSession(...args),
-  UnsupportedScopeError: class UnsupportedScopeError extends Error {},
-}))
-
 function requestWithCookie(visitorId?: string): NextRequest {
   return new NextRequest('http://localhost/api/feed/sessions', {
     method: 'POST',
@@ -30,6 +25,17 @@ function requestWithCookie(visitorId?: string): NextRequest {
 beforeEach(() => {
   vi.resetModules()
   vi.clearAllMocks()
+  // Los límites son los reales (estado de módulo, fresco tras resetModules);
+  // solo se sustituye el caso de uso, que tocaría Supabase.
+  vi.doMock('@/modules/feed/container', async () => {
+    const { inMemoryFeedRequestLimits } =
+      await import('@/modules/feed/infrastructure/feedRateLimit')
+
+    return {
+      feedLimits: inMemoryFeedRequestLimits,
+      createFeedSession: (...args: unknown[]) => createFeedSession(...args),
+    }
+  })
   vi.useFakeTimers()
   vi.setSystemTime(new Date('2026-09-29T10:00:00Z'))
 })

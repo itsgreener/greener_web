@@ -13,12 +13,12 @@ export type PinListItem = {
   autoplayMode: 'viewport' | 'hover' | null
   alt: string
   createdAt: string
-  media: Array<{
+  /** Un pin es un único medio; `null` mientras no se ha subido. */
+  media: {
     id: string
     kind: 'image' | 'video'
     cloudinaryPublicId: string
-    slideOrder: number
-  }>
+  } | null
 }
 
 export interface PinRepository {

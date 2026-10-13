@@ -8,10 +8,7 @@
  * al código de producción (arquitectura §24.4 — domain/ no depende de
  * scripts, y viceversa).
  *
- * Genera:
- *  - supabase/seed_demo_data.sql   (aplicable con `supabase db push` / psql)
- *  - data/demo/feed-snapshot.json  (mismo shape que FeedSnapshot, para el
- *                                    prototipo de masonry — Fase 1)
+ * Genera supabase/seed_demo_data.sql (aplicable con `supabase db push` / psql).
  *
  * Uso: node scripts/generate-demo-data.mjs
  */
@@ -401,69 +398,5 @@ writeFileSync(
   sqlLines.join('\n') + '\n',
 )
 
-// ---------------------------------------------------------------------
-// Salida 2: JSON con el mismo shape que FeedSnapshot (src/modules/feed/domain/types.ts)
-// ---------------------------------------------------------------------
-const feedSnapshot = {
-  cases: cases.map((c) => ({
-    contentId: c.contentId,
-    force: c.force,
-    pinIds: c.pins.map((p) => p.id),
-  })),
-  insights: [],
-  tools: [],
-  channel: episodes.map((e) => ({
-    contentId: e.contentId,
-    pinIds: [e.pin.id],
-  })),
-  other: [],
-}
-
-// Metadata auxiliar (no forma parte de FeedSnapshot, pero es útil para
-// renderizar el prototipo de masonry sin volver a consultar Supabase):
-// mapa pinId -> datos de presentación.
-const pinDirectory = {}
-for (const c of cases) {
-  for (const pin of c.pins) {
-    const asset = mediaAssetRows.find((m) => m.id === pin.mediaAssetId)
-    pinDirectory[pin.id] = {
-      contentId: c.contentId,
-      contentType: 'case',
-      contentTitle: c.title,
-      contentSlug: c.slug,
-      ratio: pin.ratio,
-      label: pin.label,
-      // El pin ya no guarda cta (especificacion-final-formato-detalle.md
-      // §3, §6): este fixture JSON del demo route antiguo (/api/feed/demo)
-      // no se ha tocado en el resto de su forma, pero ya no hay valor real
-      // que poner aquí.
-      cta: null,
-      alt: pin.alt,
-      cloudinaryPublicId: asset.cloudinaryPublicId,
-    }
-  }
-}
-for (const e of episodes) {
-  const asset = mediaAssetRows.find((m) => m.id === e.pin.mediaAssetId)
-  pinDirectory[e.pin.id] = {
-    contentId: e.contentId,
-    contentType: 'episode',
-    contentTitle: e.title,
-    contentSlug: e.slug,
-    ratio: e.pin.ratio,
-    label: e.pin.label,
-    cta: null,
-    alt: e.pin.alt,
-    cloudinaryPublicId: asset.cloudinaryPublicId,
-  }
-}
-
-mkdirSync(join(ROOT, 'data', 'demo'), { recursive: true })
-writeFileSync(
-  join(ROOT, 'data', 'demo', 'feed-snapshot.json'),
-  JSON.stringify({ snapshot: feedSnapshot, pinDirectory }, null, 2) + '\n',
-)
-
 console.log(`✔ ${cases.length} casos, ${episodes.length} episodios generados.`)
 console.log(`✔ supabase/seed_demo_data.sql`)
-console.log(`✔ data/demo/feed-snapshot.json`)

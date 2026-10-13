@@ -9,12 +9,12 @@ vi.mock('@/modules/analytics/analytics', () => ({
   trackAnalyticsEvent: vi.fn(),
 }))
 
-import { CaseDetail } from '@/app/(public)/work/[slug]/CaseDetail'
-import { EpisodeDetail } from '@/app/(public)/work/[slug]/EpisodeDetail'
+import { CaseDetail } from '@/components/detail/CaseDetail'
+import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
-import type { PublicContent } from '@/modules/content/infrastructure/publicContentSource'
-import type { PublicEpisode } from '@/modules/content/infrastructure/publicEpisodeSource'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import type { PublicContent } from '@/modules/content/domain/publicContent'
+import type { PublicEpisode } from '@/modules/content/domain/publicContent'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
 
 /**
  * Tipo B (caso/episodio): el bloque de contenido va EN FLUJO, encima del
@@ -207,8 +207,8 @@ describe('detalle tipo B (caso y episodio): bloque en flujo, fuera del lienzo', 
   })
 
   it.each([
-    'src/app/(public)/work/[slug]/CaseDetail.module.css',
-    'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+    'src/components/detail/CaseDetail/CaseDetail.module.css',
+    'src/components/detail/EpisodeDetail/EpisodeDetail.module.css',
   ])(
     '%s: .contentBlock ya no es position: absolute y lleva margin-bottom con el token global',
     (path) => {
@@ -240,7 +240,9 @@ describe('detalle tipo A (tool): se queda como estaba', () => {
 
   it('el CSS de .contentBlock de tool/insight conserva position: absolute y NO usa el margen nuevo', () => {
     const rule = contentBlockRule(
-      css('src/components/detail/ToolInsightDetail.module.css'),
+      css(
+        'src/components/detail/ToolInsightDetail/ToolInsightDetail.module.css',
+      ),
     )
 
     expect(rule).toMatch(/position:\s*absolute/)
@@ -283,8 +285,8 @@ describe('margen derecho del masonry en caso y episodio (6 oct 2026)', () => {
   )
 
   it.each([
-    'src/app/(public)/work/[slug]/CaseDetail.module.css',
-    'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+    'src/components/detail/CaseDetail/CaseDetail.module.css',
+    'src/components/detail/EpisodeDetail/EpisodeDetail.module.css',
   ])('%s: .contentBlock mide el 100 %% del contenedor por CSS', (path) => {
     expect(contentBlockRule(css(path))).toMatch(/(^|[\s;])width:\s*100%/)
   })
@@ -307,8 +309,8 @@ describe('el highlight no se recorta (6 oct 2026)', () => {
   // del límite blando de 110 caracteres, porque la columna de texto junto al
   // embed mide solo ~250-350 px y 50-60 caracteres ya ocupan tres líneas.
   it.each([
-    'src/app/(public)/work/[slug]/CaseDetail.module.css',
-    'src/app/(public)/work/[slug]/EpisodeDetail.module.css',
+    'src/components/detail/CaseDetail/CaseDetail.module.css',
+    'src/components/detail/EpisodeDetail/EpisodeDetail.module.css',
   ])('%s: .highlight no lleva line-clamp ni overflow: hidden', (path) => {
     const source = css(path).replace(/\/\*[\s\S]*?\*\//g, '')
     const rule = source.match(/\.highlight\s*\{([^}]*)\}/)

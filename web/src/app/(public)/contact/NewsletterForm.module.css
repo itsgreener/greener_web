@@ -68,7 +68,7 @@
 .error {
   margin: var(--space-xs) 0 0;
   font-size: 0.8rem;
-  color: #c0392b;
+  color: var(--color-error);
 }
 
 .success {

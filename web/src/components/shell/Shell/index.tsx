@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import styles from './Shell.module.css'
-import { useShell } from './useShell'
+import { navItems, socialItems } from './navItems'
 
 type ShellProps = {
   children: React.ReactNode
@@ -15,9 +15,9 @@ type IconLinkItem = {
 }
 
 /**
- * Icono + pastilla con el nombre, en hover/focus (confirmado el 15 sep:
- * el icono cambia de color y crece un poco, y aparece una pastilla al
- * lado con el label — ej. "LinkedIn"). El icono se pinta con
+ * Icono + pastilla con el nombre, en hover/focus: el icono cambia de color
+ * y crece un poco, y aparece una pastilla al lado con el label (ej.
+ * "LinkedIn"). El icono se pinta con
  * mask-image + background-color en vez de <img>: los SVG traen
  * stroke="black" fijo, así que es la única forma de recolorearlos por
  * CSS sin tocar los 10 ficheros ni convertirlos en componentes React.
@@ -59,18 +59,15 @@ function IconLink({ href, label, icon, external }: IconLinkItem) {
 
 /**
  * Shell público de Greener: menú lateral de iconos siempre visible (brief
- * §6), en tres bloques (logo / navegación / redes, confirmado por diseño
- * el 14 sep) + área de contenido. Vive en app/(public)/layout.tsx para no
+ * §6), en tres bloques (logo / navegación / redes) + área de contenido. Vive en app/(public)/layout.tsx para no
  * remontarse al navegar entre home, casos, tools e insights (arquitectura
  * §24.3) — es también donde vive FeedProvider, así que este
  * componente es parte de por qué el feed sobrevive a esa navegación.
  */
 export function Shell({ children }: ShellProps) {
-  const { navItems, socialItems } = useShell()
-
   return (
     <div className={styles.shell}>
-      <nav className={styles.sidebar} aria-label="Navegación principal">
+      <nav className={styles.sidebar} aria-label="Main navigation">
         <Link href="/" className={styles.logo} aria-label="Greener">
           {/* eslint-disable-next-line @next/next/no-img-element -- SVG estático servido tal cual, sin transformación */}
           <img src="/icons/logo_greener.svg" alt="" />

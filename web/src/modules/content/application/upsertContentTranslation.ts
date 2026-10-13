@@ -1,14 +1,19 @@
 import {
   contentTranslationSchema,
   type UpsertContentTranslationInput,
-} from '../domain/contentTranslationSchema'
+} from '@/modules/content/domain/contentTranslationSchema'
+import type { ContentTranslationRepository } from '@/modules/content/domain/contentTranslationRepository'
 
-import { supabaseContentTranslationRepository } from '../infrastructure/supabaseContentTranslationRepository'
+export function makeUpsertContentTranslation({
+  translations,
+}: {
+  translations: ContentTranslationRepository
+}) {
+  return async function upsertContentTranslation(
+    input: UpsertContentTranslationInput,
+  ) {
+    const validated = contentTranslationSchema.parse(input)
 
-export async function upsertContentTranslation(
-  input: UpsertContentTranslationInput,
-) {
-  const validated = contentTranslationSchema.parse(input)
-
-  return supabaseContentTranslationRepository.upsert(validated)
+    return translations.upsert(validated)
+  }
 }

@@ -1,11 +1,9 @@
 /**
- * Fecha y hora del ABM, SIEMPRE en hora de Madrid (auditoría 8 oct, P0-9).
- *
- * Antes había cuatro copias de `toLocaleString('es-ES')` sin `timeZone`: en
- * los Server Components salía la hora del proceso Node (UTC en el hosting,
- * 2 h menos en verano) y en los Client Components la del navegador, con el
- * riesgo añadido de que el HTML del servidor y el de la hidratación no
- * coincidieran. Fijar la zona hace que ambos lados escriban lo mismo.
+ * Fecha y hora del ABM, SIEMPRE en hora de Madrid. Sin `timeZone`, un Server
+ * Component escribiría la hora del proceso Node (UTC en el hosting) y un
+ * Client Component la del navegador, y el HTML del servidor y el de la
+ * hidratación podrían no coincidir. Fijar la zona hace que ambos lados
+ * escriban lo mismo.
  */
 export const ADMIN_TIME_ZONE = 'Europe/Madrid'
 

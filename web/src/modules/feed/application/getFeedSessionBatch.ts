@@ -1,108 +1,25 @@
-import { feedPinDestination } from '@/modules/content/domain/contentPath'
-import { generateRound } from '@/modules/feed/domain'
+import { generateRound } from '@/modules/feed/domain/generateRound'
 import {
-  getFeedSessionRow,
-  getFeedRound,
-  saveFeedRound,
-  type FeedSessionRow,
-} from '../infrastructure/feedSessionRepository'
-import {
-  getFeedDataset,
-  getFeedConfig,
-  getPinDirectoryByIds,
-  type FeedItemMedia,
-  type PinDirectoryEntry,
-} from '../infrastructure/supabaseFeedSource'
-import { encodeCursor, decodeCursor } from '../infrastructure/cursor'
-
-export interface FeedBatchItem {
-  pinId: string
-  contentId: string
-  kind: string
-  destination: string
-  ratio: string
-  label: string | null
-  // Case/episode: texto derivado del contenido, no del admin.
-  displayTitle?: string | null
-  displaySecondary?: string | null
-  cta: string | null
-  alt: string
-  autoplayMode: 'viewport' | 'hover' | null
-  media: FeedItemMedia[]
-}
-
-export interface FeedBatchResult {
-  items: FeedBatchItem[]
-  cursor: string
-  // Índice de la ronda a la que pertenece este lote (§8.5, §16.3). Lo lee
-  // el evento «Feed Depth» de analítica (useFeed.ts).
-  round: number
-  // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
-  // mientras el universo tenga al menos un pin publicado.
-  hasMore: boolean
-  // Solo en la respuesta de límite de peticiones superado (route handler):
-  // lote vacío TEMPORAL, el cliente no debe tratarlo como fin del feed.
-  rateLimited?: boolean
-}
-
-export class FeedSessionNotFoundError extends Error {
-  constructor() {
-    super('La sesión de feed no existe o ha caducado.')
-    this.name = 'FeedSessionNotFoundError'
-  }
-}
-
-export class InvalidFeedCursorError extends Error {
-  constructor() {
-    super('El cursor no es válido para esta sesión.')
-    this.name = 'InvalidFeedCursorError'
-  }
-}
-
-// Destino del pin: ver feedPinDestination (contentPath.ts). Los insights
-// abren directamente /insights/[slug]/app, sin pasar por su detalle.
-function destinationFor(
-  contentType: PinDirectoryEntry['contentType'],
-  slug: string,
-  unitId: string,
-): string {
-  const path = feedPinDestination(contentType, slug)
-
-  if (contentType === 'tool') {
-    // La ficha de Tool necesita saber desde qué pin se abrió para poder
-    // reutilizar exactamente ese medio como miniatura. `unitId` es el id
-    // del pin.
-    return `${path}?pin=${encodeURIComponent(unitId)}`
-  }
-
-  return path
-}
-
-function kindFor(contentType: PinDirectoryEntry['contentType']): string {
-  return contentType === 'episode' ? 'channel' : contentType
-}
-
-// especificacion-final-formato-detalle.md §1: el CTA del pin en el feed
-// es fijo por tipo de contenido, no un texto libre por pin — pin.cta
-// desaparece del modelo (§3, "Pin (todos los tipos)" ya no lo lista).
-function ctaFor(contentType: PinDirectoryEntry['contentType']): string | null {
-  switch (contentType) {
-    case 'tool':
-      return 'Use'
-    case 'insight':
-      return 'Read'
-    case 'case':
-    case 'episode':
-    case 'other':
-      return 'Watch'
-  }
-}
+  FeedSessionNotFoundError,
+  InvalidFeedCursorError,
+} from '@/modules/feed/domain/feedErrors'
+import { toFeedBatchItem } from '@/modules/feed/domain/feedItemPresentation'
+import type {
+  FeedCatalog,
+  FeedCursorCodec,
+  FeedSessionRepository,
+} from '@/modules/feed/domain/feedPorts'
+import type {
+  FeedBatchItem,
+  FeedBatchResult,
+  PinDirectoryEntry,
+} from '@/modules/feed/domain/feedReadModels'
 
 /**
  * Una ronda guardada es inmutable, pero el contenido no: si desde que se
  * generó se despublicó o borró un pin (o se quedó sin medio), ya no está en
- * el directorio público. Antes eso lanzaba y el lote entero daba 500
- * (auditoría 8 oct, P0-6); ahora esa unidad simplemente no se sirve.
+ * el directorio público: esa unidad simplemente no se sirve, en vez de
+ * tumbar el lote entero con un 500.
  */
 function enrich(
   unitIds: string[],
@@ -118,107 +35,84 @@ function enrich(
 
   return unitIds.flatMap((unitId) => {
     const meta = directory[unitId]
-    if (!meta) return []
-    return {
-      pinId: unitId,
-      contentId: meta.contentId,
-      kind: kindFor(meta.contentType),
-      destination: destinationFor(meta.contentType, meta.contentSlug, unitId),
-      ratio: meta.ratio,
-      label: meta.label,
-      displayTitle: meta.displayTitle ?? null,
-      displaySecondary: meta.displaySecondary ?? null,
-      cta: ctaFor(meta.contentType),
-      alt: meta.alt,
-      autoplayMode: meta.autoplayMode,
-      media: meta.media,
-    }
+
+    return meta ? [toFeedBatchItem(unitId, meta)] : []
   })
-}
-
-export interface GetFeedSessionBatchDeps {
-  getSession: (sessionId: string) => Promise<FeedSessionRow | null>
-  getRound: (sessionId: string, roundIndex: number) => Promise<string[] | null>
-  saveRound: (
-    sessionId: string,
-    roundIndex: number,
-    pinIds: string[],
-  ) => Promise<void>
-  getDataset: typeof getFeedDataset
-  getConfig: typeof getFeedConfig
-  getDirectoryByIds: typeof getPinDirectoryByIds
-}
-
-const defaultDeps: GetFeedSessionBatchDeps = {
-  getSession: getFeedSessionRow,
-  getRound: getFeedRound,
-  saveRound: saveFeedRound,
-  getDataset: getFeedDataset,
-  getConfig: getFeedConfig,
-  getDirectoryByIds: getPinDirectoryByIds,
 }
 
 /**
  * Caso de uso: "dame el siguiente lote de esta sesión de feed" (§16.1,
  * §8.5). Una ronda ya generada se lee tal cual de feed_round (inmutable:
  * los pines ya servidos no cambian aunque cambie el contenido publicado
- * después); una ronda nueva se calcula con generateRound(), el motor de
- * dominio ya probado en la Fase 0, y se persiste antes de devolverla.
+ * después); una ronda nueva se calcula con generateRound() y se persiste
+ * antes de devolverla.
  *
- * Hoy cada ronda es un lote completo (arquitectura §8.2: el tamaño de la
- * tanda lo fijan los casos) — por eso el cursor solo necesita
- * roundIndex, sin offset dentro de la ronda.
+ * Cada ronda es un lote completo (arquitectura §8.2: el tamaño de la tanda
+ * lo fijan los casos) — por eso el cursor solo necesita roundIndex, sin
+ * offset dentro de la ronda.
+ *
+ * @throws FeedSessionNotFoundError si la sesión no existe o caducó
+ * @throws InvalidFeedCursorError si el cursor no es de esta sesión
  */
-export async function getFeedSessionBatch(
-  sessionId: string,
-  cursor: string | null,
-  deps: GetFeedSessionBatchDeps = defaultDeps,
-): Promise<FeedBatchResult> {
-  const session = await deps.getSession(sessionId)
-  if (!session) throw new FeedSessionNotFoundError()
+export function makeGetFeedSessionBatch({
+  sessions,
+  catalog,
+  cursors,
+}: {
+  sessions: FeedSessionRepository
+  catalog: FeedCatalog
+  cursors: FeedCursorCodec
+}) {
+  return async function getFeedSessionBatch(
+    sessionId: string,
+    cursor: string | null,
+  ): Promise<FeedBatchResult> {
+    const session = await sessions.get(sessionId)
+    if (!session) throw new FeedSessionNotFoundError()
 
-  if (new Date(session.expiresAt).getTime() < Date.now()) {
-    throw new FeedSessionNotFoundError()
-  }
-
-  let roundIndex = 0
-  if (cursor) {
-    const payload = decodeCursor(cursor)
-    if (!payload || payload.sessionId !== sessionId) {
-      throw new InvalidFeedCursorError()
+    if (new Date(session.expiresAt).getTime() < Date.now()) {
+      throw new FeedSessionNotFoundError()
     }
-    roundIndex = payload.roundIndex
-  }
 
-  let unitIds = await deps.getRound(sessionId, roundIndex)
-  let directory: Record<string, PinDirectoryEntry>
+    let roundIndex = 0
+    if (cursor) {
+      const payload = cursors.decode(cursor)
+      if (!payload || payload.sessionId !== sessionId) {
+        throw new InvalidFeedCursorError()
+      }
+      roundIndex = payload.roundIndex
+    }
 
-  if (unitIds) {
-    // Ronda ya calculada: solo hace falta enriquecer, no releer el catálogo entero.
-    directory = await deps.getDirectoryByIds(unitIds)
-  } else {
-    // Ronda nueva: hace falta el universo completo para poder generarla,
-    // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
-    const [{ snapshot, pinDirectory }, config] = await Promise.all([
-      deps.getDataset(session.scope, session.excludeContentId),
-      deps.getConfig(),
-    ])
-    const { sequence } = generateRound(
-      snapshot,
-      config,
-      session.seed,
-      roundIndex,
-    )
-    unitIds = sequence.map((pin) => pin.pinId)
-    await deps.saveRound(sessionId, roundIndex, unitIds)
-    directory = pinDirectory
-  }
+    let unitIds = await sessions.getRound(sessionId, roundIndex)
+    let directory: Record<string, PinDirectoryEntry>
 
-  const items = enrich(unitIds, directory)
-  return {
-    items,
-    cursor: encodeCursor({ sessionId, roundIndex: roundIndex + 1 }),
-    round: roundIndex,
-    hasMore: true,
+    if (unitIds) {
+      // Ronda ya calculada: solo hace falta enriquecer, no releer el
+      // catálogo entero.
+      directory = await catalog.directoryByIds(unitIds)
+    } else {
+      // Ronda nueva: hace falta el universo completo para poder generarla,
+      // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
+      const [{ snapshot, pinDirectory }, config] = await Promise.all([
+        catalog.dataset(session.scope, session.excludeContentId),
+        catalog.config(),
+      ])
+      const { sequence } = generateRound(
+        snapshot,
+        config,
+        session.seed,
+        roundIndex,
+      )
+      unitIds = sequence.map((pin) => pin.pinId)
+      await sessions.saveRound(sessionId, roundIndex, unitIds)
+      directory = pinDirectory
+    }
+
+    return {
+      items: enrich(unitIds, directory),
+      cursor: cursors.encode({ sessionId, roundIndex: roundIndex + 1 }),
+      round: roundIndex,
+      hasMore: true,
+    }
   }
 }

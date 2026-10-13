@@ -1,11 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 
-import type { ContentTranslationRepository } from '../domain/contentTranslationRepository'
+import type { ContentTranslationRepository } from '@/modules/content/domain/contentTranslationRepository'
 
 import type {
   ContentTranslation,
   UpsertContentTranslationInput,
-} from '../domain/contentTranslationSchema'
+} from '@/modules/content/domain/contentTranslationSchema'
 
 import type { Locale } from '@/modules/shared/domain/locale'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'

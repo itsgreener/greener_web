@@ -5,20 +5,25 @@ const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const listVersions = vi.fn()
 const deleteVersion = vi.fn()
 
-vi.mock(
-  '@/modules/packages/infrastructure/supabaseHtmlPackageRepository',
-  () => ({
-    supabaseHtmlPackageRepository: {
-      listVersions: (...args: unknown[]) => listVersions(...args),
-      deleteVersion: (...args: unknown[]) => deleteVersion(...args),
-    },
-  }),
-)
-
 import {
-  deleteHtmlPackageVersion,
-  deleteOldHtmlPackageVersions,
+  makeDeleteHtmlPackageVersion,
+  makeDeleteOldHtmlPackageVersions,
 } from '@/modules/packages/application/deleteHtmlPackageVersion'
+
+/** Repositorio falso; los dobles se reconfiguran en cada test. */
+const packages = {
+  uploadVersion: vi.fn(),
+  publishVersion: vi.fn(),
+  listVersions: (...args: unknown[]) => listVersions(...args),
+  deleteVersion: (...args: unknown[]) => deleteVersion(...args),
+}
+
+const deleteOldHtmlPackageVersions = makeDeleteOldHtmlPackageVersions({
+  packages: packages as never,
+})
+const deleteHtmlPackageVersion = makeDeleteHtmlPackageVersion({
+  packages: packages as never,
+})
 
 const v = (n: number, status: 'draft' | 'published' | 'rolled_back') => ({
   id: `00000000-0000-4000-8000-00000000000${n}`,

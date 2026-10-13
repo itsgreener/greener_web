@@ -1,16 +1,15 @@
 'use client'
 
 import { PinCard } from '@/components/pin/PinCard'
-import type { FeedBatchResult } from '@/modules/feed/application/getFeedSessionBatch'
+import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import { feedCopy } from '@/components/masonry/copy'
 import { useFeed } from './useFeed'
 import styles from './Feed.module.css'
 
 /**
  * Retícula masonry sobre el feed real (§6-§10 de la arquitectura), para
  * la home (scope="home") y cada subhome (scope="work"/"insights"/
- * "tools"/"channel"). A diferencia de MasonryFeed (el prototipo de demo,
- * /preview/masonry), habla con /api/feed/sessions + /api/feed/[sessionId]
- * de verdad.
+ * "tools"/"channel"). Habla con /api/feed/sessions + /api/feed/[sessionId].
  */
 export function Feed({ scope }: { scope: string }) {
   const {
@@ -21,15 +20,11 @@ export function Feed({ scope }: { scope: string }) {
     itemCount,
     hasMore,
     error,
-    sentinelId,
+    sentinelRef,
   } = useFeed(scope)
 
   if (error) {
-    return (
-      <p className={styles.status}>
-        No se ha podido cargar el feed. Recarga la página.
-      </p>
-    )
+    return <p className={styles.status}>{feedCopy.loadError}</p>
   }
 
   return (
@@ -67,14 +62,12 @@ export function Feed({ scope }: { scope: string }) {
           ),
         )}
       </div>
-      <div id={sentinelId} className={styles.sentinel} />
+      <div ref={sentinelRef} className={styles.sentinel} />
       {isLoading && itemCount === 0 && (
-        <p className={styles.status}>Cargando…</p>
+        <p className={styles.status}>{feedCopy.loading}</p>
       )}
       {!isLoading && itemCount === 0 && !hasMore && (
-        <p className={styles.status}>
-          Todavía no hay contenido publicado en esta sección.
-        </p>
+        <p className={styles.status}>{feedCopy.empty}</p>
       )}
     </div>
   )

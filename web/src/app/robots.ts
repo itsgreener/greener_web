@@ -12,7 +12,6 @@ export const dynamic = 'force-dynamic'
  * /admin y /api/admin — el ABM (además ya exige sesión).
  * /api — endpoints internos del feed y del contacto, sin contenido.
  * /auth — callback de OAuth.
- * /preview — demos de desarrollo (masonry).
  * Los borradores compartidos por link (?preview=<token>) ya salen con
  * noindex en su propio <head>; robots.txt no puede filtrar por query
  * y no hace falta.
@@ -23,7 +22,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/', '/auth', '/preview'],
+        disallow: ['/admin', '/api/', '/auth'],
       },
     ],
     sitemap: `${env.NEXT_PUBLIC_SITE_URL}/sitemap.xml`,
