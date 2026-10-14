@@ -82,9 +82,7 @@ describe('useRecommendationMasonry — paginación', () => {
       })
     }) as unknown as typeof fetch
 
-    const { result } = renderHook(() =>
-      useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
-    )
+    const { result } = renderHook(() => useRecommendationMasonry('c1', '1:1'))
     attachSentinel(result)
 
     await waitFor(() => expect(urls).toHaveLength(1))
@@ -132,9 +130,7 @@ describe('useRecommendationMasonry — paginación', () => {
       })
     }) as unknown as typeof fetch
 
-    const { result } = renderHook(() =>
-      useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
-    )
+    const { result } = renderHook(() => useRecommendationMasonry('c1', '1:1'))
     attachSentinel(result)
 
     await waitFor(() => expect(urls).toHaveLength(1))
@@ -156,9 +152,7 @@ describe('useRecommendationMasonry — paginación', () => {
       return respond({ items: [], cursor: 'cursor-1', round: 0, hasMore: true })
     }) as unknown as typeof fetch
 
-    const { result } = renderHook(() =>
-      useRecommendationMasonry('c1', '1:1', { scope: 'tools' }),
-    )
+    const { result } = renderHook(() => useRecommendationMasonry('c1', '1:1'))
     attachSentinel(result)
 
     await waitFor(() => expect(result.current.hasMore).toBe(false))

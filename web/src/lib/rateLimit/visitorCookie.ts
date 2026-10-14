@@ -12,7 +12,7 @@ import type { NextRequest, NextResponse } from 'next/server'
  * Cookie técnica, exenta de consentimiento bajo el art. 22.2 LSSI — la
  * guía de la AEPD pone justo este caso (cookies de seguridad para
  * detectar/limitar abuso) como ejemplo de lo exento. Documentada de
- * todas formas en cookies-inventario.md, porque exenta de consentimiento
+ * todas formas en docs/cookies-y-privacidad/cookies-inventario.md, porque exenta de consentimiento
  * no significa exenta de mención en la política.
  */
 export const VISITOR_COOKIE_NAME = 'greener_visitor'

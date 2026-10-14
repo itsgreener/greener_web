@@ -36,14 +36,17 @@ export default function ContentFilterPersistence() {
   }, [router, search])
 
   useEffect(() => {
-    const form = document.querySelector<HTMLFormElement>('.admin-content-filters')
+    const form = document.querySelector<HTMLFormElement>(
+      '.admin-content-filters',
+    )
     if (!form) return
     const onSubmit = () => {
       const fields = new FormData(form)
       const next = new URLSearchParams()
       for (const key of ['q', 'type', 'status'] as const) {
         const value = fields.get(key)
-        if (typeof value === 'string' && value.trim()) next.set(key, value.trim())
+        if (typeof value === 'string' && value.trim())
+          next.set(key, value.trim())
       }
       // An intentional filter submission replaces the last saved selection.
       if (next.toString()) sessionStorage.setItem(STORAGE_KEY, next.toString())

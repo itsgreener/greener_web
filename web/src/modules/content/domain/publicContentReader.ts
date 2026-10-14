@@ -29,6 +29,12 @@ export interface PublicContentReader {
   firstPinMedia(contentId: string): Promise<PublicContentMedia | null>
 
   /**
+   * Portada previa al reproductor de un episodio: la primera imagen de un pin
+   * 16:9 o, sin ella, el primer medio del primer pin.
+   */
+  episodePoster(contentId: string): Promise<PublicContentMedia | null>
+
+  /**
    * Portada de la ficha desde el pin que originó la navegación. El pin se
    * filtra también por contenido: `?pin=` no puede inyectar el medio de otro.
    */

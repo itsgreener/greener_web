@@ -1,7 +1,7 @@
 /**
  * Texto de la página «Privacy & Cookies» (`/privacy`). PROVISIONAL: parte del
  * documento «Política de cookies · Cookie Policy» de Greener (1 oct 2026) con
- * las correcciones técnicas de `politica-cookies-cambios.md`. El asesor legal
+ * las correcciones técnicas de `docs/cookies-y-privacidad/politica-cookies-cambios.md`. El asesor legal
  * redacta el texto final: se sustituye aquí, sin tocar la página.
  *
  * Solo inglés por ahora (la web no tiene selector de idioma). Para añadir el

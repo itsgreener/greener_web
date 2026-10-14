@@ -1,10 +1,10 @@
 # Greener — Historial detallado, Fases 0-2 (completadas)
 
-Archivo de detalle, separado de `PROGRESO.md` el 9 de septiembre de 2026 para aligerar ese documento. Contiene el relato completo, día a día, de cómo se construyeron las Fases 0, 1 y 2 (motor de feed, tools/insights sin iframe, esquema de Supabase, login del ABM, CRUD de content/media, estados editoriales, subida de paquetes HTML, escaneo antivirus, y subida de pines) — bugs reales encontrados, decisiones tomadas y por qué, y el histórico completo de correcciones al propio documento de estado.
+Archivo de detalle, separado de `docs/PROGRESO.md` el 9 de septiembre de 2026 para aligerar ese documento. Contiene el relato completo, día a día, de cómo se construyeron las Fases 0, 1 y 2 (motor de feed, tools/insights sin iframe, esquema de Supabase, login del ABM, CRUD de content/media, estados editoriales, subida de paquetes HTML, escaneo antivirus, y subida de pines) — bugs reales encontrados, decisiones tomadas y por qué, y el histórico completo de correcciones al propio documento de estado.
 
-**Nada de esto está pendiente.** Si buscas qué queda por hacer, está en `PROGRESO.md`, no aquí. Este archivo es para cuando haga falta el porqué de una decisión ya tomada, o el detalle de un bug ya cerrado.
+**Nada de esto está pendiente.** Si buscas qué queda por hacer, está en `docs/PROGRESO.md`, no aquí. Este archivo es para cuando haga falta el porqué de una decisión ya tomada, o el detalle de un bug ya cerrado.
 
-Las referencias `§X` siguen apuntando al documento de arquitectura técnica V1.3. Las referencias `§2.N` de este archivo son internas, correspondientes a la numeración que tenían estas secciones en `PROGRESO.md` antes de archivarse.
+Las referencias `§X` siguen apuntando al documento de arquitectura técnica V1.3. Las referencias `§2.N` de este archivo son internas, correspondientes a la numeración que tenían estas secciones en `docs/PROGRESO.md` antes de archivarse.
 
 ---
 
@@ -301,7 +301,7 @@ Cierra el último ítem abierto de la Fase 2 (§4.3, §15.4). Alcance: **alta in
 
 ## 6. Historial de correcciones a este documento
 
-- **9 sep 2026 (tarde)**: cerrada la planificación completa del rediseño de formato de detalle que sustituye al repertorio de bloques A/B/C original — ver §2.22. Sin cambios de código; dos documentos nuevos en la raíz del repo (`especificacion-final-formato-detalle.md`, `contrato-zip-tools-insights.md`) que quedan como referencia para cuando se implemente. Corregida la referencia obsoleta a "repertorio de bloques pendiente de diseño" en el resumen ejecutivo y en el checklist de la Fase 3 — ya no aplica, se sustituyó el enfoque entero.
+- **9 sep 2026 (tarde)**: cerrada la planificación completa del rediseño de formato de detalle que sustituye al repertorio de bloques A/B/C original — ver §2.22. Sin cambios de código; dos documentos nuevos en la raíz del repo (`docs/especificaciones/especificacion-final-formato-detalle.md`, `docs/especificaciones/contrato-zip-tools-insights.md`) que quedan como referencia para cuando se implemente. Corregida la referencia obsoleta a "repertorio de bloques pendiente de diseño" en el resumen ejecutivo y en el checklist de la Fase 3 — ya no aplica, se sustituyó el enfoque entero.
 
 - **9 sep 2026 (bloque 3)**: cerrada la carga masiva de pines por CSV (§2.21) — último ítem abierto de la Fase 2. Parser de CSV propio sin dependencia nueva, con un bug real corregido antes de que llegara a ningún sitio (cabecera pasada a minúsculas perdía `queueOrder`). `createPinWithImageAction` junta crear pin + adjuntar imagen en una llamada. Subida secuencial con error por archivo sin tumbar el lote. 16 tests nuevos, 341/341 en total. **La Fase 2 del checklist (§4.3) queda completa.**
 
@@ -340,5 +340,5 @@ Cierra el último ítem abierto de la Fase 2 (§4.3, §15.4). Alcance: **alta in
 
   Quedan abiertos sin urgencia: el parámetro `hd` en el login de Google, y las dos decisiones de negocio con Greener (§5). El `.gitignore` ya incluye `/supabase/.temp/`.
 
-- **18 ago 2026 (mañana)**: fusión de `PROGRESO.md` y `CHECKLIST.md` en un único documento. Se corrigieron afirmaciones que ya no eran ciertas ("59 tests todos en verde", "0 errores de TypeScript", "build de producción limpio" — no lo estaban en ese momento por un export roto y dependencias de test que faltaban; ambos corregidos y reverificados el mismo día). Se documentó por primera vez el login del ABM, que ya tenía código funcional sin reflejar en el documento anterior.
+- **18 ago 2026 (mañana)**: fusión de `docs/PROGRESO.md` y `CHECKLIST.md` en un único documento. Se corrigieron afirmaciones que ya no eran ciertas ("59 tests todos en verde", "0 errores de TypeScript", "build de producción limpio" — no lo estaban en ese momento por un export roto y dependencias de test que faltaban; ambos corregidos y reverificados el mismo día). Se documentó por primera vez el login del ABM, que ya tenía código funcional sin reflejar en el documento anterior.
 - Decisiones y confirmaciones previas: admin como rol único multiusuario por dominio; `client`/`sector`/`services` de caso sin traducir; Cloudinary sustituye a Supabase Storage para imagen/vídeo; tools/insights sin iframe, validado con una tool real; Next.js 16.3.x / React 19.2.8 confirmados como versiones reales del proyecto; dataset de demostración sin insights ni tools.

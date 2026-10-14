@@ -222,6 +222,7 @@ src/modules/content/domain/publicContent.ts
 src/modules/content/domain/publicContentReader.ts
 src/modules/content/domain/sitemap.ts
 src/modules/content/domain/textLimits.ts
+src/modules/content/infrastructure/episodePoster.ts
 src/modules/content/infrastructure/firstPinMedia.ts
 src/modules/content/infrastructure/previewToken.ts
 src/modules/content/infrastructure/publicCaseSource.ts

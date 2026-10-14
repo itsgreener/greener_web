@@ -74,7 +74,6 @@ export function CaseDetail({
 
   const recommendations = useRecommendationMasonry(content.id, carouselRatio, {
     fullWidthContent: true,
-    scope: 'work',
   })
   const { contentBlockImageWidth, contentBlockImageHeight } = recommendations
 

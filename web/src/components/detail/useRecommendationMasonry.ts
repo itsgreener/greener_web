@@ -28,9 +28,10 @@ import { recommendationsCopy } from './copy'
  * - Sin persistencia entre navegaciones: cada
  *   entrada a un detalle pide una feedSession nueva, no hay scope que
  *   guardar en sessionStorage ni scroll que restaurar.
- * - El scope lo decide la sección que abre el detalle: tools → tools,
- *   insights → insights, channel → channel, work → work y home → todo.
- *   El contenido actual se excluye siempre para no recomendarse a sí mismo.
+ * - El scope es SIEMPRE `home` (decisión del 14 oct 2026): las
+ *   recomendaciones de cualquier ficha mezclan todos los tipos, igual que la
+ *   home, y no se limitan al tipo de contenido que se ha abierto. El
+ *   contenido actual se excluye siempre para no recomendarse a sí mismo.
  * - Tipo A (tool/insight/other): el bloque de contenido va en absoluto
  *   DENTRO del lienzo y el masonry se siembra de forma asimétrica: las
  *   primeras `contentColumns` columnas arrancan a la altura de la imagen
@@ -43,8 +44,8 @@ import { recommendationsCopy } from './copy'
  *   montar todo no tiene el coste del scroll infinito de home/subhomes.
  */
 
-export type RecommendationScope =
-  'home' | 'work' | 'insights' | 'tools' | 'channel'
+/** Universo de las recomendaciones de una ficha: toda la home. */
+const RECOMMENDATIONS_SCOPE = 'home'
 
 export interface PositionedRecommendation {
   /**
@@ -81,12 +82,9 @@ export function useRecommendationMasonry(
     // reservado, el texto aprovecha todo ese resto (ver
     // computeContentBlockGeometry). Casos y episodios no lo activan.
     textColumn?: boolean
-    // Universo de recomendaciones. 'home' mezcla todo; cada subhome
-    // restringe a su tipo de contenido.
-    scope?: RecommendationScope
   },
 ) {
-  const scope = options?.scope ?? 'home'
+  const scope = RECOMMENDATIONS_SCOPE
 
   const { containerRef, containerWidth } = useContainerWidth()
   const [viewportHeight, setViewportHeight] = useState(0)

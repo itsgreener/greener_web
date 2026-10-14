@@ -23,6 +23,7 @@ function fakeReader() {
     caseCarousel: vi.fn(async () => []),
     episode: vi.fn(async () => null),
     firstPinMedia: vi.fn(async () => null),
+    episodePoster: vi.fn(async () => null),
     pinCover: vi.fn(async () => null),
     publishedContentId: vi.fn(async () => null),
     publishedForSitemap: vi.fn(async () => []),

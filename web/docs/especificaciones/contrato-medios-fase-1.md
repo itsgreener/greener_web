@@ -1,15 +1,15 @@
 # Contrato de medios (entrega y subida) y plan de la fase 1 de rendimiento
 
-> **Documento de traspaso para Claude.** Escrito el 6 de octubre de 2026, al final de una conversación larga con Greener, para que una conversación nueva pueda retomar el trabajo sin perder nada. Si lees esto en una sesión nueva: léelo entero antes de tocar código. No hace falta releer los historiales salvo para el porqué de algo concreto (se citan sus `§2.N`). El detalle cronológico de lo discutido está en `historial-fase-5.md` §2.37; este documento es la versión operativa.
+> **Documento de traspaso para Claude.** Escrito el 6 de octubre de 2026, al final de una conversación larga con Greener, para que una conversación nueva pueda retomar el trabajo sin perder nada. Si lees esto en una sesión nueva: léelo entero antes de tocar código. No hace falta releer los historiales salvo para el porqué de algo concreto (se citan sus `§2.N`). El detalle cronológico de lo discutido está en `docs/historial/historial-fase-5.md` §2.37; este documento es la versión operativa.
 
 ## 0. Resumen en un minuto
 
 1. **Problema.** Los vídeos cortos de las tools (§2.36 del historial) se reproducen en los pines de la home y en la ficha, pero tardan en cargarse y al entrar en pantalla van a tirones durante unos segundos.
 2. **Restricción.** Cloudinary **Free (25 créditos)**. Greener ha descartado pasar a Plus (225 créditos, unos 89-99 $/mes) y no existe un plan de «pago por uso» razonable (§2). Hay que **gastar poco**: el gasto que escala son el ancho de banda, las versiones únicas de cada asset y, en vídeo, los segundos procesados.
 3. **Decisión.** Fijar **una sola vez** un contrato de entrega de medios (§4) y aplicar la **fase 1** (§7): URLs con tamaño acotado, dos fuentes de vídeo explícitas, pósters con escalera de anchos, prefetch y cambio póster→vídeo sin tirones. Después, en la **fase 2** (§9), calentar las versiones al publicar.
-4. **Estado (actualizado el 7 oct).** **La fase 1 está IMPLEMENTADA** (ver `historial-fase-5.md` §2.38): pasos 2 y 4-12 de §7 hechos, 1155 tests en verde. **Pendiente:** prueba A/B (paso 3), comprobar las cadenas contra Cloudinary real y medir `droppedVideoFrames` en hardware real (el criterio ≤ 2 de §7.1 no se cumplió en el Chromium del entorno). Lo que sigue describe el estado ANTERIOR: **La fase 1 NO está empezada.** No hay cambios de código de esta conversación pendientes de integrar: el repositorio es el último zip entregado el 6 oct (107 ficheros de test, 1042 tests en verde, ver `PROGRESO.md` §1). Lo único nuevo son documentos.
+4. **Estado (actualizado el 7 oct).** **La fase 1 está IMPLEMENTADA** (ver `docs/historial/historial-fase-5.md` §2.38): pasos 2 y 4-12 de §7 hechos, 1155 tests en verde. **Pendiente:** prueba A/B (paso 3), comprobar las cadenas contra Cloudinary real y medir `droppedVideoFrames` en hardware real (el criterio ≤ 2 de §7.1 no se cumplió en el Chromium del entorno). Lo que sigue describe el estado ANTERIOR: **La fase 1 NO está empezada.** No hay cambios de código de esta conversación pendientes de integrar: el repositorio es el último zip entregado el 6 oct (107 ficheros de test, 1042 tests en verde, ver `docs/PROGRESO.md` §1). Lo único nuevo son documentos.
 5. **Plan inmediato.** Hoy (6 oct, tarde): Greener y Claude convierten imágenes y vídeos de tools según el contrato de subida (§5, proceso en §10). Mañana (7 oct): se aplica la fase 1 (§7).
-6. **Fase 2 planificada (7 oct).** Decisiones y diseño completos en §9; **sin implementar**. Empieza por el paso 0 de §9.9 (pruebas contra Cloudinary real). Detalle en `historial-fase-5.md` §2.51.
+6. **Fase 2 planificada (7 oct).** Decisiones y diseño completos en §9; **sin implementar**. Empieza por el paso 0 de §9.9 (pruebas contra Cloudinary real). Detalle en `docs/historial/historial-fase-5.md` §2.51.
 
 ## 1. Reglas de trabajo con este repositorio (aprendidas en esta conversación)
 
@@ -17,7 +17,7 @@
 2. **Devuelve el proyecto completo en un zip** cuando hagas cambios, salvo que pida otra cosa (excepciones puntuales: «solo `src`», «solo `tests`»). Excluye `node_modules`, `.next`, `supabase/.temp`, `.DS_Store`, `next-env.d.ts` y `*.tsbuildinfo`.
 3. **Finales de línea CRLF.** El repo viene en CRLF. Respétalos al editar (leer normalizando a LF y reescribir en CRLF) y formatea con `prettier --end-of-line crlf`. Un `prettier --write` sin esa opción convierte el fichero a LF.
 4. **Verificación estándar** (todo debe quedar en verde): `npx eslint src tests scripts`, `npx tsc --noEmit` (ignora el falso positivo `LayoutProps`), `npx prettier --check --end-of-line crlf src tests scripts`, `npx vitest run`. La batería completa tarda ~150 s y cada comando tiene un límite de 300 s: lanza `timeout 250 npx vitest run`. El Node del entorno es 22 y el proyecto fija 24.15 (`.nvmrc`).
-5. **Documentación.** Trabajo nuevo = sección `§2.N` correlativa en `historial-fase-5.md` + una fila en el índice de `PROGRESO.md` §2 + checklist §4 + registro §6. No dejes un documento desactualizado: corrígelo en el mismo cambio.
+5. **Documentación.** Trabajo nuevo = sección `§2.N` correlativa en `docs/historial/historial-fase-5.md` + una fila en el índice de `docs/PROGRESO.md` §2 + checklist §4 + registro §6. No dejes un documento desactualizado: corrígelo en el mismo cambio.
 6. **Trampas de la shell.** Nunca uses `pkill -f vitest` (mata tu propia shell porque su línea de comandos contiene «vitest»). Decodifica con Python la salida de vitest si da error de UTF-8 (lleva caracteres de control). Un proceso lanzado con `nohup` en un comando no sobrevive al siguiente: ejecuta en primer plano con `timeout`.
 7. **El entorno no llega a Cloudinary ni a Supabase.** Solo permite npm, PyPI, GitHub y repositorios de Ubuntu. Lo que dependa de Cloudinary real (cadenas de URL aceptadas, tiempos de la primera petición, calidad visual) **solo lo puede comprobar Greener**; dilo siempre así. Sí hay un Chromium real disponible (Anexo B) y `ffmpeg` (Anexo A).
 8. **Tests de regresión que fallan sin el arreglo.** Es una práctica de este proyecto: tras escribir un test de regresión, deshaz el arreglo a propósito y comprueba que el test falla; restaura después.
@@ -232,7 +232,7 @@ Que «nunca llegue a reproducirse» es improbable salvo por debajo de ~0,5 Mbps;
 
 Orden recomendado. Cada paso termina con la verificación estándar (§1.4).
 
-1. **Preparación.** Pide a Greener el repo actual (con sus ajustes a mano), compáralo con tu copia, ejecuta la batería base (debe estar en verde) y lee `PROGRESO.md` §4.0, `historial-fase-5.md` §2.36-§2.37 y este documento. Repasa las decisiones abiertas de §12 con Greener **antes** de codificar.
+1. **Preparación.** Pide a Greener el repo actual (con sus ajustes a mano), compáralo con tu copia, ejecuta la batería base (debe estar en verde) y lee `docs/PROGRESO.md` §4.0, `docs/historial/historial-fase-5.md` §2.36-§2.37 y este documento. Repasa las decisiones abiertas de §12 con Greener **antes** de codificar.
 2. **Confirmar la sintaxis (§4.6)** en la documentación de Cloudinary. Anota el resultado en el §2.N nuevo.
 3. **Prueba A/B de calidad (Greener).** Para 2-3 clips y 2-3 imágenes reales, prepara URLs candidatas (`q_auto`, `q_auto:eco`, `q_auto:low` para vídeo del feed; `q_auto` y `q_auto:eco` para imágenes del feed) con el `public_id` real. Greener decide y se **congela** el contrato (§12). Se hace antes de codificar para no generar versiones que luego se abandonen.
 4. **Contrato en el dominio** (`src/modules/media/domain/mediaDelivery.ts`): escaleras y presupuestos como constantes y funciones puras: tamaño de escalón por ratio (`M`/`L`), `pickDetailVideoRung(caja, dpr)`, `pickFeedImageWidth(anchoTarjeta)`, ancho único del vídeo del feed. Tests unitarios con los casos de §4.3.
@@ -256,11 +256,11 @@ Orden recomendado. Cada paso termina con la verificación estándar (§1.4).
 
 ## 8. Cosas ya hechas que conviene conocer (sin repetirlas)
 
-Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDuration`, `useMotionPreferences`, limpieza de Cloudinary al borrar y reconciliador (`scripts/reconcile-cloudinary.mjs`), carga masiva con vídeo, caso y episodio con el bloque en flujo, `min-width: 0` en `.content` del Shell, ficha de episodio con CTA «Watch more»: todo en `historial-fase-5.md` §2.36. El reconciliador **no cubre las versiones derivadas**: tras cambiar URLs, las derivadas viejas siguen ocupando almacenamiento y habría que borrarlas con la Admin API (opción `keep_original` al borrar recursos; **no verificada**).
+Vídeos en el flujo de pines, límites 8 s / 15 s / 15 MB, `readLocalVideoDuration`, `useMotionPreferences`, limpieza de Cloudinary al borrar y reconciliador (`scripts/reconcile-cloudinary.mjs`), carga masiva con vídeo, caso y episodio con el bloque en flujo, `min-width: 0` en `.content` del Shell, ficha de episodio con CTA «Watch more»: todo en `docs/historial/historial-fase-5.md` §2.36. El reconciliador **no cubre las versiones derivadas**: tras cambiar URLs, las derivadas viejas siguen ocupando almacenamiento y habría que borrarlas con la Admin API (opción `keep_original` al borrar recursos; **no verificada**).
 
 ## 9. Fase 2: calentar las versiones de vídeo al publicar (IMPLEMENTADA el 8 oct; falta el relleno inicial)
 
-**Estado (8 oct, tarde): implementada** (`historial-fase-5.md` §2.53): `warmVideoRenditions`, `warmContentMedia`, ganchos con `after()`, botón del ABM y `scripts/warm-cloudinary.mjs`; el tope de 40 MB **no se aplica** (decisión de Greener) y el `?? 10` está retirado. Falta el relleno inicial (Greener). Lo que sigue es el estado de la mañana. Planificada y con las decisiones de Greener tomadas. **Arrancada el 8 oct** (`historial-fase-5.md` §2.52): hechos el script del paso 0, el ratio compartido, `warmPlan.ts` y la migración de seguimiento (sin aplicar); **correcciones a este plan en los puntos marcados «8 oct»**. Falta ejecutar el script (Greener) y el resto de pasos. Esta sección es el traspaso completo: léela entera, más §4 (contrato de entrega), §2.2 (reglas de consumo) y `historial-fase-5.md` §2.51. Todo lo marcado «NO VERIFICADO» hay que comprobarlo contra Cloudinary real **antes** de codificar el resto (paso 0 de §9.9).
+**Estado (8 oct, tarde): implementada** (`docs/historial/historial-fase-5.md` §2.53): `warmVideoRenditions`, `warmContentMedia`, ganchos con `after()`, botón del ABM y `scripts/warm-cloudinary.mjs`; el tope de 40 MB **no se aplica** (decisión de Greener) y el `?? 10` está retirado. Falta el relleno inicial (Greener). Lo que sigue es el estado de la mañana. Planificada y con las decisiones de Greener tomadas. **Arrancada el 8 oct** (`docs/historial/historial-fase-5.md` §2.52): hechos el script del paso 0, el ratio compartido, `warmPlan.ts` y la migración de seguimiento (sin aplicar); **correcciones a este plan en los puntos marcados «8 oct»**. Falta ejecutar el script (Greener) y el resto de pasos. Esta sección es el traspaso completo: léela entera, más §4 (contrato de entrega), §2.2 (reglas de consumo) y `docs/historial/historial-fase-5.md` §2.51. Todo lo marcado «NO VERIFICADO» hay que comprobarlo contra Cloudinary real **antes** de codificar el resto (paso 0 de §9.9).
 
 ### 9.1 Objetivo y alcance
 
@@ -324,7 +324,7 @@ Una migración sobre `media_asset` (solo filas de vídeo la usan):
 4. Una función `mark_media_asset_warmed(p_media_id uuid, p_contract text, p_error text)` con fila en `audit_log` (security invoker, `revoke ... from public`). **8 oct:** admite admin (`is_admin()`) **o rol de servicio** (`current_user = 'service_role'`), porque `is_admin()` mira el email del JWT y la secret key no lo lleva; `grant ... to authenticated, service_role`. Hecha en `20261008090000_media_asset_warm_tracking.sql`.
 5. **Ojo con la sesión:** el calentamiento tras publicar corre en `after()` con la sesión del admin que pulsó el botón; el que dispara el `pg_cron` no tiene sesión (por eso se calienta al programar, §9.3). El script usa las credenciales de servicio.
 
-**ABM:** en la edición de cada contenido con vídeo, un indicador por medio («calentado», «pendiente», «error: …») y el botón «Calentar». Añadir la migración a la lista de aplicación de `PROGRESO.md` §4.0.
+**ABM:** en la edición de cada contenido con vídeo, un indicador por medio («calentado», «pendiente», «error: …») y el botón «Calentar». Añadir la migración a la lista de aplicación de `docs/PROGRESO.md` §4.0.
 
 ### 9.7 Coste (estimación con suposiciones; una sola vez)
 
@@ -429,7 +429,7 @@ La fuente es un hilo de la comunidad con respuesta de personal, **no la document
 
 1. Recodificar **pierde calidad**: Greener conserva los originales y revisa los resultados, sobre todo el texto pequeño de las grabaciones de pantalla.
 2. Los pesos de los clips de prueba sintéticos de la verificación (de 12,9 a 1,2 MB) **no son representativos** de grabaciones reales.
-3. Si algún día se crea un script reutilizable para esto (por ejemplo `scripts/prepare-media.py`), documéntalo aquí y en `PROGRESO.md`.
+3. Si algún día se crea un script reutilizable para esto (por ejemplo `scripts/prepare-media.py`), documéntalo aquí y en `docs/PROGRESO.md`.
 
 ### 10.4 Convención de nombres de archivo
 

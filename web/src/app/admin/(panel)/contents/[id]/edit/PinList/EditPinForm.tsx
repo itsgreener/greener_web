@@ -75,16 +75,22 @@ export function EditPinForm({
         <option value="ca">Català</option>
       </select>
 
-      <label htmlFor={`autoplay-${pin.id}`}>Autoplay</label>
-      <select
-        id={`autoplay-${pin.id}`}
-        name="autoplayMode"
-        defaultValue={pin.autoplayMode ?? ''}
-      >
-        <option value="">Sin autoplay</option>
-        <option value="viewport">Al entrar en viewport</option>
-        <option value="hover">Al hacer hover</option>
-      </select>
+      {/* El autoplay solo existe para vídeos: en una imagen (o un pin aún sin
+          medio) no se ofrece, y al guardar queda sin modo (null). */}
+      {pin.media?.kind === 'video' && (
+        <>
+          <label htmlFor={`autoplay-${pin.id}`}>Autoplay</label>
+          <select
+            id={`autoplay-${pin.id}`}
+            name="autoplayMode"
+            defaultValue={pin.autoplayMode ?? ''}
+          >
+            <option value="">Sin autoplay</option>
+            <option value="viewport">Al entrar en viewport</option>
+            <option value="hover">Al hacer hover</option>
+          </select>
+        </>
+      )}
 
       <label htmlFor={`alt-${pin.id}`}>Alt</label>
       <input

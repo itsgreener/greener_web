@@ -114,28 +114,28 @@ describe('ToolInsightDetail — prueba de humo', () => {
       '/api/feed/sessions',
       expect.objectContaining({
         method: 'POST',
-        // Una tool recomienda solo tools (scope por sección, 5 oct 2026).
+        // Las recomendaciones de cualquier ficha usan scope home (14 oct 2026).
         body: JSON.stringify({
-          scope: 'tools',
+          scope: 'home',
           excludeContentId: 'content-1',
         }),
       }),
     )
   })
 
-  it.each([
-    ['insight', 'insights'],
-    ['other', 'home'],
-  ] as const)(
-    'el scope de las recomendaciones sigue a la sección: %s → %s',
-    async (type, scope) => {
+  it.each(['insight', 'other'] as const)(
+    'las recomendaciones de la ficha de %s también usan scope home',
+    async (type) => {
       render(<ToolInsightDetail content={{ ...BASE_CONTENT, type }} />)
 
       await waitFor(() =>
         expect(global.fetch).toHaveBeenCalledWith(
           '/api/feed/sessions',
           expect.objectContaining({
-            body: JSON.stringify({ scope, excludeContentId: 'content-1' }),
+            body: JSON.stringify({
+              scope: 'home',
+              excludeContentId: 'content-1',
+            }),
           }),
         ),
       )

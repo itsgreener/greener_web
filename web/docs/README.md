@@ -1,0 +1,15 @@
+# Documentación de greener-web
+
+Todo lo que no es código vive en esta carpeta, agrupado por tema. Si buscas **qué queda por hacer**, empieza siempre por `PROGRESO.md`.
+
+| Carpeta / fichero | Qué contiene |
+| --- | --- |
+| `PROGRESO.md` | Estado actual del proyecto, índice de lo hecho, checklist de pendientes, decisiones abiertas y registro de cambios. Es el único documento «vivo»: se actualiza al cerrar cada bloque de trabajo. |
+| `historial/` | Relato detallado del trabajo ya cerrado, por fases (`historial-fases-0-2.md`, `historial-fases-3-4.md`, `historial-fase-5.md`). Las referencias `§2.N` de `PROGRESO.md` y de los comentarios del código apuntan a `historial-fase-5.md`. El trabajo nuevo se escribe en el historial activo, con la siguiente numeración correlativa. |
+| `especificaciones/` | Contratos y especificaciones que el código implementa: formato de las fichas de detalle (`especificacion-final-formato-detalle.md`), entrega y subida de medios (`contrato-medios-fase-1.md`) y formato del ZIP de tools e insights (`contrato-zip-tools-insights.md`). |
+| `auditorias/` | Informes de auditoría con sus datos de apoyo. Hoy: la auditoría del feed del 14 de octubre de 2026 y los dos scripts de simulación (`.ts.txt`: se copian a un `.ts` para ejecutarlos). |
+| `cookies-y-privacidad/` | Inventario técnico de cookies y almacenamiento (`cookies-inventario.md`) y cambios propuestos a la política para el asesor legal (`politica-cookies-cambios.md`). |
+| `operaciones/` | Despliegue en producción: build standalone, PM2, proxy de Dinahosting, variables de entorno (`despliegue.md`). |
+| `estructura/` | Listados del árbol de `src/` y de las migraciones (`estructura-src.txt`, `estructura-migrations.txt`). Son fotografías: se regeneran cuando cambia la estructura. |
+
+**Nota sobre las citas en el código.** Los comentarios de `src/` citan los documentos solo por su nombre de fichero (p. ej. «especificacion-final-formato-detalle.md §1»). Los nombres no se repiten en ninguna carpeta, así que la cita sigue siendo inequívoca: búscala en la carpeta de su tema.

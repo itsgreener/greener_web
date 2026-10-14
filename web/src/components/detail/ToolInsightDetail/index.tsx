@@ -54,16 +54,8 @@ export function ToolInsightDetail({
   // modules/media/domain/detailVideoRatio.ts. Sin ratio (contenido sin
   // portada) se usa el caso «vertical» más conservador.
   const ratio = toolInsightDetailRatio(coverRatioOverride, content.coverRatio)
-  const recommendationScope =
-    content.type === 'tool'
-      ? 'tools'
-      : content.type === 'insight'
-        ? 'insights'
-        : 'home'
-
   const recommendations = useRecommendationMasonry(content.id, ratio, {
     textColumn: true,
-    scope: recommendationScope,
   })
   const {
     contentBlockImageWidth,

@@ -1,6 +1,6 @@
 # Política de cookies provisional: inconsistencias con la web y cambios propuestos
 
-Documento para el asesor legal de Greener. Parte del documento «Política de cookies · Cookie Policy» (P26096, actualizado el 1 de octubre de 2026) y lo contrasta con lo que **hace de verdad el sitio** a 13 de octubre de 2026. **No es un texto legal:** Claude no redacta la versión final. Recoge qué se ha corregido ya en `/privacy` (texto provisional en inglés, en `src/app/(public)/privacy/policyContent.ts`), qué queda para el asesor y qué falta por comprobar. Los hechos técnicos completos están en `cookies-inventario.md`.
+Documento para el asesor legal de Greener. Parte del documento «Política de cookies · Cookie Policy» (P26096, actualizado el 1 de octubre de 2026) y lo contrasta con lo que **hace de verdad el sitio** a 13 de octubre de 2026. **No es un texto legal:** Claude no redacta la versión final. Recoge qué se ha corregido ya en `/privacy` (texto provisional en inglés, en `src/app/(public)/privacy/policyContent.ts`), qué queda para el asesor y qué falta por comprobar. Los hechos técnicos completos están en `docs/cookies-y-privacidad/cookies-inventario.md`.
 
 ## 1. Inconsistencias encontradas y qué se ha hecho en `/privacy`
 
@@ -13,7 +13,7 @@ Documento para el asesor legal de Greener. Parte del documento «Política de co
 7. **Faltaba la tabla de cookies de terceros** (nombre, titular, finalidad, duración). Es obligatoria según la guía de la AEPD y hoy no se puede rellenar sin inventar: **pendiente de la medición con DevTools** (YouTube, Spotify y Cloudinary). Entre tanto, la página enlaza a las políticas de Google y Spotify.
 8. **Idioma.** El PDF dice «las dos versiones dicen lo mismo; prevalece la castellana». La web solo muestra el inglés, así que esa frase no se ha puesto (sería falsa en pantalla). Decidir cuándo se publica la versión en castellano; la estructura de los textos ya admite varios idiomas.
 9. **Revocar no borra lo ya instalado.** Al revocar desde `/privacy`, el reproductor se desmonta al instante, pero las cookies que el proveedor ya puso siguen en el dispositivo hasta que el navegador las borre. El texto actual solo dice que se puede revocar y bloquear/borrar desde el navegador; el asesor debe decidir si hay que decirlo más explícitamente.
-10. **Datos de los formularios.** Esta página es solo de cookies. El formulario de contacto y la newsletter tratan datos personales (ver `cookies-inventario.md` §4: SMTP, hash de IP sin plazo de conservación, proveedores). Falta una política de privacidad para ellos; la casilla del formulario enlaza hoy a esta misma página.
+10. **Datos de los formularios.** Esta página es solo de cookies. El formulario de contacto y la newsletter tratan datos personales (ver `docs/cookies-y-privacidad/cookies-inventario.md` §4: SMTP, hash de IP sin plazo de conservación, proveedores). Falta una política de privacidad para ellos; la casilla del formulario enlaza hoy a esta misma página.
 
 ## 2. Qué dice el sitio y debe seguir diciendo el texto
 

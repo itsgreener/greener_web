@@ -1,7 +1,7 @@
 /**
  * Dirección IP real del visitante detrás del proxy inverso de Dinahosting (lo
  * gestiona Dinahosting y no es configurable por nosotros; la app corre con
- * PM2 — despliegue.md §6).
+ * PM2 — docs/operaciones/despliegue.md §6).
  *
  * Comprobado el 14 oct 2026 en insight.itsgreener.com (mismo proxy): el proxy
  * AÑADE la IP del cliente AL FINAL de x-forwarded-for, sin quitar lo que el

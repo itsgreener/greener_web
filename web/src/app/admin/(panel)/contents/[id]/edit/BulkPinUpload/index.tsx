@@ -23,6 +23,7 @@ export default function BulkPinUpload(props: Props) {
     defaultLanguage,
     videoAutoplay,
     setVideoAutoplay,
+    hasVideo,
     uploading,
     formError,
     okCount,
@@ -109,19 +110,24 @@ export default function BulkPinUpload(props: Props) {
           ))}
         </select>
 
-        <label htmlFor="bulk-video-autoplay">
-          Reproducción de los vídeos en el feed
-        </label>
-        <select
-          id="bulk-video-autoplay"
-          value={videoAutoplay}
-          onChange={(event) =>
-            setVideoAutoplay(event.target.value as 'viewport' | 'hover')
-          }
-        >
-          <option value="viewport">Al entrar en pantalla</option>
-          <option value="hover">Al pasar el ratón</option>
-        </select>
+        {/* Solo hace falta si el lote trae algún vídeo: las imágenes no se animan. */}
+        {hasVideo && (
+          <>
+            <label htmlFor="bulk-video-autoplay">
+              Reproducción de los vídeos en el feed
+            </label>
+            <select
+              id="bulk-video-autoplay"
+              value={videoAutoplay}
+              onChange={(event) =>
+                setVideoAutoplay(event.target.value as 'viewport' | 'hover')
+              }
+            >
+              <option value="viewport">Al entrar en pantalla</option>
+              <option value="hover">Al pasar el ratón</option>
+            </select>
+          </>
+        )}
       </fieldset>
 
       {rows.length > 0 && (

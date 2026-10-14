@@ -195,6 +195,19 @@ describe('BulkPinUpload — vídeos en la carga masiva (5 oct 2026)', () => {
     )
   })
 
+  it('el selector de reproducción solo aparece cuando el lote trae algún vídeo', () => {
+    renderBulk()
+    const label = 'Reproducción de los vídeos en el feed'
+
+    expect(screen.queryByLabelText(label)).not.toBeInTheDocument()
+
+    selectFiles([image()])
+    expect(screen.queryByLabelText(label)).not.toBeInTheDocument()
+
+    selectFiles([image(), video()])
+    expect(screen.getByLabelText(label)).toBeInTheDocument()
+  })
+
   it('el modo de reproducción del lote se puede cambiar a «al pasar el ratón»', async () => {
     renderBulk()
     selectFiles([video()])

@@ -1,6 +1,6 @@
 # Inventario técnico de cookies, almacenamiento y terceros
 
-Documento para el asesor legal de Greener, que redacta la política de **Privacy & Cookies** (la página `/privacy` lleva desde el 13 de octubre un texto **provisional**, ver `politica-cookies-cambios.md`). Recoge **hechos comprobados en el código** (28 de septiembre de 2026, actualizados el 13 de octubre con la ventana de cookies), y marca lo que aún hay que comprobar en un navegador. No es asesoramiento jurídico: los puntos que requieren criterio legal están en el §7.
+Documento para el asesor legal de Greener, que redacta la política de **Privacy & Cookies** (la página `/privacy` lleva desde el 13 de octubre un texto **provisional**, ver `docs/cookies-y-privacidad/politica-cookies-cambios.md`). Recoge **hechos comprobados en el código** (28 de septiembre de 2026, actualizados el 13 de octubre con la ventana de cookies), y marca lo que aún hay que comprobar en un navegador. No es asesoramiento jurídico: los puntos que requieren criterio legal están en el §7.
 
 Marco consultado: Guía sobre el uso de las cookies de la AEPD (mayo de 2024) y su guía de herramientas de medición de audiencia (enero de 2024).
 
@@ -39,7 +39,7 @@ Si se añaden etiquetas de marketing, hay que revisar esta decisión: esas etiqu
 
 **Solo con consentimiento y tras el clic en play, en la página de un episodio:**
 
-3. **YouTube** (`youtube-nocookie.com`) y **Spotify** (`open.spotify.com/embed`). **Vimeo se retiró el 13 de octubre de 2026** (ver §2.63 de `historial-fase-5.md`): ya no está en la CSP ni en el ABM.
+3. **YouTube** (`youtube-nocookie.com`) y **Spotify** (`open.spotify.com/embed`). **Vimeo se retiró el 13 de octubre de 2026** (ver §2.63 de `docs/historial/historial-fase-5.md`): ya no está en la CSP ni en el ABM.
 
 Lo que se sabe de estos por la **auditoría del 22-23 de septiembre, sin repetir desde entonces**:
 
@@ -72,7 +72,7 @@ Con las herramientas de desarrollador (pestañas **Application** y **Network**),
 1. Antes de aceptar las cookies y pulsar play: no debe haber cookies ni entradas de almacenamiento de terceros, ni ninguna petición a YouTube ni a Spotify (solo `res.cloudinary.com` para la portada).
 2. Tras aceptar y pulsar play: anotar qué cookies y entradas de almacenamiento aparecen, de qué dominio y con qué duración. Ese es el contenido real de la tabla de cookies de terceros de la política.
 3. En cualquier página: que las peticiones a `res.cloudinary.com` no dejen cookies.
-4. En producción: que Plausible **no escribe** cookies ni almacenamiento, y que su petición a `plausible.io/api/event` responde 202 y no aparece un error de CSP en la consola (la CSP no lo permitía hasta el 28 de septiembre; ver `PROGRESO.md` §2.11).
+4. En producción: que Plausible **no escribe** cookies ni almacenamiento, y que su petición a `plausible.io/api/event` responde 202 y no aparece un error de CSP en la consola (la CSP no lo permitía hasta el 28 de septiembre; ver `docs/PROGRESO.md` §2.11).
 
 ## 7. Puntos para el criterio del asesor legal
 

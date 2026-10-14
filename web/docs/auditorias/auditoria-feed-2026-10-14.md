@@ -115,7 +115,7 @@ Medias sobre 40 semillas por escenario (catálogo: 5 insights, 23 tools, 16 epis
 
 Lecturas: con casos, el 70 % del último tercio es la proporción correcta (los casos son el 70 % de la ronda); lo que se busca es que no sea el 100 %. En el escenario G (6 casos) la repetición residual es inevitable: con 6 casos no se pueden separar 10 posiciones, y el prototipo solo relaja lo imprescindible, hueco a hueco. En el escenario B quedan 1,5 repeticiones por ronda por el mismo motivo (8 insights con cuota de 18).
 
-El código del prototipo y de las medidas está en `auditoria-feed-2026-10-14-simulacion.ts.txt` (archivo de texto, fuera de la batería de tests, para poder repetir las mediciones).
+El código del prototipo y de las medidas está en `docs/auditorias/auditoria-feed-2026-10-14-simulacion.ts.txt` (archivo de texto, fuera de la batería de tests, para poder repetir las mediciones).
 
 ---
 
@@ -205,7 +205,7 @@ Un caso se trata como cualquier otro contenido que aparece más de una vez por r
 
 - Motor real (`generateRound`) frente a un prototipo del esquema propuesto, sobre 8 catálogos sintéticos, 40 semillas por escenario y rondas 0 a 2.
 - Métricas: racha máxima de pines consecutivos del mismo tipo, pines cuyo contenido ya salió en los 10 anteriores, pares consecutivos del mismo contenido, desviación del reparto por tercios, porcentaje del tipo dominante en el último tercio.
-- El prototipo no está integrado: la ronda de ejemplo y las cifras se pueden reproducir con `auditoria-feed-2026-10-14-simulacion.ts.txt` copiándolo como test temporal en `tests/` y ejecutando `npx vitest run`.
+- El prototipo no está integrado: la ronda de ejemplo y las cifras se pueden reproducir con `docs/auditorias/auditoria-feed-2026-10-14-simulacion.ts.txt` copiándolo como test temporal en `tests/` y ejecutando `npx vitest run`.
 
 ---
 
@@ -269,7 +269,7 @@ Lectura: en el catálogo S1 **ninguna visita ve un caso repetido en sus primeros
 - **Coste de la implementación:** pequeño-medio. Cursor (`cursor.ts`), `getFeedSessionBatch`, la ruta `GET /api/feed/{sessionId}` y sus tests; ajustar el evento `Feed Depth` (ya tiene un campo `batch` pensado para esto). Sin migraciones: `feed_round` ya sirve.
 - **Tamaño del lote:** la columna `feed_config.batch_size` (valor por defecto 40) es **exactamente ese parámetro**. Recomiendo, por tanto, **no aplicar la migración que la elimina** (`20261014100000_drop_feed_config_batch_size.sql`) y, al implementar los lotes, volver a leerla como tamaño del lote (el cambio de esta mañana se revierte al implementarlo, no antes).
 - **Si el catálogo creciera mucho** (por ejemplo 1.000 casos de fuerza media 3 ≈ 4.300 pines por ronda, una fila de ~70 KB y unas decenas de ms de generación, extrapolado, no medido), el esquema sigue funcionando; solo habría que mirar la memoria y el tamaño de la fila. Propongo fijar el umbral de revisión en **2.000 pines por ronda**.
-- **Un aviso de operación:** las filas de `feed_session` y `feed_round` caducadas no las borra nadie (pendiente ya anotado en `PROGRESO.md`). Con rondas más largas (10 KB en vez de ~1 KB) esa limpieza gana importancia.
+- **Un aviso de operación:** las filas de `feed_session` y `feed_round` caducadas no las borra nadie (pendiente ya anotado en `docs/PROGRESO.md`). Con rondas más largas (10 KB en vez de ~1 KB) esa limpieza gana importancia.
 
 ### 10.6 Cambios en el plan de la sección 6
 
@@ -286,4 +286,4 @@ Lectura: en el catálogo S1 **ninguna visita ve un caso repetido en sus primeros
 3. **Migración de `batch_size`:** no aplicarla y reutilizarla como tamaño del lote (recomendado), o aplicarla y fijar el tamaño en código.
 4. **Umbral de revisión de la ronda completa:** 2.000 pines.
 
-Las simulaciones están en `auditoria-feed-2026-10-14-simulacion-realista.ts.txt` (se ejecutan copiando el fichero como test temporal, igual que el anterior).
+Las simulaciones están en `docs/auditorias/auditoria-feed-2026-10-14-simulacion-realista.ts.txt` (se ejecutan copiando el fichero como test temporal, igual que el anterior).

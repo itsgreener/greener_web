@@ -270,6 +270,7 @@ export function useBulkPinUpload({
     defaultLanguage,
     videoAutoplay,
     setVideoAutoplay,
+    hasVideo: rows.some((row) => row.kind === 'video'),
     uploading,
     formError,
     okCount: rows.filter((row) => row.status === 'ok').length,

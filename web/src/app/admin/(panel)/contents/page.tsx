@@ -110,7 +110,9 @@ export default async function ContentsPage({ searchParams }: Props) {
 
   return (
     <main className="admin-contents-page">
-      <Suspense fallback={null}><ContentFilterPersistence /></Suspense>
+      <Suspense fallback={null}>
+        <ContentFilterPersistence />
+      </Suspense>
       <div className="admin-dashboard-shell">
         <header className="admin-page-header">
           <div>
@@ -133,7 +135,11 @@ export default async function ContentsPage({ searchParams }: Props) {
         </header>
 
         <section className="admin-contents-card">
-          <form key={`${q}|${type}|${status}`} method="get" className="admin-content-filters">
+          <form
+            key={`${q}|${type}|${status}`}
+            method="get"
+            className="admin-content-filters"
+          >
             <div className="admin-content-search">
               <label htmlFor="content-search" className="admin-visually-hidden">
                 Buscar contenidos
@@ -188,7 +194,10 @@ export default async function ContentsPage({ searchParams }: Props) {
             </button>
 
             {hasFilters && (
-              <Link href="/admin/contents?clear=1" className="admin-filter-clear">
+              <Link
+                href="/admin/contents?clear=1"
+                className="admin-filter-clear"
+              >
                 Limpiar
               </Link>
             )}

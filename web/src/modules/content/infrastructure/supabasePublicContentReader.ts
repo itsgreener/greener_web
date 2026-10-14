@@ -2,6 +2,7 @@ import type { AppSupabaseClient } from '@/lib/supabase/database'
 
 import type { PublicContentReader } from '@/modules/content/domain/publicContentReader'
 
+import { getEpisodePoster } from './episodePoster'
 import { getFirstPinMedia } from './firstPinMedia'
 import { getPublicCaseCarousel, getPublicCaseDetail } from './publicCaseSource'
 import { getContentBySlug } from './publicContentSource'
@@ -24,6 +25,7 @@ export function createSupabasePublicContentReader(
     caseCarousel: (contentId) => getPublicCaseCarousel(contentId, client),
     episode: (contentId) => getPublicEpisode(contentId, client),
     firstPinMedia: (contentId) => getFirstPinMedia(contentId, client),
+    episodePoster: (contentId) => getEpisodePoster(contentId, client),
     pinCover: (contentId, pinId) => getPublicPinCover(contentId, pinId, client),
     publishedContentId: (type, slug) =>
       getPublishedContentId(type, slug, client),

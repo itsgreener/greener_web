@@ -83,7 +83,7 @@ export default async function WorkPage({ params, searchParams }: Props) {
 
   const [episode, poster] = await Promise.all([
     reader.episode(content.id),
-    reader.firstPinMedia(content.id),
+    reader.episodePoster(content.id),
   ])
 
   // No debería pasar (todo content.type='episode' se crea junto a su fila

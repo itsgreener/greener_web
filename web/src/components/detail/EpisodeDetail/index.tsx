@@ -74,7 +74,7 @@ function providerLabel(provider: PublicEpisode['provider']): string {
 // visitante pulsa play. Cargar el iframe ya es instalar las cookies del
 // proveedor (YouTube escribe un identificador en el almacenamiento local al
 // cargar; Spotify planta cookies desde la carga), así que antes de eso solo
-// hay una portada de Greener (el primer pin del episodio, en Cloudinary) y un
+// hay una portada de Greener (la imagen 16:9 del episodio, en Cloudinary) y un
 // botón de play. Quien ya aceptó carga el reproductor con ese clic, sin
 // volver a preguntar; quien rechazó, o aún no ha decidido, ve la petición en
 // ese momento y, si acepta, queda aceptado para toda la web (se puede
@@ -83,7 +83,8 @@ function providerLabel(provider: PublicEpisode['provider']): string {
 // reconoce pedir el consentimiento justo antes de descargar un vídeo.
 
 /**
- * Portada previa al reproductor: el primer pin del episodio, servido por
+ * Portada previa al reproductor: la primera imagen 16:9 de los pines del
+ * episodio o, sin ella, el primer pin (`episodePoster`), servida por
  * Cloudinary con las mismas cadenas del contrato de medios que usa la ficha
  * de tool (imagen de detalle; póster de vídeo en el escalón M). No hace
  * ninguna petición a YouTube ni a Spotify.
@@ -120,8 +121,7 @@ function EpisodePoster({ media }: { media: PublicContentMedia | null }) {
 /**
  * Plantilla de detalle tipo B para un episodio — mismo mecanismo que
  * CaseDetail (fullWidthContent, sin panel lateral, recomendaciones solo
- * debajo), con scope='channel' para recomendar únicamente episodios y
- * con el embed externo en vez de un carrusel propio.
+ * debajo) y con el embed externo en vez de un carrusel propio.
  */
 export function EpisodeDetail({
   content,
@@ -130,7 +130,7 @@ export function EpisodeDetail({
 }: {
   content: PublicContent
   episode: PublicEpisode
-  // Primer pin del episodio: portada previa al reproductor.
+  // Imagen 16:9 del episodio (o el primer pin): portada previa al reproductor.
   poster?: PublicContentMedia | null
 }) {
   const { status, accept } = useConsent()
@@ -144,7 +144,6 @@ export function EpisodeDetail({
 
   const recommendations = useRecommendationMasonry(content.id, EPISODE_RATIO, {
     fullWidthContent: true,
-    scope: 'channel',
   })
   const { contentBlockImageWidth, contentBlockImageHeight } = recommendations
 
