@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
 import { buildSecurityHeaders } from '@/lib/securityHeaders'
 import { env } from '@/lib/env'
+import { classifyBotTrap, logBotTrap } from '@/lib/botTraps'
 
 // especificacion-final-formato-detalle.md / contrato-zip-tools-insights.md
 // §12.4: estas rutas llevan su propia CSP, pensada para el contrato del
@@ -21,6 +22,21 @@ function isAdminRoute(pathname: string): boolean {
  */
 export async function proxy(request: NextRequest) {
   const pathname = new URL(request.url).pathname
+
+  // Trampas y sondas de escáneres (lib/botTraps.ts): se registran y se
+  // responde 404 sin renderizar nada ni generar nonce.
+  const botTrap = classifyBotTrap(pathname)
+  if (botTrap) {
+    logBotTrap(botTrap, request)
+
+    return new NextResponse('Not found', {
+      status: 404,
+      headers: {
+        'Cache-Control': 'no-store',
+        'X-Robots-Tag': 'noindex, nofollow',
+      },
+    })
+  }
 
   if (SANDBOXED_APP_PATTERN.test(pathname)) {
     return NextResponse.next()

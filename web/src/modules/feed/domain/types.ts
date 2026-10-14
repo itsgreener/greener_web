@@ -35,29 +35,40 @@ export interface FeedRatios {
 
 export interface FeedConfig {
   ratios: FeedRatios
-  mixWindow: number // arquitectura §8.4/§4.5 — ventana de proporción (20)
-  distanceWindow: number // separación mínima por contenido (10)
-  // Tamaño de tanda objetivo (feed_config.batch_size, §7.5/§8.1). Con casos
-  // el total lo fijan ellos (brief §4.4); hace falta para universos sin casos
-  // (subhomes de insight/tool/channel, §8.2), donde no hay ningún caso del
-  // que derivar el tamaño de la tanda.
+  /**
+   * Pines por lote (feed_config.batch_size, 40 por defecto): tamaño máximo de
+   * cada respuesta de la API. La ronda se precalcula ENTERA y se sirve por
+   * tramos de este tamaño (el cliente puede pedir menos: 20 en teléfono).
+   * No interviene en la generación de la ronda.
+   */
   batchSize: number
 }
+
+/**
+ * Por qué un pin repite algo que ya salió en la ronda:
+ * - `none`: no repite.
+ * - `quota`: el contenido ya salió en esta ronda porque la cuota de su tipo
+ *   supera el número de contenidos del tipo (5 insights para 20 pines).
+ * - `force`: la fuerza de un caso supera el número de pines que tiene, así
+ *   que repite pin (fuerza 5 con 2 pines).
+ * Un caso que sale varias veces con pines distintos NO es una repetición:
+ * es justo lo que pide su fuerza.
+ */
+export type PinRepeat = 'none' | 'quota' | 'force'
 
 export interface GeneratedPin {
   pinId: string
   contentId: string
   kind: FeedContentKind
-  /** Nivel de relajación (§8.4) necesario para poder emitir este pin. 0 = sin relajar nada. */
-  relaxationLevel: number
+  repeat: PinRepeat
 }
 
 export interface RoundReport {
   totalPins: number
   requestedQuotas: Record<FeedContentKind, number>
   actualCounts: Record<FeedContentKind, number>
-  relaxationCounts: Record<number, number>
-  repeatedContentPins: number
+  /** Pines que repiten algo ya salido en la ronda, por causa (ver PinRepeat). */
+  repeatedPins: { quota: number; force: number }
 }
 
 export interface GenerateRoundResult {

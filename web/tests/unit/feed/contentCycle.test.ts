@@ -9,8 +9,6 @@ import type {
 
 const CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
-  mixWindow: 20,
-  distanceWindow: 10,
   batchSize: 40,
 }
 
@@ -166,15 +164,15 @@ describe('circularFillPool — ciclo continuo', () => {
     }
   })
 
-  it('marca como repetición (nivel 4) solo los pines cuyo contenido ya salió en la ronda', () => {
+  it('marca como repetición de cuota solo los pines cuyo contenido ya salió en la ronda', () => {
     const pool = queues('insight', 3)
     const result = circularFillPool('seed', 0, 'insight', pool, 7)
     const seen = new Set<string>()
     for (const pin of result) {
-      expect(pin.relaxationLevel).toBe(seen.has(pin.contentId) ? 4 : 0)
+      expect(pin.repeat).toBe(seen.has(pin.contentId) ? 'quota' : 'none')
       seen.add(pin.contentId)
     }
-    expect(result.filter((p) => p.relaxationLevel === 0)).toHaveLength(3)
+    expect(result.filter((p) => p.repeat === 'none')).toHaveLength(3)
   })
 
   it('ignora los contenidos sin pines y devuelve la cuota pedida', () => {

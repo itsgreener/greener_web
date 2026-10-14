@@ -34,6 +34,7 @@ function fakeBatch(
     })),
     cursor,
     round: 0,
+    batch: 0,
     hasMore,
   }
 }

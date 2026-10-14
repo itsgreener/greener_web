@@ -72,6 +72,7 @@ function fakeBatch(count: number): FeedBatchResult {
     })),
     cursor: 'cursor-1',
     round: 0,
+    batch: 0,
     hasMore: false,
   }
 }

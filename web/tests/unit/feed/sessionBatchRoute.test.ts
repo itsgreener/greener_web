@@ -16,6 +16,12 @@ function requestWithCookie(visitorId?: string): NextRequest {
   })
 }
 
+function requestWithQuery(query: string): NextRequest {
+  return new NextRequest(`http://localhost/api/feed/session-1?${query}`, {
+    headers: { cookie: 'greener_visitor=visitor-size' },
+  })
+}
+
 const params = {
   params: Promise.resolve({
     sessionId: '5f0c2b7e-1d2a-4c3b-9e4f-0a1b2c3d4e5f',
@@ -89,6 +95,7 @@ describe('GET /api/feed/{sessionId} — límite de 50 lotes por minuto', () => {
       items: [],
       cursor: '',
       round: 0,
+      batch: 0,
       hasMore: true,
       rateLimited: true,
     })
@@ -160,5 +167,34 @@ describe('validación del sessionId (auditoría 8 oct)', () => {
 
     expect(response.status).toBe(404)
     expect(getFeedSessionBatch).not.toHaveBeenCalled()
+  })
+})
+
+describe('GET /api/feed/{sessionId} — parámetro size', () => {
+  async function sizeSeenBy(query: string) {
+    getFeedSessionBatch.mockResolvedValue({
+      items: [{ pinId: 'x' }],
+      cursor: 'c',
+      round: 0,
+      batch: 0,
+      hasMore: true,
+    })
+    const { GET } = await import('@/app/api/feed/[sessionId]/route')
+    await GET(requestWithQuery(query), params)
+    return getFeedSessionBatch.mock.calls[0][2]
+  }
+
+  it('pasa al caso de uso el tamaño que pide el cliente (móvil: 20)', async () => {
+    expect(await sizeSeenBy('size=20')).toBe(20)
+  })
+
+  it('sin size, o con un valor que no es un entero positivo, no pide tamaño (se usa el configurado)', async () => {
+    expect(await sizeSeenBy('cursor=abc')).toBeNull()
+    vi.clearAllMocks()
+    expect(await sizeSeenBy('size=abc')).toBeNull()
+    vi.clearAllMocks()
+    expect(await sizeSeenBy('size=-5')).toBeNull()
+    vi.clearAllMocks()
+    expect(await sizeSeenBy('size=1.5')).toBeNull()
   })
 })

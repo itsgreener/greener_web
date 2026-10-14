@@ -1,26 +1,9 @@
 import { createHash } from 'node:crypto'
 import { headers } from 'next/headers'
+import { clientIpFromHeaders } from '@/lib/http/clientIpFromHeaders'
 import { getIpHashEnv } from '@/lib/serverEnv'
 
-/**
- * Dirección IP real del visitante detrás del proxy inverso de Dinahosting (lo
- * gestiona Dinahosting y no es configurable por nosotros; la app corre con
- * PM2 — despliegue.md §6): x-forwarded-for lleva la cadena completa de
- * saltos, "cliente, proxy1, proxy2..."; el primero es el cliente original.
- * Sin ese encabezado (desarrollo local sin proxy delante, o un proxy que no
- * lo envíe) no hay forma fiable de saber la IP real — se trata como
- * "desconocida" en vez de inventar un valor. OJO: en ese caso TODOS los
- * visitantes comparten el mismo hash y el límite de envíos (5 por hora,
- * contactSubmissionLog.ts) se aplicaría al sitio entero, no por persona:
- * hay que comprobarlo tras el primer despliegue (despliegue.md §6, punto 3).
- */
-export function clientIpFromHeaders(
-  headerList: Pick<Headers, 'get'>,
-): string | null {
-  const first = headerList.get('x-forwarded-for')?.split(',')[0]?.trim()
-
-  return first || headerList.get('x-real-ip')
-}
+export { clientIpFromHeaders }
 
 /** La misma lectura sobre las cabeceras de la petición en curso (Server Actions, Server Components). */
 export async function getClientIp(): Promise<string | null> {

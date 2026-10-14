@@ -4,7 +4,11 @@ import { FEED_CACHE_TAG } from '@/lib/cache/feedCache'
 
 import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
 import { excludeContent } from '@/modules/feed/domain/excludeContent'
-import { getFeedDataset, supabaseFeedCatalog } from './supabaseFeedSource'
+import {
+  getFeedConfig,
+  getFeedDataset,
+  supabaseFeedCatalog,
+} from './supabaseFeedSource'
 
 /**
  * Cada ronda nueva de cada visitante leería el catálogo publicado entero.
@@ -22,8 +26,16 @@ const cachedDataset = unstable_cache(
   { tags: [FEED_CACHE_TAG], revalidate: FEED_DATASET_TTL_SECONDS },
 )
 
+// La configuración se lee en CADA lote (el tamaño del lote está en ella), así
+// que también se cachea; el ABM la invalida con la misma etiqueta.
+const cachedConfig = unstable_cache(() => getFeedConfig(), ['feed-config'], {
+  tags: [FEED_CACHE_TAG],
+  revalidate: FEED_DATASET_TTL_SECONDS,
+})
+
 export const cachedFeedCatalog: FeedCatalog = {
   ...supabaseFeedCatalog,
+  config: () => cachedConfig(),
   async dataset(scope, excludeContentId) {
     const dataset = await cachedDataset(scope)
 

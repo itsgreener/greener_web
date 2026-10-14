@@ -6,9 +6,10 @@ import type {
 } from './types'
 import { deriveRng, hashToSeed, shuffled } from './prng'
 
-interface RotatedPin {
+export interface RotatedPin {
   pinId: string
-  relaxationLevel: 0 | 4
+  /** El caso ya sacó este pin en la misma ronda (fuerza > pines disponibles). */
+  repeated: boolean
 }
 
 /**
@@ -19,7 +20,7 @@ interface RotatedPin {
  *
  * Si `force` supera el número de pines disponibles, el caso repite pines
  * dentro de la misma tanda (brief §4.3) — esas repeticiones se marcan con
- * relaxationLevel 4 para que queden reflejadas en el informe (§8.6).
+ * `repeated` para que queden reflejadas en el informe (§8.6).
  */
 export function rotateCasePins(
   seed: string,
@@ -36,7 +37,7 @@ export function rotateCasePins(
   for (let i = 0; i < force; i++) {
     selected.push({
       pinId: pinIds[(offset + i) % pinIds.length],
-      relaxationLevel: i >= pinIds.length ? 4 : 0,
+      repeated: i >= pinIds.length,
     })
   }
   return selected
@@ -97,7 +98,7 @@ function passOrders(
  * No hay estado entre rondas: el hueco de cada pin se calcula solo con la
  * seed y el índice de ronda, como el resto del motor. Si la cuota supera el
  * número de contenidos (5 insights para 32 posiciones, arquitectura §22) la
- * ronda cruza vueltas y repite contenido; esos pines llevan relaxationLevel 4
+ * ronda cruza vueltas y repite contenido; esos pines llevan `repeat: 'quota'`
  * para que lo recoja el informe (§8.6).
  */
 export function circularFillPool(
@@ -132,7 +133,7 @@ export function circularFillPool(
       pinId,
       contentId: content.contentId,
       kind,
-      relaxationLevel: seenContents.has(content.contentId) ? 4 : 0,
+      repeat: seenContents.has(content.contentId) ? 'quota' : 'none',
     })
     seenContents.add(content.contentId)
   }

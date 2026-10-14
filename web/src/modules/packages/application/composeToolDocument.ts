@@ -1,4 +1,5 @@
 import * as cheerio from 'cheerio'
+import { navItems, socialItems } from '@/components/shell/Shell/navItems'
 import type { ResolvedPackage } from '@/modules/packages/domain/manifest'
 
 export interface Viewport {
@@ -8,60 +9,20 @@ export interface Viewport {
 }
 
 /**
- * Menú lateral REAL de Greener (components/shell/Shell), replicado en HTML
- * y CSS planos porque esta página no es una ruta React del sitio: es un
- * documento HTML autónomo compuesto a mano con cheerio (arquitectura
- * §12.1, sin iframe). No puede importar el componente ni su CSS Module.
- *
- * Mantener dos implementaciones del mismo menú es el riesgo: si el Shell
- * cambia (navItems.ts) y esta copia no se actualiza, vuelven a divergir. Las
- * dos listas de items tienen la MISMA estructura para revisarlas en
- * paralelo (PROGRESO §4.8).
+ * Menú lateral REAL de Greener, pintado en HTML y CSS planos porque esta
+ * página no es una ruta React del sitio: es un documento HTML autónomo
+ * compuesto a mano con cheerio (arquitectura §12.1, sin iframe). No puede
+ * importar el componente ni su CSS Module, pero SÍ los datos: las entradas
+ * salen de `navItems.ts`, la misma lista que usa el Shell, de modo que
+ * añadir, quitar o renombrar una entrada (incluida «Privacy & Cookies», que
+ * lleva a la página `/privacy` del sitio) cambia a la vez el sitio y los
+ * documentos de tools e insights. Solo se repiten los estilos (SHELL_STYLES).
  */
 type NavItem = {
   href: string
   label: string
   icon: string
 }
-
-// Mismos labels, iconos y orden que navItems.ts NAV_ITEMS (los cuatro con
-// visible: true — Shop queda fuera de alcance de V1). Inglés: arquitectura
-// §2.4, "interfaz global en inglés".
-const NAV_ITEMS: NavItem[] = [
-  { href: '/', label: 'We did it', icon: 'works' },
-  { href: '/channel', label: 'Podcasts', icon: 'episodes' },
-  { href: '/insights', label: 'Insights', icon: 'insights' },
-  { href: '/tools', label: 'Tools', icon: 'tools' },
-]
-
-// Mismos labels, iconos y orden que navItems.ts SOCIAL_ITEMS.
-const SOCIAL_ITEMS: (NavItem & { external: boolean })[] = [
-  { href: '/contact', label: 'Contact', icon: 'contact', external: false },
-  {
-    href: 'https://www.instagram.com/itsgreenerhere/',
-    label: 'Instagram',
-    icon: 'instagram',
-    external: true,
-  },
-  {
-    href: 'https://www.youtube.com/@Itsgreenernow',
-    label: 'YouTube',
-    icon: 'youtube',
-    external: true,
-  },
-  {
-    href: 'https://www.linkedin.com/company/greener/posts/',
-    label: 'LinkedIn',
-    icon: 'linkedin',
-    external: true,
-  },
-  {
-    href: '/privacy',
-    label: 'Privacy & Cookies',
-    icon: 'privacy',
-    external: false,
-  },
-]
 
 function renderIconLink(item: NavItem & { external?: boolean }): string {
   // href absoluto (empieza por "/" o "https://"): el <base href> de más
@@ -80,14 +41,14 @@ function renderIconLink(item: NavItem & { external?: boolean }): string {
 }
 
 function renderSidebar(): string {
-  const navItems = NAV_ITEMS.map(renderIconLink).join('')
-  const socialItems = SOCIAL_ITEMS.map(renderIconLink).join('')
+  const navLinks = navItems.map(renderIconLink).join('')
+  const socialLinks = socialItems.map(renderIconLink).join('')
 
   return (
     '<nav class="greener-sidebar" aria-label="Main navigation">' +
     '<a class="greener-logo" href="/" aria-label="Greener"><img src="/icons/logo_greener.svg" alt="" /></a>' +
-    `<ul class="greener-nav-group">${navItems}</ul>` +
-    `<ul class="greener-social-group">${socialItems}</ul>` +
+    `<ul class="greener-nav-group">${navLinks}</ul>` +
+    `<ul class="greener-social-group">${socialLinks}</ul>` +
     '</nav>'
   )
 }

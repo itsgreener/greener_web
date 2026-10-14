@@ -1,0 +1,147 @@
+import { it } from 'vitest'
+import { generateRound } from '@/modules/feed/domain/generateRound'
+import { rotateCasePins, circularFillPool } from '@/modules/feed/domain/rotateQueue'
+import { deriveRng, shuffled } from '@/modules/feed/domain/prng'
+import type { FeedConfig, FeedSnapshot, FeedContentKind, GeneratedPin, ContentPinQueue } from '@/modules/feed/domain/types'
+
+const CONFIG: FeedConfig = {
+  ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
+  mixWindow: 20,
+  distanceWindow: 10,
+}
+const KINDS: FeedContentKind[] = ['case', 'insight', 'tool', 'channel', 'other']
+
+/* ---------- PROTOTIPO (solo para medir el plan; no es código del proyecto) ---------- */
+function proposed(snap: FeedSnapshot, cfg: FeedConfig, seed: string, round: number) {
+  const D = cfg.distanceWindow
+  // 1. Casos por CAPAS: capa 1 = primer pin de cada caso, capa 2 = segundo pin de los de fuerza>=2...
+  const sorted = [...snap.cases].sort((a, b) => (a.contentId < b.contentId ? -1 : 1))
+  const maxForce = Math.max(0, ...sorted.map((c) => c.force))
+  const picked = new Map(sorted.map((c) => [c.contentId, rotateCasePins(seed, round, c)]))
+  const casePool: GeneratedPin[] = []
+  let prevLast: string | null = null
+  for (let l = 0; l < maxForce; l++) {
+    let layer = shuffled(sorted.filter((c) => c.force > l), deriveRng(seed, 'layer', round, l))
+    if (layer.length > 1 && layer[0].contentId === prevLast) [layer[0], layer[1]] = [layer[1], layer[0]]
+    for (const c of layer) casePool.push({ pinId: picked.get(c.contentId)![l].pinId, contentId: c.contentId, kind: 'case', relaxationLevel: l >= c.pinIds.length ? 4 : 0 })
+    prevLast = layer.length ? layer[layer.length - 1].contentId : prevLast
+  }
+  const nCase = casePool.length
+  const others: Record<'insight' | 'tool' | 'channel' | 'other', ContentPinQueue[]> = { insight: snap.insights, tool: snap.tools, channel: snap.channel, other: snap.other }
+  const weight: Record<string, number> = { insight: cfg.ratios.insights, tool: cfg.ratios.tools, channel: cfg.ratios.channel, other: cfg.ratios.other }
+  const nonCaseCount = Object.values(others).reduce((s, a) => s + a.length, 0)
+  let T = nCase > 0 && cfg.ratios.cases > 0 ? Math.ceil(nCase / (cfg.ratios.cases / 100)) : nonCaseCount > 0 ? nonCaseCount : nCase
+  // 2. Cuotas con TOPE por capacidad (un contenido cabe como mucho floor(T/D) veces) y reparto del sobrante
+  const quota: Record<string, number> = {}
+  let free = T - nCase
+  const active = (Object.keys(others) as (keyof typeof others)[]).filter((k) => others[k].length > 0)
+  const cap = (k: keyof typeof others) => others[k].length * Math.max(1, Math.floor(T / D))
+  let open = [...active]
+  for (const k of active) quota[k] = 0
+  while (free > 0 && open.length) {
+    const w = open.reduce((s, k) => s + weight[k], 0) || open.length
+    let given = 0
+    const shares = open.map((k) => ({ k, s: (free * (weight[k] || 1)) / w }))
+    for (const { k, s } of shares) {
+      const take = Math.min(Math.floor(s), cap(k) - quota[k])
+      quota[k] += take; given += take
+    }
+    // restos mayores
+    const rem = shares.map(({ k, s }) => ({ k, r: s - Math.floor(s) })).sort((a, b) => b.r - a.r)
+    let left = Math.round(free - given)
+    for (const { k } of rem) { if (left <= 0) break; if (quota[k] < cap(k)) { quota[k]++; given++; left-- } }
+    free -= given
+    open = open.filter((k) => quota[k] < cap(k))
+    if (given === 0) break
+  }
+  T = nCase + Object.values(quota).reduce((a, b) => a + b, 0) // si no cabe, la ronda se acorta
+  // 3. Colas por tipo
+  const queues: Record<string, GeneratedPin[]> = { case: casePool }
+  for (const k of active) queues[k] = circularFillPool(seed, round, k as FeedContentKind, others[k], quota[k])
+  const q: Record<string, number> = { case: nCase, ...quota }
+  // 4. Esqueleto de tipos: reparto uniforme por mayor déficit (sin adyacencia salvo el tipo mayoritario)
+  const rng = deriveRng(seed, 'skeleton', round)
+  const placed: Record<string, number> = {}
+  const ks = Object.keys(q).filter((k) => q[k] > 0)
+  ks.forEach((k) => (placed[k] = 0))
+  const skeleton: string[] = []
+  for (let t = 0; t < T; t++) {
+    const last = skeleton[t - 1]
+    const score = ks.filter((k) => placed[k] < q[k]).map((k) => ({ k, s: (q[k] * (t + 1)) / T - placed[k] + rng() * 0.05 }))
+    score.sort((a, b) => b.s - a.s)
+    const major = (k: string) => q[k] > T / 2
+    const choice = score.find((x) => x.k !== last || major(x.k)) ?? score[0]
+    skeleton.push(choice.k); placed[choice.k]++
+  }
+  // 5. Contenido por hueco, con vista adelantada para respetar la separación
+  const out: GeneratedPin[] = []
+  let relaxed = 0
+  for (const k of skeleton) {
+    const queue = queues[k]
+    const recent = new Set(out.slice(-D).map((p) => p.contentId))
+    let idx = queue.findIndex((p) => !recent.has(p.contentId))
+    if (idx === -1) { idx = 0; relaxed++ }
+    const [pin] = queue.splice(idx, 1)
+    out.push({ ...pin, relaxationLevel: idx === 0 && recent.has(pin.contentId) ? 3 : pin.relaxationLevel })
+  }
+  return { sequence: out, relaxed, T, quota: q }
+}
+
+/* ---------- Métricas ---------- */
+function metrics(seq: GeneratedPin[], D: number) {
+  let maxRun = 1, run = 1, sameContentWithinD = 0, sameContentAdj = 0, sameCaseAdj = 0
+  for (let i = 1; i < seq.length; i++) {
+    if (seq[i].kind === seq[i - 1].kind) { run++; maxRun = Math.max(maxRun, run) } else run = 1
+    if (seq[i].contentId === seq[i - 1].contentId) { sameContentAdj++; if (seq[i].kind === 'case') sameCaseAdj++ }
+  }
+  for (let i = 0; i < seq.length; i++) for (let j = Math.max(0, i - D); j < i; j++) if (seq[j].contentId === seq[i].contentId) { sameContentWithinD++; break }
+  // desviación del reparto por tercios: máx |cuota en el tercio - cuota global| entre tipos que no son el mayoritario
+  const thirds = [0, 1, 2].map((t) => seq.slice(Math.floor((seq.length * t) / 3), Math.floor((seq.length * (t + 1)) / 3)))
+  let dev = 0
+  for (const k of KINDS) {
+    const g = seq.filter((p) => p.kind === k).length / seq.length
+    for (const th of thirds) dev = Math.max(dev, Math.abs(th.filter((p) => p.kind === k).length / Math.max(th.length, 1) - g))
+  }
+  const lastThird = thirds[2]
+  const tailMono = Math.max(...KINDS.map((k) => lastThird.filter((p) => p.kind === k).length)) / Math.max(lastThird.length, 1)
+  return { maxRun, sameContentWithinD, sameContentAdj, sameCaseAdj, dev, tailMono }
+}
+const mk = (p: string, n: number, pins = 4) => Array.from({ length: n }, (_, i) => ({ contentId: `${p}${String(i).padStart(2, '0')}`, pinIds: Array.from({ length: pins }, (_, j) => `${p}${i}-${j}`) }))
+const empty: FeedSnapshot = { cases: [], insights: [], tools: [], channel: [], other: [] }
+const cases = (n: number, f: number) => mk('c', n, 6).map((c) => ({ ...c, force: f }))
+const SC: [string, FeedSnapshot][] = [
+  ['A sin casos: 5 ins, 23 tools, 16 ep, 3 other', { ...empty, insights: mk('i', 5), tools: mk('t', 23), channel: mk('h', 16), other: mk('o', 3) }],
+  ['B sin casos: 8 ins, 12 tools, 10 ep', { ...empty, insights: mk('i', 8), tools: mk('t', 12), channel: mk('h', 10) }],
+  ['C 20 casos f1 + A', { ...A(), cases: cases(20, 1) }],
+  ['D 40 casos f1 + A', { ...A(), cases: cases(40, 1) }],
+  ['E 20 casos f2 + A', { ...A(), cases: cases(20, 2) }],
+  ['F 20 casos f3 + A', { ...A(), cases: cases(20, 3) }],
+  ['G 6 casos f2 + A', { ...A(), cases: cases(6, 2) }],
+  ['H 20 casos mezcla f1-f3 + A', { ...A(), cases: mk('c', 20, 6).map((c, i) => ({ ...c, force: 1 + (i % 3) })) }],
+]
+function A(): FeedSnapshot { return { ...empty, insights: mk('i', 5), tools: mk('t', 23), channel: mk('h', 16), other: mk('o', 3) } }
+
+function avg(rows: ReturnType<typeof metrics>[], len: number[]) {
+  const f = (k: keyof ReturnType<typeof metrics>) => (rows.reduce((s, r) => s + r[k], 0) / rows.length).toFixed(2)
+  return `pines ${(len.reduce((a, b) => a + b, 0) / len.length).toFixed(0)} | racha máx. mismo tipo ${f('maxRun')} | repite contenido a ≤10 ${f('sameContentWithinD')} | mismo contenido seguido ${f('sameContentAdj')} (casos ${f('sameCaseAdj')}) | desvío por tercios ${f('dev')} | último tercio, tipo dominante ${f('tailMono')}`
+}
+it('comparativa', () => {
+  for (const [name, snap] of SC) {
+    const cur: ReturnType<typeof metrics>[] = [], pro: ReturnType<typeof metrics>[] = []
+    const lc: number[] = [], lp: number[] = []
+    for (let s = 0; s < 40; s++) {
+      const a = generateRound(snap, CONFIG, 'seed' + s, s % 3)
+      const b = proposed(snap, CONFIG, 'seed' + s, s % 3)
+      cur.push(metrics(a.sequence, 10)); lc.push(a.sequence.length)
+      pro.push(metrics(b.sequence, 10)); lp.push(b.sequence.length)
+    }
+    console.log(`\n${name}\n  ACTUAL    ${avg(cur, lc)}\n  PROPUESTA ${avg(pro, lp)}`)
+  }
+})
+it('cuotas', () => {
+  for (const [name, snap] of SC.slice(0, 3)) {
+    const p = proposed(snap, CONFIG, 'seedQ', 0)
+    const a = generateRound(snap, CONFIG, 'seedQ', 0)
+    console.log('Q', name, '| propuesta', JSON.stringify(p.quota), 'T', p.T, '| actual', JSON.stringify(a.report.requestedQuotas), 'T', a.sequence.length)
+  }
+})

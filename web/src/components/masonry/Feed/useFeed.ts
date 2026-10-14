@@ -68,10 +68,8 @@ export function useFeed(scope: string) {
           {
             section: scope,
             round: batch.round,
-            // Implementación actual: una ronda se sirve como un único
-            // batch. Cuando una ronda se trocee en varios lotes, este
-            // valor podrá avanzar dentro de la misma ronda.
-            batch: 0,
+            // Tramo dentro de la ronda (una ronda se sirve en varios lotes).
+            batch: batch.batch,
           },
           { interactive: false },
         )

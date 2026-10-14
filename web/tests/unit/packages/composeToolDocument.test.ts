@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
+import { navItems, socialItems } from '@/components/shell/Shell/navItems'
 import { composeToolDocument } from '@/modules/packages/application/composeToolDocument'
 
 import type { ResolvedPackage } from '@/modules/packages/domain/manifest'
@@ -121,6 +122,14 @@ describe('composeToolDocument', () => {
     expect(doc).not.toContain('aria-label="Casos"')
     // El menú real está en inglés (arquitectura §2.4) — no "Contacto".
     expect(doc).not.toContain('Contacto')
+  })
+
+  it('el menú sale de navItems.ts: mismas entradas que el Shell, y «Privacy & Cookies» lleva a /privacy del sitio', () => {
+    for (const item of [...navItems, ...socialItems]) {
+      expect(doc).toContain(`href="${item.href}" aria-label="${item.label}"`)
+    }
+
+    expect(doc).toContain('href="/privacy" aria-label="Privacy & Cookies"')
   })
 
   it('el logo enlaza a la home y los iconos usan los mismos ficheros que el Shell real', () => {

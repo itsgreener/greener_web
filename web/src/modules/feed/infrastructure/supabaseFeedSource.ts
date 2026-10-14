@@ -296,7 +296,7 @@ export async function getFeedConfig(
 ): Promise<FeedConfig> {
   const { data, error } = await client
     .from('feed_config')
-    .select('ratios, batch_size, mix_window, distance_window')
+    .select('ratios, batch_size')
     .single()
 
   if (error || !data) {
@@ -313,8 +313,6 @@ export async function getFeedConfig(
 
   return {
     ratios: ratios.data,
-    mixWindow: data.mix_window,
-    distanceWindow: data.distance_window,
     batchSize: data.batch_size,
   }
 }

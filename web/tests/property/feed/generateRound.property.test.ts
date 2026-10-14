@@ -11,8 +11,6 @@ import type {
 // Ratios confirmados con Greener (ADR-11): 70/15/5/5/5.
 const BASE_CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
-  mixWindow: 20,
-  distanceWindow: 10,
   batchSize: 40,
 }
 
@@ -39,7 +37,7 @@ function caseArb() {
 /**
  * Genera universos deliberadamente pequeños en insights/tools (arquitectura
  * §22: "con 5 insights y 30 tools esto ocurrirá siempre" — repetición
- * necesaria), para forzar el camino de relajación en los tests.
+ * necesaria), para forzar los pines repetidos por cuota en los tests.
  */
 const snapshotArb: fc.Arbitrary<FeedSnapshot> = fc.record({
   cases: fc.array(caseArb(), { minLength: 1, maxLength: 25 }),
@@ -171,13 +169,110 @@ describe('generateRound — terminación y conservación de pines', () => {
     )
     expect(Date.now() - start).toBeLessThan(1000)
     // Con solo 5 insights y una cuota bastante mayor, la repetición es
-    // inevitable — el informe debe reflejarlo, no fallar silenciosamente.
-    expect(report.relaxationCounts[4]).toBeGreaterThanOrEqual(0)
+    // inevitable — el informe debe reflejarla, no fallar silenciosamente.
+    expect(report.repeatedPins.quota).toBeGreaterThan(0)
   })
 })
 
-describe('generateRound — separación mínima por contenido', () => {
-  it('dos pines del mismo contenido a menos de distanceWindow solo aparecen si hubo relajación registrada', () => {
+const MINORITY = ['insight', 'tool', 'channel', 'other'] as const
+
+/** Universos donde los casos sobran: la versión fuerte de la regla de vecindad. */
+const caseHeavy = (counts: Record<string, number>) => {
+  const minority = counts.insight + counts.tool + counts.channel + counts.other
+  return counts.case >= minority + 1
+}
+
+describe('generateRound — vecindad (decisión de Greener, 14 oct 2026)', () => {
+  it('nunca hay dos pines seguidos del mismo tipo minoritario (todo salvo casos) cuando los casos son mayoría', () => {
+    fc.assert(
+      fc.property(
+        snapshotArb,
+        seedArb,
+        roundIndexArb,
+        (snapshot, seed, roundIndex) => {
+          const { sequence, report } = generateRound(
+            snapshot,
+            BASE_CONFIG,
+            seed,
+            roundIndex,
+          )
+          fc.pre(caseHeavy(report.actualCounts))
+
+          for (let i = 1; i < sequence.length; i++) {
+            if (sequence[i].kind !== 'case') {
+              expect(sequence[i].kind).not.toBe(sequence[i - 1].kind)
+            }
+          }
+        },
+      ),
+      { numRuns: 2000 },
+    )
+  })
+
+  it('con casos de sobra, ningún pin que no es caso va pegado a otro, y la ronda empieza y termina con un caso', () => {
+    fc.assert(
+      fc.property(
+        snapshotArb,
+        seedArb,
+        roundIndexArb,
+        (snapshot, seed, roundIndex) => {
+          const { sequence, report } = generateRound(
+            snapshot,
+            BASE_CONFIG,
+            seed,
+            roundIndex,
+          )
+          fc.pre(caseHeavy(report.actualCounts))
+
+          expect(sequence[0].kind).toBe('case')
+          expect(sequence[sequence.length - 1].kind).toBe('case')
+          for (let i = 1; i < sequence.length; i++) {
+            expect(
+              sequence[i].kind !== 'case' && sequence[i - 1].kind !== 'case',
+            ).toBe(false)
+          }
+        },
+      ),
+      { numRuns: 2000 },
+    )
+  })
+
+  it('ningún tipo se concentra: en cada tercio de la ronda hay al menos uno de cada tipo minoritario con cuota suficiente', () => {
+    fc.assert(
+      fc.property(
+        snapshotArb,
+        seedArb,
+        roundIndexArb,
+        (snapshot, seed, roundIndex) => {
+          const { sequence, report } = generateRound(
+            snapshot,
+            BASE_CONFIG,
+            seed,
+            roundIndex,
+          )
+          fc.pre(caseHeavy(report.actualCounts))
+
+          for (const kind of MINORITY) {
+            const quota = report.actualCounts[kind]
+            if (quota < 6) continue
+            for (let third = 0; third < 3; third++) {
+              const from = Math.floor((sequence.length * third) / 3)
+              const to = Math.floor((sequence.length * (third + 1)) / 3)
+              const inThird = sequence
+                .slice(from, to)
+                .filter((p) => p.kind === kind).length
+              expect(inThird).toBeGreaterThanOrEqual(1)
+            }
+          }
+        },
+      ),
+      { numRuns: 1000 },
+    )
+  })
+})
+
+describe('generateRound — repetición', () => {
+  it('cada pin repetido está etiquetado: «force» solo en casos, «quota» solo en tipos minoritarios', () => {
     fc.assert(
       fc.property(
         snapshotArb,
@@ -190,28 +285,37 @@ describe('generateRound — separación mínima por contenido', () => {
             seed,
             roundIndex,
           )
-
-          for (let i = 0; i < sequence.length; i++) {
-            for (
-              let j = i + 1;
-              j < Math.min(i + BASE_CONFIG.distanceWindow, sequence.length);
-              j++
-            ) {
-              if (sequence[i].contentId === sequence[j].contentId) {
-                // La separación solo puede violarse si al menos uno de los dos
-                // pines quedó marcado con relajación de nivel 3 (separación
-                // reducida) o 4 (repetición necesaria) — arquitectura §8.4.
-                const maxLevel = Math.max(
-                  sequence[i].relaxationLevel,
-                  sequence[j].relaxationLevel,
-                )
-                expect(maxLevel).toBeGreaterThanOrEqual(3)
-              }
-            }
+          for (const pin of sequence) {
+            if (pin.repeat === 'force') expect(pin.kind).toBe('case')
+            if (pin.repeat === 'quota') expect(pin.kind).not.toBe('case')
           }
         },
       ),
-      { numRuns: 2000 },
+      { numRuns: 1000 },
+    )
+  })
+
+  it('un caso aporta exactamente `fuerza` pines a la ronda', () => {
+    fc.assert(
+      fc.property(
+        snapshotArb,
+        seedArb,
+        roundIndexArb,
+        (snapshot, seed, roundIndex) => {
+          const { sequence } = generateRound(
+            snapshot,
+            BASE_CONFIG,
+            seed,
+            roundIndex,
+          )
+          for (const c of snapshot.cases) {
+            expect(
+              sequence.filter((p) => p.contentId === c.contentId).length,
+            ).toBe(c.force)
+          }
+        },
+      ),
+      { numRuns: 1000 },
     )
   })
 })
@@ -243,7 +347,7 @@ describe('generateRound — casos límite', () => {
     expect(sequence.some((p) => p.contentId === 'case-1')).toBe(true)
   })
 
-  it('force mayor que los pines disponibles del caso se marca como repetición (nivel 4)', () => {
+  it('force mayor que los pines disponibles del caso se marca como repetición por fuerza', () => {
     const snapshot: FeedSnapshot = {
       cases: [{ contentId: 'case-1', force: 5, pinIds: ['pin-1', 'pin-2'] }],
       insights: [],
@@ -254,6 +358,6 @@ describe('generateRound — casos límite', () => {
     const { sequence } = generateRound(snapshot, BASE_CONFIG, 'seed', 0)
     const casePins = sequence.filter((p) => p.contentId === 'case-1')
     expect(casePins.length).toBe(5)
-    expect(casePins.some((p) => p.relaxationLevel === 4)).toBe(true)
+    expect(casePins.filter((p) => p.repeat === 'force')).toHaveLength(3)
   })
 })

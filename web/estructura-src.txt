@@ -240,7 +240,8 @@ src/modules/content/infrastructure/supabasePublicContentReader.ts
 src/modules/feed/application/createFeedSession.ts
 src/modules/feed/application/getFeedSessionBatch.ts
 src/modules/feed/container.ts
-src/modules/feed/domain/constrainedMix.ts
+src/modules/feed/domain/batchSize.ts
+src/modules/feed/domain/caseStream.ts
 src/modules/feed/domain/excludeContent.ts
 src/modules/feed/domain/feedConfigSchema.ts
 src/modules/feed/domain/feedErrors.ts
@@ -254,6 +255,7 @@ src/modules/feed/domain/prng.ts
 src/modules/feed/domain/quotas.ts
 src/modules/feed/domain/rotateQueue.ts
 src/modules/feed/domain/types.ts
+src/modules/feed/domain/typeSkeleton.ts
 src/modules/feed/infrastructure/cachedFeedCatalog.ts
 src/modules/feed/infrastructure/cursor.ts
 src/modules/feed/infrastructure/feedRateLimit.ts

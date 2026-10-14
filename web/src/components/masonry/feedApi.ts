@@ -1,4 +1,6 @@
+import { PHONE_BATCH_SIZE } from '@/modules/feed/domain/batchSize'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
 
 /**
  * Cliente HTTP del feed, compartido por useFeed (home y subhomes) y por el
@@ -26,14 +28,28 @@ export async function openFeedSession(
   return data.sessionId
 }
 
+/**
+ * Tamaño de lote que pide este dispositivo: en móvil 20 pines por lote; en el
+ * resto no se pide nada y el servidor usa el configurado (`batch_size`, 40).
+ */
+export function requestedBatchSize(viewportWidth: number): number | null {
+  return viewportWidth < BREAKPOINT_PX.mobile ? PHONE_BATCH_SIZE : null
+}
+
 export async function fetchFeedBatch(
   sessionId: string,
   cursor: string | null,
 ): Promise<FeedBatchResult> {
-  const url = cursor
-    ? `/api/feed/${sessionId}?cursor=${encodeURIComponent(cursor)}`
-    : `/api/feed/${sessionId}`
-  const res = await fetch(url)
+  const params = new URLSearchParams()
+  if (cursor) params.set('cursor', cursor)
+  const size =
+    typeof window === 'undefined' ? null : requestedBatchSize(window.innerWidth)
+  if (size !== null) params.set('size', String(size))
+
+  const query = params.toString()
+  const res = await fetch(
+    query ? `/api/feed/${sessionId}?${query}` : `/api/feed/${sessionId}`,
+  )
   if (!res.ok) {
     throw new Error(`Could not fetch the feed batch: ${res.status}`)
   }

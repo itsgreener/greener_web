@@ -115,7 +115,7 @@ describe('metadataBase y favicon del layout raíz', () => {
 })
 
 describe('robots.txt', () => {
-  it('bloquea el ABM, la API, el callback de auth y las demos, y deja el resto abierto', async () => {
+  it('bloquea el ABM, la API, el callback de auth y el señuelo de bots, y deja el resto abierto', async () => {
     vi.stubEnv('NEXT_PUBLIC_SITE_URL', 'https://itsgreener.com')
 
     const robots = (await import('@/app/robots')).default()
@@ -124,7 +124,12 @@ describe('robots.txt', () => {
     expect(rules).toHaveLength(1)
     expect(rules[0].userAgent).toBe('*')
     expect(rules[0].allow).toBe('/')
-    expect(rules[0].disallow).toEqual(['/admin', '/api/', '/auth'])
+    expect(rules[0].disallow).toEqual([
+      '/admin',
+      '/api/',
+      '/auth',
+      '/internal/client-list',
+    ])
   })
 
   it('apunta al sitemap con el dominio público y sin «//», venga o no con barra final la variable', async () => {

@@ -192,7 +192,7 @@ describe('POST /api/analytics/package', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          'x-forwarded-for': '198.51.100.7, 10.0.0.1',
+          'x-forwarded-for': '10.0.0.1, 198.51.100.7',
         },
         body: JSON.stringify({ slug: 'mi-tool', action: 'export' }),
       })

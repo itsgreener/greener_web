@@ -75,6 +75,7 @@ describe('Feed Depth', () => {
               items: [ITEM],
               cursor: 'cursor-1',
               round: 0,
+              batch: 2,
               hasMore: true,
             }),
             {
@@ -102,7 +103,7 @@ describe('Feed Depth', () => {
         {
           section: 'home',
           round: 0,
-          batch: 0,
+          batch: 2,
         },
         {
           interactive: false,

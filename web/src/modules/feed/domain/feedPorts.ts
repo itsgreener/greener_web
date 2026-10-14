@@ -50,6 +50,8 @@ export interface FeedCatalog {
 export interface FeedCursorPayload {
   sessionId: string
   roundIndex: number
+  // Posición dentro de la ronda (pines ya servidos de ella). 0 = principio.
+  offset: number
 }
 
 /** Cursor opaco y firmado: el cliente no puede alterar cuotas ni seed. */

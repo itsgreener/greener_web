@@ -31,6 +31,7 @@ function getFeedSessionBatch(
   sessionId: string,
   cursor: string | null,
   d: GetFeedSessionBatchDeps,
+  size?: number | null,
 ) {
   return makeGetFeedSessionBatch({
     sessions: {
@@ -45,7 +46,7 @@ function getFeedSessionBatch(
       config: () => d.getConfig(),
     },
     cursors: signedFeedCursor,
-  })(sessionId, cursor)
+  })(sessionId, cursor, size)
 }
 
 const SESSION: FeedSession = {
@@ -58,8 +59,6 @@ const SESSION: FeedSession = {
 
 const CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
-  mixWindow: 20,
-  distanceWindow: 10,
   batchSize: 40,
 }
 
@@ -222,12 +221,14 @@ describe('getFeedSessionBatch', () => {
 
     expect(first.round).toBe(0)
     expect(second.round).toBe(1)
+    expect(first.batch).toBe(0)
   })
 
   it('un cursor de otra sesión se rechaza (InvalidFeedCursorError)', async () => {
     const cursorDeOtraSesion = encodeCursor({
       sessionId: 'otra-sesion',
       roundIndex: 0,
+      offset: 0,
     })
     await expect(
       getFeedSessionBatch(SESSION.id, cursorDeOtraSesion, deps),
@@ -396,5 +397,129 @@ describe('getFeedSessionBatch', () => {
 
     expect(result.items.length).toBeGreaterThan(0)
     expect(result.items.every((i) => i.contentId !== 'case-2')).toBe(true)
+  })
+
+  describe('ronda servida por tramos', () => {
+    // 10 casos de fuerza 1: una ronda de 10 pines.
+    const cases = Array.from({ length: 10 }, (_, i) => ({
+      contentId: `case-${i + 1}`,
+      pinIds: [`pin-${i + 1}`],
+      force: 1,
+    }))
+    const bigDataset = {
+      snapshot: { cases, insights: [], tools: [], channel: [], other: [] },
+      pinDirectory: Object.fromEntries(
+        cases.map((c) => [c.pinIds[0], entry(c.contentId, 'case')]),
+      ) as Record<string, PinDirectoryEntry>,
+    }
+
+    beforeEach(() => {
+      deps.getDataset = vi.fn(async () => bigDataset)
+      deps.getConfig = vi.fn(async () => ({ ...CONFIG, batchSize: 4 }))
+      deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+        Object.fromEntries(ids.map((id) => [id, bigDataset.pinDirectory[id]])),
+      )
+    })
+
+    async function readAll(size?: number | null) {
+      const batches = []
+      let cursor: string | null = null
+      for (let i = 0; i < 6; i++) {
+        const batch = await getFeedSessionBatch(SESSION.id, cursor, deps, size)
+        batches.push(batch)
+        cursor = batch.cursor
+      }
+      return batches
+    }
+
+    it('parte la ronda en lotes de batch_size y el siguiente tramo continúa donde lo dejó el anterior', async () => {
+      const batches = await readAll()
+
+      expect(batches.slice(0, 3).map((b) => b.items.length)).toEqual([4, 4, 2])
+      expect(batches.slice(0, 3).map((b) => [b.round, b.batch])).toEqual([
+        [0, 0],
+        [0, 1],
+        [0, 2],
+      ])
+      // Los tres lotes son exactamente la ronda 0 guardada, en su orden.
+      expect(
+        batches.slice(0, 3).flatMap((b) => b.items.map((i) => i.pinId)),
+      ).toEqual(deps.rounds.get(`${SESSION.id}:0`))
+      // El cuarto lote es el principio de la ronda 1.
+      expect([batches[3].round, batches[3].batch]).toEqual([1, 0])
+    })
+
+    it('la ronda se genera una sola vez y los tramos siguientes solo piden las fichas de su tramo', async () => {
+      const first = await getFeedSessionBatch(SESSION.id, null, deps)
+      await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+
+      expect(deps.getDataset).toHaveBeenCalledTimes(1)
+      expect(deps.saveRound).toHaveBeenCalledTimes(1)
+      expect(deps.getDirectoryByIds).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(deps.getDirectoryByIds).mock.calls[0][0]).toHaveLength(4)
+    })
+
+    it('el cliente puede pedir un lote más pequeño (móvil: 20) pero nunca más grande que el configurado', async () => {
+      const small = await getFeedSessionBatch(SESSION.id, null, deps, 2)
+      expect(small.items).toHaveLength(2)
+
+      const big = await getFeedSessionBatch(SESSION.id, null, deps, 500)
+      expect(big.items).toHaveLength(4)
+
+      const invalid = await getFeedSessionBatch(SESSION.id, null, deps, -3)
+      expect(invalid.items).toHaveLength(4)
+    })
+
+    it('un tramo cuyos pines se despublicaron se salta y se sirve el siguiente', async () => {
+      const full = await getFeedSessionBatch(SESSION.id, null, deps)
+      const firstSlice = new Set(full.items.map((i) => i.pinId))
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+        Object.fromEntries(
+          ids
+            .filter((id) => !firstSlice.has(id))
+            .map((id) => [id, bigDataset.pinDirectory[id]]),
+        ),
+      )
+
+      const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+      expect(result.items).toHaveLength(4)
+      expect(result.items.some((i) => firstSlice.has(i.pinId))).toBe(false)
+      expect(result.batch).toBe(1)
+      warn.mockRestore()
+    })
+
+    it('un offset más allá del final de la ronda (cursor viejo) pasa al principio de la ronda siguiente', async () => {
+      await getFeedSessionBatch(SESSION.id, null, deps)
+      const stale = encodeCursor({
+        sessionId: SESSION.id,
+        roundIndex: 0,
+        offset: 999,
+      })
+
+      const result = await getFeedSessionBatch(SESSION.id, stale, deps)
+
+      expect(result.round).toBe(1)
+      expect(result.batch).toBe(0)
+    })
+
+    it('un universo sin pines devuelve un lote vacío con cursor, sin dar vueltas', async () => {
+      deps.getDataset = vi.fn(async () => ({
+        snapshot: {
+          cases: [],
+          insights: [],
+          tools: [],
+          channel: [],
+          other: [],
+        },
+        pinDirectory: {},
+      }))
+
+      const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+      expect(result.items).toEqual([])
+      expect(result.cursor).toEqual(expect.any(String))
+    })
   })
 })

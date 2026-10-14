@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getFeedDataset = vi.fn()
+const getFeedConfig = vi.fn()
 
 // unstable_cache necesita el runtime de Next: aquí se sustituye por un
 // envoltorio que recuerda las opciones y deja pasar la llamada.
@@ -19,6 +20,7 @@ vi.mock('next/cache', () => ({
 
 vi.mock('@/modules/feed/infrastructure/supabaseFeedSource', () => ({
   getFeedDataset: (...args: unknown[]) => getFeedDataset(...args),
+  getFeedConfig: (...args: unknown[]) => getFeedConfig(...args),
   supabaseFeedCatalog: {
     dataset: vi.fn(),
     directoryByIds: vi.fn(),
@@ -81,5 +83,18 @@ describe('cachedFeedCatalog', () => {
       await import('@/modules/feed/infrastructure/cachedFeedCatalog')
 
     expect(await cachedFeedCatalog.dataset('home', null)).toEqual(DATASET)
+  })
+
+  it('la configuración (tamaño de lote, cuotas) también sale de la caché, que se lee en cada lote', async () => {
+    const config = {
+      ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
+      batchSize: 40,
+    }
+    getFeedConfig.mockResolvedValue(config)
+    const { cachedFeedCatalog } =
+      await import('@/modules/feed/infrastructure/cachedFeedCatalog')
+
+    expect(await cachedFeedCatalog.config()).toEqual(config)
+    expect(getFeedConfig).toHaveBeenCalledTimes(1)
   })
 })

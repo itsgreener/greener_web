@@ -11,12 +11,13 @@ import {
 import { isUuid } from '@/lib/validation/uuid'
 
 /**
- * GET /api/feed/{sessionId}?cursor=... (§16.1): siguiente lote real de
- * una sesión de feed ya abierta con POST /api/feed/sessions. `cursor`
- * ausente = primer lote (ronda 0).
+ * GET /api/feed/{sessionId}?cursor=...&size=... (§16.1): siguiente lote real
+ * de una sesión de feed ya abierta con POST /api/feed/sessions. `cursor`
+ * ausente = primer lote (ronda 0). `size` (opcional) pide un lote más
+ * pequeño que `feed_config.batch_size` (móvil: 20); nunca más grande.
  *
- * Límite de peticiones: 50 lotes por minuto y visitante (cada lote genera
- * una ronda completa, §8, y el scroll rápido los dispara; por eso más margen
+ * Límite de peticiones: 50 lotes por minuto y visitante (el scroll rápido los
+ * dispara y el primero de cada ronda la genera entera, §8; por eso más margen
  * que POST /api/feed/sessions, 12/min).
  *
  * Al superarlo se responde sin pines pero con `rateLimited: true` y SIN
@@ -31,6 +32,10 @@ export async function GET(
 ) {
   const { sessionId } = await params
   const cursor = request.nextUrl.searchParams.get('cursor')
+  const sizeParam = request.nextUrl.searchParams.get('size')
+  // Valor no numérico = sin petición: se usa el tamaño configurado.
+  const size =
+    sizeParam !== null && /^\d{1,4}$/.test(sizeParam) ? Number(sizeParam) : null
   const visitorId = getOrCreateVisitorId(request)
 
   function respond(payload: unknown, init: ResponseInit): NextResponse {
@@ -51,6 +56,7 @@ export async function GET(
         items: [],
         cursor: cursor ?? '',
         round: 0,
+        batch: 0,
         // Honesto: SÍ hay más (§8.5, "el feed no termina"), solo que no
         // ahora mismo. `rateLimited` es la señal real para el cliente.
         hasMore: true,
@@ -61,7 +67,7 @@ export async function GET(
   }
 
   try {
-    const batch = await getFeedSessionBatch(sessionId, cursor)
+    const batch = await getFeedSessionBatch(sessionId, cursor, size)
     return respond(batch, {
       // El orden depende de la seed de sesión — igual que en el prototipo
       // demo, nunca cacheable entre sesiones (§6.1).

@@ -58,6 +58,7 @@ function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
     })),
     cursor: 'cursor-1',
     round: 0,
+    batch: 0,
     hasMore,
   }
 }

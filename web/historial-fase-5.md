@@ -822,9 +822,89 @@ Dos fallos encontrados por Greener en la misma jornada; ninguno se había visto 
 
 **Vimeo retirado (13 oct).** Ese aviso bloqueaba la reproducción de Vimeo y ningún contenido depende de él (siempre hay YouTube o Spotify), así que se quita el proveedor: `episodeProviderSchema` pasa a `youtube` / `spotify` (el desplegable del ABM sale de ahí), fuera `player.vimeo.com` de `frame-src`, fuera el embed, el enlace «Watch more» y los textos de la ventana, de la petición de reproducir y de `/privacy`. **El enum `episode_provider` de Postgres sigue teniendo `vimeo`:** quitar un valor obliga a recrear el tipo y las funciones `upsert_episode` que lo usan, y no compensa; el código no lo acepta ni lo escribe (`dbEnums.test.ts` lo anota como valor retirado). Una fila antigua con `vimeo` se trata como episodio sin reproductor (404 en la web pública; en el ABM, un error que dice qué cambiar). **Antes de desplegar, comprobar que no hay ninguna:** `select content_id, embed_id from episode where provider = 'vimeo';` (si sale alguna, cambiar `provider` y `embed_id` a YouTube/Spotify desde SQL). Sin migraciones.
 
-**Observaciones sin tocar.** `<html lang>` sigue fijo en `en`; la entrada «Privacy & Cookies» de los documentos de tool `/app` tiene su propio menú; la política de privacidad de los formularios sigue sin existir.
+**Observaciones sin tocar.** `<html lang>` sigue fijo en `en`; la entrada «Privacy & Cookies» de los documentos de tool `/app` tiene su propio menú (resuelto en §2.66); la política de privacidad de los formularios sigue sin existir.
 
 **Verificación.** 162 ficheros y **1699 tests** en verde, `tsc` (con `next typegen`), ESLint y `prettier` (estilo del repositorio, CRLF) limpios.
+
+---
+
+### 2.64 Guía para bots y trampas para escáneres (14 oct 2026)
+
+**Encargo.** Preparar la web, antes de desplegar, para dos clases de bots: guiar a los educados para que puedan referenciar y citar, y dejar a la vista a los maleducados fáciles de pillar. No hay tráfico todavía, así que es prevención, no respuesta a un problema. Del análisis previo se aplican los puntos 1 (señales en `robots.txt`), 3 (`llms.txt`) y 4 (trampa); el 2 (reserva de derechos de minería de texto, `tdm-reservation`) y el 5 (endurecer la API del feed) quedan pendientes.
+
+**Estado de partida.** `robots.txt` permisivo (solo cerraba `/admin`, `/api/` y `/auth`); sitemap dinámico; `noindex` solo en previews; el feed sale por `/api/feed` con límite de peticiones en memoria y por cookie anónima, que un bot sin cookies esquiva (lo dice el propio comentario de `inMemoryRateLimiter.ts`).
+
+**Qué se hizo.**
+
+- **`/llms.txt`** (`app/llms.txt/route.ts`, `modules/content/domain/llmsTxt.ts`): guía en Markdown con un resumen de Greener, las secciones públicas, el sitemap y los patrones de URL de cada pieza, y la petición de enlazar a la página de cada pieza y citar a Greener. Es contenido estático (no consulta la BBDD); no lista cada contenido, para eso está el sitemap. El texto es público y habla de la agencia: **revisar el resumen**. No es un estándar y no hay garantía de que cada crawler lo use.
+- **`robots.txt`**: sigue abierto a todos los bots educados (buscadores y asistentes de IA que buscan y citan) y añade el señuelo a lo prohibido. No se bloquea a ningún bot concreto: si se quiere cerrar el paso a los de entrenamiento, es una regla por user-agent en `robots.ts` (comentado ahí).
+- **Trampas** (`lib/botTraps.ts`, ejecutado en `proxy.ts` antes de generar el nonce): `trap` es la ruta señuelo `/internal/client-list` (prohibida en robots.txt y enlazada con `BotTrapLink`, un `<a hidden>` con `tabindex=-1`, `aria-hidden` y `nofollow` en el layout público); `probe` son rutas de escáneres que en Greener no existen (`*.php`, `/wp-admin|content|includes|json`, `/phpmyadmin`, `/cgi-bin`, `/.env`, `/.git`, `/.aws`, `/.htaccess`…). `/.well-known/` no entra. Ambas responden 404 con `no-store` y `noindex` sin renderizar nada y escriben una línea JSON (`event: bot-trap`, tipo, ruta, IP, user-agent) con tope de 60 por minuto.
+
+**Decisión: solo registrar, no bloquear.** (Actualización: la IP ya es fiable, ver §2.65.) La IP salía del primer valor de `X-Forwarded-For`, que se puede falsificar, y detrás del proxy de Dinahosting todavía no está comprobado que llegue la IP real del visitante (§4.1). Si no llegara, bloquear una IP bloquearía a todo el mundo. Con los registros se bloquea después en el proxy o con `fail2ban`. La IP en los logs es un dato personal de seguridad con retención corta: conviene que el asesor lo tenga presente al cerrar la política.
+
+**Riesgo asumido.** Un enlace oculto en el HTML puede leerse como «texto oculto» por un buscador; se mitiga con `nofollow`, la prohibición en robots.txt y que apunta a una ruta que responde 404.
+
+**Tests nuevos** (5 ficheros, 43 tests): `botTraps.test.ts` (clasificación, incluidos falsos positivos como `/tools/php-guide`, `/insights/wp-admin-tips` y `/.well-known/`; formato y tope del registro), `botTrapsProxy.test.ts` (404 sin CSP y con `no-store` y `noindex`; las rutas normales no se tocan ni registran), `botTrapLink.test.tsx`, `llmsTxt.test.ts` y `robots.test.ts`; se ajusta el test de `siteMetadata.test.ts` que fijaba la lista de rutas cerradas.
+
+**Qué no se ha hecho.** Pedir a la API del feed cabeceras de navegador real (`Sec-Fetch-*`), límite por IP en el proxy, `tdm-reservation`, bloqueo de bots de entrenamiento, `llms.txt` con la lista de contenidos y protección de las URLs de Cloudinary.
+
+**Verificación.** 167 ficheros y **1742 tests** en verde, `tsc` (con `next typegen`), ESLint y `prettier` (estilo del repositorio, CRLF) limpios.
+
+
+### 2.65 IP real tras el proxy de Dinahosting (14 oct 2026)
+
+Greener comprobó en otra app Next ya desplegada (`insight.itsgreener.com`, mismo proxy) qué cabeceras llegan, con una ruta temporal que devolvía las cabeceras recibidas. Resultado: `x-forwarded-for` y `x-real-ip` traen la IP real del visitante, y ante `curl -H "X-Forwarded-For: 1.2.3.4"` el proxy entrega `1.2.3.4, <IP real>`: **añade al final, no sobrescribe**. No hay `forwarded` ni `cf-connecting-ip` (sin CDN delante).
+
+**Consecuencia.** Leer el primer valor (como hacía `clientIp.ts`) era falsificable: bastaba enviar una cabecera propia para rotar de «IP» y saltarse el límite de 5 envíos por hora del formulario y la newsletter (punto 2 de §2.35). Ahora se lee el **último** valor, con `x-real-ip` de respaldo.
+
+**Cambios.** La función pura vive en `lib/http/clientIpFromHeaders.ts` (sin imports de servidor, para poder usarla desde `proxy.ts`); `clientIp.ts` la reexporta. La usan el hash del contacto y la newsletter, el límite de `/api/analytics/package` (y la IP que reenvía a Plausible) y el registro `bot-trap`. Tests nuevos en `tests/unit/security/clientIp.test.ts`; actualizados los de `botTraps` y `packageAnalyticsRoute`.
+
+**Pendiente.** Comprobar con otra ruta temporal que un `X-Real-IP` falsificado también se sobrescribe (no es necesario para el código actual). Con la IP ya fiable, queda abierta la posibilidad de bloquear o limitar por IP las visitas a las trampas, que de momento solo se registran. Si algún día hay una CDN delante, hay que revisar la posición de la IP de confianza.
+
+**Verificación.** 168 ficheros y 1747 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios.
+
+
+### 2.66 Limpieza: `batch_size`, menú duplicado de los documentos `/app` y estudio de la fuerza (14 oct 2026)
+
+**`feed_config.batch_size` retirado.** Ya no influía en nada desde el cambio de la «vuelta completa» por subhome (§2.62). Quitado de `FeedConfig`, de la consulta de `supabaseFeedSource`, de los tipos generados y de los cuatro tests que lo rellenaban, y migración nueva `20261014100000_drop_feed_config_batch_size.sql` que borra la columna (**revertido en §2.68**: la migración se eliminó sin aplicarla y la columna es ahora el tamaño de lote). **Orden de despliegue:** primero la web nueva (que ya no pide la columna) y después la migración; al revés, la web anterior fallaría al leer la configuración del feed. No había nada en el ABM ni en las funciones SQL que la usara.
+
+**Menú de los documentos `/app` (tools e insights).** Los dos usan `composeToolDocument`, así que el comportamiento era idéntico. El enlace «Privacy & Cookies» ya apuntaba a `/privacy` (la página única del sitio); lo que estaba duplicado era la lista de entradas del menú, copiada a mano. Ahora `composeToolDocument.ts` importa `navItems` y `socialItems` de `navItems.ts`, la misma lista que el Shell, de modo que cualquier cambio del menú llega a la vez al sitio y a los documentos. Solo se repiten los estilos. Test nuevo que compara las entradas con `navItems.ts` y comprueba el enlace a `/privacy`.
+
+**Fuerza > 1 de los casos: estudio, sin cambios.** Con el motor real (20 casos de 6 pines, catálogo de 29 contenidos no-caso, 20 semillas): con fuerza 1 no hay problema; con fuerza 2, 17,6 de cada 20 casos sacan sus dos pines **seguidos** (hueco mínimo medio 1,8 posiciones); con fuerza 3, 36,5 pares seguidos por ronda; con fuerza 5, 74 de 80. Causa: los pines de un caso entran juntos y en orden en su cola, la mezcla solo mira el primero de la cola (si ese viola la separación de 10, se prueba con otros tipos, que son solo el 30 % de la tanda) y, cuando se agotan, el estado de relajación **sube y no baja en el resto de la ronda**, de modo que el último tramo sale sin separación. Dos efectos laterales: el informe cuenta esos pines como `repeatedContentPins` (nivel 4), aunque no son repetición sino fuerza, y mientras dura la relajación también se saltan las reglas de separación entre contenidos distintos. Decisión de Greener: es coherente con el significado de la fuerza, no se aplica nada hasta ver el comportamiento con casos reales.
+
+**Verificación.** 168 ficheros y 1748 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios.
+
+
+### 2.67 Auditoría del feed: ronda que termina con un solo tipo y plan de rediseño (14 oct 2026)
+
+Greener detectó que en cada lote la primera mitad sale mezclada y la segunda trae unos 20 pines de insight seguidos. Se auditó el motor completo (sesión, ronda como lote, `generateRound`, cuotas, `circularFillPool`, `constrainedMix`, cliente y límites). **No se cambió ningún fichero del código.**
+
+**Hallazgos principales** (detalle, cifras y plan en `auditoria-feed-2026-10-14.md`): (H1) la mezcla coloca pin a pin con reglas duras y relajación global que nunca baja, así que el tipo al que más le cuesta colocarse sale seguido al final; reproducido en todos los catálogos probados, con y sin casos (rachas de 11 a 43 pines); (H2) sin casos los pesos se renormalizan y los insights piden el 50 % de la ronda con solo 5 contenidos; (H3) fuerza > 1 agrupa los pines del caso; (H4) el informe mezcla tres causas distintas bajo el nivel 4; (H5) nada vigila las fronteras entre rondas; (H6) el tamaño de la ronda no tiene tope; (H7) un catálogo que cambia entre rondas desplaza el ciclo; (H8) ningún test medía rachas ni reparto por tramos.
+
+**Plan:** decisiones de producto (§6.1), pruebas rojas, mezclador nuevo en dos pasos (esqueleto de tipos por déficit acumulado + asignación con vista adelantada y relajación local, casos por capas, cuotas con tope por capacidad), historial de la frontera entre rondas y verificación con el catálogo real. Un prototipo aparte baja la racha máxima de 11-43 a 1-4 en los ocho escenarios medidos. Sin migraciones; las rondas ya guardadas no cambian.
+
+**Dato a tener en cuenta:** la migración que retira `feed_config.batch_size` (§2.66) sigue sin aplicarse; si se decide un tope de tamaño de ronda, la columna podría reutilizarse.
+
+**Decisiones y simulaciones de la tarde (apartado 10 del informe).** Greener mantiene la renormalización sin casos (escenario solo transitorio), elimina la separación de 10 posiciones y pide como única regla que ningún tipo minoritario vaya seguido de otro igual. Simulado con 150 casos de fuerza 1-5, 50 tools, 20 insights, 40 episodios y 7 «other»: ronda de 643 pines, ningún caso se queda fuera de la ronda; con el modelo estratificado la probabilidad de ver un caso en los 100 primeros pines va del 14 % (fuerza 1) al 80 % (fuerza 5), y con el modelo por capas es igual para todos (46-48 %), es decir, la fuerza no se nota. Precalcular la ronda cuesta 1-4 ms y ~10 KB; lo que no escala es servirla entera (≈314 KB por respuesta, 23 KB de URL en la consulta `.in()` y 643 nodos montados de golpe). Propuesta: servir la ronda por tramos de ~40 pines con cursor `{ronda, desplazamiento}`; `feed_config.batch_size` (40 por defecto) es justo ese parámetro, así que se recomienda no aplicar su migración de borrado.
+
+### 2.68 Mezclador del feed rediseñado y ronda servida por tramos (14 oct 2026)
+
+Implementa el plan de la auditoría (§2.67) con las decisiones de Greener: se mantiene la renormalización de pesos, se elimina la separación de 10 posiciones, la fuerza sigue el modelo estratificado, lotes de 40 pines (20 en móvil) y la columna `feed_config.batch_size` se reutiliza (su migración de borrado, nunca aplicada, se elimina y `database.types.ts` vuelve a ser el original).
+
+**Motor (`src/modules/feed/domain/`).**
+- `caseStream.ts` (nuevo): cola de pines de caso con la fuerza como peso. La aparición `k` de un caso de fuerza `f` lleva la clave `(k + u + j) / f` y la cola es el orden por clave; `u` es fijo por sesión y caso (así el hueco se mantiene al cruzar de ronda) y `j` varía por ronda (±0,25). Un caso de fuerza 5 reparte sus 5 apariciones por toda la cola en vez de agruparlas.
+- `typeSkeleton.ts` (nuevo): esqueleto de tipos de la ronda. Versión fuerte (casos > resto + 1, lo normal): los pines que no son caso se colocan uno por hueco entre casos, repartidos a intervalos regulares; la ronda empieza y acaba en caso y no hay dos no-casos juntos. Versión débil (pocos casos, subhomes): reparto por déficit acumulado evitando repetir el mismo tipo minoritario seguido; con un solo tipo es inevitable y no se intenta.
+- `generateRound.ts` reescrito sobre ambas piezas; las cuotas siguen siendo las mismas (restos mayores, pesos renormalizados). Eliminado `constrainedMix.ts` (niveles de relajación, `mixWindow`, `distanceWindow`).
+- Informe nuevo: `repeatedPins { quota, force }`; cada pin lleva `repeat: 'none' | 'quota' | 'force'`.
+- `batchSize.ts` (nuevo): `PHONE_BATCH_SIZE = 20` y `resolveBatchSize` (el cliente puede pedir menos, nunca más que el configurado).
+
+**Servir por tramos.** El cursor firmado lleva ahora `{sessionId, roundIndex, offset}` (un cursor sin `offset` vale «principio de esa ronda»). `getFeedSessionBatch(sessionId, cursor, size)` lee o genera la ronda entera, sirve `slice(offset, offset + size)` y consulta el directorio solo de ese tramo (antes, de toda la ronda); al terminar la ronda el cursor pasa a la siguiente. Un tramo cuyos pines se despublicaron se salta (hasta 5 seguidos); un offset fuera de rango pasa a la ronda siguiente; una ronda vacía devuelve un lote vacío. La respuesta incluye `batch` (tramo dentro de la ronda), que ahora sí recoge el evento «Feed Depth». `GET /api/feed/{id}?cursor=&size=` (solo enteros positivos; el resto se ignora). `fetchFeedBatch` pide `size=20` cuando `window.innerWidth < 640` (`BREAKPOINT_PX.mobile`). La configuración del feed se cachea 60 s con la misma etiqueta que el catálogo, porque ahora se lee en cada lote.
+
+**Medido** con el escenario que pidió Greener (150 casos de fuerza 1-5, 50 tools, 20 insights, 40 episodios, 7 other): ronda de 643 pines, generación 1-4 ms; la racha máxima de un mismo tipo pasa de 11-43 a 1 para los tipos minoritarios; ningún visitante ve un caso repetido en sus primeros 100 pines; con fuerza 5 la probabilidad de ver un caso en los 100 primeros es del 80 % frente al 14 % de fuerza 1.
+
+**Tests.** `tests/unit/feed/feedMixer.test.ts` (nuevo: escenario real, estratificado, esqueleto, tamaño de lote), `feedApi.test.ts` (nuevo), propiedades reescritas (vecindad, inicio/fin en caso, distribución por tercios, etiquetado de repeticiones, fuerza = pines), tests de tramos en `getFeedSessionBatch.test.ts`, `?size=` en `sessionBatchRoute.test.ts`, `offset` en `cursor.test.ts` y config cacheada en `cachedFeedCatalog.test.ts`. 170 ficheros y 1785 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios.
+
+**Qué no cambia.** Formato de `feed_round` (lista de uuid por ronda), `feed_session`, límite de 50 lotes/min, virtualización del cliente por lote, rotación de pines dentro de un caso. Las rondas ya guardadas por sesiones abiertas antes de desplegar se siguen sirviendo, ahora por tramos. **Pendiente:** las columnas `mix_window` y `distance_window` ya no se leen (retirarlas es opcional); la limpieza de sesiones y rondas caducadas sigue sin hacerse.
 
 ---
 

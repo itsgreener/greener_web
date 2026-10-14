@@ -1,4 +1,5 @@
 import { generateRound } from '@/modules/feed/domain/generateRound'
+import { resolveBatchSize } from '@/modules/feed/domain/batchSize'
 import {
   FeedSessionNotFoundError,
   InvalidFeedCursorError,
@@ -41,15 +42,25 @@ function enrich(
 }
 
 /**
+ * Cuántos tramos consecutivos sin ningún pin publicado se saltan antes de
+ * rendirse y devolver un lote vacío (con cursor al siguiente tramo). Solo
+ * ocurre si una ronda guardada quedó casi entera despublicada.
+ */
+const MAX_SKIPPED_SLICES = 5
+
+/**
  * Caso de uso: "dame el siguiente lote de esta sesión de feed" (§16.1,
  * §8.5). Una ronda ya generada se lee tal cual de feed_round (inmutable:
  * los pines ya servidos no cambian aunque cambie el contenido publicado
  * después); una ronda nueva se calcula con generateRound() y se persiste
  * antes de devolverla.
  *
- * Cada ronda es un lote completo (arquitectura §8.2: el tamaño de la tanda
- * lo fijan los casos) — por eso el cursor solo necesita roundIndex, sin
- * offset dentro de la ronda.
+ * La ronda es la vuelta COMPLETA del feed (todos los casos con su fuerza más
+ * el resto de tipos) y puede tener cientos de pines; se precalcula entera
+ * pero se sirve por tramos de `batch_size` (40; 20 en móvil, `?size=`), así
+ * que la respuesta, la consulta del directorio y el DOM del cliente son de
+ * tamaño acotado. El cursor lleva roundIndex + offset dentro de la ronda; al
+ * acabar una ronda el siguiente tramo es el principio de la ronda siguiente.
  *
  * @throws FeedSessionNotFoundError si la sesión no existe o caducó
  * @throws InvalidFeedCursorError si el cursor no es de esta sesión
@@ -66,6 +77,7 @@ export function makeGetFeedSessionBatch({
   return async function getFeedSessionBatch(
     sessionId: string,
     cursor: string | null,
+    requestedSize?: number | null,
   ): Promise<FeedBatchResult> {
     const session = await sessions.get(sessionId)
     if (!session) throw new FeedSessionNotFoundError()
@@ -75,43 +87,89 @@ export function makeGetFeedSessionBatch({
     }
 
     let roundIndex = 0
+    let offset = 0
     if (cursor) {
       const payload = cursors.decode(cursor)
       if (!payload || payload.sessionId !== sessionId) {
         throw new InvalidFeedCursorError()
       }
       roundIndex = payload.roundIndex
+      offset = payload.offset
     }
 
-    let unitIds = await sessions.getRound(sessionId, roundIndex)
-    let directory: Record<string, PinDirectoryEntry>
+    const config = await catalog.config()
+    const size = resolveBatchSize(requestedSize, config.batchSize)
 
-    if (unitIds) {
-      // Ronda ya calculada: solo hace falta enriquecer, no releer el
-      // catálogo entero.
-      directory = await catalog.directoryByIds(unitIds)
-    } else {
+    // Ronda en curso, cargada una sola vez; si el cursor apunta a la
+    // siguiente se recarga/genera.
+    let loadedIndex = -1
+    let unitIds: string[] = []
+    let generatedDirectory: Record<string, PinDirectoryEntry> | null = null
+
+    async function loadRound(index: number): Promise<void> {
+      if (loadedIndex === index) return
+      loadedIndex = index
+      generatedDirectory = null
+
+      const stored = await sessions.getRound(sessionId, index)
+      if (stored) {
+        unitIds = stored
+        return
+      }
+
       // Ronda nueva: hace falta el universo completo para poder generarla,
       // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
-      const [{ snapshot, pinDirectory }, config] = await Promise.all([
-        catalog.dataset(session.scope, session.excludeContentId),
-        catalog.config(),
-      ])
-      const { sequence } = generateRound(
-        snapshot,
-        config,
-        session.seed,
-        roundIndex,
+      const { snapshot, pinDirectory } = await catalog.dataset(
+        session!.scope,
+        session!.excludeContentId,
       )
+      const { sequence } = generateRound(snapshot, config, session!.seed, index)
       unitIds = sequence.map((pin) => pin.pinId)
-      await sessions.saveRound(sessionId, roundIndex, unitIds)
-      directory = pinDirectory
+      await sessions.saveRound(sessionId, index, unitIds)
+      generatedDirectory = pinDirectory
+    }
+
+    let items: FeedBatchItem[] = []
+    let batch = 0
+    let servedRound = roundIndex
+
+    for (let skipped = 0; skipped <= MAX_SKIPPED_SLICES; skipped++) {
+      await loadRound(roundIndex)
+
+      // Offset más allá del final (ronda cambiada de tamaño, cursor viejo):
+      // principio de la ronda siguiente.
+      if (offset >= unitIds.length && unitIds.length > 0) {
+        roundIndex += 1
+        offset = 0
+        continue
+      }
+
+      const slice = unitIds.slice(offset, offset + size)
+      servedRound = roundIndex
+      batch = Math.floor(offset / size)
+
+      const directory =
+        generatedDirectory ?? (await catalog.directoryByIds(slice))
+      items = enrich(slice, directory)
+
+      const end = offset + size
+      if (end >= unitIds.length) {
+        roundIndex += 1
+        offset = 0
+      } else {
+        offset = end
+      }
+
+      // Ronda realmente vacía (universo sin pines): lote vacío, el cliente
+      // lo trata como fin. Tramo sin pines publicados: se salta al siguiente.
+      if (items.length > 0 || slice.length === 0) break
     }
 
     return {
-      items: enrich(unitIds, directory),
-      cursor: cursors.encode({ sessionId, roundIndex: roundIndex + 1 }),
-      round: roundIndex,
+      items,
+      cursor: cursors.encode({ sessionId, roundIndex, offset }),
+      round: servedRound,
+      batch,
       hasMore: true,
     }
   }

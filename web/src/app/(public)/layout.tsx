@@ -1,4 +1,5 @@
 import { CookieBanner } from '@/components/consent/CookieBanner'
+import { BotTrapLink } from '@/components/security/BotTrapLink'
 import { Shell } from '@/components/shell/Shell'
 import { FeedProvider } from '@/components/masonry/FeedProvider'
 import { AnalyticsProvider } from '@/modules/analytics/AnalyticsProvider'
@@ -17,6 +18,7 @@ export default function PublicLayout({
           <Shell>{children}</Shell>
         </FeedProvider>
         <CookieBanner />
+        <BotTrapLink />
       </ConsentProvider>
     </AnalyticsProvider>
   )

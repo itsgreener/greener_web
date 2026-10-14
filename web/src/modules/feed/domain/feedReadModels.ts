@@ -68,6 +68,9 @@ export interface FeedBatchResult {
   // Índice de la ronda a la que pertenece este lote (§8.5, §16.3). Lo lee
   // el evento «Feed Depth» de analítica (useFeed.ts).
   round: number
+  // Tramo dentro de la ronda (0 = primero). Una ronda se sirve en varios
+  // lotes de `batchSize` pines; lo lee «Feed Depth».
+  batch: number
   // El feed no termina (brief §4.6, arquitectura §8.5): siempre hay más
   // mientras el universo tenga al menos un pin publicado.
   hasMore: boolean
