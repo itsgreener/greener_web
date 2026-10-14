@@ -1,5 +1,7 @@
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import ContentFilterPersistence from './ContentFilterPersistence'
 
 import { contents as contentRepository } from '@/modules/content/container'
 import {
@@ -108,6 +110,7 @@ export default async function ContentsPage({ searchParams }: Props) {
 
   return (
     <main className="admin-contents-page">
+      <Suspense fallback={null}><ContentFilterPersistence /></Suspense>
       <div className="admin-dashboard-shell">
         <header className="admin-page-header">
           <div>
@@ -185,7 +188,7 @@ export default async function ContentsPage({ searchParams }: Props) {
             </button>
 
             {hasFilters && (
-              <Link href="/admin/contents" className="admin-filter-clear">
+              <Link href="/admin/contents?clear=1" className="admin-filter-clear">
                 Limpiar
               </Link>
             )}
@@ -207,7 +210,7 @@ export default async function ContentsPage({ searchParams }: Props) {
 
               {hasFilters ? (
                 <Link
-                  href="/admin/contents"
+                  href="/admin/contents?clear=1"
                   className="admin-button admin-button-secondary admin-link-button"
                 >
                   Quitar filtros

@@ -1,0 +1,102 @@
+{
+  "startedAt": "2026-10-14T09:20:09.368Z",
+  "baseUrl": "http://localhost:3000",
+  "browserVersion": "155.0.8059.40",
+  "snapshots": [],
+  "storageRows": [],
+  "networkRows": [],
+  "storageEvents": [
+    {
+      "provider": "greener",
+      "time": "2026-10-14T09:20:27.308Z",
+      "pageUrl": "http://localhost:3000/",
+      "frameUrl": "http://localhost:3000/",
+      "action": "set",
+      "storage": "sessionStorage",
+      "key": "greener:feed",
+      "value": "{\"pageLoadId\":\"7d96fb2f-cdab-453f-bb4f-0edb74111b1c\",\"scopes\":{}}"
+    },
+    {
+      "provider": "greener",
+      "time": "2026-10-14T09:20:27.313Z",
+      "pageUrl": "http://localhost:3000/",
+      "frameUrl": "http://localhost:3000/",
+      "action": "set",
+      "storage": "sessionStorage",
+      "key": "greener:feed",
+      "value": "{\"pageLoadId\":\"7d96fb2f-cdab-453f-bb4f-0edb74111b1c\",\"scopes\":{}}"
+    },
+    {
+      "provider": "greener",
+      "time": "2026-10-14T09:20:27.599Z",
+      "pageUrl": "http://localhost:3000/",
+      "frameUrl": "http://localhost:3000/",
+      "action": "set",
+      "storage": "sessionStorage",
+      "key": "greener:feed",
+      "value": "{\"pageLoadId\":\"7d96fb2f-cdab-453f-bb4f-0edb74111b1c\",\"scopes\":{\"home\":{\"sessionId\":\"7f60fd67-4855-46fb-9bb1-3c310106e780\",\"items\":[],\"batchSizes\":[],\"cursor\":null,\"hasMore\":true,\"scrollY\":0}}}"
+    },
+    {
+      "provider": "greener",
+      "time": "2026-10-14T09:20:28.275Z",
+      "pageUrl": "http://localhost:3000/",
+      "frameUrl": "http://localhost:3000/",
+      "action": "set",
+      "storage": "sessionStorage",
+      "key": "greener:feed",
+      "value": "{\"pageLoadId\":\"7d96fb2f-cdab-453f-bb4f-0edb74111b1c\",\"scopes\":{\"home\":{\"sessionId\":\"7f60fd67-4855-46fb-9bb1-3c310106e780\",\"items\":[{\"pinId\":\"17dd0ef8-a366-4e68-bf36-146bb678e2ca\",\"contentId\":\"340e672d-f287-4b0f-ba2d-a5c04e710141\",\"kind\":\"tool\",\"destination\":\"/tools/halo?pin=17dd0ef8-a366-4e68-bf36-146bb678e2ca\",\"ratio\":\"16:9\",\"label\":null,\"displayTitle\":\"Anillos de color que irradian desde una palabra o una silueta, en bucle.\",\"displaySecondary\":\"Halo by Greener\",\"cta\":\"Use\",\"alt\":\"halo 169 vide"
+    }
+  ],
+  "assertions": [
+    {
+      "provider": "cloudinary",
+      "check": "Cloudinary responses without Set-Cookie",
+      "status": "PASS",
+      "detail": "16 responses; 0 with Set-Cookie"
+    },
+    {
+      "provider": "plausible",
+      "check": "Plausible /api/event returns 202",
+      "status": "SKIP",
+      "detail": "No Plausible request seen (expected on production, not localhost)"
+    },
+    {
+      "provider": "plausible",
+      "check": "Plausible does not set cookies",
+      "status": "PASS",
+      "detail": "none"
+    },
+    {
+      "provider": "greener",
+      "check": "Expected first-party storage only",
+      "status": "PASS",
+      "detail": "localStorage=[], sessionStorage=[greener:feed]"
+    },
+    {
+      "provider": "spotify",
+      "check": "A: no provider requests before Load",
+      "status": "PASS",
+      "detail": "0 requests"
+    },
+    {
+      "provider": "greener",
+      "check": "navigation-source lifecycle on pin click",
+      "status": "WARN",
+      "detail": "writes=0, removals=0. Current code intentionally writes it before navigation and consumes/removes it on detail load."
+    }
+  ],
+  "playback": [],
+  "firstPartyStorage": {
+    "local": [],
+    "session": [
+      "greener:feed"
+    ]
+  },
+  "errors": [
+    {
+      "provider": "spotify",
+      "url": "http://localhost:3000/work/brand-the-future-13",
+      "error": "Error: No encuentro el botón “Load Spotify content”. Comprueba la URL del episodio.\n    at clickLoad (file:///Users/greener/Documents/GitHub/greener_web/web/scripts/cookie-audit.mjs:281:9)\n    at async auditProvider (file:///Users/greener/Documents/GitHub/greener_web/web/scripts/cookie-audit.mjs:331:5)\n    at async main (file:///Users/greener/Documents/GitHub/greener_web/web/scripts/cookie-audit.mjs:516:5)\n    at async file:///Users/greener/Documents/GitHub/greener_web/web/scripts/cookie-audit.mjs:533:1"
+    }
+  ]
+}
