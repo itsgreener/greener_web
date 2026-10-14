@@ -133,7 +133,7 @@ export default async function ContentsPage({ searchParams }: Props) {
         </header>
 
         <section className="admin-contents-card">
-          <form method="get" className="admin-content-filters">
+          <form key={`${q}|${type}|${status}`} method="get" className="admin-content-filters">
             <div className="admin-content-search">
               <label htmlFor="content-search" className="admin-visually-hidden">
                 Buscar contenidos
