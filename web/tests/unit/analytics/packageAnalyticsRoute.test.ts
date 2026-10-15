@@ -205,4 +205,59 @@ describe('POST /api/analytics/package', () => {
     expect(statuses.slice(0, 60).every((status) => status === 204)).toBe(true)
     expect(statuses[60]).toBe(429)
   })
+
+  describe('Insight Open (kind: insight)', () => {
+    it('resuelve el insight publicado y envía «Insight Open» con insightId', async () => {
+      const response = await POST(
+        createRequest({ kind: 'insight', slug: 'informe-2026' }),
+      )
+
+      expect(response.status).toBe(204)
+      expect(mocks.eq).toHaveBeenCalledWith('type', 'insight')
+      expect(mocks.eq).toHaveBeenCalledWith('slug', 'informe-2026')
+      expect(mocks.eq).toHaveBeenCalledWith('status', 'published')
+
+      const [, options] = vi.mocked(globalThis.fetch).mock.calls[0]
+
+      expect(JSON.parse(String(options?.body))).toEqual({
+        name: 'Insight Open',
+        domain: 'example.com',
+        url: 'https://example.com/insights/informe-2026/app',
+        props: { insightId: TOOL_ID },
+        interactive: true,
+      })
+    })
+
+    it('no exige action: un insight solo tiene «abrir»', async () => {
+      const response = await POST(
+        createRequest({ kind: 'insight', slug: 'informe-2026' }),
+      )
+
+      expect(response.status).toBe(204)
+    })
+
+    it('un insight inexistente o sin publicar da 404 y no llega a Plausible', async () => {
+      mocks.maybeSingle.mockResolvedValueOnce({ data: null, error: null })
+
+      const response = await POST(
+        createRequest({ kind: 'insight', slug: 'no-existe' }),
+      )
+
+      expect(response.status).toBe(404)
+      expect(globalThis.fetch).not.toHaveBeenCalled()
+    })
+
+    it('rechaza un kind desconocido antes de consultar Supabase', async () => {
+      const response = await POST(createRequest({ kind: 'case', slug: 'x' }))
+
+      expect(response.status).toBe(400)
+      expect(mocks.from).not.toHaveBeenCalled()
+    })
+
+    it('sin kind se sigue tratando como tool (formato original del cuerpo)', async () => {
+      await POST(createRequest({ slug: 'pixel-palette', action: 'generate' }))
+
+      expect(mocks.eq).toHaveBeenCalledWith('type', 'tool')
+    })
+  })
 })

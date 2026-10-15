@@ -22,9 +22,11 @@ function requestWithQuery(query: string): NextRequest {
   })
 }
 
+const SESSION_ID = '5f0c2b7e-1d2a-4c3b-9e4f-0a1b2c3d4e5f'
+
 const params = {
   params: Promise.resolve({
-    sessionId: '5f0c2b7e-1d2a-4c3b-9e4f-0a1b2c3d4e5f',
+    sessionId: SESSION_ID,
   }),
 }
 
@@ -196,5 +198,54 @@ describe('GET /api/feed/{sessionId} — parámetro size', () => {
     expect(await sizeSeenBy('size=-5')).toBeNull()
     vi.clearAllMocks()
     expect(await sizeSeenBy('size=1.5')).toBeNull()
+  })
+})
+
+describe('GET /api/feed/{sessionId} — cookie de newsletter', () => {
+  function requestWithCookies(cookie: string): NextRequest {
+    return new NextRequest('http://localhost/api/feed/session-1', {
+      headers: { cookie },
+    })
+  }
+
+  beforeEach(() => {
+    getFeedSessionBatch.mockResolvedValue({
+      items: [],
+      cursor: 'c',
+      hasMore: true,
+    })
+  })
+
+  it('sin cookie, el visitante no está suscrito', async () => {
+    const { GET } = await import('@/app/api/feed/[sessionId]/route')
+    await GET(requestWithCookie('visitor-1'), params)
+
+    expect(getFeedSessionBatch).toHaveBeenCalledWith(SESSION_ID, null, null, {
+      newsletterSubscribed: false,
+    })
+  })
+
+  it('con greener_newsletter=1, el caso de uso omite la newsletter', async () => {
+    const { GET } = await import('@/app/api/feed/[sessionId]/route')
+    await GET(
+      requestWithCookies('greener_visitor=visitor-1; greener_newsletter=1'),
+      params,
+    )
+
+    expect(getFeedSessionBatch).toHaveBeenCalledWith(SESSION_ID, null, null, {
+      newsletterSubscribed: true,
+    })
+  })
+
+  it('cualquier otro valor de la cookie no cuenta como suscrito', async () => {
+    const { GET } = await import('@/app/api/feed/[sessionId]/route')
+    await GET(
+      requestWithCookies('greener_visitor=visitor-1; greener_newsletter=0'),
+      params,
+    )
+
+    expect(getFeedSessionBatch).toHaveBeenCalledWith(SESSION_ID, null, null, {
+      newsletterSubscribed: false,
+    })
   })
 })

@@ -31,11 +31,6 @@ export type ContentDetail = {
   title: string
   createdAt: string
   publishAt: string | null
-  coverMedia: {
-    id: string
-    kind: 'image' | 'video'
-    cloudinaryPublicId: string
-  } | null
 }
 
 export type ContentListPage = {

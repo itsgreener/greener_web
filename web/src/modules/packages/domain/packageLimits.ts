@@ -28,4 +28,29 @@ export const PACKAGE_LIMITS = {
   maxEntries: 1000,
   maxUncompressedBytes: 60 * 1000 * 1000,
   maxEntryUncompressedBytes: 25 * 1000 * 1000,
+
+  /*
+   * Bloque `metadata` del manifest (contrato del ZIP §2.1). Los textos se
+   * acotan a lo que las redes sociales y Google muestran sin cortar.
+   */
+  metadata: {
+    titleMax: 70,
+    descriptionMax: 200,
+    altMax: 200,
+    keywordsMax: 12,
+    keywordMax: 40,
+  },
+
+  /*
+   * Imagen Open Graph. 1200 × 630 es el tamaño de referencia de Facebook,
+   * LinkedIn y X (ratio 1,91:1); se admite ±5 % de ratio y cualquier tamaño
+   * mayor. 5 MB es el tope que aceptan los scrapers más estrictos.
+   */
+  ogImage: {
+    maxBytes: 5 * 1000 * 1000,
+    minWidth: 1200,
+    minHeight: 630,
+    ratio: 1200 / 630,
+    ratioTolerance: 0.05,
+  },
 }

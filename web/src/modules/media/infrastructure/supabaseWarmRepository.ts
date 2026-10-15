@@ -54,7 +54,7 @@ function isRatio(value: unknown): value is PinRatioValue {
 
 /**
  * Todos los vídeos de un contenido con DÓNDE se usan: pines (con su ratio,
- * modo de reproducción y tipo de contenido), carrusel de casos y portada.
+ * modo de reproducción y tipo de contenido), carrusel de casos.
  * Un mismo vídeo puede aparecer con varios usos.
  */
 export async function readContentWarmInfo(
@@ -62,14 +62,11 @@ export async function readContentWarmInfo(
 ): Promise<ContentWarmInfo> {
   const supabase = await createClient()
 
-  // Las tres lecturas son independientes: van a la vez. La portada viaja
-  // embebida en la del contenido (solo se usa en el tipo «other»).
+  // Las tres lecturas son independientes: van a la vez.
   const [content, pins, carousel] = await Promise.all([
     supabase
       .from('content')
-      .select(
-        `type, status, cover_media_id, cover_ratio, cover:media_asset!cover_media_id ( ${ASSET_COLUMNS} )` as const,
-      )
+      .select('type, status')
       .eq('id', contentId)
       .maybeSingle(),
     supabase
@@ -132,16 +129,6 @@ export async function readContentWarmInfo(
         height: asset.height,
       })
     }
-  }
-
-  // La portada solo existe en contenido libre («other»).
-  if (kind === 'other' && content.data.cover) {
-    add(content.data.cover, {
-      kind: 'otherCover',
-      coverRatio: isRatio(content.data.cover_ratio)
-        ? content.data.cover_ratio
-        : null,
-    })
   }
 
   return {

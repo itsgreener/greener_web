@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -26,12 +26,12 @@ const BY_CODE: ReadonlyArray<readonly [string, DomainErrorKind]> = [
   ['ZG008', 'episode_locale_only'],
   ['ZG009', 'package_required'],
   ['ZG010', 'publish_date_in_past'],
-  ['ZG011', 'cover_unsupported'],
-  ['ZG012', 'cover_video_unsupported'],
   ['ZG013', 'stale_reference'],
   ['ZG014', 'media_not_owned'],
   ['ZG015', 'only_draft_deletable'],
   ['ZG016', 'active_version_undeletable'],
+  ['ZG017', 'other_kind_required'],
+  ['ZG018', 'page_pin_required'],
 ]
 
 describe('mapPostgresError — por SQLSTATE', () => {
@@ -87,16 +87,6 @@ describe('mapPostgresError — base de datos sin la migración de códigos', () 
     ],
     [
       'P0001',
-      'Content type does not support a cover image',
-      'cover_unsupported',
-    ],
-    [
-      'P0001',
-      'Only free-form content supports a cover video',
-      'cover_video_unsupported',
-    ],
-    [
-      'P0001',
       'El contenido ya no apunta a este medio (posible carrera con otra pestaña)',
       'stale_reference',
     ],
@@ -135,18 +125,27 @@ describe('createRepositoryError', () => {
   })
 })
 
-describe('migración de códigos de error', () => {
-  const sql = readFileSync(
-    resolve(
-      __dirname,
-      '../../../supabase/migrations/20261009120000_typed_error_codes.sql',
-    ),
-    'utf8',
-  )
+describe('migraciones de códigos de error', () => {
+  const dir = resolve(__dirname, '../../../supabase/migrations')
+  const read = (name: string) => readFileSync(resolve(dir, name), 'utf8')
+  const codesIn = (sql: string) =>
+    (sql.match(/errcode = 'ZG\d{3}'/g) ?? []).map((m) => m.slice(11, 16))
 
-  const used = new Set(
-    sql.match(/errcode = 'ZG\d{3}'/g)?.map((m) => m.slice(11, 16)),
-  )
+  const sql = read('20261009120000_typed_error_codes.sql')
+
+  // ZG011 y ZG012 eran los errores de la portada de other, retirada el
+  // 15 oct 2026 (20261015130000). Sus RPC ya no existen y el mapper no los
+  // conoce; el texto de la migración original sigue mencionándolos.
+  const RETIRED = ['ZG011', 'ZG012']
+
+  const laterMigrations = readdirSync(dir)
+    .filter((name) => name >= '20261015')
+    .map(read)
+
+  const used = new Set([
+    ...codesIn(sql).filter((code) => !RETIRED.includes(code)),
+    ...laterMigrations.flatMap(codesIn),
+  ])
 
   it('usa exactamente los códigos ZG que el mapper conoce', () => {
     const known = BY_CODE.map(([code]) => code).filter((code) =>
@@ -154,6 +153,12 @@ describe('migración de códigos de error', () => {
     )
 
     expect([...used].sort()).toEqual(known.sort())
+  })
+
+  it('los códigos de la portada retirada ya no están en el mapper', () => {
+    for (const code of RETIRED) {
+      expect(mapPostgresError('cualquier texto', code)).toBeNull()
+    }
   })
 
   it('no deja ningún aviso reconocido por texto con el SQLSTATE antiguo', () => {

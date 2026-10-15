@@ -7,14 +7,15 @@ import type { FeedSnapshot } from './types'
  * feedSession (arquitectura §6.1, §8.2). 'home' es el feed mixto de
  * siempre; cada subhome filtra a un único tipo — "el 100% de los
  * contenidos del scope forma el universo", no una mezcla con cuotas.
- * 'other' no tiene subhome propia (no hay ruta /other en el brief), así
- * que no aparece como scope aquí — solo se sirve dentro de 'home'.
+ * 'other' no entra en el universo de la ronda en ningún scope: se intercala
+ * solo en la home, al servir cada lote, según su propio calendario
+ * (`interludes.ts`, plan de `other`).
  *
  * scope=related-cases (relacionados dentro de una página de caso) sigue sin
  * implementarse: no hay ninguna pantalla que lo pida.
  */
 export const SCOPE_TO_TYPES: Record<string, readonly ContentType[]> = {
-  home: ['case', 'insight', 'tool', 'episode', 'other'],
+  home: ['case', 'insight', 'tool', 'episode'],
   work: ['case'],
   insights: ['insight'],
   tools: ['tool'],

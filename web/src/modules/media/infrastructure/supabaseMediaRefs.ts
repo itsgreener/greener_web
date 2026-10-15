@@ -51,7 +51,7 @@ export async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
 }
 
 /**
- * Todos los medios que cuelgan de un contenido: portada, imagen de
+ * Todos los medios que cuelgan de un contenido: imagen de
  * compartición (og), medios de sus pines y carrusel de detalle (casos).
  */
 export async function listContentMediaRefs(
@@ -61,16 +61,13 @@ export async function listContentMediaRefs(
 
   const refs: MediaRef[] = []
 
-  // Las tres lecturas son independientes: van a la vez. Portada y og viajan
-  // embebidas en la del contenido.
+  // Las tres lecturas son independientes: van a la vez. La og viaja
+  // embebida en la del contenido.
   const [content, pins, carousel] = await Promise.all([
     supabase
       .from('content')
       .select(
-        `
-        cover:media_asset!cover_media_id ( id, kind, cloudinary_public_id ),
-        og:media_asset!og_media_id ( id, kind, cloudinary_public_id )
-      ` as const,
+        'og:media_asset!og_media_id ( id, kind, cloudinary_public_id )' as const,
       )
       .eq('id', contentId)
       .maybeSingle(),
@@ -90,9 +87,7 @@ export async function listContentMediaRefs(
   if (pins.error) throw repositoryError(pins.error.message)
   if (carousel.error) throw repositoryError(carousel.error.message)
 
-  for (const direct of [content.data?.cover, content.data?.og]) {
-    if (direct) refs.push(toRef(direct))
-  }
+  if (content.data?.og) refs.push(toRef(content.data.og))
 
   for (const pin of pins.data ?? []) {
     for (const row of pin.pin_media) {

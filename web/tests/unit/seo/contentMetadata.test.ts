@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { buildContentMetadata } from '@/lib/contentMetadata'
-import { getFirstPinMedia } from '@/modules/content/infrastructure/firstPinMedia'
+import {
+  getFirstPinCover,
+  getFirstPinMedia,
+} from '@/modules/content/infrastructure/firstPinMedia'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -18,8 +21,6 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
     summary: null,
     highlight: null,
     body: null,
-    coverMedia: null,
-    coverRatio: null,
     ...overrides,
   }
 }
@@ -47,17 +48,6 @@ describe('imagen de OG sin portada (tool/insight)', () => {
     expect(images(m)?.[0]).toContain('/video/upload/')
     expect(images(m)?.[0]).toContain('f_jpg')
     expect(images(m)?.[0]).toContain('pins/v')
-  })
-
-  it('la portada propia (other) tiene prioridad sobre el respaldo', () => {
-    const m = buildContentMetadata(
-      content({
-        type: 'other',
-        coverMedia: { kind: 'image', cloudinaryPublicId: 'cover/x' },
-      }),
-      { shareMedia: { kind: 'image', cloudinaryPublicId: 'pins/a' } },
-    )
-    expect(images(m)?.[0]).toContain('cover/x')
   })
 })
 
@@ -97,6 +87,54 @@ describe('getFirstPinMedia', () => {
     ).toBeNull()
     expect(
       await getFirstPinMedia('c1', fakeClient({ data: null, error: {} })),
+    ).toBeNull()
+  })
+})
+
+describe('getFirstPinCover', () => {
+  it('devuelve el medio de menor orden con el ratio y el alt del pin', async () => {
+    const cover = await getFirstPinCover(
+      'c1',
+      fakeClient({
+        error: null,
+        data: {
+          ratio: '16:9',
+          alt: 'Pantalla de la tool',
+          pin_media: [
+            {
+              slide_order: 1,
+              media_asset: { kind: 'image', cloudinary_public_id: 'b' },
+            },
+            {
+              slide_order: 0,
+              media_asset: { kind: 'video', cloudinary_public_id: 'a' },
+            },
+          ],
+        },
+      }),
+    )
+    expect(cover).toEqual({
+      ratio: '16:9',
+      alt: 'Pantalla de la tool',
+      media: { kind: 'video', cloudinaryPublicId: 'a' },
+    })
+  })
+
+  it('devuelve null sin pines, sin medios o ante un error', async () => {
+    expect(
+      await getFirstPinCover('c1', fakeClient({ data: null, error: null })),
+    ).toBeNull()
+    expect(
+      await getFirstPinCover('c1', fakeClient({ data: null, error: {} })),
+    ).toBeNull()
+    expect(
+      await getFirstPinCover(
+        'c1',
+        fakeClient({
+          error: null,
+          data: { ratio: '4:5', alt: 'x', pin_media: [] },
+        }),
+      ),
     ).toBeNull()
   })
 })

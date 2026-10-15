@@ -12,22 +12,21 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  */
 
 /**
- * Ratio por defecto cuando una ficha de tool/insight/other no trae ratio:
+ * Ratio por defecto cuando una ficha de tool/insight no trae ratio:
  * el caso «vertical» más conservador (especificacion-final-formato-
  * detalle.md §2).
  */
 export const TOOL_INSIGHT_FALLBACK_RATIO: PinRatioValue = '4:5'
 
 /**
- * Ficha de tool / insight / other. En una tool el ratio es el del PIN
- * abierto con `?pin=` (`override`: las tools no tienen
- * portada propia); en `other`, el de su portada (`coverRatio`).
+ * Ficha de tool / insight. Ninguna tiene portada propia: el ratio es el del
+ * PIN que se abre (`?pin=`) o el del primer pin (`override`). Sin pin, el
+ * ratio por defecto.
  */
 export function toolInsightDetailRatio(
   override: PinRatioValue | null | undefined,
-  coverRatio: PinRatioValue | null | undefined,
 ): PinRatioValue {
-  return override ?? coverRatio ?? TOOL_INSIGHT_FALLBACK_RATIO
+  return override ?? TOOL_INSIGHT_FALLBACK_RATIO
 }
 
 /** Vídeo del carrusel de un caso: el ratio cerrado más cercano al PROPIO vídeo. */

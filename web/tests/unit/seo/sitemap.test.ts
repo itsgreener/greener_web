@@ -77,7 +77,7 @@ describe('buildSitemapEntries — rutas por tipo de contenido', () => {
         'https://itsgreener.com/work/a',
         'https://itsgreener.com/work/b',
         'https://itsgreener.com/tools/c',
-        'https://itsgreener.com/insights/d',
+        'https://itsgreener.com/insights/d/app',
         'https://itsgreener.com/variety/e',
       ]),
     )

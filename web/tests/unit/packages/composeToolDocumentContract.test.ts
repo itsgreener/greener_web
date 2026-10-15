@@ -40,6 +40,7 @@ function compose(): string {
     pkg,
     { width: 'calc(100dvw - 64px)', height: '100dvh', sidebarWidth: 64 },
     '/tools/mi-tool/app/',
+    'https://itsgreener.com',
   )
 }
 

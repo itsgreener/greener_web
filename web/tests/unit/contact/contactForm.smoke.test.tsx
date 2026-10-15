@@ -32,6 +32,21 @@ describe('ContactForm — prueba de humo', () => {
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
   })
 
+  it('el consentimiento de privacidad y el botón de enviar comparten fila (el CSS los reparte con space-between)', () => {
+    render(<ContactForm />)
+
+    const consent = screen.getByLabelText(
+      'I agree to the Privacy & Cookies policy',
+    )
+    const send = screen.getByRole('button', { name: 'Send' })
+    const row = send.parentElement as HTMLElement
+
+    expect(row).toContainElement(consent)
+    // La fila solo lleva esos dos elementos: el texto legal y el botón.
+    expect(row.children).toHaveLength(2)
+    expect(row.parentElement?.tagName).toBe('FORM')
+  })
+
   it('los campos obligatorios llevan el atributo required (arquitectura §14.1)', () => {
     render(<ContactForm />)
 

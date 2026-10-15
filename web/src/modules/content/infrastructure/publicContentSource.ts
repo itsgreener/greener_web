@@ -47,9 +47,7 @@ export async function getContentBySlug(
         summary,
         highlight,
         body
-      ),
-      cover_media:media_asset!cover_media_id ( kind, cloudinary_public_id ),
-      cover_ratio
+      )
     `,
     )
     .eq('slug', slug)
@@ -82,12 +80,5 @@ export async function getContentBySlug(
     summary: translation.summary,
     highlight: translation.highlight,
     body: translation.body,
-    coverMedia: row.cover_media
-      ? {
-          kind: row.cover_media.kind,
-          cloudinaryPublicId: row.cover_media.cloudinary_public_id,
-        }
-      : null,
-    coverRatio: row.cover_ratio,
   }
 }

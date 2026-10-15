@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { resolvePreviewContext } from '@/modules/content/container'
+import {
+  resolveDetailCover,
+  resolvePreviewContext,
+} from '@/modules/content/container'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 
@@ -11,7 +14,8 @@ type Props = {
 
 /**
  * Detalle tipo A de una tool (especificacion-final-formato-detalle.md
- * §1, §3, §7): portada + título + summary + CTA "Use" hacia el HTML real
+ * §1, §3, §7): portada (el pin de `?pin=` o, sin él, el primer pin) + título +
+ * summary + CTA "Use" hacia el HTML real
  * del paquete, servido en /tools/[slug]/app (esta ruta, sin /app, es la
  * envolvente — ver el comentario de esa ruta).
  *
@@ -36,16 +40,16 @@ export async function generateMetadata({
   const resolved = await getToolPreview(slug, preview)
   if (!resolved) return {}
   // Sin portada propia (§2.40): OG del pin pedido (?pin=) o, si no, del
-  // primer pin de la tool.
-  const pinCover = pin
-    ? await resolved.reader.pinCover(resolved.content.id, pin)
-    : null
-  const shareMedia =
-    pinCover?.media ??
-    (await resolved.reader.firstPinMedia(resolved.content.id))
+  // primer pin de la tool. El lector memoriza por petición, así que la
+  // página reutiliza esta misma lectura.
+  const cover = await resolveDetailCover(
+    resolved.reader,
+    resolved.content.id,
+    pin,
+  )
   return buildContentMetadata(resolved.content, {
     noindex: resolved.isPreview,
-    shareMedia,
+    shareMedia: cover?.media ?? null,
   })
 }
 
@@ -58,9 +62,11 @@ export default async function ToolPage({ params, searchParams }: Props) {
     notFound()
   }
 
-  const pinCover = pin
-    ? await resolved.reader.pinCover(resolved.content.id, pin)
-    : null
+  const cover = await resolveDetailCover(
+    resolved.reader,
+    resolved.content.id,
+    pin,
+  )
 
   return (
     <>
@@ -68,9 +74,7 @@ export default async function ToolPage({ params, searchParams }: Props) {
         content={resolved.content}
         ctaLabel="Use"
         appHref={`/tools/${slug}/app`}
-        coverMediaOverride={pinCover?.media}
-        coverRatioOverride={pinCover?.ratio}
-        coverAltOverride={pinCover?.alt}
+        cover={cover}
       />
     </>
   )

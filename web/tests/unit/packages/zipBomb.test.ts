@@ -4,6 +4,11 @@ import AdmZip from 'adm-zip'
 import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
 import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
+import {
+  OG_IMAGE_PATH,
+  VALID_METADATA,
+  pngBytes,
+} from '@tests/helpers/packageFixtures'
 
 /**
  * Auditoría 8 oct, P0-3: el tope de 10 MB es del ZIP COMPRIMIDO. Un fichero
@@ -19,6 +24,7 @@ const MANIFEST = Buffer.from(
     requiredCapabilities: [],
     externalDomains: [],
     minViewport: { width: 320, height: 420 },
+    metadata: VALID_METADATA,
   }),
 )
 
@@ -26,6 +32,7 @@ function baseZip(): AdmZip {
   const zip = new AdmZip()
   zip.addFile('manifest.json', MANIFEST)
   zip.addFile('index.html', Buffer.from('<h1>Hola</h1>'))
+  zip.addFile(OG_IMAGE_PATH, pngBytes())
   return zip
 }
 

@@ -1,17 +1,24 @@
-import { feedPinDestination } from '@/modules/content/domain/contentPath'
+import { publicContentPath } from '@/modules/content/domain/contentPath'
 
-import type { FeedBatchItem, PinDirectoryEntry } from './feedReadModels'
+import type { FeedPinItem, PinDirectoryEntry } from './feedReadModels'
+import type { FeedContentKind } from './types'
 
 type ContentType = PinDirectoryEntry['contentType']
 
-// Destino del pin: ver feedPinDestination (contentPath.ts). Los insights
-// abren directamente /insights/[slug]/app, sin pasar por su detalle.
+// Destino del pin: la ruta pública del contenido (contentPath.ts). Los
+// insights abren directamente /insights/[slug]/app, sin pasar por su detalle.
 function destinationFor(
   contentType: ContentType,
   slug: string,
   unitId: string,
 ): string {
-  const path = feedPinDestination(contentType, slug)
+  const path = publicContentPath(contentType, slug)
+
+  // Página satélite (`other`): el pin abre directamente su paquete, como un
+  // insight. La ficha `/variety/{slug}` desaparece en la fase 4 del plan.
+  if (contentType === 'other') {
+    return `${path}/app`
+  }
 
   if (contentType === 'tool') {
     // La ficha de Tool necesita saber desde qué pin se abrió para poder
@@ -23,7 +30,7 @@ function destinationFor(
   return path
 }
 
-function kindFor(contentType: ContentType): string {
+function kindFor(contentType: ContentType): FeedContentKind {
   return contentType === 'episode' ? 'channel' : contentType
 }
 
@@ -38,8 +45,9 @@ function ctaFor(contentType: ContentType): string | null {
       return 'Read'
     case 'case':
     case 'episode':
-    case 'other':
       return 'Watch'
+    case 'other':
+      return 'Open'
   }
 }
 
@@ -47,7 +55,7 @@ function ctaFor(contentType: ContentType): string | null {
 export function toFeedBatchItem(
   unitId: string,
   meta: PinDirectoryEntry,
-): FeedBatchItem {
+): FeedPinItem {
   return {
     pinId: unitId,
     contentId: meta.contentId,

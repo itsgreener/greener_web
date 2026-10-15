@@ -62,16 +62,6 @@ describe('ContentOpenTracker', () => {
     })
   })
 
-  it('registra "Insight Open"', async () => {
-    render(<ContentOpenTracker type="insight" contentId="insight-1" />)
-
-    await waitFor(() => {
-      expect(mockTrackAnalyticsEvent).toHaveBeenCalledWith('Insight Open', {
-        insightId: 'insight-1',
-      })
-    })
-  })
-
   it('no registra nada durante un preview firmado (?preview=)', async () => {
     window.history.replaceState({}, '', '/work/caso-1?preview=token-test')
 

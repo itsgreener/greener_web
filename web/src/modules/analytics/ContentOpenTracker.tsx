@@ -6,13 +6,11 @@ import { trackAnalyticsEvent } from './analytics'
 import { consumeNavigationSource } from './navigationAttribution'
 
 type Props =
-  | { type: 'case'; contentId: string }
-  | { type: 'tool'; contentId: string }
-  | { type: 'insight'; contentId: string }
+  { type: 'case'; contentId: string } | { type: 'tool'; contentId: string }
 
 /**
  * Registra una apertura pública real de contenido (arquitectura §18.2:
- * "Case Open" / "Tool Open" / "Insight Open") — se monta dentro de la
+ * "Case Open" / "Tool Open") — se monta dentro de la
  * página de detalle correspondiente, no en el pin que enlaza a ella, para
  * que solo cuente una carga real de la página de destino.
  *
@@ -22,6 +20,11 @@ type Props =
  *
  * Se dispara como máximo una vez por montaje (`tracked`), no en cada
  * re-render.
+ *
+ * «Insight Open» NO sale de aquí: un insight no tiene ficha React (su URL
+ * pública es el propio paquete, `/insights/{slug}/app`), así que lo registra
+ * el servidor al cargar ese documento (script del paquete +
+ * `POST /api/analytics/package`, contrato del ZIP §6.7).
  */
 export function ContentOpenTracker(props: Props) {
   const tracked = useRef(false)
@@ -51,12 +54,6 @@ export function ContentOpenTracker(props: Props) {
         trackAnalyticsEvent('Tool Open', {
           toolId: props.contentId,
           action: 'open',
-        })
-        break
-
-      case 'insight':
-        trackAnalyticsEvent('Insight Open', {
-          insightId: props.contentId,
         })
         break
     }

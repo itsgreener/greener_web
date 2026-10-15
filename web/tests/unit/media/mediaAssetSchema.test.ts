@@ -2,10 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   addCaseCarouselImageSchema,
   addCaseCarouselVideoSchema,
-  deleteCoverMediaSchema,
   mediaStatusSchema,
-  registerCoverImageSchema,
-  registerCoverVideoSchema,
   removeCaseCarouselMediaSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
 import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
@@ -25,7 +22,7 @@ describe('mediaKindSchema / mediaStatusSchema', () => {
   })
 })
 
-describe('registerCoverImageSchema — tool/insight/other (especificacion-final-formato-detalle.md §3)', () => {
+describe('addCaseCarouselImageSchema — límites de la imagen subida', () => {
   const base = {
     contentId: CONTENT_ID,
     cloudinaryPublicId: 'greener/content/abc123',
@@ -33,29 +30,13 @@ describe('registerCoverImageSchema — tool/insight/other (especificacion-final-
     width: 1200,
     height: 800,
     bytes: 500_000,
-    ratio: '4:3' as const,
+    sortOrder: 0,
+    alt: 'Equipo en el campo',
   }
-
-  it('acepta una respuesta de Cloudinary válida', () => {
-    expect(registerCoverImageSchema.safeParse(base).success).toBe(true)
-  })
-
-  it('rechaza sin ratio (especificacion-final-formato-detalle.md §2: obligatorio para el panel de recomendaciones)', () => {
-    const withoutRatio = Object.fromEntries(
-      Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
-    )
-    expect(registerCoverImageSchema.safeParse(withoutRatio).success).toBe(false)
-  })
-
-  it('rechaza un ratio fuera de la lista cerrada de 7 valores', () => {
-    expect(
-      registerCoverImageSchema.safeParse({ ...base, ratio: '21:9' }).success,
-    ).toBe(false)
-  })
 
   it('rechaza cloudinaryPublicId vacío', () => {
     expect(
-      registerCoverImageSchema.safeParse({ ...base, cloudinaryPublicId: '' })
+      addCaseCarouselImageSchema.safeParse({ ...base, cloudinaryPublicId: '' })
         .success,
     ).toBe(false)
   })
@@ -63,32 +44,27 @@ describe('registerCoverImageSchema — tool/insight/other (especificacion-final-
   it.each(['width', 'height', 'bytes'] as const)(
     'rechaza %s en cero o negativo',
     (field) => {
-      const result = registerCoverImageSchema.safeParse({
-        ...base,
-        [field]: 0,
-      })
-      expect(result.success).toBe(false)
+      expect(
+        addCaseCarouselImageSchema.safeParse({ ...base, [field]: 0 }).success,
+      ).toBe(false)
     },
   )
 
-  it('rechaza bytes por encima de 5 MB', () => {
-    const result = registerCoverImageSchema.safeParse({
-      ...base,
-      bytes: 5 * 1024 * 1024 + 1,
-    })
-
-    expect(result.success).toBe(false)
-  })
-
-  it('acepta exactamente 5 MB', () => {
+  it('rechaza bytes por encima de 5 MB y acepta exactamente 5 MB', () => {
     expect(
-      registerCoverImageSchema.safeParse({ ...base, bytes: 5 * 1024 * 1024 })
+      addCaseCarouselImageSchema.safeParse({
+        ...base,
+        bytes: 5 * 1024 * 1024 + 1,
+      }).success,
+    ).toBe(false)
+    expect(
+      addCaseCarouselImageSchema.safeParse({ ...base, bytes: 5 * 1024 * 1024 })
         .success,
     ).toBe(true)
   })
 })
 
-describe('registerCoverVideoSchema — solo other admite vídeo de portada', () => {
+describe('addCaseCarouselVideoSchema — límites del vídeo subido', () => {
   const base = {
     contentId: CONTENT_ID,
     cloudinaryPublicId: 'greener/content/videos/abc123',
@@ -97,22 +73,12 @@ describe('registerCoverVideoSchema — solo other admite vídeo de portada', () 
     height: 1080,
     durationSeconds: 30,
     bytes: 20 * 1024 * 1024,
-    ratio: '16:9' as const,
+    sortOrder: 0,
+    alt: 'Recorrido por la planta',
   }
 
-  it('acepta un vídeo válido dentro de límites', () => {
-    expect(registerCoverVideoSchema.safeParse(base).success).toBe(true)
-  })
-
-  it('rechaza sin ratio, igual que la portada de imagen', () => {
-    const withoutRatio = Object.fromEntries(
-      Object.entries(base).filter((entry) => entry[0] !== 'ratio'),
-    )
-    expect(registerCoverVideoSchema.safeParse(withoutRatio).success).toBe(false)
-  })
-
   it('redondea la duración hacia arriba (transform Math.ceil)', () => {
-    const result = registerCoverVideoSchema.safeParse({
+    const result = addCaseCarouselVideoSchema.safeParse({
       ...base,
       durationSeconds: 29.2,
     })
@@ -123,44 +89,19 @@ describe('registerCoverVideoSchema — solo other admite vídeo de portada', () 
     }
   })
 
-  it('rechaza una duración por encima de 180 s, coincidiendo con register_cover_video (SQL)', () => {
-    const result = registerCoverVideoSchema.safeParse({
-      ...base,
-      durationSeconds: 181,
-    })
-
-    expect(result.success).toBe(false)
+  it('rechaza una duración por encima de 180 s', () => {
+    expect(
+      addCaseCarouselVideoSchema.safeParse({ ...base, durationSeconds: 181 })
+        .success,
+    ).toBe(false)
   })
 
   it('rechaza bytes por encima de 100 MB', () => {
-    const result = registerCoverVideoSchema.safeParse({
-      ...base,
-      bytes: 100 * 1024 * 1024 + 1,
-    })
-
-    expect(result.success).toBe(false)
-  })
-})
-
-describe('deleteCoverMediaSchema', () => {
-  const base = {
-    contentId: CONTENT_ID,
-    mediaId: MEDIA_ID,
-    cloudinaryPublicId: 'greener/content/abc123',
-    kind: 'image' as const,
-  }
-
-  it('acepta una entrada válida de image o video', () => {
-    expect(deleteCoverMediaSchema.safeParse(base).success).toBe(true)
     expect(
-      deleteCoverMediaSchema.safeParse({ ...base, kind: 'video' }).success,
-    ).toBe(true)
-  })
-
-  it('rechaza un mediaId que no sea uuid', () => {
-    expect(
-      deleteCoverMediaSchema.safeParse({ ...base, mediaId: 'no-es-uuid' })
-        .success,
+      addCaseCarouselVideoSchema.safeParse({
+        ...base,
+        bytes: 100 * 1024 * 1024 + 1,
+      }).success,
     ).toBe(false)
   })
 })

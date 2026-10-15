@@ -14,7 +14,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -181,8 +181,6 @@ export type Database = {
       }
       content: {
         Row: {
-          cover_media_id: string | null
-          cover_ratio: Database["public"]["Enums"]["pin_ratio"] | null
           created_at: string
           default_locale: Database["public"]["Enums"]["locale"]
           id: string
@@ -194,8 +192,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          cover_media_id?: string | null
-          cover_ratio?: Database["public"]["Enums"]["pin_ratio"] | null
           created_at?: string
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
@@ -207,8 +203,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          cover_media_id?: string | null
-          cover_ratio?: Database["public"]["Enums"]["pin_ratio"] | null
           created_at?: string
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
@@ -220,13 +214,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "content_cover_media_id_fkey"
-            columns: ["cover_media_id"]
-            isOneToOne: false
-            referencedRelation: "media_asset"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "content_og_media_fk"
             columns: ["og_media_id"]
@@ -585,6 +572,32 @@ export type Database = {
         }
         Relationships: []
       }
+      other_detail: {
+        Row: {
+          content_id: string
+          frequency: number
+          kind: Database["public"]["Enums"]["other_kind"]
+        }
+        Insert: {
+          content_id: string
+          frequency?: number
+          kind: Database["public"]["Enums"]["other_kind"]
+        }
+        Update: {
+          content_id?: string
+          frequency?: number
+          kind?: Database["public"]["Enums"]["other_kind"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "other_detail_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: true
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pin: {
         Row: {
           alt: string
@@ -817,41 +830,12 @@ export type Database = {
         Returns: string
       }
       publish_scheduled_content: { Args: never; Returns: number }
-      register_cover_image: {
-        Args: {
-          p_bytes: number
-          p_cloudinary_public_id: string
-          p_content_id: string
-          p_format: string
-          p_height: number
-          p_ratio: Database["public"]["Enums"]["pin_ratio"]
-          p_width: number
-        }
-        Returns: string
-      }
-      register_cover_video: {
-        Args: {
-          p_bytes: number
-          p_cloudinary_public_id: string
-          p_content_id: string
-          p_duration_seconds: number
-          p_format: string
-          p_height: number
-          p_ratio: Database["public"]["Enums"]["pin_ratio"]
-          p_width: number
-        }
-        Returns: string
-      }
       remove_case_carousel_media: {
         Args: { p_content_id: string; p_media_id: string }
         Returns: string
       }
       schedule_content: {
         Args: { p_content_id: string; p_publish_at: string }
-        Returns: string
-      }
-      unlink_and_delete_cover_media: {
-        Args: { p_content_id: string; p_media_id: string }
         Returns: string
       }
       unpublish_content: { Args: { p_content_id: string }; Returns: string }
@@ -918,11 +902,12 @@ export type Database = {
         | "brand_into_europe"
         | "brand_to_table"
       episode_provider: "youtube" | "vimeo" | "spotify"
-      html_package_kind: "insight" | "tool"
+      html_package_kind: "insight" | "tool" | "variety"
       html_package_version_status: "draft" | "published" | "rolled_back"
       locale: "es" | "en" | "ca"
       media_kind: "image" | "video"
       media_status: "processing" | "ready" | "error"
+      other_kind: "newsletter" | "page"
       pin_autoplay_mode: "viewport" | "hover"
       pin_ratio: "1:1" | "4:5" | "3:4" | "2:3" | "9:16" | "16:9" | "4:3"
       tag_section: "home" | "insights" | "tools" | "channel" | "shop"
@@ -1062,11 +1047,12 @@ export const Constants = {
         "brand_to_table",
       ],
       episode_provider: ["youtube", "vimeo", "spotify"],
-      html_package_kind: ["insight", "tool"],
+      html_package_kind: ["insight", "tool", "variety"],
       html_package_version_status: ["draft", "published", "rolled_back"],
       locale: ["es", "en", "ca"],
       media_kind: ["image", "video"],
       media_status: ["processing", "ready", "error"],
+      other_kind: ["newsletter", "page"],
       pin_autoplay_mode: ["viewport", "hover"],
       pin_ratio: ["1:1", "4:5", "3:4", "2:3", "9:16", "16:9", "4:3"],
       tag_section: ["home", "insights", "tools", "channel", "shop"],

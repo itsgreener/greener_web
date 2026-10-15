@@ -6,6 +6,7 @@ import { feedRatiosSchema } from '@/modules/feed/domain/feedConfigSchema'
 import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
 import type {
   FeedDataset,
+  FeedInterlude,
   FeedItemMedia,
   PinDirectoryEntry,
 } from '@/modules/feed/domain/feedReadModels'
@@ -23,6 +24,7 @@ import type {
 type ContentTranslationRow = {
   locale: string
   title: string
+  summary?: string | null
 }
 
 type FeedContentMeta = {
@@ -290,6 +292,93 @@ export async function getPinDirectoryByIds(
   return directory
 }
 
+/**
+ * Contenidos `other` publicados y servibles para el calendario de
+ * interludios (`domain/interludes.ts`). No son parte del universo de la
+ * ronda (`getFeedDataset` no los lee), así que tienen su propia lectura.
+ *
+ * - `newsletter`: titular y texto de apoyo (`title`/`summary`) en el idioma
+ *   por defecto del contenido; sin medios.
+ * - `page`: sus pines con medio listo, en el orden del ABM. Una página sin
+ *   ningún pin servible no entra (no habría qué enseñar).
+ *
+ * Un `other` sin fila en `other_detail` (creado antes de la fase 5, no se
+ * puede publicar: ZG017) se ignora.
+ */
+export async function getFeedInterludes(
+  client: AppSupabaseClient = createPublicReadClient(),
+): Promise<FeedInterlude[]> {
+  const { data, error } = await client
+    .from('content')
+    .select(
+      `
+      id,
+      type,
+      slug,
+      default_locale,
+      content_translation ( locale, title, summary ),
+      other_detail ( kind, frequency ),
+      pin ( ${PIN_SELECT} )
+    ` as const,
+    )
+    .eq('status', 'published')
+    .eq('type', 'other')
+
+  if (error) {
+    throw new Error(
+      `No se pudieron leer los contenidos other del feed: ${error.message}`,
+    )
+  }
+
+  const interludes: FeedInterlude[] = []
+
+  for (const content of data ?? []) {
+    const detail = Array.isArray(content.other_detail)
+      ? content.other_detail[0]
+      : content.other_detail
+
+    if (!detail) continue
+
+    if (detail.kind === 'newsletter') {
+      const translation =
+        content.content_translation.find(
+          (candidate) => candidate.locale === content.default_locale,
+        ) ?? content.content_translation[0]
+
+      if (!translation?.title) continue
+
+      interludes.push({
+        kind: 'newsletter',
+        contentId: content.id,
+        frequency: detail.frequency,
+        title: translation.title,
+        text: translation.summary ?? null,
+      })
+      continue
+    }
+
+    const pins = [...content.pin]
+      .sort((a, b) => a.queue_order - b.queue_order)
+      .flatMap((pin) =>
+        buildFeedUnitsForPin(pin, content).map((unit) => ({
+          pinId: unit.unitId,
+          entry: unit.entry,
+        })),
+      )
+
+    if (pins.length === 0) continue
+
+    interludes.push({
+      kind: 'page',
+      contentId: content.id,
+      frequency: detail.frequency,
+      pins,
+    })
+  }
+
+  return interludes
+}
+
 /** Lee la fila única de feed_config (§7.5, §8.1) y la traduce a FeedConfig. */
 export async function getFeedConfig(
   client: AppSupabaseClient = createPublicReadClient(),
@@ -321,4 +410,5 @@ export const supabaseFeedCatalog: FeedCatalog = {
   dataset: (scope, excludeContentId) => getFeedDataset(scope, excludeContentId),
   directoryByIds: (unitIds) => getPinDirectoryByIds(unitIds),
   config: () => getFeedConfig(),
+  interludes: () => getFeedInterludes(),
 }

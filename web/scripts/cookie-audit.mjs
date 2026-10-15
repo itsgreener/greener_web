@@ -1,304 +1,758 @@
-/**
- * Greener cookie / storage audit — reconstructed from project conversation.
- * Run in web/: npm run audit:cookies
- * Optional: COOKIE_AUDIT_BASE_URL=http://localhost:3000
- *           COOKIE_AUDIT_SPOTIFY_URL=/work/brand-the-future-13
- *           COOKIE_AUDIT_YOUTUBE_URL=/work/your-video
- *           COOKIE_AUDIT_HEADLESS=false
- */
-import { chromium } from 'playwright';
-import fs from 'node:fs/promises';
-import path from 'node:path';
+#!/usr/bin/env node
+import fs from 'node:fs/promises'
+import path from 'node:path'
+import process from 'node:process'
+import { chromium } from 'playwright'
 
-const base = process.env.COOKIE_AUDIT_BASE_URL || 'http://localhost:3000';
-const output = path.resolve(process.cwd(), 'cookie-audit');
-const waitMs = Number(process.env.COOKIE_AUDIT_PLAY_MS || 10000);
-const headless = process.env.COOKIE_AUDIT_HEADLESS !== 'false';
-const targets = [
-  ['spotify', process.env.COOKIE_AUDIT_SPOTIFY_URL],
-  ['youtube', process.env.COOKIE_AUDIT_YOUTUBE_URL],
-  ['vimeo', process.env.COOKIE_AUDIT_VIMEO_URL],
-].filter(([, url]) => url);
-if (!targets.length) targets.push(['home', '/']);
+const OUTPUT_DIR = path.resolve(
+  process.env.COOKIE_AUDIT_OUTPUT || 'cookie-audit',
+)
+const BASE_URL = (
+  process.env.COOKIE_AUDIT_BASE_URL || 'http://localhost:3000'
+).replace(/\/$/, '')
+const HEADLESS = process.env.COOKIE_AUDIT_HEADLESS === '1'
+const PLAY_SECONDS = Number(process.env.COOKIE_AUDIT_PLAY_SECONDS || 10)
 
-const providerPattern = /(^|\.)(youtube\.com|youtube-nocookie\.com|youtu\.be|googlevideo\.com|ytimg\.com|spotify\.com|scdn\.co|vimeo\.com|vimeocdn\.com)$/i;
-const providerHost = { spotify: /(^|\.)(spotify\.com|scdn\.co)$/i, youtube: /(^|\.)(youtube\.com|youtube-nocookie\.com|googlevideo\.com|ytimg\.com)$/i, vimeo: /(^|\.)(vimeo\.com|vimeocdn\.com)$/i };
-function isTargetProvider(url, provider) { return (providerHost[provider] || providerPattern).test(hostOf(url)); }
-const network = [], audits = [], assertions = [], storageEvents = [], screenshots = [], cookieChanges = [];
-const isLocal = ['localhost', '127.0.0.1'].includes(hostOf(base));
-function hostOf(url) { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } }
-function isProvider(url) { return providerPattern.test(hostOf(url)); }
-function abs(target) { return new URL(target, base).href; }
-function result(status, category, message, target = '') { assertions.push({ status, category, target, message }); console.log(`${status} ${category}${target ? ` (${target})` : ''}: ${message}`); }
-function csvEscape(v) { const s = v == null ? '' : typeof v === 'string' ? v : JSON.stringify(v); return '"' + s.replace(/"/g, '""') + '"'; }
-async function csv(file, rows, columns) { await fs.writeFile(path.join(output, file), [columns.join(','), ...rows.map(r => columns.map(c => csvEscape(r[c])).join(','))].join('\n') + '\n'); }
+const PROVIDERS = [
+  {
+    id: 'youtube',
+    label: 'YouTube',
+    env: 'COOKIE_AUDIT_YOUTUBE_URL',
+    hosts: [
+      'youtube.com',
+      'youtube-nocookie.com',
+      'googlevideo.com',
+      'ytimg.com',
+      'ggpht.com',
+      'google.com',
+    ],
+  },
+  {
+    id: 'vimeo',
+    label: 'Vimeo',
+    env: 'COOKIE_AUDIT_VIMEO_URL',
+    hosts: ['vimeo.com', 'vimeocdn.com'],
+  },
+  {
+    id: 'spotify',
+    label: 'Spotify',
+    env: 'COOKIE_AUDIT_SPOTIFY_URL',
+    hosts: ['spotify.com', 'scdn.co', 'spotifycdn.com'],
+  },
+]
 
-async function snapshot(page, ctx, target, stage) {
-  const state = await page.evaluate(async () => {
-    const readStorage = store => { const out = {}; try { for (let i = 0; i < store.length; i++) { const k = store.key(i); out[k] = "[value redacted]"; } } catch (e) { out._error = String(e); } return out; };
-    let indexedDB = [];
-    try { indexedDB = typeof window.indexedDB.databases === 'function' ? (await window.indexedDB.databases()).map(d => ({ name: d.name, version: d.version })) : [{ unsupported: true }]; }
-    catch (e) { indexedDB = [{ error: String(e) }]; }
-    return { localStorage: readStorage(window.localStorage), sessionStorage: readStorage(window.sessionStorage), indexedDB, documentCookie: document.cookie.split(";").map(x => x.split("=")[0].trim()).filter(Boolean), url: location.href };
-  }).catch(e => ({ error: String(e), url: page.url() }));
-  const cookies = (await ctx.cookies()).map(cookieMeta);
-  const frameStorage = [];
-  for (const frame of page.frames()) {
-    if (frame === page.mainFrame()) continue;
-    const origin = (() => { try { return new URL(frame.url()).origin; } catch { return frame.url(); } })();
-    let storage;
-    try {
-      storage = await frame.evaluate(async () => {
-        const keys = (s) => { try { return Array.from({length:s.length}, (_, i) => s.key(i)); } catch { return []; } };
-        let databases = [];
-        try { if (indexedDB.databases) databases = await indexedDB.databases(); } catch {}
-        return { localStorageKeys: keys(localStorage), sessionStorageKeys: keys(sessionStorage), indexedDB: databases };
-      });
-    } catch (e) { storage = { inaccessible: String(e.message || e) }; }
-    frameStorage.push({ origin, storage });
-  }
-  const item = { target, stage, time: new Date().toISOString(), ...state, cookies, frameStorage };
-  audits.push(item);
-  return item;
+function resolveUrl(value) {
+  if (!value) return null
+  if (/^https?:\/\//i.test(value)) return value
+  return `${BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`
 }
 
-// Cookie metadata only: NEVER export cookie values or session tokens in this report.
-function cookieMeta(cookie) {
-  return { name: cookie.name, domain: cookie.domain, path: cookie.path, httpOnly: cookie.httpOnly,
-    secure: cookie.secure, sameSite: cookie.sameSite, expires: cookie.expires, partitionKey: cookie.partitionKey || '' };
-}
-function recordCookieDiff(target, beforeCookies, afterCookies) {
-  const key = c => `${c.domain}|${c.path}|${c.name}|${c.partitionKey || ''}`;
-  const before = new Map(beforeCookies.map(c => [key(c), c]));
-  const after = new Map(afterCookies.map(c => [key(c), c]));
-  for (const [id, c] of after) {
-    cookieChanges.push({ target, action: before.has(id) ? 'retained' : 'added', ...cookieMeta(c) });
-  }
-  for (const [id, c] of before) if (!after.has(id)) {
-    cookieChanges.push({ target, action: 'removed', ...cookieMeta(c) });
-  }
-}
-
-async function checkRevocation(page, ctx, provider, iframeSelector, record, stageSetter) {
-  // The actual CookieChoice button at /privacy is named "Reject".
-  // Use the SAME TAB to test the supported settings flow and persistence.
-  const episodeUrl = page.url();
+function hostnameOf(value) {
   try {
-    stageSetter('F');
-    await page.goto(abs('/privacy'), { waitUntil: 'domcontentloaded', timeout: 20000 });
-    const choice = page.locator('section[aria-labelledby="cookie-choice-heading"]');
-    const rejectButton = choice.getByRole('button', { name: /^reject$/i });
-    await rejectButton.waitFor({ state: 'visible', timeout: 10000 });
-    await rejectButton.click();
-    await page.waitForTimeout(500);
-    const isRejected = await rejectButton.getAttribute('aria-pressed');
-    await record(page, ctx, provider, 'F');
-    result(isRejected === 'true' ? 'PASS' : 'FAIL', `${provider}-revoke-choice`,
-      `Privacy settings Reject button aria-pressed=${isRejected}`, provider);
-
-    stageSetter('G');
-    await page.goto(episodeUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
-    await page.waitForTimeout(1000);
-    const framesAfterReturn = await iframeSelector.count();
-    await record(page, ctx, provider, 'G');
-    result(framesAfterReturn === 0 ? 'PASS' : 'FAIL', `${provider}-revoke`,
-      `After rejecting and revisiting episode: ${framesAfterReturn} provider iframes`, provider);
-
-    const beforePlay = page.getByRole('button', { name: new RegExp(`^Play on ${provider}$`, 'i') });
-    if (await beforePlay.isVisible().catch(() => false)) {
-      await beforePlay.click();
-      const consentPrompt = page.getByRole('button', { name: /accept cookies and play/i });
-      const promptPresent = await consentPrompt.isVisible().catch(() => false);
-      const framesAfterPlay = await iframeSelector.count();
-      result(promptPresent && framesAfterPlay === 0 ? 'PASS' : 'FAIL', `${provider}-reconsent`,
-        `After revocation Play requires consent again: prompt=${promptPresent}; iframes=${framesAfterPlay}`, provider);
-    } else {
-      result('WARN', `${provider}-reconsent`, 'Play button unavailable after revisiting; cannot verify reconsent prompt', provider);
-    }
-  } catch (e) {
-    result('WARN', `${provider}-revoke`, `Could not complete revocation test: ${String(e.message || e)}`, provider);
+    return new URL(value).hostname
+  } catch {
+    return ''
   }
 }
 
-async function clickLoad(page) {
-  // First try explicit accessibility labels; fall back to image-cover play buttons.
-  const candidates = [
-    page.getByRole('button', { name: /(?:load|play|reproducir|cargar|escuchar|ver|activar|accept|continue|start).*?(?:spotify|youtube|vimeo|video|vídeo|podcast|content|contenido)?/i }),
-    page.getByRole('link', { name: /(?:play|open|listen|escuchar|abrir).*spotify/i }),
-    page.getByRole('button', { name: /^(play|reproducir|cargar|load)$/i }),
-    page.locator('button[aria-label*="play" i], button[title*="play" i], button[aria-label*="reproduc" i]'),
-    page.locator('[data-testid*="play" i], [data-testid*="load" i]'),
-    page.locator('button:has(svg[class*="play" i]), button:has([data-lucide="play"])'),
-  ];
-  for (const locator of candidates) {
-    const count = await locator.count().catch(() => 0);
-    for (let i = 0; i < Math.min(count, 8); i++) {
-      const el = locator.nth(i);
-      if (await el.isVisible().catch(() => false) && await el.isEnabled().catch(() => false)) {
-        const label = (await el.getAttribute('aria-label').catch(() => null)) || (await el.innerText().catch(() => '')) || 'unlabelled play button';
-        const windowStartUrl = page.url();
-        try {
-          await el.click({ timeout: 5000, noWaitAfter: true });
-          return label.trim().slice(0, 120);
-        } catch (e) {
-          // A navigation may interrupt Playwright's click wait. Only accept it if the destination changed.
-          if (page.url() !== windowStartUrl) return label.trim().slice(0, 120);
-          throw e;
-        }
-      }
-    }
-  }
-  return null;
+function siteRoot(hostname) {
+  const host = hostname.replace(/^\./, '').toLowerCase()
+  if (host === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(host)) return host
+  const parts = host.split('.')
+  return parts.slice(-2).join('.')
 }
 
-await fs.mkdir(output, { recursive: true });
-// Remove PNGs from previous runs; never leave stale success screenshots.
-for (const file of await fs.readdir(output)) {
-  if (file.toLowerCase().endsWith('.png')) await fs.rm(path.join(output, file), { force: true });
+function partyFor(domain, pageUrl) {
+  const pageHost = hostnameOf(pageUrl)
+  if (!domain || !pageHost) return 'unknown'
+  return siteRoot(domain) === siteRoot(pageHost) ? 'first-party' : 'third-party'
 }
-const browser = await chromium.launch({ headless });
-try {
-  for (const [provider, targetUrl] of targets) {
-    const ctx = await browser.newContext({ serviceWorkers: 'block' });
-    const page = await ctx.newPage();
-    const requestLog = [];
-    await page.addInitScript(() => {
-      const log = (kind, op, key, value) => {
-        try { window.__greenerStorageEvents ||= []; window.__greenerStorageEvents.push({ kind, op, key, value, time: new Date().toISOString() }); } catch {}
-      };
-      for (const [kind, storage] of [['localStorage', window.localStorage], ['sessionStorage', window.sessionStorage]]) {
-        try {
-          const proto = Object.getPrototypeOf(storage);
-          // Instrument shared Storage prototype once; identify actual store by `this`.
-          if (kind !== 'localStorage') continue;
-          for (const op of ['setItem', 'removeItem', 'clear']) {
-            const original = proto[op];
-            Object.defineProperty(proto, op, { configurable: true, value: function (...args) {
-              let source = 'Storage';
-              try { source = this === window.localStorage ? 'localStorage' : this === window.sessionStorage ? 'sessionStorage' : 'Storage'; } catch {}
-              log(source, op, args[0] ?? '', args[1] ?? '');
-              return original.apply(this, args);
-            }});
-          }
-        } catch {}
-      }
-    });
-    ctx.on('request', req => {
-      const entry = { target: provider, stage: currentStage, type: 'request', url: req.url(), method: req.method(), domain: hostOf(req.url()), status: '', setCookie: '', resourceType: req.resourceType() };
-      network.push(entry); requestLog.push(entry);
-    });
-    ctx.on('response', async res => {
-      let headers = {};
-      try { headers = await res.allHeaders(); } catch {}
-      network.push({ target: provider, stage: currentStage, type: 'response', url: res.url(), method: '', domain: hostOf(res.url()), status: res.status(), setCookie: headers['set-cookie'] ? '[present]' : '', resourceType: res.request().resourceType() });
-    });
-    let currentStage = 'A';
+
+function cookieDuration(cookie) {
+  if (!cookie.expires || cookie.expires <= 0) return 'session'
+  const seconds = Math.max(0, Math.round(cookie.expires - Date.now() / 1000))
+  if (seconds < 120) return `${seconds}s`
+  if (seconds < 7200) return `${Math.round(seconds / 60)}m`
+  if (seconds < 172800) return `${Math.round(seconds / 3600)}h`
+  return `${Math.round(seconds / 86400)}d`
+}
+
+function csvEscape(value) {
+  const s = value == null ? '' : String(value)
+  return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s
+}
+
+function toCsv(rows, columns) {
+  return (
+    [
+      columns.join(','),
+      ...rows.map((row) => columns.map((c) => csvEscape(row[c])).join(',')),
+    ].join('\n') + '\n'
+  )
+}
+
+async function ensureDir(dir) {
+  await fs.mkdir(dir, { recursive: true })
+}
+
+async function launchBrowser() {
+  try {
+    return await chromium.launch({ channel: 'chrome', headless: HEADLESS })
+  } catch {
+    console.warn(
+      'No se pudo abrir Google Chrome mediante Playwright; uso Chromium incluido si está instalado.',
+    )
+    return chromium.launch({ headless: HEADLESS })
+  }
+}
+
+function attachNetworkCollectors(page, sink) {
+  page.on('request', (request) => {
+    const url = request.url()
+    if (!/^https?:/i.test(url)) return
+    sink.requests.push({
+      time: new Date().toISOString(),
+      method: request.method(),
+      url,
+      domain: hostnameOf(url),
+      resourceType: request.resourceType(),
+    })
+  })
+
+  page.on('response', async (response) => {
+    const url = response.url()
+    if (!/^https?:/i.test(url)) return
+    let headers = {}
     try {
-      await page.goto(abs(targetUrl), { waitUntil: 'domcontentloaded', timeout: 30000 });
-      await page.waitForTimeout(2500);
-      const a = await snapshot(page, ctx, provider, 'A');
-      const cookiesBefore = await ctx.cookies();
-      const before = requestLog.filter(r => isProvider(r.url));
-      result(before.length ? 'FAIL' : 'PASS', provider, before.length ? `${before.length} provider request(s) before user interaction` : 'No media-provider requests before load', provider);
-    
-      result(a.cookies.some(c => c.name === 'greener_visitor') ? 'PASS' : 'WARN', 'greener', 'greener_visitor first-party cookie ' + (a.cookies.some(c => c.name === 'greener_visitor') ? 'present' : 'not observed'), provider);
-      result(Object.hasOwn(a.sessionStorage || {}, 'greener:feed') ? 'PASS' : 'WARN', 'greener', 'greener:feed sessionStorage ' + (Object.hasOwn(a.sessionStorage || {}, 'greener:feed') ? 'present' : 'not observed'), provider);
-      // Consent-flow stages: A untouched; B after Play without consent;
-      // C after "Not now"; D after accepting; E after an observation interval.
-      currentStage = 'B';
-      const clicked = await clickLoad(page);
-      if (!clicked) {
-        result('SKIP', provider, 'No visible Play button found', provider);
-      } else {
-        await page.waitForTimeout(700);
-        const consentButton = page.getByRole('button', { name: /accept cookies and play/i });
-        const consentShown = await consentButton.isVisible().catch(() => false);
-        const frameSelector = page.locator(`iframe[src*="${provider === 'youtube' ? 'youtube' : provider === 'spotify' ? 'spotify' : 'vimeo'}"]`);
-        const stageBFrameCount = await frameSelector.count();
-        const requestsAtB = requestLog.filter(r => isTargetProvider(r.url, provider));
-        await snapshot(page, ctx, provider, 'B');
-        if (consentShown) {
-          result('PASS', `${provider}-consent`, 'Play displays consent prompt', provider);
-          result(requestsAtB.length || stageBFrameCount ? 'FAIL' : 'PASS', `${provider}-preconsent`, `${requestsAtB.length} provider requests and ${stageBFrameCount} provider iframes before consent`, provider);
+      headers = await response.allHeaders()
+    } catch {}
+    sink.responses.push({
+      time: new Date().toISOString(),
+      url,
+      domain: hostnameOf(url),
+      status: response.status(),
+      setCookie: headers['set-cookie'] || '',
+    })
+  })
+}
 
-          // Reject explicitly, and verify no provider requests or embedded player.
-          currentStage = 'C';
-          const noButton = page.getByRole('button', { name: /not now/i });
-          if (await noButton.isVisible().catch(() => false)) {
-            await noButton.click();
-            await page.waitForTimeout(900);
-            await snapshot(page, ctx, provider, 'C');
-            const rejectedRequests = requestLog.filter(r => isTargetProvider(r.url, provider));
-            const rejectedFrames = await frameSelector.count();
-            result(rejectedRequests.length || rejectedFrames ? 'FAIL' : 'PASS', `${provider}-reject`, `Not now: ${rejectedRequests.length} provider requests; ${rejectedFrames} iframes`, provider);
-          } else {
-            result('WARN', `${provider}-reject`, 'Not now button absent', provider);
-          }
-          // Repeat Play, then grant explicit consent.
-          const replay = await clickLoad(page);
-          if (!replay || !(await consentButton.isVisible().catch(() => false))) {
-            result('ERROR', `${provider}-accept`, 'Could not reopen consent prompt after Not now', provider);
-          } else {
-            currentStage = 'D';
-            await consentButton.click();
-            await frameSelector.first().waitFor({ state: 'attached', timeout: 10000 }).catch(() => {});
-            await page.waitForTimeout(2500);
-            const iframeSrc = await frameSelector.first().getAttribute('src').catch(() => null);
-            const postRequests = requestLog.filter(r => isTargetProvider(r.url, provider) && (r.stage === 'D' || r.stage === 'E'));
-            await snapshot(page, ctx, provider, 'D');
-            result(iframeSrc && isTargetProvider(iframeSrc, provider) ? 'PASS' : 'FAIL', `${provider}-embed`, iframeSrc ? `Iframe created: ${iframeSrc}` : 'No provider iframe after accepting', provider);
-            result(postRequests.length ? 'PASS' : 'WARN', `${provider}-network`, `${postRequests.length} provider requests after acceptance`, provider);
-            currentStage = 'E';
-            await page.waitForTimeout(waitMs);
-            await snapshot(page, ctx, provider, 'E');
-            const cookiesAfter = await ctx.cookies();
-            recordCookieDiff(provider, cookiesBefore, cookiesAfter);
-            const providerCookies = cookiesAfter.filter(c => isTargetProvider('https://' + c.domain.replace(/^\./, ''), provider));
-            const providerNew = cookieChanges.filter(c => c.target === provider && c.action === 'added' && isTargetProvider('https://' + c.domain.replace(/^\./, ''), provider));
-            result('INFO', `${provider}-cookies`, `${providerCookies.length} provider-domain cookies after acceptance; ${providerNew.length} new provider-domain cookies (names and attributes in cookie-changes.csv)`, provider);
-            await checkRevocation(page, ctx, provider, frameSelector, snapshot, next => { currentStage = next; });
-          }
-        } else {
-          // The consent may have been granted by the application before entry.
-          // Do not report a pass for the consent prompt unless it was observed.
-          result('WARN', `${provider}-consent`, 'Consent prompt absent after Play; check existing consent or button behavior', provider);
-          currentStage = 'D';
-          await page.waitForTimeout(1500);
-          await snapshot(page, ctx, provider, 'D');
-          const iframeSrc = await frameSelector.first().getAttribute('src').catch(() => null);
-          result(iframeSrc && isTargetProvider(iframeSrc, provider) ? 'PASS' : 'WARN', `${provider}-embed`, iframeSrc ? `Iframe created: ${iframeSrc}` : 'No provider iframe observed', provider);
+async function installStorageInstrumentation(context, sink) {
+  await context.exposeBinding(
+    '__cookieAuditStorageEvent',
+    ({ page, frame }, payload) => {
+      sink.storageEvents.push({
+        time: new Date().toISOString(),
+        pageUrl: page?.url?.() || '',
+        frameUrl: frame?.url?.() || '',
+        ...payload,
+      })
+    },
+  )
+
+  await context.addInitScript(() => {
+    const originalSet = Storage.prototype.setItem
+    const originalRemove = Storage.prototype.removeItem
+    const detectKind = (storage) => {
+      try {
+        if (storage === window.localStorage) return 'localStorage'
+        if (storage === window.sessionStorage) return 'sessionStorage'
+      } catch {}
+      return 'storage'
+    }
+    Storage.prototype.setItem = function (key, value) {
+      try {
+        window.__cookieAuditStorageEvent?.({
+          action: 'set',
+          storage: detectKind(this),
+          key: String(key),
+          value: String(value).slice(0, 500),
+        })
+      } catch {}
+      return originalSet.call(this, key, value)
+    }
+    Storage.prototype.removeItem = function (key) {
+      try {
+        window.__cookieAuditStorageEvent?.({
+          action: 'remove',
+          storage: detectKind(this),
+          key: String(key),
+        })
+      } catch {}
+      return originalRemove.call(this, key)
+    }
+  })
+}
+
+async function clearAll(context, page) {
+  await context.clearCookies()
+  try {
+    const client = await context.newCDPSession(page)
+    await client.send('Storage.clearDataForOrigin', {
+      origin: '*',
+      storageTypes: 'all',
+    })
+  } catch {
+    // Fallback: browser context nuevo por proveedor ya garantiza un perfil limpio.
+  }
+}
+
+async function readFrameStorage(frame) {
+  return frame.evaluate(async () => {
+    const safePairs = (storage) => {
+      const out = []
+      try {
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i)
+          out.push({ key, value: storage.getItem(key) })
         }
+      } catch (error) {
+        return [{ key: '__ERROR__', value: String(error) }]
       }
-      const events = await page.evaluate(() => window.__greenerStorageEvents || []).catch(() => []);
-      for (const event of events) storageEvents.push({ target: provider, ...event, value: event.value ? "[value redacted]" : "" });
-    } catch (e) {
-      result('ERROR', provider, String(e.message || e), provider);
-    } finally {
-      // Only capture evidence when this episode has FAIL or ERROR assertions.
-      if (assertions.some(a => a.target === provider && ['FAIL', 'ERROR'].includes(a.status))) {
-        const file = `${provider}-failure.png`;
-        try {
-          await page.screenshot({ path: path.join(output, file), fullPage: true, timeout: 10000 });
-          screenshots.push(file);
-        } catch (e) { console.warn(`Could not capture failure screenshot: ${e.message}`); }
+      return out
+    }
+
+    let indexedDb = []
+    try {
+      if (indexedDB?.databases) {
+        const dbs = await indexedDB.databases()
+        indexedDb = dbs.map((db) => ({
+          name: db.name || '(unnamed)',
+          version: db.version ?? '',
+        }))
       }
-      await ctx.close();
+    } catch (error) {
+      indexedDb = [{ name: '__ERROR__', version: String(error) }]
+    }
+
+    return {
+      origin: location.origin,
+      localStorage: safePairs(localStorage),
+      sessionStorage: safePairs(sessionStorage),
+      indexedDb,
+    }
+  })
+}
+
+async function snapshot({ context, page, provider, moment, network }) {
+  await page.waitForTimeout(900)
+  const cookies = await context.cookies()
+  const storages = []
+
+  for (const frame of page.frames()) {
+    try {
+      const data = await readFrameStorage(frame)
+      storages.push({ frameUrl: frame.url(), ...data })
+    } catch (error) {
+      storages.push({ frameUrl: frame.url(), origin: '', error: String(error) })
     }
   }
-  const cloudinary = network.filter(n => n.type === 'response' && /(^|\.)cloudinary\.com$/i.test(n.domain));
-  result(!cloudinary.length ? 'SKIP' : cloudinary.some(n => n.setCookie) ? 'FAIL' : 'PASS', 'cloudinary', !cloudinary.length ? 'No Cloudinary response observed' : `${cloudinary.length} responses; ${cloudinary.filter(n => n.setCookie).length} set cookies`);
-  result('INFO', 'plausible', 'Not implemented in Greener; excluded from this audit');
-  await Promise.all([
-    csv('audit.csv', audits.map(a => ({ target: a.target, stage: a.stage, time: a.time, url: a.url, cookies: a.cookies, localStorage: a.localStorage, sessionStorage: a.sessionStorage, indexedDB: a.indexedDB, documentCookie: a.documentCookie, error: a.error })), ['target','stage','time','url','cookies','localStorage','sessionStorage','indexedDB','documentCookie','error']),
-    csv('network.csv', network, ['target','stage','type','url','method','domain','status','setCookie','resourceType']),
-    csv('assertions.csv', assertions, ['status','category','target','message']),
-    csv('storage-events.csv', storageEvents, ['target','time','kind','op','key','value']),
-    csv('cookie-changes.csv', cookieChanges, ['target','action','name','domain','path','httpOnly','secure','sameSite','expires','partitionKey']),
-    fs.writeFile(path.join(output, 'audit.json'), JSON.stringify({ base, targets, audits, network, assertions, storageEvents, cookieChanges }, null, 2)),
-  ]);
-  const stats = Object.fromEntries(['PASS','FAIL','WARN','SKIP','ERROR','INFO'].map(s => [s, assertions.filter(a => a.status === s).length]));
-  const readme = `# Greener — auditoría de cookies\n\nFecha: ${new Date().toISOString()}\n\nURL base: ${base}\n\nObjetivos: ${targets.map(([name, url]) => `${name} (${url})`).join(', ')}\n\n## Resumen\n\n${Object.entries(stats).map(([k,v]) => `- ${k}: ${v}`).join('\n')}\n\n## Comprobaciones\n\n${assertions.map(a => `- **${a.status}** ${a.category}${a.target ? ` / ${a.target}` : ''}: ${a.message}`).join('\n')}\n\n## Archivos\n\n- audit.csv: cookies, localStorage, sessionStorage e IndexedDB por fase.\n- network.csv: peticiones, respuestas, códigos HTTP y Set-Cookie.\n- assertions.csv: resultados de comprobación.\n- cookie-changes.csv: nombres y atributos de cookies después de aceptar, sin valores secretos.\n- storage-events.csv: mutaciones observadas de Storage.setItem/removeItem/clear (no incluye escrituras directas por propiedad).\n- audit.json: datos completos.\n- Capturas disponibles: ${screenshots.join(', ') || 'ninguna'}.\n\n## Fases\n\nA: antes de Play. B: tras Play, sin aceptar. C: tras Not now. D: tras Accept cookies and play. E: ${waitMs / 1000} segundos después de aceptar. F: rechazo desde /privacy; G: regreso al episodio y comprobación de consentimiento.\n\n**Límites:** No se puede confirmar reproducción efectiva del medio solo por esperar 10 segundos. El inventario de cookies no contiene valores, pero audit.csv y audit.json sí pueden contener información sensible: no compartirlos públicamente. Un SKIP de Plausible no equivale a un PASS. Las políticas de privacidad/cumplimiento no se deducen automáticamente del resultado. En caso de SKIP, comprobar manualmente el componente.\n`;
-  await fs.writeFile(path.join(output, 'README.md'), readme);
-  console.log(`\nReports saved to ${output}`);
-  if (assertions.some(a => a.status === 'FAIL' || a.status === 'ERROR')) process.exitCode = 1;
-} finally { await browser.close(); }
+
+  const screenshot = path.join(OUTPUT_DIR, `${provider.id}-${moment}.png`)
+  await page.screenshot({ path: screenshot, fullPage: true })
+
+  return {
+    provider: provider.id,
+    moment,
+    pageUrl: page.url(),
+    capturedAt: new Date().toISOString(),
+    cookies,
+    storages,
+    networkRequestCount: network.requests.length,
+    networkResponseCount: network.responses.length,
+    screenshot: path.basename(screenshot),
+  }
+}
+
+function storageRows(snapshot) {
+  const rows = []
+  for (const cookie of snapshot.cookies) {
+    rows.push({
+      provider: snapshot.provider,
+      moment: snapshot.moment,
+      domain: cookie.domain,
+      name: cookie.name,
+      type: 'cookie',
+      duration: cookieDuration(cookie),
+      party: partyFor(cookie.domain, snapshot.pageUrl),
+      path: cookie.path,
+      secure: cookie.secure,
+      httpOnly: cookie.httpOnly,
+      sameSite: cookie.sameSite,
+      valuePreview: cookie.value.slice(0, 80),
+    })
+  }
+  for (const origin of snapshot.storages) {
+    const domain = hostnameOf(origin.frameUrl || origin.origin || '')
+    for (const item of origin.localStorage || []) {
+      rows.push({
+        provider: snapshot.provider,
+        moment: snapshot.moment,
+        domain,
+        name: item.key,
+        type: 'localStorage',
+        duration: 'persistent',
+        party: partyFor(domain, snapshot.pageUrl),
+        path: '',
+        secure: '',
+        httpOnly: '',
+        sameSite: '',
+        valuePreview: String(item.value || '').slice(0, 80),
+      })
+    }
+    for (const item of origin.sessionStorage || []) {
+      rows.push({
+        provider: snapshot.provider,
+        moment: snapshot.moment,
+        domain,
+        name: item.key,
+        type: 'sessionStorage',
+        duration: 'tab session',
+        party: partyFor(domain, snapshot.pageUrl),
+        path: '',
+        secure: '',
+        httpOnly: '',
+        sameSite: '',
+        valuePreview: String(item.value || '').slice(0, 80),
+      })
+    }
+    for (const db of origin.indexedDb || []) {
+      rows.push({
+        provider: snapshot.provider,
+        moment: snapshot.moment,
+        domain,
+        name: db.name,
+        type: 'IndexedDB',
+        duration: 'persistent',
+        party: partyFor(domain, snapshot.pageUrl),
+        path: '',
+        secure: '',
+        httpOnly: '',
+        sameSite: '',
+        valuePreview: `version=${db.version}`,
+      })
+    }
+  }
+  return rows
+}
+
+function providerNetworkRows(provider, network, pageUrl) {
+  const matches = (host) =>
+    provider.hosts.some(
+      (expected) => host === expected || host.endsWith(`.${expected}`),
+    )
+  return network.requests
+    .filter((r) => matches(r.domain))
+    .map((r) => ({
+      provider: provider.id,
+      domain: r.domain,
+      method: r.method,
+      resourceType: r.resourceType,
+      url: r.url,
+      party: partyFor(r.domain, pageUrl),
+    }))
+}
+
+async function clickLoad(page, provider) {
+  const exact = page.getByRole('button', {
+    name: `Load ${provider.label} content`,
+    exact: true,
+  })
+  if (await exact.count()) {
+    await exact.first().click()
+    return
+  }
+  const loose = page.getByRole('button', {
+    name: new RegExp(`Load\\s+${provider.label}\\s+content`, 'i'),
+  })
+  if (await loose.count()) {
+    await loose.first().click()
+    return
+  }
+  throw new Error(
+    `No encuentro el botón “Load ${provider.label} content”. Comprueba la URL del episodio.`,
+  )
+}
+
+async function tryStartPlayback(page, provider) {
+  // YouTube/Vimeo ya se montan con autoplay=1 en el proyecto actual.
+  if (provider.id === 'youtube' || provider.id === 'vimeo')
+    return 'autoplay requested by embed URL'
+
+  // Spotify: intento best-effort sobre botones típicos del iframe.
+  const frame = page
+    .frames()
+    .find((f) => hostnameOf(f.url()).includes('spotify.com'))
+  if (!frame) return 'Spotify iframe not found'
+  const candidates = [
+    frame.getByRole('button', { name: /play/i }),
+    frame.locator('button[aria-label*="Play" i]'),
+    frame.locator('[data-testid*="play" i]'),
+  ]
+  for (const candidate of candidates) {
+    try {
+      if (await candidate.count()) {
+        await candidate.first().click({ timeout: 2500 })
+        return 'play button clicked'
+      }
+    } catch {}
+  }
+  return 'could not click Spotify play automatically; C is 10s after load'
+}
+
+async function auditProvider(provider, targetUrl, globalReport) {
+  const browser = await launchBrowser()
+  const context = await browser.newContext({
+    locale: 'en-US',
+    viewport: { width: 1440, height: 1000 },
+  })
+  const network = { requests: [], responses: [], storageEvents: [] }
+  await installStorageInstrumentation(context, network)
+  const page = await context.newPage()
+  attachNetworkCollectors(page, network)
+  await clearAll(context, page)
+
+  try {
+    await page.goto(targetUrl, { waitUntil: 'networkidle', timeout: 45000 })
+    const a = await snapshot({ context, page, provider, moment: 'A', network })
+
+    const premature = providerNetworkRows(provider, network, page.url())
+    globalReport.assertions.push({
+      provider: provider.id,
+      check: 'A: no provider requests before Load',
+      status: premature.length === 0 ? 'PASS' : 'FAIL',
+      detail:
+        premature.length === 0
+          ? '0 requests'
+          : `${premature.length} provider requests before consent`,
+    })
+
+    await clickLoad(page, provider)
+    await page.waitForTimeout(2500)
+    const b = await snapshot({ context, page, provider, moment: 'B', network })
+
+    const playbackAction = await tryStartPlayback(page, provider)
+    await page.waitForTimeout(Math.max(1, PLAY_SECONDS) * 1000)
+    const c = await snapshot({ context, page, provider, moment: 'C', network })
+
+    globalReport.snapshots.push(a, b, c)
+    globalReport.storageRows.push(
+      ...storageRows(a),
+      ...storageRows(b),
+      ...storageRows(c),
+    )
+    globalReport.networkRows.push(
+      ...providerNetworkRows(provider, network, page.url()),
+    )
+    globalReport.storageEvents.push(
+      ...network.storageEvents.map((e) => ({ provider: provider.id, ...e })),
+    )
+    globalReport.playback.push({
+      provider: provider.id,
+      action: playbackAction,
+    })
+  } catch (error) {
+    globalReport.errors.push({
+      provider: provider.id,
+      url: targetUrl,
+      error: String(error?.stack || error),
+    })
+  } finally {
+    await browser.close()
+  }
+}
+
+async function auditFirstPartyAndVendors(url, report) {
+  const browser = await launchBrowser()
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  })
+  const network = { requests: [], responses: [], storageEvents: [] }
+  await installStorageInstrumentation(context, network)
+  const page = await context.newPage()
+  attachNetworkCollectors(page, network)
+
+  try {
+    await page.goto(url, { waitUntil: 'networkidle', timeout: 45000 })
+    await page.waitForTimeout(1500)
+    report.browserVersion = browser.version()
+
+    const cloudinary = network.responses.filter(
+      (r) =>
+        r.domain === 'res.cloudinary.com' ||
+        r.domain.endsWith('.res.cloudinary.com'),
+    )
+    const cloudinarySetCookie = cloudinary.filter((r) => r.setCookie)
+    report.assertions.push({
+      provider: 'cloudinary',
+      check: 'Cloudinary responses without Set-Cookie',
+      status:
+        cloudinary.length === 0
+          ? 'SKIP'
+          : cloudinarySetCookie.length === 0
+            ? 'PASS'
+            : 'FAIL',
+      detail:
+        cloudinary.length === 0
+          ? 'No Cloudinary responses seen'
+          : `${cloudinary.length} responses; ${cloudinarySetCookie.length} with Set-Cookie`,
+    })
+
+    const plausible = network.responses.filter(
+      (r) => r.domain === 'plausible.io' && r.url.includes('/api/event'),
+    )
+    report.assertions.push({
+      provider: 'plausible',
+      check: 'Plausible /api/event returns 202',
+      status:
+        plausible.length === 0
+          ? 'SKIP'
+          : plausible.every((r) => r.status === 202)
+            ? 'PASS'
+            : 'FAIL',
+      detail:
+        plausible.length === 0
+          ? 'No Plausible request seen (expected on production, not localhost)'
+          : plausible.map((r) => r.status).join(', '),
+    })
+
+    const cookies = await context.cookies()
+    const badPlausibleCookies = cookies.filter((c) =>
+      c.domain.includes('plausible'),
+    )
+    report.assertions.push({
+      provider: 'plausible',
+      check: 'Plausible does not set cookies',
+      status: badPlausibleCookies.length === 0 ? 'PASS' : 'FAIL',
+      detail:
+        badPlausibleCookies.map((c) => `${c.domain}:${c.name}`).join(', ') ||
+        'none',
+    })
+
+    const appStorage = await page.evaluate(() => ({
+      local: Object.keys(localStorage),
+      session: Object.keys(sessionStorage),
+    }))
+    report.firstPartyStorage = appStorage
+    report.assertions.push({
+      provider: 'greener',
+      check: 'Expected first-party storage only',
+      status:
+        appStorage.local.filter((k) => k !== 'plausible_ignore').length === 0
+          ? 'PASS'
+          : 'WARN',
+      detail: `localStorage=[${appStorage.local.join(', ')}], sessionStorage=[${appStorage.session.join(', ')}]`,
+    })
+  } catch (error) {
+    report.errors.push({
+      provider: 'vendors',
+      url,
+      error: String(error?.stack || error),
+    })
+  } finally {
+    await browser.close()
+  }
+}
+
+async function auditNavigationSource(feedUrl, report) {
+  const browser = await launchBrowser()
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+  })
+  const events = { requests: [], responses: [], storageEvents: [] }
+  await installStorageInstrumentation(context, events)
+  const page = await context.newPage()
+  attachNetworkCollectors(page, events)
+  try {
+    await page.goto(feedUrl, { waitUntil: 'networkidle', timeout: 45000 })
+    const link = page
+      .locator('a[href^="/tools/"], a[href^="/insights/"], a[href^="/work/"]')
+      .filter({ visible: true })
+      .first()
+    if (!(await link.count())) {
+      report.assertions.push({
+        provider: 'greener',
+        check: 'navigation-source write on pin click',
+        status: 'SKIP',
+        detail: 'No visible pin link found',
+      })
+      return
+    }
+    await Promise.allSettled([
+      page.waitForLoadState('domcontentloaded', { timeout: 10000 }),
+      link.click(),
+    ])
+    await page.waitForTimeout(700)
+    const writes = events.storageEvents.filter(
+      (e) =>
+        e.action === 'set' && e.key === 'greener:analytics:navigation-source',
+    )
+    const removals = events.storageEvents.filter(
+      (e) =>
+        e.action === 'remove' &&
+        e.key === 'greener:analytics:navigation-source',
+    )
+    report.assertions.push({
+      provider: 'greener',
+      check: 'navigation-source lifecycle on pin click',
+      status: writes.length > 0 ? 'PASS' : 'WARN',
+      detail: `writes=${writes.length}, removals=${removals.length}. Current code intentionally writes it before navigation and consumes/removes it on detail load.`,
+    })
+    report.storageEvents.push(
+      ...events.storageEvents.map((e) => ({ provider: 'greener', ...e })),
+    )
+  } catch (error) {
+    report.errors.push({
+      provider: 'greener-navigation',
+      url: feedUrl,
+      error: String(error?.stack || error),
+    })
+  } finally {
+    await browser.close()
+  }
+}
+
+async function writeReport(report) {
+  await ensureDir(OUTPUT_DIR)
+  await fs.writeFile(
+    path.join(OUTPUT_DIR, 'audit.json'),
+    JSON.stringify(report, null, 2),
+  )
+  await fs.writeFile(
+    path.join(OUTPUT_DIR, 'audit.csv'),
+    toCsv(report.storageRows, [
+      'provider',
+      'moment',
+      'domain',
+      'name',
+      'type',
+      'duration',
+      'party',
+      'path',
+      'secure',
+      'httpOnly',
+      'sameSite',
+      'valuePreview',
+    ]),
+  )
+  await fs.writeFile(
+    path.join(OUTPUT_DIR, 'network.csv'),
+    toCsv(report.networkRows, [
+      'provider',
+      'domain',
+      'method',
+      'resourceType',
+      'party',
+      'url',
+    ]),
+  )
+  await fs.writeFile(
+    path.join(OUTPUT_DIR, 'assertions.csv'),
+    toCsv(report.assertions, ['provider', 'check', 'status', 'detail']),
+  )
+  await fs.writeFile(
+    path.join(OUTPUT_DIR, 'storage-events.csv'),
+    toCsv(report.storageEvents, [
+      'provider',
+      'time',
+      'pageUrl',
+      'frameUrl',
+      'action',
+      'storage',
+      'key',
+      'value',
+    ]),
+  )
+
+  const lines = [
+    '# Greener cookie/storage audit',
+    '',
+    `- Fecha: ${report.startedAt}`,
+    `- Base URL: ${BASE_URL}`,
+    `- Browser: ${report.browserVersion || 'unknown'}`,
+    '',
+    '## Checks',
+    '',
+    '| Provider | Check | Status | Detail |',
+    '|---|---|---|---|',
+    ...report.assertions.map(
+      (a) =>
+        `| ${a.provider} | ${a.check} | **${a.status}** | ${String(a.detail).replaceAll('|', '\\|')} |`,
+    ),
+    '',
+    '## Errors',
+    '',
+    report.errors.length
+      ? report.errors
+          .map(
+            (e) => `- **${e.provider}** (${e.url}): ${e.error.split('\n')[0]}`,
+          )
+          .join('\n')
+      : '- None',
+    '',
+    'Archivos detallados: `audit.csv`, `network.csv`, `storage-events.csv`, `audit.json` y capturas A/B/C.',
+    '',
+  ]
+  await fs.writeFile(path.join(OUTPUT_DIR, 'README.md'), lines.join('\n'))
+}
+
+async function main() {
+  await ensureDir(OUTPUT_DIR)
+  const report = {
+    startedAt: new Date().toISOString(),
+    baseUrl: BASE_URL,
+    browserVersion: '',
+    snapshots: [],
+    storageRows: [],
+    networkRows: [],
+    storageEvents: [],
+    assertions: [],
+    playback: [],
+    firstPartyStorage: {},
+    errors: [],
+  }
+
+  const configured = PROVIDERS.map((provider) => ({
+    provider,
+    url: resolveUrl(process.env[provider.env]),
+  })).filter((x) => x.url)
+
+  if (configured.length === 0) {
+    console.error(
+      '\nFaltan URLs de episodios. Define al menos una de estas variables:',
+    )
+    for (const p of PROVIDERS) console.error(`  ${p.env}=/ruta-del-episodio`)
+    console.error(
+      '\nEjemplo: COOKIE_AUDIT_YOUTUBE_URL=/work/mi-episodio-youtube npm run audit:cookies\n',
+    )
+    process.exitCode = 2
+    return
+  }
+
+  const vendorAuditUrl = configured[0].url
+  console.log(`Auditando proveedores sobre ${BASE_URL}`)
+  await auditFirstPartyAndVendors(vendorAuditUrl, report)
+
+  for (const { provider, url } of configured) {
+    console.log(`\n${provider.label}: ${url}`)
+    await auditProvider(provider, url, report)
+  }
+
+  const feedUrl = resolveUrl(process.env.COOKIE_AUDIT_FEED_URL || '/')
+  await auditNavigationSource(feedUrl, report)
+
+  await writeReport(report)
+  console.log(`\nInforme generado en: ${OUTPUT_DIR}`)
+  for (const assertion of report.assertions) {
+    console.log(
+      `${assertion.status.padEnd(4)}  ${assertion.provider}: ${assertion.check} — ${assertion.detail}`,
+    )
+  }
+  if (report.errors.length) {
+    console.log(
+      `\n${report.errors.length} error(es). Revisa ${path.join(OUTPUT_DIR, 'README.md')}`,
+    )
+    process.exitCode = 1
+  }
+}
+
+await main()

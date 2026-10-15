@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
+import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
 import { pageLoadId } from '@/components/masonry/pageLoadId'
 
 /**
@@ -37,7 +37,7 @@ import { pageLoadId } from '@/components/masonry/pageLoadId'
 
 interface ScopeFeedState {
   sessionId: string | null
-  items: FeedBatchItem[]
+  items: FeedPinItem[]
   batchSizes: number[]
   cursor: string | null
   hasMore: boolean
@@ -95,7 +95,7 @@ interface FeedContextValue {
   appendBatch: (
     scope: string,
     batch: {
-      items: FeedBatchItem[]
+      items: FeedPinItem[]
       cursor: string
       hasMore: boolean
       rateLimited?: boolean
@@ -187,7 +187,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     (
       scope: string,
       batch: {
-        items: FeedBatchItem[]
+        items: FeedPinItem[]
         cursor: string
         hasMore: boolean
         rateLimited?: boolean

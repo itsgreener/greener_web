@@ -38,7 +38,7 @@ describe('generatePreviewLink (§15.3)', () => {
       await setup({ id: 'c', type: 'insight', slug: 'x' }).generatePreviewLink(
         'c',
       ),
-    ).toContain('/insights/x?preview=')
+    ).toContain('/insights/x/app?preview=')
     expect(
       await setup({ id: 'c', type: 'other', slug: 'x' }).generatePreviewLink(
         'c',

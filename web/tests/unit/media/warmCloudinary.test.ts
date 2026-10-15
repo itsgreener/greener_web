@@ -48,10 +48,6 @@ const usage: fc.Arbitrary<VideoUsage> = fc.oneof(
     width: fc.integer({ min: 100, max: 4000 }),
     height: fc.integer({ min: 100, max: 4000 }),
   }),
-  fc.record({
-    kind: fc.constant('otherCover' as const),
-    coverRatio: fc.option(ratio, { nil: null }),
-  }),
 )
 
 function appSide(usages: VideoUsage[]) {

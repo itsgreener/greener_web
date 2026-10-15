@@ -11,7 +11,8 @@ import type {
 /**
  * Cursor opaco y firmado (arquitectura §8.5): "el cliente no puede alterar
  * cuotas ni seed". El cursor solo lleva sessionId + roundIndex + offset
- * (por dónde va dentro de la ronda) — nunca la
+ * (por dónde va dentro de la ronda) y `served` (pines de ronda servidos en
+ * la sesión, base del calendario de interludios) — nunca la
  * seed ni las cuotas, que siempre se leen del lado servidor desde
  * feed_session. La firma HMAC evita que alguien fabrique un cursor válido
  * apuntando a otra sesión o a un roundIndex arbitrario sin pasar por la API.
@@ -26,6 +27,8 @@ export function decodeCursor(cursor: string): FeedCursorPayload | null {
   // Los cursores anteriores a servir la ronda por tramos no llevan offset:
   // equivalen a «principio de esa ronda».
   const offset = parsed?.offset ?? 0
+  // Los anteriores a los interludios no llevan `served`: se leen como 0.
+  const served = parsed?.served ?? 0
 
   if (
     !parsed ||
@@ -35,12 +38,20 @@ export function decodeCursor(cursor: string): FeedCursorPayload | null {
     parsed.roundIndex < 0 ||
     typeof offset !== 'number' ||
     !Number.isInteger(offset) ||
-    offset < 0
+    offset < 0 ||
+    typeof served !== 'number' ||
+    !Number.isInteger(served) ||
+    served < 0
   ) {
     return null
   }
 
-  return { sessionId: parsed.sessionId, roundIndex: parsed.roundIndex, offset }
+  return {
+    sessionId: parsed.sessionId,
+    roundIndex: parsed.roundIndex,
+    offset,
+    served,
+  }
 }
 
 export const signedFeedCursor: FeedCursorCodec = {

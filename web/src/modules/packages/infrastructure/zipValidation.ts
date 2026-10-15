@@ -1,7 +1,11 @@
 import AdmZip from 'adm-zip'
 import { createHash } from 'node:crypto'
 
-import { packageManifestSchema } from '@/modules/packages/domain/manifestSchema'
+import { readImageInfo } from '@/modules/packages/domain/imageDimensions'
+import {
+  packageManifestSchema,
+  type PackageManifestInput,
+} from '@/modules/packages/domain/manifestSchema'
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
 import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
 import type {
@@ -189,13 +193,13 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     )
   }
 
-  const manifest = manifestResult.data
-
-  if (!entryPaths.has(manifest.entrypoint)) {
+  if (!entryPaths.has(manifestResult.data.entrypoint)) {
     throw new PackageValidationError([
-      `El entrypoint "${manifest.entrypoint}" declarado en manifest.json no existe en el ZIP.`,
+      `El entrypoint "${manifestResult.data.entrypoint}" declarado en manifest.json no existe en el ZIP.`,
     ])
   }
+
+  const manifest = withMeasuredOgImage(manifestResult.data, entries)
 
   const declaredDomains = new Set(
     manifest.externalDomains.map((domain) => domain.toLowerCase()),
@@ -251,6 +255,69 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   const checksum = computeContentChecksum(entries)
 
   return { manifest, entries, checksum }
+}
+
+/**
+ * Comprueba la imagen Open Graph declarada en `metadata.ogImage` (contrato
+ * §2.1) y devuelve el manifest con sus medidas REALES (`width`/`height`)
+ * escritas: el servidor las usa en `og:image:width/height`, y lo que el
+ * autor hubiera puesto a mano se descarta.
+ *
+ * Se rechaza si el fichero no existe, no es una imagen real del formato que
+ * dice su extensión, pesa demasiado, es más pequeña que 1200 × 630 o su
+ * proporción se aleja de 1,91:1 (las redes la recortarían).
+ */
+function withMeasuredOgImage(
+  manifest: PackageManifestInput,
+  entries: ValidatedPackageEntry[],
+): PackageManifestInput {
+  const { ogImage } = manifest.metadata
+  const limits = PACKAGE_LIMITS.ogImage
+  const label = `manifest.json: metadata.ogImage.path ("${ogImage.path}")`
+
+  const entry = entries.find((candidate) => candidate.path === ogImage.path)
+
+  if (!entry) {
+    throw new PackageValidationError([`${label} no existe en el ZIP.`])
+  }
+
+  if (entry.data.byteLength > limits.maxBytes) {
+    throw new PackageValidationError([
+      `${label} pesa ${(entry.data.byteLength / 1_000_000).toFixed(1)} MB; el máximo es ${limits.maxBytes / 1_000_000} MB.`,
+    ])
+  }
+
+  const info = readImageInfo(entry.data)
+  const extension = ogImage.path.split('.').pop()!.toLowerCase()
+  const expectedFormat = extension === 'jpg' ? 'jpeg' : extension
+
+  if (!info || info.format !== expectedFormat) {
+    throw new PackageValidationError([
+      `${label} no es una imagen ${expectedFormat.toUpperCase()} válida (el contenido no coincide con la extensión).`,
+    ])
+  }
+
+  if (info.width < limits.minWidth || info.height < limits.minHeight) {
+    throw new PackageValidationError([
+      `${label} mide ${info.width} × ${info.height} px; el mínimo es ${limits.minWidth} × ${limits.minHeight} px.`,
+    ])
+  }
+
+  const ratio = info.width / info.height
+
+  if (Math.abs(ratio / limits.ratio - 1) > limits.ratioTolerance) {
+    throw new PackageValidationError([
+      `${label} tiene proporción ${ratio.toFixed(2)}:1 (${info.width} × ${info.height} px); debe ser cercana a 1,91:1 (1200 × 630), con un ±5 % de margen.`,
+    ])
+  }
+
+  return {
+    ...manifest,
+    metadata: {
+      ...manifest.metadata,
+      ogImage: { ...ogImage, width: info.width, height: info.height },
+    },
+  }
 }
 
 function assertWithinUncompressedLimits(zipEntries: AdmZip.IZipEntry[]): void {

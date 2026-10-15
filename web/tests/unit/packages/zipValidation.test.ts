@@ -4,6 +4,11 @@ import { randomBytes } from 'node:crypto'
 
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
 import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
+import {
+  OG_IMAGE_PATH,
+  VALID_METADATA,
+  pngBytes,
+} from '@tests/helpers/packageFixtures'
 
 const VALID_MANIFEST = {
   kind: 'tool',
@@ -12,6 +17,7 @@ const VALID_MANIFEST = {
   requiredCapabilities: ['canvas'],
   externalDomains: [],
   minViewport: { width: 320, height: 420 },
+  metadata: VALID_METADATA,
 }
 
 function buildZip(
@@ -26,6 +32,10 @@ function buildZip(
 
   for (const [path, content] of Object.entries(files)) {
     zip.addFile(path, Buffer.from(content))
+  }
+
+  if (!(OG_IMAGE_PATH in files)) {
+    zip.addFile(OG_IMAGE_PATH, pngBytes())
   }
 
   return zip.toBuffer()

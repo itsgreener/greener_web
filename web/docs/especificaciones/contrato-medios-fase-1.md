@@ -174,14 +174,14 @@ Reducir el peso de origen ahorra **almacenamiento**, **tiempo de subida** y la *
 Formato: **WebP o JPEG** de calidad 82-88 en sRGB, sin metadatos; PNG solo para capturas con texto o colores planos. Aceptados por el sistema: JPEG, PNG, WebP y AVIF, **máximo 5 MB**, sin GIF ni animados. Peso objetivo: ≤ 300 KB (solo feed) y ≤ 600 KB (portada de ficha).
 
 | Ratio | Pin de tool (sirve también de portada de la ficha) | Pin solo para el feed (caso, episodio, insight…) |
-| ----- | -------------------------------------------------- | ------------------------------------------------ |
-| 16:9  | 1920×1080                                          | 1280×720                                         |
-| 4:3   | 1600×1200                                          | 1280×960                                         |
-| 1:1   | 1600×1600                                          | 1080×1080                                        |
-| 4:5   | 1280×1600                                          | 1024×1280                                        |
-| 3:4   | 1200×1600                                          | 960×1280                                         |
-| 2:3   | 1200×1800                                          | 960×1440                                         |
-| 9:16  | 1080×1920                                          | 900×1600                                         |
+| ----- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| 16:9  | 1920×1080                                                                      | 1280×720                                                           |
+| 4:3   | 1600×1200                                                                      | 1280×960                                                           |
+| 1:1   | 1600×1600                                                                      | 1080×1080                                                          |
+| 4:5   | 1280×1600                                                                      | 1024×1280                                                          |
+| 3:4   | 1200×1600                                                                      | 960×1280                                                           |
+| 2:3   | 1200×1800                                                                      | 960×1440                                                           |
+| 9:16  | 1080×1920                                                                      | 900×1600                                                           |
 
 ### 5.3 Vídeo de pin de tool
 

@@ -185,14 +185,6 @@ function renditionsFor(usage) {
         },
       ]
 
-    case 'otherCover':
-      return [
-        {
-          profile: 'caseDetail',
-          size: rungM(usage.coverRatio ?? FALLBACK_RATIO),
-        },
-      ]
-
     default:
       return []
   }
@@ -363,7 +355,7 @@ export async function readWarmData(supabase, { content, includeDrafts }) {
     await readAll(
       supabase,
       'content',
-      'id, type, status, cover_media_id, cover_ratio',
+      'id, type, status',
       'id',
     )
   ).filter(
@@ -432,15 +424,6 @@ export async function readWarmData(supabase, { content, includeDrafts }) {
       width: video.width,
       height: video.height,
     })
-  }
-
-  for (const c of contents) {
-    if (contentKind(c.type) === 'other' && c.cover_media_id) {
-      add(c.cover_media_id, {
-        kind: 'otherCover',
-        coverRatio: c.cover_ratio ?? null,
-      })
-    }
   }
 
   const media = [...usagesByMedia.keys()].map((id) => {

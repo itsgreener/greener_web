@@ -44,6 +44,16 @@
   }
 }
 
+/* Casilla de privacidad a la izquierda y botón a la derecha. Con poco
+   ancho (móvil) el botón pasa debajo en vez de comprimir el texto legal. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+
 .consent {
   font-size: 0.85rem;
 
@@ -66,7 +76,6 @@
 }
 
 .submit {
-  align-self: flex-start;
   display: flex;
   align-items: center;
   justify-content: center;

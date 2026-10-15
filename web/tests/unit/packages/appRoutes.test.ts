@@ -78,6 +78,36 @@ describe.each(ROUTES)('/$kind/[slug]/app', ({ kind, load }) => {
     expect(getStoragePackage).toHaveBeenCalledWith(kind, 'mi-tool')
   })
 
+  it('200: con metadata en el manifest, el head lleva la imagen OG con URL absoluta del sitio', async () => {
+    const { env } = await import('@/lib/env')
+    const plural = kind === 'tool' ? 'tools' : 'insights'
+
+    getStoragePackage.mockResolvedValue({
+      ...SAMPLE_PACKAGE,
+      manifest: {
+        ...SAMPLE_PACKAGE.manifest,
+        kind,
+        metadata: {
+          title: 'Mi pieza',
+          description: 'Una descripción',
+          language: 'es',
+          ogImage: { path: 'assets/og.png', alt: 'Alt' },
+        },
+      },
+    })
+    const { GET } = await load()
+
+    const html = await (await GET(request(), params)).text()
+    const site = env.NEXT_PUBLIC_SITE_URL
+
+    expect(html).toContain(
+      `<meta property="og:image" content="${site}/${plural}/mi-tool/app/assets/og.png" />`,
+    )
+    expect(html).toContain(
+      `<link rel="canonical" href="${site}/${plural}/mi-tool/app" />`,
+    )
+  })
+
   it('404 (paquete no encontrado) sigue funcionando igual que antes', async () => {
     const { PackageNotFoundError } =
       await import('@/modules/packages/domain/manifest')

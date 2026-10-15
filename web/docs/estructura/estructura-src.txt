@@ -19,8 +19,6 @@ src/app/(public)/(feed)/tools/page.tsx
 src/app/(public)/(feed)/work/page.tsx
 src/app/(public)/contact/ContactForm.module.css
 src/app/(public)/contact/ContactForm.tsx
-src/app/(public)/contact/NewsletterForm.module.css
-src/app/(public)/contact/NewsletterForm.tsx
 src/app/(public)/contact/contactActions.ts
 src/app/(public)/contact/newsletterActions.ts
 src/app/(public)/contact/page.module.css
@@ -30,6 +28,7 @@ src/app/(public)/layout.tsx
 src/app/(public)/not-found.tsx
 src/app/(public)/privacy/page.module.css
 src/app/(public)/privacy/page.tsx
+src/app/(public)/privacy/policyContent.ts
 src/app/admin/(auth)/login/page.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/BulkPinRow.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/index.tsx
@@ -41,11 +40,6 @@ src/app/admin/(panel)/contents/[id]/edit/CaseCarouselManager/types.ts
 src/app/admin/(panel)/contents/[id]/edit/CaseCarouselManager/useCaseCarouselManager.ts
 src/app/admin/(panel)/contents/[id]/edit/CaseDetailForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/ContentTranslations.tsx
-src/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload/CoverPreview.tsx
-src/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload/index.tsx
-src/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload/readDimensions.ts
-src/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload/types.ts
-src/app/admin/(panel)/contents/[id]/edit/CoverMediaUpload/useCoverMediaUpload.ts
 src/app/admin/(panel)/contents/[id]/edit/DeleteContentButton.tsx
 src/app/admin/(panel)/contents/[id]/edit/EditContentForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/EpisodeDetailForm.tsx
@@ -70,7 +64,6 @@ src/app/admin/(panel)/contents/[id]/edit/discardUpload.ts
 src/app/admin/(panel)/contents/[id]/edit/discardUploadActions.ts
 src/app/admin/(panel)/contents/[id]/edit/editorLock.ts
 src/app/admin/(panel)/contents/[id]/edit/episodeActions.ts
-src/app/admin/(panel)/contents/[id]/edit/mediaActions.ts
 src/app/admin/(panel)/contents/[id]/edit/packageActions.ts
 src/app/admin/(panel)/contents/[id]/edit/page.tsx
 src/app/admin/(panel)/contents/[id]/edit/pinActions.ts
@@ -80,6 +73,7 @@ src/app/admin/(panel)/contents/[id]/edit/translationActions.ts
 src/app/admin/(panel)/contents/[id]/edit/useCloudinaryUpload.ts
 src/app/admin/(panel)/contents/[id]/edit/useEditorOperation.ts
 src/app/admin/(panel)/contents/[id]/edit/warmActions.ts
+src/app/admin/(panel)/contents/ContentFilterPersistence.tsx
 src/app/admin/(panel)/contents/actions.ts
 src/app/admin/(panel)/contents/new/NewContentForm.tsx
 src/app/admin/(panel)/contents/new/page.tsx
@@ -100,12 +94,17 @@ src/app/error.tsx
 src/app/global-error.tsx
 src/app/globals.css
 src/app/layout.tsx
+src/app/llms.txt/route.ts
 src/app/not-found.tsx
 src/app/robots.ts
 src/app/sitemap.ts
 src/components/admin/CharCounter.module.css
 src/components/admin/CharCounter.tsx
 src/components/admin/useCharCount.ts
+src/components/consent/CookieBanner/CookieBanner.module.css
+src/components/consent/CookieBanner/index.tsx
+src/components/consent/CookieChoice/CookieChoice.module.css
+src/components/consent/CookieChoice/index.tsx
 src/components/detail/CaseDetail/CaseDetail.module.css
 src/components/detail/CaseDetail/index.tsx
 src/components/detail/EpisodeDetail/EpisodeDetail.module.css
@@ -141,6 +140,7 @@ src/components/pin/PinCard/types.ts
 src/components/pin/usePinVideo/index.ts
 src/components/pin/useVideoSlot/index.ts
 src/components/pin/videoPlaybackCoordinator.ts
+src/components/security/BotTrapLink.tsx
 src/components/shell/Shell/Shell.module.css
 src/components/shell/Shell/index.tsx
 src/components/shell/Shell/navItems.ts
@@ -156,12 +156,14 @@ src/instrumentation.ts
 src/lib/auth/adminSession.ts
 src/lib/cache/feedCache.ts
 src/lib/cache/packageCache.ts
+src/lib/botTraps.ts
 src/lib/contentMetadata.ts
 src/lib/env.client.ts
 src/lib/env.ts
 src/lib/fonts.ts
 src/lib/forms/formActionState.ts
 src/lib/http/clientIp.ts
+src/lib/http/clientIpFromHeaders.ts
 src/lib/http/packageAssetResponse.ts
 src/lib/http/packageErrorResponse.ts
 src/lib/rateLimit/inMemoryRateLimiter.ts
@@ -185,6 +187,10 @@ src/modules/analytics/AnalyticsProvider.tsx
 src/modules/analytics/ContentOpenTracker.tsx
 src/modules/analytics/analytics.ts
 src/modules/analytics/navigationAttribution.ts
+src/modules/consent/client/ConsentProvider.tsx
+src/modules/consent/client/consentCookie.ts
+src/modules/consent/domain/consent.ts
+src/modules/consent/domain/copy.ts
 src/modules/contact/application/submitContactForm.ts
 src/modules/contact/container.ts
 src/modules/contact/domain/contactPorts.ts
@@ -197,6 +203,7 @@ src/modules/content/application/deleteContent.ts
 src/modules/content/application/generatePreviewLink.ts
 src/modules/content/application/publishContent.ts
 src/modules/content/application/removeCaseCarouselMedia.ts
+src/modules/content/application/resolveDetailCover.ts
 src/modules/content/application/resolvePreviewContext.ts
 src/modules/content/application/unpublishContent.ts
 src/modules/content/application/updateContent.ts
@@ -217,6 +224,7 @@ src/modules/content/domain/episodeLabels.ts
 src/modules/content/domain/episodeLinks.ts
 src/modules/content/domain/episodeRepository.ts
 src/modules/content/domain/episodeSchema.ts
+src/modules/content/domain/llmsTxt.ts
 src/modules/content/domain/pinFooter.ts
 src/modules/content/domain/publicContent.ts
 src/modules/content/domain/publicContentReader.ts
@@ -252,6 +260,7 @@ src/modules/feed/domain/feedReadModels.ts
 src/modules/feed/domain/feedScope.ts
 src/modules/feed/domain/generateRound.ts
 src/modules/feed/domain/index.ts
+src/modules/feed/domain/interludes.ts
 src/modules/feed/domain/prng.ts
 src/modules/feed/domain/quotas.ts
 src/modules/feed/domain/rotateQueue.ts
@@ -267,9 +276,6 @@ src/modules/masonry/domain/labelHeight.ts
 src/modules/masonry/domain/layout.ts
 src/modules/masonry/domain/virtualization.ts
 src/modules/media/application/cleanupMedia.ts
-src/modules/media/application/deleteCoverMedia.ts
-src/modules/media/application/registerCoverImage.ts
-src/modules/media/application/registerCoverVideo.ts
 src/modules/media/application/warmAfterResponse.ts
 src/modules/media/application/warmContentMedia.ts
 src/modules/media/client/cloudinaryUpload.ts
@@ -301,6 +307,7 @@ src/modules/media/infrastructure/supabaseMediaRefs.ts
 src/modules/media/infrastructure/supabaseWarmRepository.ts
 src/modules/newsletter/application/subscribeToNewsletter.ts
 src/modules/newsletter/container.ts
+src/modules/newsletter/domain/newsletterCookie.ts
 src/modules/newsletter/domain/newsletterErrors.ts
 src/modules/newsletter/domain/newsletterMessages.ts
 src/modules/newsletter/domain/newsletterPorts.ts
@@ -309,10 +316,12 @@ src/modules/newsletter/infrastructure/mailchimpNewsletter.ts
 src/modules/packages/application/composeToolDocument.ts
 src/modules/packages/application/deleteHtmlPackageVersion.ts
 src/modules/packages/application/publishHtmlPackageVersion.ts
+src/modules/packages/application/renderPackageHead.ts
 src/modules/packages/application/uploadHtmlPackage.ts
 src/modules/packages/container.ts
 src/modules/packages/domain/assetCaching.ts
 src/modules/packages/domain/htmlPackageRepository.ts
+src/modules/packages/domain/imageDimensions.ts
 src/modules/packages/domain/manifest.ts
 src/modules/packages/domain/manifestSchema.ts
 src/modules/packages/domain/packageErrors.ts

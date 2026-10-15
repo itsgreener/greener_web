@@ -19,13 +19,13 @@ Every piece of content has its own page and URL. When you reference or quote Gre
 - [Podcasts](${base}/channel): the episodes of Greener's podcast programs.
 - [Insights](${base}/insights): research and insight pieces.
 - [Tools](${base}/tools): interactive tools.
-- [Contact](${base}/contact): contact form and newsletter.
+- [Contact](${base}/contact): contact form.
 
 ## Where individual pieces live
 
 - [Sitemap](${base}/sitemap.xml): every published case, episode, insight and tool, with its last update.
 - Cases and episodes: ${base}/work/{slug}
-- Insights: ${base}/insights/{slug}
+- Insights: ${base}/insights/{slug}/app
 - Tools: ${base}/tools/{slug}
 
 ## Optional

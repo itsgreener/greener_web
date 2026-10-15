@@ -1,14 +1,13 @@
 import type { Metadata } from 'next'
 import { ContactForm } from './ContactForm'
-import { NewsletterForm } from './NewsletterForm'
 import styles from './page.module.css'
 
 /**
  * Formulario de contacto real (brief §5.6, arquitectura §14.1):
  * nombre, teléfono, email y mensaje, con honeypot, límite por IP y
  * consentimiento de privacidad — envío por SMTP (nodemailer) a una
- * dirección de Greener. Debajo va la newsletter (Mailchimp, double
- * opt-in), que es otro flujo con su propia acción y su propio límite.
+ * dirección de Greener. La newsletter ya no se pide aquí: el alta se hace
+ * solo desde su pin en el feed.
  *
  * Ruta e interfaz en inglés (arquitectura §2.4: "interfaz global en
  * inglés").
@@ -31,12 +30,6 @@ export default function ContactPage() {
   what you're after. We'll write back, and the conversation starts there.`}
       </p>
       <ContactForm />
-
-      <section className={styles.newsletter}>
-        <h2 className={styles.newsletterTitle}>Newsletter</h2>
-        <p className="text-body">Ideas, projects and things worth sharing.</p>
-        <NewsletterForm />
-      </section>
     </div>
   )
 }

@@ -20,6 +20,7 @@ const PLAUSIBLE_TIMEOUT_MS = 5000
 
 interface PackageAnalyticsBody {
   slug?: unknown
+  kind?: unknown
   action?: unknown
 }
 
@@ -30,14 +31,21 @@ function noContent() {
 }
 
 /**
- * Recibe eventos de uso efectivo desde una Tool publicada.
+ * Recibe eventos de analítica desde el documento de un paquete publicado
+ * (`public/greener-package-analytics.js`):
  *
- * El navegador solo envía slug + action.
+ * - `kind: 'tool'` + `action` → «Tool Used» (uso efectivo de la Tool).
+ * - `kind: 'insight'` → «Insight Open» (carga del documento del Insight, que
+ *   no tiene ficha React desde la que registrarla en el cliente).
+ *
+ * El navegador solo envía slug (+ action en una Tool).
  * El UUID real de content se resuelve aquí para que:
  *
  * - Tool Open y Tool Used utilicen el mismo toolId.
  * - el paquete ZIP no conozca IDs internos.
- * - no podamos fabricar un toolId arbitrario desde el cliente.
+ * - no podamos fabricar un id arbitrario desde el cliente.
+ *
+ * Sin `kind` se asume `tool` (formato original del cuerpo).
  */
 export async function POST(request: NextRequest) {
   const fetchSite = request.headers.get('sec-fetch-site')
@@ -80,9 +88,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const kind = body.kind ?? 'tool'
+
+  if (kind !== 'tool' && kind !== 'insight') {
+    return NextResponse.json({ error: 'kind inválido.' }, { status: 400 })
+  }
+
   if (
-    typeof body.action !== 'string' ||
-    !ACTION_PATTERN.test(body.action.trim())
+    kind === 'tool' &&
+    (typeof body.action !== 'string' ||
+      !ACTION_PATTERN.test(body.action.trim()))
   ) {
     return NextResponse.json(
       {
@@ -95,7 +110,7 @@ export async function POST(request: NextRequest) {
   }
 
   const slug = body.slug
-  const action = body.action.trim()
+  const action = typeof body.action === 'string' ? body.action.trim() : ''
 
   const domain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN?.trim()
 
@@ -108,16 +123,16 @@ export async function POST(request: NextRequest) {
     return noContent()
   }
 
-  let toolId: string | null
+  let contentId: string | null
 
   try {
-    toolId = await publicContent.publishedContentId('tool', slug)
+    contentId = await publicContent.publishedContentId(kind, slug)
   } catch (error) {
     console.error(error)
 
     return NextResponse.json(
       {
-        error: 'No se pudo resolver la Tool.',
+        error: 'No se pudo resolver el contenido.',
       },
       {
         status: 500,
@@ -125,10 +140,10 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (!toolId) {
+  if (!contentId) {
     return NextResponse.json(
       {
-        error: 'Tool no encontrada.',
+        error: 'Contenido no encontrado.',
       },
       {
         status: 404,
@@ -155,22 +170,22 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(PLAUSIBLE_TIMEOUT_MS),
       headers,
       body: JSON.stringify({
-        name: 'Tool Used',
+        name: kind === 'insight' ? 'Insight Open' : 'Tool Used',
 
         domain,
 
-        url: `https://${domain}/tools/${slug}/app`,
+        url: `https://${domain}/${kind === 'insight' ? 'insights' : 'tools'}/${slug}/app`,
 
-        props: {
-          toolId,
-          action,
-        },
+        props:
+          kind === 'insight'
+            ? { insightId: contentId }
+            : { toolId: contentId, action },
 
         interactive: true,
       }),
     })
   } catch (error) {
-    console.error('Plausible no respondió al registrar Tool Used:', error)
+    console.error('Plausible no respondió al registrar el evento:', error)
     return new NextResponse(null, { status: 502 })
   }
 

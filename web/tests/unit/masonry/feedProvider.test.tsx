@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 
 import { FeedProvider, useFeedContext } from '@/components/masonry/FeedProvider'
-import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
+import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
 
 /**
  * appendBatch (FeedProvider.tsx) es donde vivía el bug real corregido el
@@ -18,7 +18,7 @@ import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
  * `false` para siempre en ese scope.
  */
 
-const PIN = (id: string): FeedBatchItem =>
+const PIN = (id: string): FeedPinItem =>
   ({
     pinId: id,
     contentId: `content-${id}`,
@@ -30,7 +30,7 @@ const PIN = (id: string): FeedBatchItem =>
     alt: `Alt ${id}`,
     autoplayMode: null,
     media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
-  }) as FeedBatchItem
+  }) as FeedPinItem
 
 function TestConsumer({ scope }: { scope: string }) {
   const { getState, appendBatch } = useFeedContext()

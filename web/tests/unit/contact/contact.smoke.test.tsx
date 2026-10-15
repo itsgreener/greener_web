@@ -17,6 +17,22 @@ describe('/contact — prueba de humo', () => {
     expect(screen.getByRole('heading', { name: HEADING })).toBeInTheDocument()
   })
 
+  it('ya no pide la suscripción a la newsletter: el alta es solo desde su pin', () => {
+    render(<ContactPage />)
+
+    expect(
+      screen.queryByRole('heading', { name: 'Newsletter' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByLabelText('Email', { selector: '#newsletter-email' }),
+    ).toBeNull()
+    expect(
+      screen.queryByRole('button', { name: /subscribe/i }),
+    ).not.toBeInTheDocument()
+    // El formulario de contacto sigue ahí, con su único campo Email.
+    expect(screen.getAllByLabelText('Email')).toHaveLength(1)
+  })
+
   it('el título usa la tipografía de display (Kinder) vía la clase global', () => {
     render(<ContactPage />)
 

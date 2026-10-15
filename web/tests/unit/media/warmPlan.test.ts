@@ -59,10 +59,10 @@ function pin(over: Partial<Extract<VideoUsage, { kind: 'pin' }>> = {}) {
 }
 
 describe('ratio compartido entre entrega y calentamiento', () => {
-  it('ficha de tool/other: override > cover > 4:5', () => {
-    expect(toolInsightDetailRatio('16:9', '1:1')).toBe('16:9')
-    expect(toolInsightDetailRatio(null, '1:1')).toBe('1:1')
-    expect(toolInsightDetailRatio(undefined, undefined)).toBe('4:5')
+  it('ficha de tool: ratio del pin; sin pin, 4:5', () => {
+    expect(toolInsightDetailRatio('16:9')).toBe('16:9')
+    expect(toolInsightDetailRatio(null)).toBe('4:5')
+    expect(toolInsightDetailRatio(undefined)).toBe('4:5')
     expect(TOOL_INSIGHT_FALLBACK_RATIO).toBe('4:5')
   })
 
@@ -82,13 +82,8 @@ describe('planVideoWarming — pines', () => {
     ])
   })
 
-  it('pin de otro tipo (case, episodio, insight…): solo feed, nunca ficha', () => {
-    for (const contentType of [
-      'case',
-      'episode',
-      'insight',
-      'other',
-    ] as const) {
+  it('pin de otro tipo (case, episodio, other): solo feed, nunca ficha', () => {
+    for (const contentType of ['case', 'episode', 'other'] as const) {
       expect(planVideoWarming([pin({ contentType })])).toEqual([
         { profile: 'feed', size: { width: FEED_VIDEO_WIDTH } },
       ])
@@ -122,20 +117,11 @@ describe('planVideoWarming — pines', () => {
   })
 })
 
-describe('planVideoWarming — carrusel de caso y portada de other', () => {
+describe('planVideoWarming — carrusel de caso', () => {
   it('carrusel de caso: escalón M del ratio del propio vídeo, perfil con audio', () => {
     expect(
       planVideoWarming([{ kind: 'caseCarousel', width: 1920, height: 1080 }]),
     ).toEqual([{ profile: 'caseDetail', size: { width: 1280, height: 720 } }])
-  })
-
-  it('portada de other: escalón M de su cover_ratio, o de 4:5 si no tiene', () => {
-    expect(
-      planVideoWarming([{ kind: 'otherCover', coverRatio: '16:9' }]),
-    ).toEqual([{ profile: 'caseDetail', size: { width: 1280, height: 720 } }])
-    expect(
-      planVideoWarming([{ kind: 'otherCover', coverRatio: null }]),
-    ).toEqual([{ profile: 'caseDetail', size: { width: 856, height: 1070 } }])
   })
 })
 
@@ -164,10 +150,6 @@ describe('planVideoWarming — propiedades', () => {
       kind: fc.constant('caseCarousel' as const),
       width: fc.integer({ min: 100, max: 4000 }),
       height: fc.integer({ min: 100, max: 4000 }),
-    }),
-    fc.record({
-      kind: fc.constant('otherCover' as const),
-      coverRatio: fc.option(fc.constantFrom(...RATIOS), { nil: null }),
     }),
   )
 
@@ -251,13 +233,13 @@ describe('CONTRATO: las cadenas del eager son EXACTAMENTE las de la entrega', ()
 
       // Portátil 1366×768, DPR 1: M. Monitor grande con DPR 2: L.
       const small = pickDetailVideoRung({
-        ratio: toolInsightDetailRatio(ratio, null),
+        ratio: toolInsightDetailRatio(ratio),
         boxWidthPx: 771,
         boxHeightPx: 434,
         devicePixelRatio: 1,
       })
       const big = pickDetailVideoRung({
-        ratio: toolInsightDetailRatio(ratio, null),
+        ratio: toolInsightDetailRatio(ratio),
         boxWidthPx: 1500,
         boxHeightPx: 1500,
         devicePixelRatio: 2,
@@ -286,18 +268,6 @@ describe('CONTRATO: las cadenas del eager son EXACTAMENTE las de la entrega', ()
     )
 
     expect(eagerStrings(plan)).toEqual(delivered)
-  })
-
-  it('portada de other: las del plan = las de ToolInsightDetail', () => {
-    for (const coverRatio of [null, ...RATIOS]) {
-      const plan = planVideoWarming([{ kind: 'otherCover', coverRatio }])
-      const size = detailVideoRungM(toolInsightDetailRatio(null, coverRatio))
-      const delivered = buildVideoSources(ID, 'caseDetail', size).map((s) =>
-        transformationOf(s.src),
-      )
-
-      expect(eagerStrings(plan)).toEqual(delivered)
-    }
   })
 
   it('un pin de tool son 6 versiones exactas (feed + ficha L y M, WebM y MP4)', () => {

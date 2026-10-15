@@ -1,6 +1,12 @@
 import * as cheerio from 'cheerio'
 import { navItems, socialItems } from '@/components/shell/Shell/navItems'
 import type { ResolvedPackage } from '@/modules/packages/domain/manifest'
+import {
+  escapeHtml,
+  PACKAGE_HEAD_OVERRIDDEN_SELECTORS,
+  pageTitle,
+  renderMetadataHead,
+} from './renderPackageHead'
 
 export interface Viewport {
   width: number | string
@@ -63,15 +69,14 @@ function renderSidebar(): string {
  * Plausible como «Tool Used», con el mismo toolId que «Tool Open» (cruzables
  * en el dashboard).
  *
- * Solo en Tools, no en Insights. Es el ÚNICO mecanismo de «Tool Used»
- * (PROGRESO §2.17-§2.18).
+ * Se inyecta en Tools y en Insights, con `data-greener-kind` para que el
+ * script sepa qué hacer: en una Tool queda a la escucha de «Tool Used»
+ * (ÚNICO mecanismo, PROGRESO §2.17-§2.18); en un Insight registra UNA vez,
+ * al cargar, «Insight Open» (no tiene ficha React donde dispararlo desde el
+ * cliente: su URL pública es este mismo documento).
  */
 function renderPackageAnalyticsRuntime(pkg: ResolvedPackage): string {
-  if (pkg.manifest.kind !== 'tool') {
-    return ''
-  }
-
-  return `<script src="/greener-package-analytics.js" data-greener-tool-slug="${pkg.slug}"></script>`
+  return `<script src="/greener-package-analytics.js" data-greener-kind="${pkg.manifest.kind}" data-greener-slug="${pkg.slug}"></script>`
 }
 
 function toCssLength(value: number | string): string {
@@ -218,15 +223,36 @@ const SHELL_STYLES = `
  *
  * width y height pueden ser números (útil para tests) o expresiones CSS
  * dinámicas como calc(100dvw - 64px) y 100dvh.
+ *
+ * `siteUrl` (sin barra final) y `basePath` (con barra inicial y final) dan las
+ * URLs ABSOLUTAS de las etiquetas Open Graph / canonical. Si el manifest
+ * trae `metadata`, Greener emite esas etiquetas y descarta las que el HTML
+ * del paquete tuviera por su cuenta (título, descripción, og:*, twitter:*,
+ * canonical, theme-color, keywords y JSON-LD) para no duplicarlas. Una
+ * versión publicada antes de existir `metadata` se sirve como siempre.
  */
 export function composeToolDocument(
   pkg: ResolvedPackage,
   viewport: Viewport,
   basePath: string,
+  siteUrl: string,
 ): string {
   const $ = cheerio.load(pkg.html)
+  const metadata = pkg.manifest.metadata
+
+  if (metadata) {
+    $('head').find(PACKAGE_HEAD_OVERRIDDEN_SELECTORS).remove()
+  }
 
   const headChildren = $('head').html() ?? ''
+  const metadataHead = metadata
+    ? renderMetadataHead(
+        pkg.manifest,
+        metadata,
+        `${siteUrl}${basePath.replace(/\/$/, '')}`,
+        `${siteUrl}${basePath}`,
+      )
+    : ''
   const bodyChildren = $('body').html() ?? ''
   const analyticsRuntime = renderPackageAnalyticsRuntime(pkg)
 
@@ -237,11 +263,12 @@ export function composeToolDocument(
   ].join('; ')
 
   return `<!doctype html>
-<html lang="en">
+<html lang="${escapeHtml(metadata?.language ?? 'en')}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>${pkg.slug} · Greener</title>
+    <title>${escapeHtml(pageTitle(metadata, pkg.slug))}</title>
+    ${metadataHead}
     <!-- Fuerza que TODAS las rutas relativas del paquete (CSS, JS, y el
          Worker() invocado desde dentro de main.js, que resuelve contra
          document.baseURI) apunten a su propia carpeta. -->

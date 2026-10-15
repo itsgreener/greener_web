@@ -10,9 +10,16 @@ import type {
   FeedCursorCodec,
   FeedSessionRepository,
 } from '@/modules/feed/domain/feedPorts'
+import {
+  interludesInRange,
+  newsletterItemId,
+  pagePinIndex,
+  type InterludeSlot,
+} from '@/modules/feed/domain/interludes'
 import type {
   FeedBatchItem,
   FeedBatchResult,
+  FeedInterlude,
   PinDirectoryEntry,
 } from '@/modules/feed/domain/feedReadModels'
 
@@ -21,10 +28,16 @@ import type {
  * generó se despublicó o borró un pin (o se quedó sin medio), ya no está en
  * el directorio público: esa unidad simplemente no se sirve, en vez de
  * tumbar el lote entero con un 500.
+ *
+ * Tras el pin de ronda número `position` (cuenta global de la sesión, desde
+ * 1) se intercala el interludio que el calendario haya fijado ahí, si lo
+ * hay. El interludio va tras SU pin aunque ese pin ya no esté publicado.
  */
 function enrich(
   unitIds: string[],
   directory: Record<string, PinDirectoryEntry>,
+  firstPosition: number,
+  interludeAfter: (position: number) => FeedBatchItem | null,
 ): FeedBatchItem[] {
   const missing = unitIds.filter((unitId) => !directory[unitId])
 
@@ -34,11 +47,48 @@ function enrich(
     )
   }
 
-  return unitIds.flatMap((unitId) => {
+  return unitIds.flatMap((unitId, index) => {
     const meta = directory[unitId]
+    const items: FeedBatchItem[] = meta ? [toFeedBatchItem(unitId, meta)] : []
+    const interlude = interludeAfter(firstPosition + index)
 
-    return meta ? [toFeedBatchItem(unitId, meta)] : []
+    if (interlude) items.push(interlude)
+
+    return items
   })
+}
+
+/**
+ * El interludio de una aparición, o null si no se sirve: newsletter ya
+ * suscrita en este dispositivo (se omite sin sustituirla por otro `other`) o
+ * una página sin ningún pin servible.
+ */
+function interludeItem(
+  slot: InterludeSlot,
+  entry: FeedInterlude,
+  seed: string,
+  newsletterSubscribed: boolean,
+): FeedBatchItem | null {
+  if (entry.kind === 'newsletter') {
+    if (newsletterSubscribed) return null
+
+    return {
+      kind: 'newsletter',
+      pinId: newsletterItemId(entry.contentId, slot.occurrence),
+      contentId: entry.contentId,
+      title: entry.title,
+      text: entry.text,
+    }
+  }
+
+  if (entry.pins.length === 0) return null
+
+  const pin =
+    entry.pins[
+      pagePinIndex(seed, entry.contentId, slot.occurrence, entry.pins.length)
+    ]!
+
+  return toFeedBatchItem(pin.pinId, pin.entry)
 }
 
 /**
@@ -54,6 +104,13 @@ const MAX_SKIPPED_SLICES = 5
  * los pines ya servidos no cambian aunque cambie el contenido publicado
  * después); una ronda nueva se calcula con generateRound() y se persiste
  * antes de devolverla.
+ *
+ * Interludios (plan de `other`, fase 2): solo en la home y sin contenido
+ * excluido (las recomendaciones de una ficha son sesiones `home` con
+ * exclusión), los contenidos `other` publicados se intercalan según el
+ * calendario de `domain/interludes.ts`, que se recalcula en cada petición a
+ * partir de la seed de la sesión y del contador `served` del cursor (pines de
+ * ronda servidos, sin contar interludios). No se guardan en la ronda.
  *
  * La ronda es la vuelta COMPLETA del feed (todos los casos con su fuerza más
  * el resto de tipos) y puede tener cientos de pines; se precalcula entera
@@ -78,6 +135,13 @@ export function makeGetFeedSessionBatch({
     sessionId: string,
     cursor: string | null,
     requestedSize?: number | null,
+    options: {
+      /**
+       * Este visitante ya se suscribió a la newsletter (cookie propia leída
+       * por la ruta): sus apariciones se omiten.
+       */
+      newsletterSubscribed?: boolean
+    } = {},
   ): Promise<FeedBatchResult> {
     const session = await sessions.get(sessionId)
     if (!session) throw new FeedSessionNotFoundError()
@@ -88,6 +152,7 @@ export function makeGetFeedSessionBatch({
 
     let roundIndex = 0
     let offset = 0
+    let served = 0
     if (cursor) {
       const payload = cursors.decode(cursor)
       if (!payload || payload.sessionId !== sessionId) {
@@ -95,6 +160,7 @@ export function makeGetFeedSessionBatch({
       }
       roundIndex = payload.roundIndex
       offset = payload.offset
+      served = payload.served
     }
 
     const config = await catalog.config()
@@ -129,6 +195,27 @@ export function makeGetFeedSessionBatch({
       generatedDirectory = pinDirectory
     }
 
+    // Interludios: se leen una sola vez por petición y solo si aplican.
+    const interludesApply =
+      session.scope === 'home' && !session.excludeContentId
+    let interludeEntries: FeedInterlude[] | null = null
+
+    async function loadInterludes(): Promise<FeedInterlude[]> {
+      if (!interludesApply) return []
+      if (interludeEntries) return interludeEntries
+
+      try {
+        interludeEntries = await catalog.interludes()
+      } catch (error) {
+        // Un fallo leyendo los `other` no debe tumbar el feed: se sirve la
+        // ronda sin interludios.
+        console.error('Feed: no se pudieron leer los interludios:', error)
+        interludeEntries = []
+      }
+
+      return interludeEntries
+    }
+
     let items: FeedBatchItem[] = []
     let batch = 0
     let servedRound = roundIndex
@@ -150,7 +237,33 @@ export function makeGetFeedSessionBatch({
 
       const directory =
         generatedDirectory ?? (await catalog.directoryByIds(slice))
-      items = enrich(slice, directory)
+      const entries = await loadInterludes()
+      const slotByPosition = new Map(
+        interludesInRange(
+          session.seed,
+          entries,
+          served,
+          served + slice.length,
+        ).map((slot) => [slot.position, slot]),
+      )
+      const entryById = new Map(
+        entries.map((entry) => [entry.contentId, entry]),
+      )
+
+      items = enrich(slice, directory, served + 1, (position) => {
+        const slot = slotByPosition.get(position)
+        const entry = slot ? entryById.get(slot.contentId) : undefined
+
+        return slot && entry
+          ? interludeItem(
+              slot,
+              entry,
+              session.seed,
+              options.newsletterSubscribed ?? false,
+            )
+          : null
+      })
+      served += slice.length
 
       const end = offset + size
       if (end >= unitIds.length) {
@@ -167,7 +280,7 @@ export function makeGetFeedSessionBatch({
 
     return {
       items,
-      cursor: cursors.encode({ sessionId, roundIndex, offset }),
+      cursor: cursors.encode({ sessionId, roundIndex, offset, served }),
       round: servedRound,
       batch,
       hasMore: true,

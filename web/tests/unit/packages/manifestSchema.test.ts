@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 
-import { packageManifestSchema } from '@/modules/packages/domain/manifestSchema'
+import {
+  packageManifestSchema,
+  storedPackageManifestSchema,
+} from '@/modules/packages/domain/manifestSchema'
+import { VALID_METADATA } from '@tests/helpers/packageFixtures'
 
 const VALID = {
   kind: 'tool' as const,
@@ -9,6 +13,7 @@ const VALID = {
   requiredCapabilities: ['canvas', 'worker'],
   externalDomains: [],
   minViewport: { width: 320, height: 420 },
+  metadata: VALID_METADATA,
 }
 
 describe('packageManifestSchema', () => {
@@ -66,6 +71,47 @@ describe('packageManifestSchema', () => {
         ...VALID,
         minViewport: { width: 0, height: 420 },
       }).success,
+    ).toBe(false)
+  })
+})
+
+describe('storedPackageManifestSchema (versiones ya guardadas)', () => {
+  const WITHOUT_METADATA: Record<string, unknown> = { ...VALID }
+  delete WITHOUT_METADATA.metadata
+
+  it('acepta un manifest anterior al bloque metadata: esas versiones siguen sirviéndose', () => {
+    const result = storedPackageManifestSchema.safeParse(WITHOUT_METADATA)
+
+    expect(result.success).toBe(true)
+    expect(result.data?.metadata).toBeUndefined()
+  })
+
+  it('en una SUBIDA, en cambio, el mismo manifest se rechaza', () => {
+    expect(packageManifestSchema.safeParse(WITHOUT_METADATA).success).toBe(
+      false,
+    )
+  })
+
+  it('conserva la metadata cuando es válida', () => {
+    expect(storedPackageManifestSchema.parse(VALID).metadata).toEqual(
+      VALID_METADATA,
+    )
+  })
+
+  it('ignora una metadata mal formada en vez de tumbar la ficha publicada', () => {
+    const result = storedPackageManifestSchema.safeParse({
+      ...VALID,
+      metadata: { title: 42 },
+    })
+
+    expect(result.success).toBe(true)
+    expect(result.data?.metadata).toBeUndefined()
+  })
+
+  it('sigue exigiendo el resto del manifest', () => {
+    expect(
+      storedPackageManifestSchema.safeParse({ ...VALID, entrypoint: '' })
+        .success,
     ).toBe(false)
   })
 })

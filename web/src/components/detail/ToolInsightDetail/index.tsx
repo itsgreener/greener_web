@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import type {
   PublicContent,
-  PublicContentMedia,
+  PublicPinCover,
 } from '@/modules/content/domain/publicContent'
 import { toolInsightDetailRatio } from '@/modules/media/domain/detailVideoRatio'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
@@ -12,48 +12,41 @@ import { useRecommendationMasonry } from '@/components/detail/useRecommendationM
 import { CoverMedia } from './CoverMedia'
 import styles from './ToolInsightDetail.module.css'
 
-import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Plantilla de detalle tipo A (especificacion-final-formato-detalle.md
- * §1, §2, §7): portada a altura fija × ratio (nunca medida en columnas),
- * bloque de contenido reservando 3-5 columnas según el grupo de ratio, y
- * panel de recomendaciones de la misma sección (Tool → Tools,
- * Insight → Insights; Other conserva Home, excluyendo este mismo contenido)
- * a la derecha + debajo, un único masonry sembrado de forma asimétrica
- * (useRecommendationMasonry) — no dos retículas separadas.
+ * §1, §2, §7) de tool e insight: cover a altura fija × ratio (nunca medida
+ * en columnas), bloque de contenido reservando 3-5 columnas según el grupo
+ * de ratio, y panel de recomendaciones de la misma sección (Tool → Tools,
+ * Insight → Insights) a la derecha + debajo, un único masonry sembrado de
+ * forma asimétrica (useRecommendationMasonry) — no dos retículas separadas.
  *
- * También sirve a contenido libre (`other`, /variety/[slug], §3: "igual
- * que tool/insight, sin CTA, sin paquete HTML — cover_media_id admite
- * imagen o vídeo"): de ahí que `ctaLabel`/`appHref` sean opcionales (sin
- * los dos, no se pinta ningún CTA) y que la portada pueda ser vídeo, no
- * solo imagen. Los eventos "Tool Open"/"Insight Open" (§18.2) solo se disparan para esos dos tipos — `other` no tiene
- * evento propio.
+ * Ni tool ni insight tienen portada propia (§2.40): la ficha pinta el medio
+ * del pin del que llega el visitante (`cover`, `?pin=`, solo tools). Sin pin
+ * no hay medio y se usa el ratio por defecto.
+ *
+ * Insight ya no pasa por aquí (su URL redirige al paquete) y `other` dejará
+ * de usarla en la fase 3 (su página satélite abre directamente el paquete
+ * HTML). El evento "Tool Open" (§18.2) se dispara solo para tools.
  */
 export function ToolInsightDetail({
   content,
   ctaLabel,
   appHref,
-  coverMediaOverride,
-  coverRatioOverride,
-  coverAltOverride,
+  cover,
 }: {
   content: PublicContent
   ctaLabel?: string
   appHref?: string
-  // En Tools, cuando la ficha se abre desde un pin, la portada puede ser
-  // el medio exacto de ese pin en vez de la portada general del contenido.
-  // Insights/Other no pasan estos props y conservan el comportamiento actual.
-  coverMediaOverride?: PublicContentMedia | null
-  coverRatioOverride?: PinRatioValue | null
-  // Alt del pin de origen. Hoy solo lo usa el vídeo de una tool (alt
-  // obligatorio); la imagen conserva su alt de siempre.
-  coverAltOverride?: string | null
+  // Medio, ratio y alt del pin del que llega la ficha (`?pin=`, solo tools).
+  // El alt solo lo usa el vídeo (alt obligatorio); la imagen conserva su alt
+  // de siempre.
+  cover?: PublicPinCover | null
 }) {
-  const coverMedia = coverMediaOverride ?? content.coverMedia
+  const coverMedia = cover?.media ?? null
   // Ratio compartido con el calentamiento de vídeo (fase 2): ver
-  // modules/media/domain/detailVideoRatio.ts. Sin ratio (contenido sin
-  // portada) se usa el caso «vertical» más conservador.
-  const ratio = toolInsightDetailRatio(coverRatioOverride, content.coverRatio)
+  // modules/media/domain/detailVideoRatio.ts. Sin pin se usa el caso
+  // «vertical» más conservador.
+  const ratio = toolInsightDetailRatio(cover?.ratio)
   const recommendations = useRecommendationMasonry(content.id, ratio, {
     textColumn: true,
   })
@@ -68,9 +61,6 @@ export function ToolInsightDetail({
     <article className={styles.article}>
       {content.type === 'tool' && (
         <ContentOpenTracker type="tool" contentId={content.id} />
-      )}
-      {content.type === 'insight' && (
-        <ContentOpenTracker type="insight" contentId={content.id} />
       )}
 
       <RecommendationsGrid recommendations={recommendations}>
@@ -91,9 +81,8 @@ export function ToolInsightDetail({
               <CoverMedia
                 media={coverMedia}
                 title={content.title}
-                alt={coverAltOverride}
+                alt={cover?.alt}
                 ratio={ratio}
-                isTool={content.type === 'tool'}
                 boxWidthPx={contentBlockImageWidth}
                 boxHeightPx={contentBlockImageHeight}
               />

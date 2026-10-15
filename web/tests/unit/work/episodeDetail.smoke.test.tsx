@@ -38,8 +38,6 @@ const CONTENT: PublicContent = {
   summary: null,
   highlight: null,
   body: null,
-  coverMedia: null,
-  coverRatio: null,
 }
 
 function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {

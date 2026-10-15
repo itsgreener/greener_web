@@ -14,7 +14,14 @@ describe('feedScope', () => {
     expect(typesForScope('insights')).toEqual(['insight'])
     expect(typesForScope('tools')).toEqual(['tool'])
     expect(typesForScope('channel')).toEqual(['episode'])
-    expect(typesForScope('home')).toHaveLength(5)
+    // `other` no entra en la home por cuota: se sirve como interludio.
+    expect(typesForScope('home')).toEqual([
+      'case',
+      'insight',
+      'tool',
+      'episode',
+    ])
+    expect(typesForScope('home')).not.toContain('other')
   })
 
   it('un scope desconocido cae en home y no se reconoce como scope', () => {

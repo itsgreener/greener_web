@@ -44,8 +44,6 @@ function content(type: PublicContent['type']): PublicContent {
     summary: null,
     highlight: null,
     body: null,
-    coverMedia: null,
-    coverRatio: null,
   }
 }
 

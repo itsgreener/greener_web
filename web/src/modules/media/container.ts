@@ -2,10 +2,7 @@ import 'server-only'
 
 import { after } from 'next/server'
 
-import { makeDeleteCoverMedia } from './application/deleteCoverMedia'
 import { makeMediaCleanup } from './application/cleanupMedia'
-import { makeRegisterCoverImage } from './application/registerCoverImage'
-import { makeRegisterCoverVideo } from './application/registerCoverVideo'
 import { makeWarmScheduler } from './application/warmAfterResponse'
 import { makeContentWarming } from './application/warmContentMedia'
 import {
@@ -46,22 +43,6 @@ export const warmScheduler = makeWarmScheduler({
   warming: contentWarming,
   warmRepo: supabaseWarmRepository,
   defer: (task) => after(task),
-})
-
-export const registerCoverImage = makeRegisterCoverImage({
-  media: mediaAssets,
-  verifier: mediaVerifier,
-})
-
-export const registerCoverVideo = makeRegisterCoverVideo({
-  media: mediaAssets,
-  verifier: mediaVerifier,
-  warm: warmScheduler,
-})
-
-export const deleteCoverMedia = makeDeleteCoverMedia({
-  media: mediaAssets,
-  cleanup: mediaCleanup,
 })
 
 /** Firmas para que el navegador suba directamente a Cloudinary. */

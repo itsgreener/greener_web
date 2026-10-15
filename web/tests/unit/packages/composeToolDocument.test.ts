@@ -39,6 +39,8 @@ const SAMPLE_PACKAGE: ResolvedPackage = {
 </html>`,
 }
 
+const SITE_URL = 'https://itsgreener.com'
+
 const VIEWPORT = {
   width: 900,
   height: 700,
@@ -50,6 +52,7 @@ describe('composeToolDocument', () => {
     SAMPLE_PACKAGE,
     VIEWPORT,
     '/tools/pixel-palette/',
+    SITE_URL,
   )
 
   it('produce un único documento HTML, sin <html> anidado', () => {
@@ -83,6 +86,7 @@ describe('composeToolDocument', () => {
         sidebarWidth: 64,
       },
       '/tools/pixel-palette/app/',
+      SITE_URL,
     )
 
     expect(dynamicDoc).toContain(
@@ -156,17 +160,13 @@ describe('composeToolDocument', () => {
     expect(doc).toContain('<canvas id="canvas">')
   })
 
-  // Runtime de "Tool Used" client-side (29 sep, integrado desde otra rama
-  // de trabajo — ver el comentario de renderPackageAnalyticsRuntime en el
-  // propio módulo para la decisión pendiente sobre si convive con el
-  // evento que dispara el servidor en route.ts bajo el mismo nombre).
-  it('las tools cargan el runtime de analítica del paquete, con su slug', () => {
+  it('las tools cargan el runtime de analítica del paquete, con su tipo y su slug', () => {
     expect(doc).toContain(
-      '<script src="/greener-package-analytics.js" data-greener-tool-slug="pixel-palette"></script>',
+      '<script src="/greener-package-analytics.js" data-greener-kind="tool" data-greener-slug="pixel-palette"></script>',
     )
   })
 
-  it('los insights NO cargan ese runtime ("Tool Used" no existe para insights)', () => {
+  it('los insights también lo cargan, con kind="insight" (es lo que registra «Insight Open»)', () => {
     const insightPackage: ResolvedPackage = {
       ...SAMPLE_PACKAGE,
       manifest: { ...SAMPLE_PACKAGE.manifest, kind: 'insight' },
@@ -176,8 +176,11 @@ describe('composeToolDocument', () => {
       insightPackage,
       VIEWPORT,
       '/insights/pixel-palette/',
+      SITE_URL,
     )
 
-    expect(insightDoc).not.toContain('greener-package-analytics.js')
+    expect(insightDoc).toContain(
+      '<script src="/greener-package-analytics.js" data-greener-kind="insight" data-greener-slug="pixel-palette"></script>',
+    )
   })
 })

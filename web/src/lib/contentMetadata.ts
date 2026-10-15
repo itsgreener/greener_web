@@ -9,25 +9,22 @@ import type {
 } from '@/modules/content/domain/publicContent'
 
 /**
- * generateMetadata compartido por las plantillas de detalle que usan
- * cover_media_id directamente (tool/insight/other) — /work/[slug] no lo
- * usa porque su imagen de OG sale del carrusel de caso, no de la
- * portada (case/episode no rellenan cover_media_id, especificacion-
- * final-formato-detalle.md §3).
+ * generateMetadata compartido por las fichas de tool e insight. /work/[slug]
+ * no lo usa porque su imagen de OG sale del carrusel de caso.
  */
 export function buildContentMetadata(
   content: PublicContent,
   options?: {
     noindex?: boolean
-    // Medio de respaldo para la imagen de OG cuando el contenido no tiene
-    // portada (tool/insight, §2.40): primer medio de su primer pin.
+    // Imagen de OG de la ficha (tool/insight no tienen portada, §2.40): el
+    // medio del pin pedido (?pin=) o, si no, el de su primer pin.
     shareMedia?: PublicContentMedia | null
   },
 ): Metadata {
   const title = content.seoTitle ?? content.title
   const description = content.seoDescription ?? content.summary ?? undefined
 
-  const ogImage = buildOgImage(content.coverMedia ?? options?.shareMedia)
+  const ogImage = buildOgImage(options?.shareMedia)
 
   return {
     title,

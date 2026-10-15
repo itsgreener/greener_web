@@ -19,8 +19,6 @@ const CONTENT: PublicContent = {
   summary: null,
   highlight: 'Un subtítulo destacado',
   body: 'El cuerpo del caso.',
-  coverMedia: null,
-  coverRatio: null,
 }
 
 function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {

@@ -29,6 +29,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 import { supabaseHtmlPackageRepository } from '@/modules/packages/infrastructure/supabaseHtmlPackageRepository'
+import { VALID_METADATA } from '@tests/helpers/packageFixtures'
 
 const INPUT = {
   contentId: 'content-1',
@@ -43,6 +44,7 @@ const INPUT = {
     requiredCapabilities: [],
     externalDomains: [],
     minViewport: { width: 320, height: 420 },
+    metadata: VALID_METADATA,
   },
   checksum: 'abc',
 }

@@ -922,6 +922,106 @@ Implementa el plan de la auditoría (§2.67) con las decisiones de Greener: se m
 
 ---
 
+### 2.70 Auditoría general y del tipo `other` (14 oct 2026)
+
+**Qué se pidió.** Auditoría general del sitio siguiendo `docs/`, centrada en cómo está construido el tipo `other` (contenido libre, `/variety/[slug]`), que no se usa y cuyo uso nunca se cerró. Sin cambios en el código; informe completo en `docs/auditorias/auditoria-other-2026-10-14.md`.
+
+**Verificado.** 172 ficheros y 1796 tests en verde, `tsc` (tras `next typegen`) y ESLint limpios, 49 migraciones. `prettier --check` no es concluyente sobre el zip (llega sin ficheros ocultos y con CRLF). `next build` no se ejecutó.
+
+**Hallazgo general (G1, alta).** Desde §2.40, `/tools/{slug}` sin `?pin=` y `/insights/{slug}` se pintan sin medio: la página solo usa el medio del pin cuando llega `?pin=` y el insight no pasa ninguno; `generateMetadata` sí cae al primer pin. Afecta a las URL del sitemap, de `llms.txt` y de los enlaces compartidos. También: traducciones de tipo A que el ABM permite y la web no sirve (G3), comentario desfasado de las recomendaciones en `ToolInsightDetail` y `/variety` ausente de `llms.txt` (G4).
+
+**Hallazgos de `other`.** (O1) Sin propósito ni contenido: nació como «páginas sueltas» (arquitectura §14.3) y los textos legales acabaron en código; cuatro nombres para lo mismo (`other`, «Other», `/variety`, «Otros»); sin subhome ni menú. (O2) La cuota del 5 % es del tipo y no tiene tope por contenido: medido con `generateRound`, un solo `other` con el catálogo actual sin casos ocupa el 15,6 % de la ronda (7 de 45 pines, cada ~6) y con el de lanzamiento sale cada ~20 pines. (O3) Único tipo con pines **y** portada desde el 7 oct: subida doble, el pin pulsado no coincide con la ficha y toda la maquinaria de portada existe solo para él. (O4) Se publica sin pines ni portada. (O5) CTA «Watch» en el pin, ficha sin salida y sin evento propio. (O6) Pie del pin con el gancho libre, a diferencia del resto de tipos. (O7) Portada sin `alt` propio y `<video>` sin `playsInline` ni `preload`. (O8) Vídeo de portada con 100 MB / 180 s y duración expuesta al `?? 10`. (O9-O11) Sustitución de portada no atómica, OG sin respaldo y nombres de componentes que no mencionan `other`.
+
+**Pendiente de Greener.** D1 qué es `other` (pieza visual suelta, noticia/enlace saliente, pieza editorial con cuerpo o retirarlo), D2 su peso en el feed, D3 el nombre público, D4 qué exige para publicarse y D5 cómo se mide.
+
+### 2.71 Plan del tipo `other` (15 oct 2026)
+
+**Qué se decidió.** A partir de la reunión con Greener y de las respuestas del 15 de octubre: `other` tiene dos usos. (1) **Pin de newsletter**: formulario de Mailchimp dentro del feed, sin destino ni ficha; cuando el visitante se suscribe deja de salir en ese dispositivo, con una cookie propia de la newsletter (la fija el servidor) tratada como elemento aislado del resto del sitio; no lleva X y vuelve a salir al cabo de N pines. (2) **Página satélite**: paquete HTML en `/variety/{slug}/app` con el menú lateral, como tools e insights, para incorporar páginas de Greener (p. ej. careers) de forma orgánica; no desaparece al hacer clic. La frecuencia es un campo de cada contenido `other`, editable en `/admin/contents/{id}/edit` («una aparición cada N pines», mínimo 25), con primeras apariciones encadenadas: los `other` se barajan en cada visita, el primero cae entre el pin 10 y el 30 y cada siguiente 8-15 pines después de la posición inicial del anterior; después, cada N. Entre dos `other` hay al menos 5 pines y una repetición que se retrasaría más de 20 se omite. Solo se aplica en la home. El texto legal de la newsletter es una sección de `/privacy` (se descartó una página propia) y la suscripción deja de estar en el formulario de `/contact`: el pin es el único punto de alta. La portada de `other` se retira. La encuesta queda como idea ilustrativa, sin preparar nada.
+
+**Qué cambia en el diseño.** `other` sale de la cuota del motor y entra como interludio insertado al servir cada lote (cursor con contador `served`), sin tocar la ronda guardada; tabla `other_detail` con `other_kind` (`newsletter` o `page`) y `frequency`; migraciones para `other_detail`, el tipo de paquete `variety`, las reglas de publicación y la retirada de la portada. Detalle, fases y riesgos en `docs/especificaciones/plan-other-pines-y-paginas.md`.
+
+**Simulación del calendario (tarde del 15 de octubre).** Prototipo fuera de `src` con 1.000 visitas por escenario y el catálogo de 150 casos, 25 insights, 50 tools y 35 episodios (ronda de 643 pines). Con 20 `other` de N entre 75 y 200: ≈ 13 % del feed (uno cada 6,7 pines), distancia mínima siempre 5, nunca más de 6 en 30 pines, los 20 vistos hacia el pin 245. Con separación 3 llegaban a 10 en 30 pines. Sin tope de retraso, la saturación (30-40 `other` o 20 de N = 75) hace crecer la cola de retrasos durante la sesión; con tope de 20 queda acotada. Detalle en el §13 del plan.
+
+**Pendiente.** Ejecución (fases 0-6), criterio del asesor sobre la cookie `greener_newsletter` (la cookie propia se mantiene), mención de Mailchimp en la política de privacidad, confirmación de la duración de la cookie (12 meses propuestos) y del indicador de ocupación del ABM. Confirmados el 15 de octubre: CTA «Open», frecuencia mínima 25, tarjeta 4:5 (a medir) y páginas fuera del sitemap.
+
+### 2.72 Fase 0 del plan de `other`: fichas de tool e insight sin medio (15 oct 2026)
+
+**Qué fallaba (G1 de la auditoría del 14 oct).** Desde §2.40 tool e insight no tienen portada propia. `/tools/{slug}` solo pintaba un medio si la URL traía `?pin=` y `/insights/{slug}` nunca pintaba ninguno, así que las URL canónicas (sitemap, `llms.txt`, Google, un enlace compartido) enseñaban título, resumen y CTA con el hueco de una imagen vacío. El OG sí usaba el primer pin.
+
+**Qué se ha hecho.**
+1. `getFirstPinCover` (en `firstPinMedia.ts`) lee el primer pin con medio, ratio y alt; `getFirstPinMedia` queda como envoltorio. En el lector público, `firstPinMedia` se sustituye por `firstPinCover`, y el lector acotado a la petición la memoriza.
+2. `resolveDetailCover` (capa `application`, expuesta por el `container` de `content`): el pin de `?pin=` si es de este contenido y tiene medio; si no, el primer pin. Un `?pin=` ajeno ya no deja la ficha vacía.
+3. Las páginas de tool e insight pasan al componente el medio, el ratio y el alt de esa portada, y `generateMetadata` usa la misma lectura (una sola consulta por petición).
+4. Calentamiento de vídeo: un vídeo como primer pin de un insight se sirve con los controles de `other` (perfil `caseDetail`, escalón M del ratio del pin), así que `planVideoWarming` y `scripts/warm-cloudinary.mjs` añaden esa rendición a los pines de insight. Los pines de insight que ya existían se calientan con el script.
+5. `contrato-medios-fase-1.md` §5.2: la tabla de tamaños de origen indica que el primer pin de un insight sirve también de portada y sigue la columna de las tools.
+
+**Tests nuevos o ampliados.** `getFirstPinCover`, `resolveDetailCover`, las dos páginas con y sin `?pin=` (incluido el pin ajeno y el contenido sin ningún pin con medio) y el plan de calentamiento del insight.
+
+**Verificación.** 174 ficheros y 1811 tests en verde, `tsc` (tras `next typegen`), ESLint y `prettier` (CRLF) limpios en lo tocado.
+
+**Sin verificar contra una base real.** La consulta del primer pin añade las columnas `ratio` y `alt` al embebido que ya existía (las mismas que lee `pinCover`).
+
+**Decisiones de Greener ese día.** La cookie `greener_newsletter` dura 12 meses.
+
+### 2.73 Fase 1 del plan de `other` y retirada de la newsletter de `/contact` (15 oct 2026)
+
+**Newsletter fuera de `/contact`.** Por petición de Greener se retira ya, sin esperar a la fase 3: `NewsletterForm.tsx`, su CSS y su smoke test se borran; `contact/page.tsx` queda con el formulario de contacto solo; se limpian `page.module.css`, el menú lateral (`navItems.ts`), `llms.txt` y el texto del correo de contacto. Se conserva `newsletterActions.ts` y el módulo `newsletter` (los usará el pin, fase 3) y el evento `Newsletter Signup`. Hasta la fase 3 no hay ningún punto de alta.
+
+**Comprobación pedida: `/insights/{slug}` no redirige a `/insights/{slug}/app`.** Solo los pines del feed saltan a `/app` (`feedPinDestination`); la URL `/insights/{slug}` renderiza la ficha (título, resumen, CTA «Read» y, desde §2.72, el primer pin como medio). Se deja así a propósito: es la URL del sitemap, de `llms.txt`, de las vistas previas y del OG, y un rastreador o una previsualización necesitan HTML con contenido, no una redirección hacia una página con CSP aislada.
+
+**Migraciones** (`supabase/migrations/`, sin aplicar):
+1. `20261015100000_other_detail.sql`: enum `other_kind`, tabla `other_detail` (subtipo inmutable, frecuencia `>= 25`, defecto 100), disparador que solo admite contenido `other`, RLS (lectura pública de lo publicado, todo para el admin). Aborta si ya existe algún `other`.
+2. `20261015110000_html_package_kind_variety.sql`: `alter type html_package_kind add value 'variety'`, solo eso.
+3. `20261015120000_other_package_and_publish_rules.sql`: `create_html_package_version` acepta los `other` de tipo página (`variety`); `publish_content` y `schedule_content` exigen subtipo (ZG017) y, a la página, paquete publicado (ZG009) y un pin con medio (ZG018). La newsletter no exige más.
+4. `20261015130000_remove_other_cover.sql`: limpia datos y medios huérfanos, quita el CHECK, las columnas `cover_media_id` y `cover_ratio` y las RPC `register_cover_image`, `register_cover_video` y `unlink_and_delete_cover_media`; redefine `delete_pin` y `delete_content` sin mirar la portada.
+
+**Código.** Fuera toda la portada: casos de uso `registerCoverImage`, `registerCoverVideo` y `deleteCoverMedia`, sus esquemas, puerto y repositorio; `mediaActions.ts` y `CoverMediaUpload` del ABM; `coverMedia` y `coverRatio` de `PublicContent` y de `ContentDetail`; el uso `otherCover` del calentamiento (módulo, repositorio y `scripts/warm-cloudinary.mjs`); la portada en las lecturas de limpieza de medios y en `scripts/reconcile-cloudinary.mjs`; los errores `cover_unsupported` y `cover_video_unsupported`. `ToolInsightDetail` recibe una sola propiedad `cover` (medio, ratio y alt del pin) y `toolInsightDetailRatio` toma solo el ratio del pin. Nuevos tipos de error de dominio `other_kind_required` y `page_pin_required`, con su mensaje en el ABM y aceptados en publicar y programar. `database.types.ts` está editado a mano (marcado en su cabecera) hasta regenerarlo.
+
+**Tests.** Nuevos: `otherMigrations.test.ts` (las cuatro migraciones) y `noCoverCode.test.ts` (no queda código de portada). Retirados: `coverOnlyForOther`, `coverMediaUpload`, `mediaActions`, `applicationLayer` (solo cubría casos de uso de portada) y el smoke test de `NewsletterForm`. Adaptados: errores de Postgres (ZG017/ZG018 y la lectura de todas las migraciones), esquemas de medios (los límites de imagen y vídeo pasan a probarse con los esquemas del carrusel), plan de calentamiento, ficha de detalle, metadatos y páginas de tool e insight.
+
+**Verificación.** 171 ficheros y 1795 tests en verde, `tsc` (tras `next typegen`) y ESLint limpios. Los inventarios `docs/estructura/*.txt` se han puesto al día.
+
+**Sin verificar aquí.** Las migraciones no se han ejecutado contra una base real. Orden para Greener: `npx supabase db push`, luego `npm run db:types` (el diff debería ser solo de orden o formato) y, si hubiera medios de portada sueltos, `scripts/reconcile-cloudinary.mjs`.
+
+### 2.74 `/insights/{slug}` redirige a `/app` y se retira el primer pin de la ficha de insight (15 oct 2026)
+
+**Decisión de Greener.** Un insight no tiene ficha: su contenido es el paquete HTML. `/insights/{slug}` pasa a redirigir (307, temporal para que una despublicación no quede cacheada) a `/insights/{slug}/app`. La página ya no lee la base de datos: si el insight no existe o no está publicado, el 404 lo da `/app`.
+
+**Se retira lo que la fase 0 (§2.72) añadió para los insights.** La página ya no resuelve el primer pin ni genera metadatos; la rendición de calentamiento del vídeo de un pin de insight (perfil `caseDetail`, escalón M) desaparece de `warmPlan.ts` y de `scripts/warm-cloudinary.mjs`, con su test, y la tabla de §5.2 del contrato de medios vuelve a nombrar solo el pin de tool. Se conserva lo de las tools (`firstPinCover`, `resolveDetailCover`, OG del primer pin). Ya no hace falta calentar vídeos de insight antiguos con el script.
+
+**Rutas públicas.** `publicContentPath('insight')` devuelve `/insights/{slug}/app`, así que el sitemap lista esa URL (no una redirección), `llms.txt` la describe igual y el enlace de preview del ABM apunta ahí. `feedPinDestination` coincide ya con la ruta pública en todos los tipos.
+
+**Consecuencias.** (1) Una página de `/app` no tiene `og:image` ni título propios, así que un enlace de insight compartido en redes enseñará lo que dé el paquete HTML; si interesa una vista previa, hay que ponerla dentro del paquete. (2) El preview con token de un borrador de insight no funciona (ya era una limitación de `/app`, §4.2). (3) El evento `Insight Open` deja de dispararse: ninguna ruta pinta ya la ficha. El componente `ToolInsightDetail` conserva sus ramas de insight (tracker y vídeo con controles) sin uso; se pueden retirar cuando se quiera.
+
+**Valor confirmado.** Frecuencia por defecto de un `other`: 100.
+
+**Verificación.** 171 ficheros y 1793 tests en verde, `tsc` y ESLint limpios.
+
+### 2.75 Limpieza previa a la fase 2, «Insight Open» desde el servidor y metadatos dentro del ZIP (15 oct 2026)
+
+Petición de Greener antes de empezar la fase 2: dejar el código limpio, que exista un evento de insight abierto, y que el contrato del ZIP lleve los datos de compartición (imagen Open Graph y similares) **dentro del propio paquete**. Las consecuencias que se avisaron en §2.74 (enlaces compartidos sin ficha, preview de borradores de insight) se aceptan; esta entrada resuelve la primera con los metadatos del ZIP.
+
+**1. Código muerto retirado.**
+- `ToolInsightDetail`: la rama del tracker de insight. `CoverMedia`: la rama del vídeo con controles nativos (solo servía a insight y a `other` con portada, ambos ya sin medio) y la propiedad `isTool`; el vídeo es ahora siempre `ToolCoverVideo`.
+- `ContentOpenTracker`: el tipo `insight` y su `case`. Se documenta en el propio componente que «Insight Open» sale del servidor.
+- `feedPinDestination`: envoltorio idéntico a `publicContentPath` desde §2.74; el feed llama ya a `publicContentPath`.
+- `Newsletter Signup` (`AnalyticsEventMap`): sin emisor desde que el formulario salió de `/contact` (§2.73). La fase 4 lo da de alta con el pin de newsletter. `newsletterActions.ts` y el módulo `newsletter` no se tocan: la fase 4 los reutiliza.
+- Tests: los dos de vídeo de insight, el CTA «Read» de insight, el de `ContentOpenTracker` y los de `feedPinDestination` se retiran o se adaptan. `knip` no encuentra más ficheros sin uso; las exportaciones que señala se usan internamente y no se tocan.
+
+**2. «Insight Open» desde el servidor.** Un insight no tiene ficha React, así que el evento no puede salir del cliente de la ficha. `composeToolDocument` inyecta ahora `/greener-package-analytics.js` también en los insights, con `data-greener-kind` y `data-greener-slug` (antes `data-greener-tool-slug`, solo tools). Para `kind="insight"` el script hace un `POST /api/analytics/package` `{kind:'insight', slug}` al cargar y no expone nada al paquete. La ruta acepta ahora `kind` (`tool` por defecto, así que el formato antiguo sigue valiendo), resuelve el UUID con `publishedContentId('insight', slug)` y manda a Plausible «Insight Open» `{insightId}` con la URL `/insights/{slug}/app`; para tools sigue siendo «Tool Used» sin cambios. Mismas defensas que antes: `sec-fetch-site` same-origin, límite de 60/min por IP, solo contenido publicado y solo en producción. **Pendiente en Plausible:** «Insight Open» ya era objetivo (§2.21), no hay que dar de alta nada nuevo.
+
+**3. Bloque `metadata` en el `manifest.json`.** Campos: `title` (≤70), `description` (≤200), `language` (`es`, `en-GB`…), `ogImage {path, alt}`, `themeColor` (`#rrggbb`, opcional) y `keywords` (≤12, opcional). Obligatorio en toda subida nueva.
+- **Dos schemas** (`manifestSchema.ts`): `packageManifestSchema` (subida, exige `metadata`) y `storedPackageManifestSchema` (lectura de una versión guardada, `metadata` opcional y tolerante con `.catch`). `supabaseStorageSource` relee el manifest con el segundo, así que **las versiones publicadas antes de esta entrada siguen sirviéndose** (no pasan a 404 por haber endurecido la subida).
+- **Validación de la imagen** (`zipValidation.ts` + `imageDimensions.ts`, sin dependencias nuevas): existe en el ZIP, bajo `assets/`, ≤5 MB, su contenido es del formato que dice la extensión (lee la cabecera de PNG, JPEG y los tres tipos de WebP), ≥1200×630 y proporción 1,91:1 con ±5 %. El servidor **escribe en el manifest las medidas reales** (`ogImage.width/height`), descartando las que ponga el autor. Los textos de `metadata` pasan por el escaneo de dominios como el resto del manifest.
+- **Head generado** (`renderPackageHead.ts`, usado por `composeToolDocument`): `<title>` «{title} · Greener», `<html lang>`, description, canonical, `og:*` (incluidos `og:image:alt/width/height` y `og:locale`), `twitter:*` (`summary_large_image`), `theme-color`, `keywords` y JSON-LD (`Article` para insight, `WebApplication` para tool, con `<` escapado). URLs absolutas con `NEXT_PUBLIC_SITE_URL`, que las dos rutas pasan ahora como cuarto argumento. Si hay `metadata`, se quitan del `<head>` del paquete sus propias etiquetas equivalentes para no duplicarlas; sin ella (versiones antiguas) el documento queda como antes (`{slug} · Greener`, `lang="en"`).
+- **No hay migración**: el manifest ya se guardaba como `jsonb` completo en `html_package_version.manifest`.
+
+**4. Documentación.** `contrato-zip-tools-insights.md` reescrito: manifest de ejemplo con `metadata`, §2.1 nuevo (campos, reglas de la imagen, qué escribe el servidor, versiones antiguas), §6 numerado (6.1–6.7) con §6.2 «Qué mete Greener en el `<head>`» y §6.7 «Analítica del paquete» (Insight Open automático), §7 y checklist (§8) al día. Plan de `other`: nota de analítica de la fase 4.
+
+**Para Greener.** (1) **Los ZIP que se preparen a partir de ahora deben incluir `metadata` y la imagen**; uno sin ella se rechaza con el campo que falta. (2) Los insights y tools **ya publicados** no tienen tarjeta para compartir hasta que se suba una versión nueva con `metadata` (hay que subirla y publicarla). (3) Las redes cachean la tarjeta: tras publicar, pasar el enlace por el depurador de LinkedIn/Facebook.
+
+**Verificación.** 175 ficheros y 1856 tests en verde, `tsc` y ESLint limpios.
+
 ## Historial de correcciones de `docs/PROGRESO.md` (hasta el 2 de octubre)
 
 Registro fechado de las correcciones y cambios que se fueron anotando en `docs/PROGRESO.md` mientras se escribían las secciones anteriores. Se archivó aquí el 5 de octubre; a partir de esa fecha, los cambios nuevos se anotan en el «Registro de cambios» de `docs/PROGRESO.md`.
@@ -1309,3 +1409,25 @@ Tests (`bulkPinUpload.test.tsx`): quitar el fallido no resucita las subidas; vol
 **Sin verificar contra una base real.** Las consultas con embebidos de PostgREST (la versión actual del paquete por `html_package_current_version_fk`, y `og_media_id`) pasan `tsc` con los tipos generados, pero no se han ejecutado contra Supabase. Prueba rápida recomendada: abrir `/tools/<slug>/app` de una tool publicada y editar y borrar un contenido desde el ABM.
 
 **Verificación.** 158 ficheros y 1641 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios, `next build` correcto (todas las rutas dinámicas; ya no existen `/preview` ni `/api/feed/demo`).
+
+### 2.76 Fase 2 del plan de `other`: interludios en el feed (15 oct 2026)
+
+Petición de Greener: «Continua con las fase 2». Se implementa el motor de interludios del plan (§4): los contenidos `other` salen del cupo de la ronda y se intercalan al servir cada lote. Las fases 3 (tarjeta de newsletter) y 4 (página satélite) siguen pendientes.
+
+**Calendario (`feed/domain/interludes.ts`, puro y sin estado).** Orden barajado con `deriveRng(seed, 'interludes', 'order')`; primer inicio entre 10 y 30 y cada siguiente a 8-15 del anterior; repetición cada N desde el inicio (calendario nominal que nunca se corre); separación mínima de 5 pines de ronda; una repetición que se retrasaría más de 20 pines se omite y la primera aparición nunca. Se recalcula desde cero en cada petición: el plan hasta el pin X es prefijo exacto del plan hasta Y > X, así que lotes de 20 y de 40 dan la misma secuencia. Posiciones en pines de ronda servidos, 1-based; el interludio va justo detrás de su pin, aunque ese pin ya no esté publicado.
+
+**Cursor.** `FeedCursorPayload` gana `served` (pines de ronda servidos, sin contar interludios). Un cursor anterior, sin el campo, se lee como `0`; un `served` negativo o no entero se rechaza.
+
+**Caso de uso.** `getFeedSessionBatch(sessionId, cursor, size, { newsletterSubscribed })`. Los interludios solo se aplican con `scope = 'home'` y sin `excludeContentId` (las recomendaciones de una ficha son sesiones `home` con exclusión). La lectura de los `other` es perezosa y, si falla, se sirve el lote sin interludios (error al log, no 500). La newsletter suscrita se omite sin sustituirla; una página con varios pines rota entre ellos según la aparición.
+
+**Elementos del feed.** `FeedBatchItem` es ahora `FeedPinItem | FeedNewsletterItem`; la newsletter lleva `pinId = newsletter:{contentId}:{n}` (único por aparición). El pin de una página apunta a `/variety/{slug}/app` con CTA «Open».
+
+**Catálogo y caché.** `FeedCatalog.interludes()` lee los `other` publicados (`getFeedInterludes`): titular y texto de la newsletter en el idioma por defecto; pines de la página con medio listo en el orden del ABM; se ignora lo que no tenga `other_detail` o ningún pin servible. Va en `unstable_cache` con la etiqueta del feed y 60 s. `home` ya no incluye `other` en el universo de la ronda; `generateRound` no se toca (el cupo del `other` se reparte entre los demás tipos al estar vacío).
+
+**Ruta.** `GET /api/feed/{sessionId}` lee la cookie `greener_newsletter` (valor `1`; constante en `newsletter/domain/newsletterCookie.ts`) y la pasa al caso de uso.
+
+**Transitorio hasta las fases 3 y 4.** `fetchFeedBatch` filtra los elementos de newsletter porque aún no hay tarjeta, y el pin de una página lleva a una ruta que todavía no existe. Con ningún `other` publicado (hoy no puede publicarse ninguno sin `other_detail`) el feed es idéntico al anterior.
+
+**Pendiente de Greener.** Aplicar las cuatro migraciones (`npx supabase db push`) y `npm run db:types`; criterio del asesor sobre la cookie `greener_newsletter`; decidir el indicador de ocupación del ABM (plan §7.6).
+
+**Verificación.** 179 ficheros y 1902 tests en verde, `tsc` y ESLint limpios; tests nuevos de propiedades y unitarios del calendario, del caso de uso con interludios, de la ruta con la cookie, de `getFeedInterludes`, de la caché y del filtro de `fetchFeedBatch`.

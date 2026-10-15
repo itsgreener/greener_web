@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { env } from '@/lib/env'
 import { packageErrorResponse } from '@/lib/http/packageErrorResponse'
 import {
   composeToolDocument,
@@ -34,6 +35,7 @@ export async function GET(
         sidebarWidth: SIDEBAR_WIDTH,
       },
       `/tools/${slug}/app/`,
+      env.NEXT_PUBLIC_SITE_URL,
     )
 
     return new NextResponse(html, {

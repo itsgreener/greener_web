@@ -4,6 +4,33 @@
  * este spike, Supabase Storage en producción — arquitectura §5, §12.2).
  */
 
+/**
+ * Metadatos de compartición y SEO del paquete (contrato del ZIP §2.1). Los
+ * escribe el autor dentro del propio `manifest.json`; Greener los inyecta en
+ * el `<head>` del documento servido (Open Graph, Twitter, canonical, JSON-LD).
+ *
+ * Opcional SOLO en el tipo porque las versiones publicadas antes de que
+ * existiera este bloque no lo tienen; una subida nueva siempre lo exige
+ * (`manifestSchema.ts`).
+ */
+export interface PackageMetadata {
+  title: string
+  description: string
+  /** Código de idioma: `es`, `en`, `ca`, `es-ES`… */
+  language: string
+  ogImage: {
+    /** Ruta dentro del ZIP, siempre bajo `assets/`. */
+    path: string
+    alt: string
+    /** Medidas reales, escritas por el servidor al validar la subida. */
+    width?: number
+    height?: number
+  }
+  /** `#rrggbb`. */
+  themeColor?: string
+  keywords?: string[]
+}
+
 export interface PackageManifest {
   kind: 'tool' | 'insight'
   entrypoint: string
@@ -11,6 +38,7 @@ export interface PackageManifest {
   requiredCapabilities: string[]
   externalDomains: string[]
   minViewport: { width: number; height: number }
+  metadata?: PackageMetadata
 }
 
 export interface ResolvedPackage {

@@ -26,11 +26,11 @@ export const DOMAIN_ERROR_KINDS = [
   'not_a_case',
   'not_an_episode',
   'episode_locale_only',
-  'cover_unsupported',
-  'cover_video_unsupported',
   'only_draft_deletable',
   // Publicación y paquetes
   'package_required',
+  'other_kind_required',
+  'page_pin_required',
   'publish_date_in_past',
   'active_version_undeletable',
 ] as const

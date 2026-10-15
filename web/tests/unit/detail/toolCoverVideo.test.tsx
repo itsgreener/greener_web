@@ -20,8 +20,6 @@ const BASE: PublicContent = {
   summary: 'Resumen',
   highlight: null,
   body: null,
-  coverMedia: null,
-  coverRatio: null,
 }
 
 type IOEntry = { isIntersecting: boolean }
@@ -558,10 +556,8 @@ describe('ToolInsightDetail — portada de vídeo según el tipo de contenido', 
   it('en una TOOL, el vídeo es el reproductor nuevo (sin controles nativos), con el alt del pin', () => {
     const { container } = render(
       <ToolInsightDetail
-        content={{ ...BASE, coverMedia: VIDEO, coverRatio: '16:9' }}
-        coverMediaOverride={VIDEO}
-        coverRatioOverride="16:9"
-        coverAltOverride="Demo de la herramienta"
+        content={BASE}
+        cover={{ media: VIDEO, ratio: '16:9', alt: 'Demo de la herramienta' }}
       />,
     )
 
@@ -576,8 +572,7 @@ describe('ToolInsightDetail — portada de vídeo según el tipo de contenido', 
     const { container } = render(
       <ToolInsightDetail
         content={BASE}
-        coverMediaOverride={VIDEO}
-        coverRatioOverride="16:9"
+        cover={{ media: VIDEO, ratio: '16:9', alt: '' }}
       />,
     )
 
@@ -587,46 +582,15 @@ describe('ToolInsightDetail — portada de vídeo según el tipo de contenido', 
     )
   })
 
-  it('en contenido libre (other) la portada de vídeo NO cambia: controles nativos y sin botón propio', () => {
-    const { container } = render(
-      <ToolInsightDetail
-        content={{
-          ...BASE,
-          type: 'other',
-          coverMedia: VIDEO,
-          coverRatio: '16:9',
-        }}
-      />,
-    )
-
-    const video = container.querySelector('video')!
-
-    expect(video).toHaveAttribute('controls')
-    expect(
-      screen.queryByRole('button', { name: /video/i }),
-    ).not.toBeInTheDocument()
-
-    // Contrato de medios §4.2: escalón M, dos fuentes explícitas y el audio
-    // CONSERVADO (lleva controles): ningún `ac_none`.
-    const sources = Array.from(video.querySelectorAll('source')).map((s) =>
-      s.getAttribute('src'),
-    )
-
-    expect(sources).toHaveLength(2)
-    for (const src of sources) {
-      expect(src).toContain('c_limit,w_1280,h_720')
-      expect(src).not.toContain('ac_none')
-      expect(src).not.toContain('f_auto')
-    }
-    expect(video.hasAttribute('src')).toBe(false)
-  })
-
-  it('una portada de imagen sigue pintándose como imagen', () => {
+  it('un medio de imagen sigue pintándose como imagen', () => {
     const { container } = render(
       <ToolInsightDetail
         content={BASE}
-        coverMediaOverride={{ kind: 'image', cloudinaryPublicId: 'img' }}
-        coverRatioOverride="4:5"
+        cover={{
+          media: { kind: 'image', cloudinaryPublicId: 'img' },
+          ratio: '4:5',
+          alt: 'Imagen',
+        }}
       />,
     )
 

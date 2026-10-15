@@ -50,10 +50,6 @@ export type AnalyticsEventMap = {
     provider: string
   }
 
-  'Newsletter Signup': {
-    placement: string
-  }
-
   'Feed Depth': {
     section: string
     round: number

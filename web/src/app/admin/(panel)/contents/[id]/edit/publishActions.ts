@@ -65,10 +65,10 @@ export async function publishContentAction(
       error: adminErrorMessage(
         error,
         'No se ha podido publicar el contenido.',
-        [],
+        ['other_kind_required', 'page_pin_required'],
         {
           package_required:
-            'Esta tool/insight no tiene un paquete HTML publicado todavía — sube y publica una versión antes de publicar el contenido.',
+            'Este contenido no tiene un paquete HTML publicado todavía — sube y publica una versión antes de publicar el contenido.',
         },
       ),
     }
@@ -113,10 +113,10 @@ export async function scheduleContentAction(
       formError: adminErrorMessage(
         error,
         'No se ha podido programar la publicación.',
-        [],
+        ['other_kind_required', 'page_pin_required'],
         {
           package_required:
-            'Esta tool/insight no tiene un paquete HTML publicado todavía — sube y publica una versión antes de programarla.',
+            'Este contenido no tiene un paquete HTML publicado todavía — sube y publica una versión antes de programarlo.',
         },
       ),
     }

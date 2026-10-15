@@ -46,7 +46,7 @@ export function requestScopedReader(
     caseDetail: once('caseDetail', (id) => reader.caseDetail(id)),
     caseCarousel: once('caseCarousel', (id) => reader.caseCarousel(id)),
     episode: once('episode', (id) => reader.episode(id)),
-    firstPinMedia: once('firstPinMedia', (id) => reader.firstPinMedia(id)),
+    firstPinCover: once('firstPinCover', (id) => reader.firstPinCover(id)),
     episodePoster: once('episodePoster', (id) => reader.episodePoster(id)),
     pinCover: once('pinCover', (id, pinId) => reader.pinCover(id, pinId)),
     publishedContentId: once('publishedContentId', (type, slug) =>

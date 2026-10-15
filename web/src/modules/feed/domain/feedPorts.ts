@@ -1,4 +1,8 @@
-import type { FeedDataset, PinDirectoryEntry } from './feedReadModels'
+import type {
+  FeedDataset,
+  FeedInterlude,
+  PinDirectoryEntry,
+} from './feedReadModels'
 import type { FeedConfig } from './types'
 
 export interface FeedSession {
@@ -45,6 +49,13 @@ export interface FeedCatalog {
   directoryByIds(unitIds: string[]): Promise<Record<string, PinDirectoryEntry>>
 
   config(): Promise<FeedConfig>
+
+  /**
+   * Contenidos `other` publicados y servibles, con su frecuencia. No forman
+   * parte del universo de la ronda: el calendario de interludios
+   * (`domain/interludes.ts`) los intercala al servir cada lote.
+   */
+  interludes(): Promise<FeedInterlude[]>
 }
 
 export interface FeedCursorPayload {
@@ -52,6 +63,10 @@ export interface FeedCursorPayload {
   roundIndex: number
   // Posición dentro de la ronda (pines ya servidos de ella). 0 = principio.
   offset: number
+  // Pines de ronda servidos en TODA la sesión (sin contar los interludios):
+  // es el contador sobre el que se calcula el calendario de interludios. Un
+  // cursor anterior a este campo se lee como 0.
+  served: number
 }
 
 /** Cursor opaco y firmado: el cliente no puede alterar cuotas ni seed. */

@@ -19,8 +19,6 @@ const BASE_CONTENT: PublicContent = {
   summary: 'Resumen de la tool',
   highlight: null,
   body: null,
-  coverMedia: null,
-  coverRatio: null,
 }
 
 function fakeBatch(count: number, hasMore: boolean): FeedBatchResult {
@@ -123,7 +121,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
     )
   })
 
-  it.each(['insight', 'other'] as const)(
+  it.each(['tool', 'other'] as const)(
     'las recomendaciones de la ficha de %s también usan scope home',
     async (type) => {
       render(<ToolInsightDetail content={{ ...BASE_CONTENT, type }} />)
@@ -153,22 +151,7 @@ describe('ToolInsightDetail — prueba de humo', () => {
     )
   })
 
-  it('con un insight, el CTA es "Read" en vez de "Use"', async () => {
-    render(
-      <ToolInsightDetail
-        content={{ ...BASE_CONTENT, type: 'insight' }}
-        ctaLabel="Read"
-        appHref="/insights/mi-tool/app"
-      />,
-    )
-
-    expect(screen.getByRole('link', { name: 'Read' })).toHaveAttribute(
-      'href',
-      '/insights/mi-tool/app',
-    )
-  })
-
-  it('sin cover_media_id (todavía no se ha subido portada), no revienta y omite la imagen', () => {
+  it('sin pin (cover null), no revienta y omite la imagen', () => {
     const { container } = render(
       <ToolInsightDetail
         content={BASE_CONTENT}
@@ -180,13 +163,14 @@ describe('ToolInsightDetail — prueba de humo', () => {
     expect(container.querySelector('img')).not.toBeInTheDocument()
   })
 
-  it('con cover_media_id de imagen, la pinta', () => {
+  it('con el medio de un pin de imagen, lo pinta', () => {
     render(
       <ToolInsightDetail
-        content={{
-          ...BASE_CONTENT,
-          coverMedia: { kind: 'image', cloudinaryPublicId: 'cover1' },
-          coverRatio: '16:9',
+        content={BASE_CONTENT}
+        cover={{
+          media: { kind: 'image', cloudinaryPublicId: 'cover1' },
+          ratio: '16:9',
+          alt: 'Mi tool',
         }}
         ctaLabel="Use"
         appHref="/tools/mi-tool/app"
@@ -217,31 +201,10 @@ describe('ToolInsightDetail — prueba de humo', () => {
     expect(screen.getByText('Mi tool')).toBeInTheDocument()
   })
 
-  it('sin ctaLabel/appHref (contenido libre, /variety/[slug]), no pinta ningún CTA', () => {
+  it('sin ctaLabel/appHref no pinta ningún CTA', () => {
     render(<ToolInsightDetail content={BASE_CONTENT} />)
 
     expect(screen.queryByRole('link')).not.toBeInTheDocument()
-  })
-
-  it('con cover_media_id de vídeo (contenido libre admite vídeo, especificacion-final-formato-detalle.md §3), lo pinta como <video>', () => {
-    const { container } = render(
-      <ToolInsightDetail
-        content={{
-          ...BASE_CONTENT,
-          coverMedia: { kind: 'video', cloudinaryPublicId: 'cover-video' },
-          coverRatio: '16:9',
-        }}
-      />,
-    )
-
-    const video = container.querySelector('video')
-    expect(video).toBeInTheDocument()
-    expect(video).toHaveAttribute('aria-label', 'Mi tool')
-    // Ninguna imagen de portada: la única <img> es la capa decorativa del
-    // póster del vídeo (alt vacío, aria-hidden).
-    expect(
-      container.querySelector('img:not([aria-hidden="true"])'),
-    ).not.toBeInTheDocument()
   })
 
   it('carga y pinta las recomendaciones del panel (excluido el propio contenido del universo)', async () => {

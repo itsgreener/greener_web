@@ -37,13 +37,6 @@ export interface PublicContent {
   summary: string | null
   highlight: string | null
   body: string | null
-  coverMedia: PublicContentMedia | null
-  // especificacion-final-formato-detalle.md §2, §4: gobierna el grupo de
-  // columnas del bloque de contenido en tipo A/libre. null solo en
-  // contenido sin portada todavía, o que no admite cover_ratio (caso,
-  // episodio — ahí el ratio del bloque sale de otro sitio, §2 del 21
-  // sep: el medio más ancho del carrusel, no de este campo).
-  coverRatio: PinRatioValue | null
 }
 
 /**

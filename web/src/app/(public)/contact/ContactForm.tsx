@@ -63,29 +63,32 @@ export function ContactForm() {
         )}
       </div>
 
-      <div className={styles.consent}>
-        <label htmlFor="privacyConsent">
-          <input
-            id="privacyConsent"
-            name="privacyConsent"
-            type="checkbox"
-            required
-          />
-          I agree to the{' '}
-          <Link href="/privacy" target="_blank" rel="noopener">
-            Privacy &amp; Cookies policy
-          </Link>
-        </label>
-        {state.fieldErrors?.privacyConsent?.[0] && (
-          <p>{state.fieldErrors.privacyConsent[0]}</p>
-        )}
+      {/* Consentimiento y botón en una misma fila (space-between). */}
+      <div className={styles.actions}>
+        <div className={styles.consent}>
+          <label htmlFor="privacyConsent">
+            <input
+              id="privacyConsent"
+              name="privacyConsent"
+              type="checkbox"
+              required
+            />
+            I agree to the{' '}
+            <Link href="/privacy" target="_blank" rel="noopener">
+              Privacy &amp; Cookies policy
+            </Link>
+          </label>
+          {state.fieldErrors?.privacyConsent?.[0] && (
+            <p>{state.fieldErrors.privacyConsent[0]}</p>
+          )}
+        </div>
+
+        <button type="submit" disabled={pending} className={styles.submit}>
+          {pending ? 'Sending…' : 'Send'}
+        </button>
       </div>
 
       {state.formError && <p className={styles.formError}>{state.formError}</p>}
-
-      <button type="submit" disabled={pending} className={styles.submit}>
-        {pending ? 'Sending…' : 'Send'}
-      </button>
     </form>
   )
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FeedBatchItem } from '@/modules/feed/domain/feedReadModels'
+import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
 import {
   computeMasonryLayout,
   columnsForViewport,
@@ -56,7 +56,7 @@ export interface PositionedRecommendation {
    * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
    */
   key: string
-  item: FeedBatchItem
+  item: FeedPinItem
   x: number
   y: number
   width: number
@@ -90,7 +90,7 @@ export function useRecommendationMasonry(
   const [viewportHeight, setViewportHeight] = useState(0)
 
   const [sessionId, setSessionId] = useState<string | null>(null)
-  const [items, setItems] = useState<FeedBatchItem[]>([])
+  const [items, setItems] = useState<FeedPinItem[]>([])
   // Ref, no estado: `loadMore` está memorizado y leería un cursor congelado
   // (auditoría 8 oct, P0-4: el panel pedía siempre la ronda 0).
   const cursorRef = useRef<string | null>(null)

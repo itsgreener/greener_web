@@ -20,9 +20,10 @@ const DEFAULT_MESSAGES: Readonly<Partial<Record<DomainErrorKind, string>>> = {
   video_too_large: 'El vídeo supera los 100 MB.',
   pin_label_required: PIN_LABEL_REQUIRED_MESSAGE,
   pin_media_limit: 'Un pin admite hasta 8 medios',
-  cover_unsupported: 'Este tipo de contenido no admite imagen de portada.',
-  cover_video_unsupported:
-    'Solo el contenido libre (Other) admite vídeo de portada.',
+  other_kind_required:
+    'Este contenido Other no tiene subtipo (newsletter o página satélite): no se puede publicar sin él.',
+  page_pin_required:
+    'Esta página satélite no tiene ningún pin con medio: añade uno antes de publicarla, o no saldrá en el feed.',
   stale_reference:
     'Este medio ha cambiado desde otra pestaña o sesión. Recarga la página antes de sustituirlo.',
   media_in_use:

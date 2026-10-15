@@ -39,8 +39,8 @@ function escapeHtml(value: string): string {
 /**
  * Envía el mensaje del formulario de contacto a la dirección de Greener
  * configurada (CONTACT_EMAIL_TO) — sin Mailchimp, eso es un flujo
- * aparte (newsletter, doble opt-in) que queda fuera a propósito por
- * ahora. `replyTo` al email que dejó el visitante: responder al correo
+ * aparte (newsletter, doble opt-in) que se gestiona desde su pin en el
+ * feed, no desde este formulario. `replyTo` al email que dejó el visitante: responder al correo
  * recibido contesta directamente a la persona, no a la propia bandeja
  * de envío.
  */

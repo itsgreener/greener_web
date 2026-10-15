@@ -3,6 +3,11 @@ import AdmZip from 'adm-zip'
 
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
 import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
+import {
+  OG_IMAGE_PATH,
+  VALID_METADATA,
+  pngBytes,
+} from '@tests/helpers/packageFixtures'
 
 /**
  * Cada test fija una afirmación concreta de `contrato-zip-tools-insights.md`
@@ -19,6 +24,7 @@ function manifest(externalDomains: string[] = []) {
     requiredCapabilities: [],
     externalDomains,
     minViewport: { width: 320, height: 420 },
+    metadata: VALID_METADATA,
   }
 }
 
@@ -34,6 +40,7 @@ function buildZip(
   for (const [path, content] of Object.entries(files)) {
     zip.addFile(path, Buffer.from(content))
   }
+  zip.addFile(OG_IMAGE_PATH, pngBytes())
   return zip.toBuffer()
 }
 
@@ -146,6 +153,7 @@ describe('contrato §3 — el escaneo de dominios cuenta todo, sin distinguir ti
   it('también se escanea el propio manifest.json', () => {
     const zip = new AdmZip()
     zip.addFile('index.html', Buffer.from('<p>hola</p>'))
+    zip.addFile(OG_IMAGE_PATH, pngBytes())
     zip.addFile(
       'manifest.json',
       Buffer.from(

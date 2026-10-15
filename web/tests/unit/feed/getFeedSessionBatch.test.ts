@@ -9,7 +9,11 @@ import type {
   FeedSession,
   FeedSessionRepository,
 } from '@/modules/feed/domain/feedPorts'
-import type { PinDirectoryEntry } from '@/modules/feed/domain/feedReadModels'
+import type {
+  FeedBatchResult,
+  FeedPinItem,
+  PinDirectoryEntry,
+} from '@/modules/feed/domain/feedReadModels'
 import {
   encodeCursor,
   signedFeedCursor,
@@ -24,16 +28,21 @@ interface GetFeedSessionBatchDeps {
   getDataset: FeedCatalog['dataset']
   getConfig: FeedCatalog['config']
   getDirectoryByIds: FeedCatalog['directoryByIds']
+  getInterludes: FeedCatalog['interludes']
 }
 
-/** El caso de uso sobre los dobles, resolviéndolos en cada llamada. */
-function getFeedSessionBatch(
+/**
+ * El caso de uso sobre los dobles, resolviéndolos en cada llamada. Estos
+ * tests no usan interludios (catálogo sin `other`), así que todos los
+ * elementos son pines.
+ */
+async function getFeedSessionBatch(
   sessionId: string,
   cursor: string | null,
   d: GetFeedSessionBatchDeps,
   size?: number | null,
-) {
-  return makeGetFeedSessionBatch({
+): Promise<Omit<FeedBatchResult, 'items'> & { items: FeedPinItem[] }> {
+  const result = await makeGetFeedSessionBatch({
     sessions: {
       create: vi.fn(),
       get: (id) => d.getSession(id),
@@ -44,9 +53,12 @@ function getFeedSessionBatch(
       dataset: (scope, exclude) => d.getDataset(scope, exclude),
       directoryByIds: (ids) => d.getDirectoryByIds(ids),
       config: () => d.getConfig(),
+      interludes: () => d.getInterludes(),
     },
     cursors: signedFeedCursor,
   })(sessionId, cursor, size)
+
+  return { ...result, items: result.items as FeedPinItem[] }
 }
 
 const SESSION: FeedSession = {
@@ -120,6 +132,7 @@ function inMemoryDeps(): GetFeedSessionBatchDeps & {
     ),
     getDataset: vi.fn(async () => DATASET),
     getConfig: vi.fn(async () => CONFIG),
+    getInterludes: vi.fn(async () => []),
     getDirectoryByIds: vi.fn(async (pinIds: string[]) =>
       Object.fromEntries(pinIds.map((id) => [id, DATASET.pinDirectory[id]])),
     ),
@@ -229,6 +242,7 @@ describe('getFeedSessionBatch', () => {
       sessionId: 'otra-sesion',
       roundIndex: 0,
       offset: 0,
+      served: 0,
     })
     await expect(
       getFeedSessionBatch(SESSION.id, cursorDeOtraSesion, deps),
@@ -496,6 +510,7 @@ describe('getFeedSessionBatch', () => {
         sessionId: SESSION.id,
         roundIndex: 0,
         offset: 999,
+        served: 0,
       })
 
       const result = await getFeedSessionBatch(SESSION.id, stale, deps)

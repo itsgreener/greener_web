@@ -15,7 +15,7 @@
 | Ancho del contenido (imagen+texto) | Variable, 3-5 columnas según ratio                                                                               | **Siempre 6/6**, fijo                                                        | Variable, 3-5 columnas, igual que tipo A                |
 | Recomendaciones                    | Derecha (1-3 columnas, el resto hasta 6) + debajo                                                                | Solo debajo (no hay hueco lateral)                                           | Derecha + debajo, igual que tipo A                      |
 | Editor de bloques libre            | No existe                                                                                                        | No existe                                                                    | No existe                                               |
-| Paquete HTML propio                | **Sí — tool/insight exigen su `html_package`** (ZIP con manifest, ya construido, sin cambios) servido en `/tools | insights/[slug]/app`                                                         | No                                                      | No  |
+| Paquete HTML propio                | **Sí — tool/insight exigen su `html_package`** (ZIP con manifest; desde el 15 oct 2026 el manifest lleva el bloque `metadata` con la imagen Open Graph, §2.75) servido en `/tools | insights/[slug]/app`                                                         | No                                                      | No  |
 
 ---
 
@@ -86,7 +86,7 @@ Igual que caso, sustituyendo `client` por:
 | `summary`                       | Sí         | Campo libre: para qué sirve / tema general (reutiliza columna ya existente)                               |
 | `seo_title` / `seo_description` | Sí         |                                                                                                           |
 | `cover_media_id`                | —          | 1 imagen, WebP, máx. 5 MB (en una tool, el medio de la ficha es el del pin de origen, imagen o vídeo, §8) |
-| **Paquete HTML**                | —          | **Obligatorio.** ZIP con `manifest.json`, servido aparte en `/tools                                       | insights/[slug]/app`. Sistema ya construido, sin cambios — contrato detallado en documento aparte (§5) |
+| **Paquete HTML**                | —          | **Obligatorio.** ZIP con `manifest.json`, servido aparte en `/tools                                       | insights/[slug]/app`. Desde el 15 oct 2026 el `manifest.json` incluye `metadata` obligatoria (título, descripción, idioma, imagen Open Graph; contrato §2.1) — contrato detallado en documento aparte (§5) |
 
 ### Contenido libre (`other`)
 
@@ -129,7 +129,7 @@ Contrato y validaciones detalladas en documento aparte: **`docs/especificaciones
 ## 7. Rutas
 
 - `/work/[slug]` → detalle tipo B (caso/episodio)
-- `/tools/[slug]`, `/insights/[slug]` → detalle tipo A
+- `/tools/[slug]` → detalle tipo A. `/insights/[slug]` **ya no tiene ficha: redirige (307) a `/insights/[slug]/app`** (15 oct 2026, §2.74)
 - `/tools/[slug]/app`, `/insights/[slug]/app` → HTML real de la tool/insight
 - `/variety/[slug]` → contenido libre (`other`) — **decidido el 21 de septiembre**, no estaba en esta lista en la v2 original. Prefijo propio en vez de raíz (`/[slug]`), para no arriesgar colisión con el resto de rutas del sitio (`/work`, `/tools`, `/insights`, `/channel`, `/contact`, `/admin`, `/preview`) sin necesidad de mantener una lista de palabras reservadas que validar en el ABM.
 

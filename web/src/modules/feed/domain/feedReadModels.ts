@@ -1,6 +1,6 @@
 import type { ContentType } from '@/modules/shared/domain/contentType'
 
-import type { FeedSnapshot } from './types'
+import type { FeedContentKind, FeedSnapshot } from './types'
 
 export interface FeedItemMedia {
   kind: 'image' | 'video'
@@ -46,10 +46,10 @@ export interface FeedDataset {
 }
 
 /** Un pin tal como lo recibe el navegador. */
-export interface FeedBatchItem {
+export interface FeedPinItem {
   pinId: string
   contentId: string
-  kind: string
+  kind: FeedContentKind
   destination: string
   ratio: string
   label: string | null
@@ -61,6 +61,60 @@ export interface FeedBatchItem {
   autoplayMode: 'viewport' | 'hover' | null
   media: FeedItemMedia[]
 }
+
+/**
+ * Aparición de un pin de newsletter (`other` de subtipo newsletter): no tiene
+ * medios ni destino, es un formulario. Se identifica por `kind: 'newsletter'`.
+ * `pinId` es único por aparición (`newsletter:{contentId}:{n}`) para no
+ * repetir la clave en el masonry, que ya incluye el índice de posición.
+ */
+export interface FeedNewsletterItem {
+  kind: 'newsletter'
+  pinId: string
+  contentId: string
+  /** Titular (`content_translation.title`, idioma por defecto). */
+  title: string
+  /** Texto de apoyo (`content_translation.summary`), si lo hay. */
+  text: string | null
+}
+
+/**
+ * Lo que el feed sirve: un pin o, intercalada por el calendario de
+ * interludios (`domain/interludes.ts`), una aparición de newsletter. Las
+ * páginas satélite llegan como pines normales (`FeedPinItem`).
+ */
+export type FeedBatchItem = FeedPinItem | FeedNewsletterItem
+
+export function isNewsletterItem(
+  item: FeedBatchItem,
+): item is FeedNewsletterItem {
+  return item.kind === 'newsletter'
+}
+
+export function isPinItem(item: FeedBatchItem): item is FeedPinItem {
+  return item.kind !== 'newsletter'
+}
+
+/**
+ * Un contenido `other` publicado y servible, tal como lo necesita el
+ * calendario de interludios. Fuera de la ronda: no pasa por `generateRound`.
+ */
+export type FeedInterlude =
+  | {
+      kind: 'newsletter'
+      contentId: string
+      /** «Una aparición cada N pines». */
+      frequency: number
+      title: string
+      text: string | null
+    }
+  | {
+      kind: 'page'
+      contentId: string
+      frequency: number
+      /** Pines con medio listo, en el orden del ABM; rotan en cada aparición. */
+      pins: { pinId: string; entry: PinDirectoryEntry }[]
+    }
 
 export interface FeedBatchResult {
   items: FeedBatchItem[]

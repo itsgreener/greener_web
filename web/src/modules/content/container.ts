@@ -27,6 +27,7 @@ import {
   makeRemoveCaseCarouselMedia,
 } from './application/removeCaseCarouselMedia'
 import { makeResolvePreviewContext } from './application/resolvePreviewContext'
+import { resolveDetailCover } from './application/resolveDetailCover'
 import { makeUnpublishContent } from './application/unpublishContent'
 import { makeUpdateContent } from './application/updateContent'
 import { makeUpsertCaseDetail } from './application/upsertCaseDetail'
@@ -137,6 +138,12 @@ export const resolvePreviewContext = cache(
     decodePreviewToken,
   }),
 )
+
+/**
+ * Portada de la ficha de una tool o un insight: el pin de `?pin=` o, si no, el
+ * primer pin. Función pura sobre el lector que devuelve `resolvePreviewContext`.
+ */
+export { resolveDetailCover }
 
 export const generatePreviewLink = makeGeneratePreviewLink({
   contents,

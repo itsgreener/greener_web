@@ -6,6 +6,7 @@ import {
   PackageValidationError,
   VirusScanError,
 } from '@/modules/packages/domain/packageErrors'
+import { VALID_METADATA } from '@tests/helpers/packageFixtures'
 
 const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const VERSION_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
@@ -17,6 +18,7 @@ const VALID_MANIFEST = {
   requiredCapabilities: [],
   externalDomains: [],
   minViewport: { width: 320, height: 420 },
+  metadata: VALID_METADATA,
 }
 
 /** Repositorio de paquetes falso: solo lo que usan estos casos de uso. */

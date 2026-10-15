@@ -21,8 +21,8 @@ const NAV_ITEMS = [
 ] as const
 
 /**
- * "contact" no es un enlace externo: lleva a /contact (formulario y
- * newsletter; brief §5.6, arquitectura §14.1).
+ * "contact" no es un enlace externo: lleva a /contact (formulario;
+ * brief §5.6, arquitectura §14.1).
  *
  * tiktok y whatsapp no se incluyen: Greener no va a usar esos enlaces.
  */

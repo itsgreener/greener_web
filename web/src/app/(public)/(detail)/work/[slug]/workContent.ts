@@ -26,10 +26,9 @@ export async function buildWorkMetadata(
   // Case y episodio ya no tienen summary: la descripción es solo la SEO.
   const description = content.seoDescription ?? undefined
 
-  // og_media_id es cover_media_id, que caso/episodio no rellenan (§3: es
-  // exclusivo de tool/insight/other) — para un caso se usa la primera
-  // imagen de su carrusel; un episodio, sin thumbnail propio, se queda
-  // sin imagen de compartición por ahora.
+  // Caso y episodio no tienen imagen de compartición propia (og_media_id):
+  // para un caso se usa la primera imagen de su carrusel; un episodio, sin
+  // thumbnail propio, se queda sin imagen de compartición por ahora.
   let ogImage: string | undefined
   if (content.type === 'case') {
     const carousel = await (options?.reader ?? publicContent).caseCarousel(

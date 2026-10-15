@@ -24,9 +24,6 @@ const MEDIA_ID = '9f8e7d6c-5b4a-3f2e-8d0c-b9a8f7e6d5c4'
 
 function fakeMedia() {
   return {
-    registerCoverImage: vi.fn(),
-    registerCoverVideo: vi.fn(),
-    unlinkAndDeleteCoverMedia: vi.fn(),
     addCaseCarouselImage: vi.fn<MediaAssetRepository['addCaseCarouselImage']>(
       async () => MEDIA_ID,
     ),

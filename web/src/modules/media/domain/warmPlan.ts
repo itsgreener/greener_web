@@ -25,7 +25,7 @@ import type { PinRatioValue } from '@/modules/shared/domain/ratio'
  * dos formatos (lo añade quien construye las cadenas); nunca imágenes. El
  * vídeo de la ficha de una TOOL se calienta además en el escalón L, porque
  * `useToolCoverVideo` lo pide (`pickDetailVideoRung`) en pantallas grandes o
- * con DPR alto; el carrusel de caso y la portada de `other` solo usan M
+ * con DPR alto; el carrusel de caso solo usa M
  * (`detailVideoRungM`), así que ahí L no se calienta.
  */
 
@@ -56,11 +56,6 @@ export type VideoUsage =
       kind: 'caseCarousel'
       width: number
       height: number
-    }
-  | {
-      kind: 'otherCover'
-      /** `content.cover_ratio`; null = ratio por defecto de la ficha. */
-      coverRatio: PinRatioValue | null
     }
 
 function rungM(ratio: PinRatioValue): WarmSize {
@@ -93,11 +88,11 @@ function renditionsFor(usage: VideoUsage): WarmRendition[] {
         })
       }
 
-      // Ficha: solo las tools muestran el vídeo del pin (`/tools/{slug}?pin=`),
+      // Ficha: las tools muestran el vídeo del pin (`/tools/{slug}?pin=`),
       // con el ratio del propio pin y mudo. M y L: según la caja y el DPR de
       // cada visitante se pide uno u otro.
       if (usage.contentType === 'tool') {
-        const ratio = toolInsightDetailRatio(usage.pinRatio, null)
+        const ratio = toolInsightDetailRatio(usage.pinRatio)
 
         renditions.push(
           { profile: 'toolDetail', size: rungM(ratio) },
@@ -113,14 +108,6 @@ function renditionsFor(usage: VideoUsage): WarmRendition[] {
         {
           profile: 'caseDetail',
           size: rungM(caseVideoRatio(usage.width, usage.height)),
-        },
-      ]
-
-    case 'otherCover':
-      return [
-        {
-          profile: 'caseDetail',
-          size: rungM(toolInsightDetailRatio(null, usage.coverRatio)),
         },
       ]
   }

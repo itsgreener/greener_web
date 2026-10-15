@@ -1,5 +1,9 @@
 import { PHONE_BATCH_SIZE } from '@/modules/feed/domain/batchSize'
-import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import {
+  isPinItem,
+  type FeedBatchResult,
+  type FeedPinItem,
+} from '@/modules/feed/domain/feedReadModels'
 import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
 
 /**
@@ -36,10 +40,20 @@ export function requestedBatchSize(viewportWidth: number): number | null {
   return viewportWidth < BREAKPOINT_PX.mobile ? PHONE_BATCH_SIZE : null
 }
 
+/**
+ * Lote tal como lo consume el cliente: solo pines. El servidor intercala
+ * además apariciones del pin de newsletter (`kind: 'newsletter'`, plan de
+ * `other`); hasta que la fase 3 trae su tarjeta (`NewsletterPinCard`) se
+ * descartan aquí, de modo que ninguna lista del cliente las recibe.
+ */
+export type FeedPinBatch = Omit<FeedBatchResult, 'items'> & {
+  items: FeedPinItem[]
+}
+
 export async function fetchFeedBatch(
   sessionId: string,
   cursor: string | null,
-): Promise<FeedBatchResult> {
+): Promise<FeedPinBatch> {
   const params = new URLSearchParams()
   if (cursor) params.set('cursor', cursor)
   const size =
@@ -53,5 +67,6 @@ export async function fetchFeedBatch(
   if (!res.ok) {
     throw new Error(`Could not fetch the feed batch: ${res.status}`)
   }
-  return res.json()
+  const batch = (await res.json()) as FeedBatchResult
+  return { ...batch, items: batch.items.filter(isPinItem) }
 }

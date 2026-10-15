@@ -9,12 +9,17 @@ import {
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
 import { isUuid } from '@/lib/validation/uuid'
+import { NEWSLETTER_COOKIE_NAME } from '@/modules/newsletter/domain/newsletterCookie'
 
 /**
  * GET /api/feed/{sessionId}?cursor=...&size=... (§16.1): siguiente lote real
  * de una sesión de feed ya abierta con POST /api/feed/sessions. `cursor`
  * ausente = primer lote (ronda 0). `size` (opcional) pide un lote más
  * pequeño que `feed_config.batch_size` (móvil: 20); nunca más grande.
+ *
+ * La cookie `greener_newsletter` (dispositivo ya suscrito) decide si el lote
+ * lleva apariciones del pin de newsletter; el calendario de interludios vive
+ * en el caso de uso (plan de `other`, §4).
  *
  * Límite de peticiones: 50 lotes por minuto y visitante (el scroll rápido los
  * dispara y el primero de cada ronda la genera entera, §8; por eso más margen
@@ -67,7 +72,10 @@ export async function GET(
   }
 
   try {
-    const batch = await getFeedSessionBatch(sessionId, cursor, size)
+    const batch = await getFeedSessionBatch(sessionId, cursor, size, {
+      newsletterSubscribed:
+        request.cookies.get(NEWSLETTER_COOKIE_NAME)?.value === '1',
+    })
     return respond(batch, {
       // El orden depende de la seed de sesión — igual que en el prototipo
       // demo, nunca cacheable entre sesiones (§6.1).

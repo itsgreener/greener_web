@@ -25,8 +25,11 @@ export interface PublicContentReader {
 
   episode(contentId: string): Promise<PublicEpisode | null>
 
-  /** Primer medio del primer pin: imagen de compartición de tools e insights. */
-  firstPinMedia(contentId: string): Promise<PublicContentMedia | null>
+  /**
+   * Primer pin con medios (medio, ratio y alt): portada de la ficha de una
+   * tool cuando no llega desde un pin, e imagen de compartición.
+   */
+  firstPinCover(contentId: string): Promise<PublicPinCover | null>
 
   /**
    * Portada previa al reproductor de un episodio: la primera imagen de un pin

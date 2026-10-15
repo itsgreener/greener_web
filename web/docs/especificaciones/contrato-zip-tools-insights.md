@@ -36,12 +36,23 @@ El servidor asigna el tipo de contenido (Content-Type) por extensión. Reconoce 
 
 ```json
 {
-  "kind": "tool",
+  "kind": "insight",
   "entrypoint": "index.html",
   "version": 1,
   "requiredCapabilities": ["canvas", "worker"],
   "externalDomains": [],
-  "minViewport": { "width": 320, "height": 420 }
+  "minViewport": { "width": 320, "height": 420 },
+  "metadata": {
+    "title": "Informe de tendencias 2026",
+    "description": "Las diez tendencias que van a mover el sector el año que viene, con datos.",
+    "language": "es",
+    "ogImage": {
+      "path": "assets/og.png",
+      "alt": "Gráfico de barras con las diez tendencias del informe"
+    },
+    "themeColor": "#1941f5",
+    "keywords": ["tendencias", "informe", "2026"]
+  }
 }
 ```
 
@@ -53,8 +64,38 @@ El servidor asigna el tipo de contenido (Content-Type) por extensión. Reconoce 
 | `requiredCapabilities` | lista de textos         | Documentación de qué necesita el paquete (`"canvas"`, `"worker"`, `"webgl"`, etc.) — informativo, no bloquea la subida                                                 |
 | `externalDomains`      | lista de textos         | **Todo dominio que aparezca en cualquier archivo del paquete tiene que estar aquí** — sea un enlace, un recurso o un texto (ver §3). Si no aparece ninguno, dejar `[]` |
 | `minViewport`          | `{ width, height }`     | Tamaño mínimo recomendado para que la tool/insight se vea bien                                                                                                         |
+| `metadata`             | objeto                  | **Obligatorio desde el 15 de octubre.** Título, descripción, idioma e imagen para compartir (ver §2.1)                                                                 |
 
-Si el `manifest.json` no es JSON válido, o le falta cualquiera de estos campos, o `entrypoint` apunta a un archivo que no existe dentro del ZIP, se rechaza la subida entera.
+Si el `manifest.json` no es JSON válido, o le falta cualquiera de estos campos (incluido `metadata`), o `entrypoint` apunta a un archivo que no existe dentro del ZIP, se rechaza la subida entera.
+
+### 2.1 `metadata`: cómo se presenta el paquete al compartirlo
+
+Añadido el 15 de octubre. Un insight o una tool **no tienen ficha propia en el sitio que se pueda compartir**: su URL pública (`/insights/{slug}/app`, `/tools/{slug}/app`) es el propio paquete. Cuando alguien pega ese enlace en LinkedIn, WhatsApp, Slack o X, o cuando lo indexa Google, lo que se ve (título, texto, imagen) sale de este bloque. Se escribe una sola vez, dentro del `manifest.json`, y **Greener genera a partir de él todas las etiquetas del `<head>`** (§6.2): no hay que escribir ninguna `<meta>` de Open Graph a mano en el HTML.
+
+| Campo          | Tipo            | Obligatorio | Reglas                                                                                                                                                           |
+| -------------- | --------------- | ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `title`        | texto           | Sí          | 1 a **70** caracteres. Es el título de la pestaña (se le añade « · Greener»), el de la tarjeta al compartir y el que ve Google. Sin el nombre del sitio          |
+| `description`  | texto           | Sí          | 1 a **200** caracteres. El texto bajo el título al compartir y en Google. Una o dos frases, sin saltos de línea                                                  |
+| `language`     | texto           | Sí          | Código de idioma: `es`, `en`, `ca`, `fr`… o con región, `es-ES`, `pt-BR` (minúsculas el idioma, mayúsculas la región). Pasa a ser el `<html lang>` del documento |
+| `ogImage.path` | texto           | Sí          | Ruta de la imagen **dentro del ZIP**, siempre bajo `assets/` (`assets/og.png`, `assets/img/compartir.jpg`). Solo letras, números, `.`, `_` y `-`; sin espacios   |
+| `ogImage.alt`  | texto           | Sí          | 1 a **200** caracteres. Describe la imagen para quien no la ve (accesibilidad; también lo usan LinkedIn y X)                                                     |
+| `themeColor`   | texto           | No          | Color en formato `#rrggbb`. Tiñe la barra del navegador en móvil                                                                                                 |
+| `keywords`     | lista de textos | No          | Hasta **12** palabras o expresiones de hasta 40 caracteres. Poco peso para Google, útil como documentación                                                       |
+
+**Reglas de la imagen Open Graph** (es lo que más rechazos provoca; se comprueba al subir y el mensaje dice cuál falla):
+
+- Formato **PNG, JPG/JPEG o WebP**, y que **el contenido sea de verdad de ese formato**: un SVG o un GIF renombrado a `.png` se rechaza. Los SVG no se aceptan porque LinkedIn, Facebook y X no los muestran.
+- **Mínimo 1200 × 630 píxeles**, que es también el tamaño recomendado. Se admite cualquier tamaño mayor con la misma proporción (2400 × 1260 sirve).
+- **Proporción 1,91 : 1** (1200 × 630), con un margen del ±5 %. Una imagen cuadrada o vertical se rechaza: las redes la recortarían por el centro y se perdería lo importante. Conviene dejar el contenido clave en el tercio central.
+- **Máximo 5 MB.** Para una tarjeta basta con mucho menos (un PNG de 1200 × 630 suele quedar entre 100 y 400 KB).
+- Va dentro de `assets/` como el resto, así que **cuenta para el límite de 10 MB del ZIP**, y se sirve igual que cualquier otro asset del paquete.
+
+Otras cosas que conviene saber:
+
+- **Las medidas las escribe el servidor**, no el autor: al subir se mide la imagen y se guardan como `ogImage.width` y `ogImage.height` (alimentan `og:image:width/height`, que LinkedIn necesita para pintar la tarjeta a la primera). Si alguien las pone a mano en el manifest, se descartan.
+- **Los textos de `metadata` también pasan por el escaneo de dominios (§3)**, igual que el resto del `manifest.json`. Si el `description` contiene una URL (`https://…`), su dominio tendría que estar en `externalDomains`. Lo normal es no poner enlaces ahí.
+- **No se pueden editar desde el ABM**: son parte del paquete. Para cambiar el título, la descripción o la imagen se sube una versión nueva del ZIP (queda en borrador hasta que se publique, §7).
+- **Los metadatos van por versión.** Una versión publicada antes del 15 de octubre, que no los tiene, **se sigue sirviendo igual que siempre** (sin imagen para compartir y con el título provisional `{slug} · Greener`); no se rompe nada, pero tampoco hay tarjeta bonita hasta subir una versión nueva con `metadata`.
 
 ## 3. Dependencias y dominios externos
 
@@ -92,19 +133,42 @@ Un enlace normal a otra web **funciona** una vez declarado su dominio: la polít
 
 Esto es lo que necesita saber quien genere el HTML/CSS/JS de la tool — pensado para pegarse directamente en el prompt de quien la construya, incluida una IA.
 
-### Cómo se monta tu HTML en la página
+### 6.1 Cómo se monta tu HTML en la página
 
 El servidor no sirve tu `index.html` tal cual: lo lee, separa su `<head>` y su `<body>`, y construye con ellos un documento nuevo que incluye el menú lateral. Qué se conserva y qué no:
 
 - **Se conserva todo el contenido de tu `<head>`**: `<link rel="stylesheet">`, `<style>`, `<meta>`. El CSS puede ir en un archivo aparte, inline en el head, o de las dos formas. Ambas funcionan.
 - **Del `<body>` solo se copia lo de dentro.** Los atributos del propio `<body>` y de `<html>` (`class`, `style`, `lang`, `data-*`…) **se pierden**. Si necesitas una clase o un estilo «de body», ponlo en un `<div>` raíz propio dentro del body.
 - **Los selectores `body { … }` y `html { … }` de tu CSS se aplican al body del sitio**, que también contiene el menú lateral, no solo a tu contenido. Cuelga todo de una clase de tu contenedor raíz (`.mi-tool { … }`) y evita estilar `body`/`html` directamente.
-- **Tu `<title>` no tiene efecto**: el documento ya lleva el suyo y el navegador usa el primero.
+- **Tu `<title>` y tus etiquetas de compartir se descartan.** Si el manifest trae `metadata` (siempre, en subidas nuevas), Greener quita del `<head>` del paquete el `<title>`, `<meta name="description">`, `<meta name="keywords">`, `<meta name="theme-color">`, todas las `<meta property="og:*">` y `<meta name="twitter:*">`, el `<link rel="canonical">` y los `<script type="application/ld+json">`, y pone los suyos, generados desde `metadata` (§6.2). No hace falta escribirlos en el HTML; si se escriben, no tienen efecto.
+- **El `<html lang>` sale de `metadata.language`**, no del `lang` de tu `<html>`.
 - **Todas las rutas relativas se resuelven desde `/tools/{slug}/app/`** (o `/insights/{slug}/app/`), porque el documento lleva un `<base href>` con esa dirección. Por eso las rutas del HTML se escriben `./assets/style.css`, `./assets/main.js`.
 - **⚠ Las rutas relativas escritas dentro del JS también cuentan desde esa base, no desde la carpeta del archivo JS.** Un `new Worker('./worker.js')` escrito en `assets/main.js` apunta a `/tools/{slug}/app/worker.js`, que no existe (404). Hay que escribir `new Worker('./assets/worker.js')`, y lo mismo con `fetch('./assets/datos.json')`. Es la trampa más fácil de cometer.
 - Las rutas dentro de un **CSS** (`url(./img/fondo.png)`) y los `import` de **módulos ES** sí cuentan desde su propio archivo, como es habitual.
 
-### El contenedor real
+### 6.2 Qué mete Greener en el `<head>` con tus metadatos
+
+Añadido el 15 de octubre. Todo con **URLs absolutas** (los rastreadores de redes sociales no resuelven rutas relativas ni ejecutan JavaScript), y con los textos escapados. `{url}` es la URL pública del documento sin barra final (`https://itsgreener.com/insights/{slug}/app`) y `{imagen}` es `{url}/{ogImage.path}`:
+
+| Etiqueta                                                                     | Valor                                                                                                                      |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `<html lang>`                                                                | `metadata.language`                                                                                                        |
+| `<title>`                                                                    | `{title} · Greener`                                                                                                        |
+| `<meta name="description">`                                                  | `description`                                                                                                              |
+| `<link rel="canonical">`, `og:url`                                           | `{url}`                                                                                                                    |
+| `og:type`                                                                    | `article` en un insight, `website` en una tool                                                                             |
+| `og:site_name`                                                               | `Greener`                                                                                                                  |
+| `og:title`, `og:description`                                                 | `title`, `description`                                                                                                     |
+| `og:image`, `og:image:alt`, `og:image:width`, `og:image:height`              | `{imagen}`, `ogImage.alt`, y las medidas reales de la imagen                                                               |
+| `og:locale`                                                                  | De `language`: `es` → `es_ES`, `en` → `en_US`, `ca` → `ca_ES`, `es-MX` → `es_MX`…                                          |
+| `twitter:card`                                                               | Siempre `summary_large_image` (tarjeta grande)                                                                             |
+| `twitter:title`, `twitter:description`, `twitter:image`, `twitter:image:alt` | Los mismos valores que Open Graph                                                                                          |
+| `<meta name="theme-color">`, `<meta name="keywords">`                        | `themeColor`, `keywords` (solo si se han declarado)                                                                        |
+| JSON-LD (`<script type="application/ld+json">`)                              | `Article` en un insight, `WebApplication` en una tool, con título, descripción, imagen, URL, idioma y `publisher: Greener` |
+
+Para comprobarlo antes de dar un paquete por bueno: abrir el insight ya publicado, «Ver código fuente» y buscar `og:image`; y pegar su URL en el depurador de Facebook/LinkedIn (Post Inspector) o en una conversación de WhatsApp o Slack, que muestran la tarjeta tal cual la verán los demás. Estos servicios cachean la tarjeta: si se cambia la imagen, hay que volver a pasar el enlace por su depurador para que la refresquen.
+
+### 6.3 El contenedor real
 
 Tu `<body>` no se sirve solo: se inserta dentro de `<main class="greener-package-content">`, la celda de un grid CSS de dos columnas (menú lateral de iconos + tu contenido). No hace falta que reserves hueco para el menú lateral — ya está descontado antes de que tu contenido reciba su espacio.
 
@@ -118,7 +182,7 @@ Tres variables CSS, disponibles en `:root` desde el primer render, sin nada que 
 }
 ```
 
-### Reglas obligatorias
+### 6.4 Reglas obligatorias
 
 1. **Nunca uses `100vw` / `100vh` / `window.innerWidth` / `window.innerHeight`.** Miden el navegador entero, incluido el hueco del menú lateral — el contenido se desbordaría o quedaría descentrado. Usa `100%` en CSS (el contenedor ya viene bien dimensionado desde fuera) o, si hace falta el valor en píxeles desde JS, lee la variable CSS:
 
@@ -152,7 +216,7 @@ Tres variables CSS, disponibles en `:root` desde el primer render, sin nada que 
 
 5. **`minViewport` del manifest es solo documentación — hoy nada lo comprueba automáticamente.** Declararlo no reserva ni garantiza ese espacio, ni bloquea la subida si el número declarado es mayor que el espacio real disponible. Si la tool de verdad necesita un mínimo, ese aviso o fallback tiene que estar programado dentro del propio HTML, no basta con escribirlo en el manifest.
 
-### Las variables reales contra las que construir hoy
+### 6.5 Las variables reales contra las que construir hoy
 
 Las variables SÍ reflejan la pantalla real de cada visitante, y se recalculan solas al redimensionar la ventana:
 
@@ -163,7 +227,7 @@ Las variables SÍ reflejan la pantalla real de cada visitante, y se recalculan s
 
 **Para comprobar visualmente que algo se ve bien, pruébese redimensionando la ventana del navegador** en varios tamaños — ya no existe un único número que represente "lo que recibe cualquier tool publicada hoy", cada visitante recibe el suyo.
 
-### La CSP de esta ruta, y por qué sigue siendo la misma
+### 6.6 La CSP de esta ruta, y por qué sigue siendo la misma
 
 El resto del sitio ganó una política de seguridad global (`Content-Security-Policy` con nonce por petición, HSTS, `frame-ancestors`, etc. — arquitectura §17.1). **La ruta `/tools|insights/[slug]/app` queda fuera de ese cambio a propósito, sin tocar ni una coma**, porque el navegador combina dos cabeceras `Content-Security-Policy` en la misma respuesta en vez de sustituir una por la otra — mandar las dos habría podido romper `worker-src`/`canvas` sin ningún aviso visible. Lo que rige aquí es exactamente esto:
 
@@ -172,7 +236,7 @@ default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';
 worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;
 ```
 
-Qué significa para quien escribe el código de la tool o insight:
+Qué significa para quien escribe el código de la tool o insight (la imagen Open Graph de §2.1 no se ve afectada por esta tabla: la descargan los rastreadores de redes sociales, no el navegador del visitante):
 
 | Situación                                                               | Resultado                                                                          |
 | ----------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
@@ -195,11 +259,18 @@ Qué significa para quien escribe el código de la tool o insight:
 
 Si algún paquete necesita cargar algo de un origen externo, hoy no es posible: es una limitación real, pendiente de si algún día hace falta ampliar esta política concreta.
 
-### Reportar uso real (solo Tools): `window.GreenerAnalytics.toolUsed()`
+### 6.7 Analítica del paquete
 
-Añadido el 30 de septiembre. **Solo para Tools — los Insights no tienen ningún mecanismo equivalente.**
+El documento de cada paquete carga automáticamente `/greener-package-analytics.js` (un script del propio sitio, nada que añadir al paquete; la política de §6.6 lo permite porque es del mismo origen). Qué hace depende del `kind` del manifest:
 
-El shell de cada Tool carga automáticamente `/greener-package-analytics.js` (un script del propio sitio, nada que añadir al paquete). Expone una función global, y una Tool la llama tras una acción real del usuario — generar algo, descargar, completar un paso — **no** al cargar la página, eso ya lo cubre el evento de apertura:
+**Insights: automático, no hay que hacer nada.** Actualizado el 15 de octubre. Cada vez que se carga `/insights/{slug}/app` se registra **una vez** el evento **«Insight Open»**, con el identificador real del insight. Un insight no tiene ficha propia desde la que contar la apertura (su URL pública es el propio documento), así que la apertura se mide aquí. Detalles:
+
+- Cuenta una vez por carga del documento: recargar la página vuelve a contar. Los robots que se identifican como tales los descarta la propia herramienta de analítica.
+- No expone nada al paquete: un insight no puede enviar eventos propios ni llamar a `window.GreenerAnalytics`.
+- Solo cuenta insights **publicados**, y solo en producción. No hay forma de inflar el contador de un insight ajeno ni inexistente.
+- Es un contador anónimo, sin cookies ni identificador del visitante.
+
+**Tools: la apertura la cuenta la ficha, el uso lo reporta la propia Tool con `window.GreenerAnalytics.toolUsed()`.** «Tool Open» se registra al abrir la ficha de la tool en el sitio. El **uso real** («Tool Used») lo tiene que avisar la Tool tras una acción real del usuario — generar algo, descargar, completar un paso — **no** al cargar la página:
 
 ```js
 // Desde cualquier archivo .js del paquete, tras una acción real:
@@ -226,7 +297,7 @@ Qué hace por dentro, para quien quiera entender el porqué: pide al propio serv
 
 ## 7. Qué pasa después de subir el ZIP
 
-1. El ZIP se valida contra todo lo anterior. Si falla algo, se informa el motivo exacto y no se sube nada.
+1. El ZIP se valida contra todo lo anterior, incluidos los metadatos y la imagen para compartir (§2.1). Si falla algo, se informa el motivo exacto y no se sube nada.
 2. Se escanea con un antivirus (Cloudmersive) antes de aceptarse. Si el escaneo encuentra algo o el servicio no responde, la subida se rechaza — es una comprobación bloqueante, no un aviso.
 3. Si todo pasa, se crea como una **nueva versión en borrador** — no sustituye automáticamente a la versión pública actual.
 4. Desde el ABM, un administrador decide cuándo esa versión pasa a ser la pública. Se puede volver a una versión anterior en cualquier momento sin volver a subir nada. Las versiones que ya no hagan falta se pueden **borrar** desde el ABM (una a una o todas las anteriores de golpe); se borran también sus ficheros y no se pueden recuperar. La versión activa no se puede borrar: hay que publicar otra antes.
@@ -242,7 +313,10 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 ## 8. Checklist rápido antes de enviar un ZIP
 
 - [ ] `index.html` en la raíz
-- [ ] `manifest.json` en la raíz, con los 6 campos completos
+- [ ] `manifest.json` en la raíz, con los 7 campos completos (los 6 técnicos y `metadata`)
+- [ ] `metadata.title` (≤ 70), `metadata.description` (≤ 200) y `metadata.language` (`es`, `en`, `es-ES`…) rellenos (§2.1)
+- [ ] `metadata.ogImage`: imagen **PNG, JPG o WebP de verdad**, **mínimo 1200 × 630 px y proporción 1,91 : 1**, de **menos de 5 MB**, dentro de `assets/` y con su texto alternativo (§2.1)
+- [ ] Sin `<title>`, `og:*` ni `twitter:*` escritos a mano en el HTML: se descartan, los genera Greener desde `metadata` (§6.2)
 - [ ] `entrypoint` del manifest coincide con un archivo real del ZIP
 - [ ] `kind` del manifest coincide con el tipo de contenido (tool/insight)
 - [ ] **Todo lo demás dentro de `assets/`** (CSS, JS, workers, imágenes), y referenciado como `./assets/...`
@@ -256,8 +330,9 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] Sin `eval()` ni `new Function()`
 - [ ] Sin imágenes desde `blob:`; sin fuentes incrustadas como `data:` (§6)
 - [ ] CSS colgado de una clase de contenedor propio, sin estilar `body`/`html` directamente, ni depender de atributos del `<body>` (§6)
-- [ ] Si es una Tool con alguna acción real (generar, descargar, transformar...): llama a `window.GreenerAnalytics.toolUsed('acción')` tras esa acción — si no, mostrará cero uso en analítica aunque reciba visitas (§6)
-- [ ] ZIP completo por debajo de 10 MB
+- [ ] Si es un Insight: no hay que hacer nada para la analítica, la apertura se registra sola (§6.7)
+- [ ] Si es una Tool con alguna acción real (generar, descargar, transformar...): llama a `window.GreenerAnalytics.toolUsed('acción')` tras esa acción — si no, mostrará cero uso en analítica aunque reciba visitas (§6.7)
+- [ ] ZIP completo por debajo de 10 MB (la imagen para compartir cuenta)
 - [ ] Sin rutas `..` ni symlinks (si se ha construido el ZIP con herramientas estándar, esto no suele dar problema — es una comprobación de seguridad, no algo que haya que montar a mano)
 - [ ] Nada de `100vw`/`100vh`/`window.innerWidth`/`window.innerHeight` en el código — solo `100%` o las variables `--greener-available-*`
 - [ ] Probado visualmente redimensionando la ventana del navegador (§6) — el viewport es real y dinámico por visitante desde el 21 de septiembre, ya no hay un único tamaño fijo contra el que probar

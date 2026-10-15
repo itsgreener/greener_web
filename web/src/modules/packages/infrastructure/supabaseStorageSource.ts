@@ -15,7 +15,7 @@ import {
   type PackageManifest,
   type ResolvedPackage,
 } from '@/modules/packages/domain/manifest'
-import { packageManifestSchema } from '@/modules/packages/domain/manifestSchema'
+import { storedPackageManifestSchema } from '@/modules/packages/domain/manifestSchema'
 import { PACKAGE_BUCKET } from '@/modules/packages/domain/packageFiles'
 import type {
   PackageAsset,
@@ -123,9 +123,10 @@ async function getStoragePackage(
 ): Promise<ResolvedPackage> {
   const version = await cachedPublishedVersion(kind, slug)
 
-  // El manifest se validó con este mismo schema al subir el ZIP; releerlo
-  // aquí evita fiarse de un `Json` sin forma si alguien toca la fila a mano.
-  const parsedManifest = packageManifestSchema.safeParse(version.manifest)
+  // El manifest se validó al subir el ZIP; releerlo aquí evita fiarse de un
+  // `Json` sin forma si alguien toca la fila a mano. Con el schema tolerante:
+  // las versiones anteriores al bloque `metadata` siguen sirviéndose.
+  const parsedManifest = storedPackageManifestSchema.safeParse(version.manifest)
 
   if (!parsedManifest.success) {
     throw new PackageNotFoundError(slug)

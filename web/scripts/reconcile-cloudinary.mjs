@@ -11,9 +11,8 @@
  *
  * 2. FILAS SIN REFERENCIAS (`--include-unreferenced`): hay fila en
  *    `media_asset`, pero nada la usa: ningún pin (`pin_media`), ningún
- *    carrusel de caso (`case_detail_media`), ninguna portada
- *    (`content.cover_media_id`) ni imagen de compartición
- *    (`content.og_media_id`). Es lo que dejaban `delete_pin` y
+ *    carrusel de caso (`case_detail_media`), ninguna imagen de
+ *    compartición (`content.og_media_id`). Es lo que dejaban `delete_pin` y
  *    `delete_content` antes de la migración 20261005091000, y lo que
  *    quede de cualquier flujo que registre un medio y no lo enlace.
  *
@@ -241,9 +240,9 @@ export async function listMediaRows(supabase) {
 }
 
 /**
- * Ids de `media_asset` que algo referencia. Son las cuatro únicas claves
+ * Ids de `media_asset` que algo referencia. Son las tres únicas claves
  * foráneas hacia `media_asset`: `pin_media`, `case_detail_media`,
- * `content.cover_media_id` y `content.og_media_id`.
+ * `content.og_media_id`.
  *
  * SIN filtrar por el estado del contenido a propósito: un medio de un
  * contenido en draft, programado o despublicado también está en uso.
@@ -256,7 +255,7 @@ export async function listReferencedMediaIds(supabase) {
     { table: 'case_detail_media', columns: 'media_id', orderBy: 'media_id' },
     {
       table: 'content',
-      columns: 'cover_media_id, og_media_id',
+      columns: 'og_media_id',
       orderBy: 'id',
     },
   ]

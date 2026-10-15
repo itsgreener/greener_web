@@ -40,8 +40,6 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
     summary: null,
     highlight: 'Un highlight destacado',
     body: 'El cuerpo del episodio.',
-    coverMedia: null,
-    coverRatio: null,
     ...overrides,
   }
 }

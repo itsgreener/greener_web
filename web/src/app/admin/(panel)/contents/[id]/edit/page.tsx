@@ -24,7 +24,6 @@ import CaseCarouselManager from './CaseCarouselManager'
 
 import EpisodeDetailForm from './EpisodeDetailForm'
 
-import CoverMediaUpload from './CoverMediaUpload'
 
 import PackageUpload from './PackageUpload'
 
@@ -80,11 +79,6 @@ export default async function EditContentPage({ params }: Props) {
   // tipo B (case/episode), y contenido libre (other, portada imagen o
   // vídeo). El editor de bloques genérico desaparece por completo (§6).
   const supportsPackage = content.type === 'tool' || content.type === 'insight'
-
-  // Portada solo para contenido libre (other). Tool genera su miniatura
-  // con ?pin=<pinId> e insight va directo a /app: no tienen portada
-  // (migración 20261007110000, constraint content_cover_only_for_other).
-  const supportsCoverMedia = content.type === 'other'
 
   const [
     translations,
@@ -260,29 +254,6 @@ export default async function EditContentPage({ params }: Props) {
               </div>
 
               <EpisodeDetailForm contentId={content.id} episode={episode} />
-            </section>
-          )}
-
-          {supportsCoverMedia && (
-            <section className="admin-card">
-              <div className="admin-card-heading">
-                <div>
-                  <p className="admin-card-kicker">Media</p>
-
-                  <h2>Portada</h2>
-
-                  <p>
-                    Imagen principal utilizada en la página de detalle del
-                    contenido.
-                  </p>
-                </div>
-              </div>
-
-              <CoverMediaUpload
-                contentId={content.id}
-                allowVideo
-                coverMedia={content.coverMedia}
-              />
             </section>
           )}
 

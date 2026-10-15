@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const getFeedDataset = vi.fn()
 const getFeedConfig = vi.fn()
+const getFeedInterludes = vi.fn()
 
 // unstable_cache necesita el runtime de Next: aquí se sustituye por un
 // envoltorio que recuerda las opciones y deja pasar la llamada.
@@ -21,10 +22,12 @@ vi.mock('next/cache', () => ({
 vi.mock('@/modules/feed/infrastructure/supabaseFeedSource', () => ({
   getFeedDataset: (...args: unknown[]) => getFeedDataset(...args),
   getFeedConfig: (...args: unknown[]) => getFeedConfig(...args),
+  getFeedInterludes: (...args: unknown[]) => getFeedInterludes(...args),
   supabaseFeedCatalog: {
     dataset: vi.fn(),
     directoryByIds: vi.fn(),
     config: vi.fn(),
+    interludes: vi.fn(),
   },
 }))
 
@@ -96,5 +99,23 @@ describe('cachedFeedCatalog', () => {
 
     expect(await cachedFeedCatalog.config()).toEqual(config)
     expect(getFeedConfig).toHaveBeenCalledTimes(1)
+  })
+
+  it('los interludios (`other`) también salen de la caché etiquetada', async () => {
+    const interludes = [
+      {
+        kind: 'newsletter',
+        contentId: 'n1',
+        frequency: 100,
+        title: 'T',
+        text: null,
+      },
+    ]
+    getFeedInterludes.mockResolvedValue(interludes)
+    const { cachedFeedCatalog } =
+      await import('@/modules/feed/infrastructure/cachedFeedCatalog')
+
+    expect(await cachedFeedCatalog.interludes()).toEqual(interludes)
+    expect(getFeedInterludes).toHaveBeenCalledTimes(1)
   })
 })

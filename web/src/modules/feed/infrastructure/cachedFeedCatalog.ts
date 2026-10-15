@@ -7,6 +7,7 @@ import { excludeContent } from '@/modules/feed/domain/excludeContent'
 import {
   getFeedConfig,
   getFeedDataset,
+  getFeedInterludes,
   supabaseFeedCatalog,
 } from './supabaseFeedSource'
 
@@ -33,9 +34,17 @@ const cachedConfig = unstable_cache(() => getFeedConfig(), ['feed-config'], {
   revalidate: FEED_DATASET_TTL_SECONDS,
 })
 
+// Los `other` publicados, con su frecuencia (se leen en cada lote de la home).
+const cachedInterludes = unstable_cache(
+  () => getFeedInterludes(),
+  ['feed-interludes'],
+  { tags: [FEED_CACHE_TAG], revalidate: FEED_DATASET_TTL_SECONDS },
+)
+
 export const cachedFeedCatalog: FeedCatalog = {
   ...supabaseFeedCatalog,
   config: () => cachedConfig(),
+  interludes: () => cachedInterludes(),
   async dataset(scope, excludeContentId) {
     const dataset = await cachedDataset(scope)
 
