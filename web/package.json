@@ -10,8 +10,6 @@
     "prebuild": "node scripts/clean-stale-types.mjs",
     "build": "next build",
     "start": "next start",
-    "audit:cookies": "node scripts/cookie-audit.mjs",
-    "audit:cookies:all": "node scripts/cookie-audit-all.mjs",
     "lint": "eslint",
     "typecheck": "node scripts/clean-stale-types.mjs && next typegen && tsc --noEmit",
     "db:types": "node scripts/generate-db-types.mjs",
@@ -49,7 +47,6 @@
     "eslint-config-prettier": "^10.1.8",
     "fast-check": "^4.9.0",
     "jsdom": "^30.0.1",
-    "playwright": "^1.64.1",
     "prettier": "^3.9.6",
     "typescript": "^5",
     "vitest": "^4.1.11"
