@@ -59,8 +59,6 @@ async function snapshot(page, ctx, target, stage) {
   }
   const item = { target, stage, time: new Date().toISOString(), ...state, cookies, frameStorage };
   audits.push(item);
-  const file = `${target}-${stage}.png`;
-  await page.screenshot({ path: path.join(output, file), fullPage: true }).then(() => screenshots.push(file)).catch(() => {});
   return item;
 }
 
@@ -154,6 +152,10 @@ async function clickLoad(page) {
 }
 
 await fs.mkdir(output, { recursive: true });
+// Remove PNGs from previous runs; never leave stale success screenshots.
+for (const file of await fs.readdir(output)) {
+  if (file.toLowerCase().endsWith('.png')) await fs.rm(path.join(output, file), { force: true });
+}
 const browser = await chromium.launch({ headless });
 try {
   for (const [provider, targetUrl] of targets) {
@@ -271,7 +273,17 @@ try {
       for (const event of events) storageEvents.push({ target: provider, ...event, value: event.value ? "[value redacted]" : "" });
     } catch (e) {
       result('ERROR', provider, String(e.message || e), provider);
-    } finally { await ctx.close(); }
+    } finally {
+      // Only capture evidence when this episode has FAIL or ERROR assertions.
+      if (assertions.some(a => a.target === provider && ['FAIL', 'ERROR'].includes(a.status))) {
+        const file = `${provider}-failure.png`;
+        try {
+          await page.screenshot({ path: path.join(output, file), fullPage: true, timeout: 10000 });
+          screenshots.push(file);
+        } catch (e) { console.warn(`Could not capture failure screenshot: ${e.message}`); }
+      }
+      await ctx.close();
+    }
   }
   const cloudinary = network.filter(n => n.type === 'response' && /(^|\.)cloudinary\.com$/i.test(n.domain));
   result(!cloudinary.length ? 'SKIP' : cloudinary.some(n => n.setCookie) ? 'FAIL' : 'PASS', 'cloudinary', !cloudinary.length ? 'No Cloudinary response observed' : `${cloudinary.length} responses; ${cloudinary.filter(n => n.setCookie).length} set cookies`);

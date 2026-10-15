@@ -125,6 +125,7 @@ for(const item of candidates.filter(x=>x.provider)) {
   console.log(`\n===== AUDIT ${item.url} [${item.provider}] =====`);
   const r=await runOne(item.url,item.provider);
   const dest=path.join(out,item.url.replace(/^\//,'').replaceAll('/','__'));
+  await fs.rm(dest,{recursive:true,force:true});
   await fs.mkdir(dest,{recursive:true});
   try {
     await fs.cp(path.resolve('cookie-audit'),dest,{recursive:true,force:true});
@@ -142,6 +143,6 @@ await saveCsv('coverage.csv',candidates.map(c=>({...c,run:runs.find(r=>r.url===c
 await saveCsv('inventory.csv',inventory,['episode','provider','phase','domain','name','type','duration','party','path','secure','httpOnly','sameSite','partitionKey']);
 await saveCsv('network.csv',network,['episode','provider','stage','type','domain','url','status','setCookie','resourceType']);
 const totals=`Found ${statuses.found} / audited ${statuses.audited} / completed ${statuses.completed} / failed ${statuses.failed} / unclassified ${statuses.unclassified}`;
-await fs.writeFile(path.join(out,'README.md'),`# Greener batch audit\n\n${totals}\n\nGenerated ${summary.generatedAt}\n\n- audit-all.json: consolidated data\n- inventory.csv: inventory by episode and A/B/C/D/E/F/G phase\n- coverage.csv: discovered routes and skipped ones\n- network.csv: captured network requests\n- audit-all.json feedNavigation: pin-navigation storage inspection\n- Each subfolder: original v5 audit reports and screenshots\n\n**Limitations:** Cannot prove all episodes discovered without an authoritative route export. Sitemap and feed scrolling are best effort. Provider iframe storage may be inaccessible. Network captures requests but does not guarantee playback; some embeds require further interaction. Cross-tab immediate revocation and post-revocation provider-cookie erasure are not verified. Plausible is excluded. Values in snapshots are redacted; URLs in network logs may contain tokens: review before distributing.\n`);
+await fs.writeFile(path.join(out,'README.md'),`# Greener batch audit\n\n${totals}\n\nGenerated ${summary.generatedAt}\n\n- audit-all.json: consolidated data\n- inventory.csv: inventory by episode and A/B/C/D/E/F/G phase\n- coverage.csv: discovered routes and skipped ones\n- network.csv: captured network requests\n- audit-all.json feedNavigation: pin-navigation storage inspection\n- Each subfolder: audit reports; screenshot PNG only if FAIL or ERROR\n\n**Limitations:** Cannot prove all episodes discovered without an authoritative route export. Sitemap and feed scrolling are best effort. Provider iframe storage may be inaccessible. Network captures requests but does not guarantee playback; some embeds require further interaction. Cross-tab immediate revocation and post-revocation provider-cookie erasure are not verified. Plausible is excluded. Values in snapshots are redacted; URLs in network logs may contain tokens: review before distributing.\n`);
 console.log(`\n${totals}\nReports: ${out}`);
 if(statuses.failed || statuses.unclassified || !statuses.audited) process.exitCode=1;
