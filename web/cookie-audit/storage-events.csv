@@ -1,5 +1,3 @@
-provider,time,pageUrl,frameUrl,action,storage,key,value
-greener,2026-10-14T09:20:27.308Z,http://localhost:3000/,http://localhost:3000/,set,sessionStorage,greener:feed,"{""pageLoadId"":""7d96fb2f-cdab-453f-bb4f-0edb74111b1c"",""scopes"":{}}"
-greener,2026-10-14T09:20:27.313Z,http://localhost:3000/,http://localhost:3000/,set,sessionStorage,greener:feed,"{""pageLoadId"":""7d96fb2f-cdab-453f-bb4f-0edb74111b1c"",""scopes"":{}}"
-greener,2026-10-14T09:20:27.599Z,http://localhost:3000/,http://localhost:3000/,set,sessionStorage,greener:feed,"{""pageLoadId"":""7d96fb2f-cdab-453f-bb4f-0edb74111b1c"",""scopes"":{""home"":{""sessionId"":""7f60fd67-4855-46fb-9bb1-3c310106e780"",""items"":[],""batchSizes"":[],""cursor"":null,""hasMore"":true,""scrollY"":0}}}"
-greener,2026-10-14T09:20:28.275Z,http://localhost:3000/,http://localhost:3000/,set,sessionStorage,greener:feed,"{""pageLoadId"":""7d96fb2f-cdab-453f-bb4f-0edb74111b1c"",""scopes"":{""home"":{""sessionId"":""7f60fd67-4855-46fb-9bb1-3c310106e780"",""items"":[{""pinId"":""17dd0ef8-a366-4e68-bf36-146bb678e2ca"",""contentId"":""340e672d-f287-4b0f-ba2d-a5c04e710141"",""kind"":""tool"",""destination"":""/tools/halo?pin=17dd0ef8-a366-4e68-bf36-146bb678e2ca"",""ratio"":""16:9"",""label"":null,""displayTitle"":""Anillos de color que irradian desde una palabra o una silueta, en bucle."",""displaySecondary"":""Halo by Greener"",""cta"":""Use"",""alt"":""halo 169 vide"
+target,time,kind,op,key,value
+"youtube","2026-10-15T10:56:32.995Z","sessionStorage","setItem","greener:feed","[value redacted]"
+"youtube","2026-10-15T10:56:32.999Z","sessionStorage","setItem","greener:feed","[value redacted]"
