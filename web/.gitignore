@@ -12,6 +12,8 @@
 
 # testing
 /coverage
+/cookie-audit/
+/cookie-audit-all/
 
 # next.js
 /.next/

@@ -1,3 +1,3 @@
 target,action,name,domain,path,httpOnly,secure,sameSite,expires,partitionKey
-"youtube","retained","greener_visitor","localhost","/","true","false","Lax","1792147926.301617",""
-"youtube","added","greener_consent","localhost","/","false","false","Lax","1826621532.122866",""
+"youtube","retained","greener_visitor","localhost","/","true","false","Lax","1792232541.58292",""
+"youtube","added","greener_consent","localhost","/","false","false","Lax","1826706145.187036",""

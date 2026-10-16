@@ -1,6 +1,6 @@
 # Greener — auditoría de cookies
 
-Fecha: 2026-10-15T10:55:20.860Z
+Fecha: 2026-10-16T10:24:52.299Z
 
 URL base: http://localhost:3000
 
@@ -29,7 +29,7 @@ Objetivos: youtube (/work/brand-the-future-5)
 - **PASS** youtube-revoke-choice / youtube: Privacy settings Reject button aria-pressed=true
 - **PASS** youtube-revoke / youtube: After rejecting and revisiting episode: 0 provider iframes
 - **PASS** youtube-reconsent / youtube: After revocation Play requires consent again: prompt=true; iframes=0
-- **PASS** cloudinary: 68 responses; 0 set cookies
+- **PASS** cloudinary: 37 responses; 0 set cookies
 - **INFO** plausible: Not implemented in Greener; excluded from this audit
 
 ## Archivos
@@ -40,7 +40,7 @@ Objetivos: youtube (/work/brand-the-future-5)
 - cookie-changes.csv: nombres y atributos de cookies después de aceptar, sin valores secretos.
 - storage-events.csv: mutaciones observadas de Storage.setItem/removeItem/clear (no incluye escrituras directas por propiedad).
 - audit.json: datos completos.
-- Capturas disponibles: youtube-A.png, youtube-B.png, youtube-C.png, youtube-D.png, youtube-E.png, youtube-F.png, youtube-G.png.
+- Capturas disponibles: ninguna.
 
 ## Fases
 

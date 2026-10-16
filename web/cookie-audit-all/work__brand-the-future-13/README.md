@@ -1,6 +1,6 @@
 # Greener — auditoría de cookies
 
-Fecha: 2026-10-15T10:53:42.760Z
+Fecha: 2026-10-16T10:23:36.161Z
 
 URL base: http://localhost:3000
 
@@ -24,12 +24,12 @@ Objetivos: spotify (/work/brand-the-future-13)
 - **PASS** spotify-preconsent / spotify: 0 provider requests and 0 provider iframes before consent
 - **PASS** spotify-reject / spotify: Not now: 0 provider requests; 0 iframes
 - **PASS** spotify-embed / spotify: Iframe created: https://open.spotify.com/embed/episode/2HUlZHOyoRVDskgWGihc34
-- **PASS** spotify-network / spotify: 9 provider requests after acceptance
+- **PASS** spotify-network / spotify: 8 provider requests after acceptance
 - **INFO** spotify-cookies / spotify: 2 provider-domain cookies after acceptance; 2 new provider-domain cookies (names and attributes in cookie-changes.csv)
 - **PASS** spotify-revoke-choice / spotify: Privacy settings Reject button aria-pressed=true
 - **PASS** spotify-revoke / spotify: After rejecting and revisiting episode: 0 provider iframes
 - **PASS** spotify-reconsent / spotify: After revocation Play requires consent again: prompt=true; iframes=0
-- **PASS** cloudinary: 71 responses; 0 set cookies
+- **PASS** cloudinary: 35 responses; 0 set cookies
 - **INFO** plausible: Not implemented in Greener; excluded from this audit
 
 ## Archivos
@@ -40,7 +40,7 @@ Objetivos: spotify (/work/brand-the-future-13)
 - cookie-changes.csv: nombres y atributos de cookies después de aceptar, sin valores secretos.
 - storage-events.csv: mutaciones observadas de Storage.setItem/removeItem/clear (no incluye escrituras directas por propiedad).
 - audit.json: datos completos.
-- Capturas disponibles: spotify-A.png, spotify-B.png, spotify-C.png, spotify-D.png, spotify-E.png, spotify-F.png, spotify-G.png.
+- Capturas disponibles: ninguna.
 
 ## Fases
 

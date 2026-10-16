@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { usePathname } from 'next/navigation'
 
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import {
@@ -37,24 +38,41 @@ interface ConsentContextValue {
 const ConsentContext = createContext<ConsentContextValue | null>(null)
 
 /**
- * Estado del consentimiento de cookies para toda la web pública. Arranca en
- * `unknown` (igual en servidor y en el primer render del cliente, sin
- * desajuste de hidratación) y lo resuelve al montar leyendo la cookie
- * propia. Mientras no sea `accepted`, nada de terceros se carga. La decisión
- * se puede cambiar en cualquier momento desde `/privacy` (CookieChoice).
+ * El consentimiento se comparte mediante una cookie entre pestañas, pero el
+ * estado de React no. Sincronizamos al montar, al cambiar de ruta y al volver
+ * a una pestaña para respetar revocaciones hechas en otra ventana.
  */
 export function ConsentProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
   const [status, setStatus] = useState<ConsentStatus>('unknown')
   const [panelOpen, setPanelOpen] = useState(false)
 
-  useEffect(() => {
+  const syncFromCookie = useCallback(() => {
     const resolved = consentStatusOf(readConsentRecord())
-
-    // Resolver la cookie en cliente tras montar es el objetivo (ver arriba).
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatus(resolved)
     setPanelOpen(resolved === 'undecided')
   }, [])
+
+  useEffect(() => {
+    syncFromCookie()
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') syncFromCookie()
+    }
+
+    const onFocus = () => syncFromCookie()
+    const onPageShow = () => syncFromCookie()
+
+    window.addEventListener('focus', onFocus)
+    window.addEventListener('pageshow', onPageShow)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      window.removeEventListener('pageshow', onPageShow)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [pathname, syncFromCookie])
 
   const decide = useCallback(
     (decision: ConsentDecision, closedWithX: boolean) => {
@@ -76,17 +94,10 @@ export function ConsentProvider({ children }: { children: ReactNode }) {
 
   const accept = useCallback(() => decide('accepted', false), [decide])
   const reject = useCallback(() => decide('rejected', false), [decide])
-
   const dismiss = useCallback(() => decide('rejected', true), [decide])
 
   const value = useMemo<ConsentContextValue>(
-    () => ({
-      status,
-      panelOpen,
-      accept,
-      reject,
-      dismiss,
-    }),
+    () => ({ status, panelOpen, accept, reject, dismiss }),
     [status, panelOpen, accept, reject, dismiss],
   )
 

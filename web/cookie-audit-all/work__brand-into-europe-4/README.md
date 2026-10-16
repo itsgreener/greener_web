@@ -1,6 +1,6 @@
 # Greener — auditoría de cookies
 
-Fecha: 2026-10-15T10:51:40.457Z
+Fecha: 2026-10-16T10:22:01.094Z
 
 URL base: http://localhost:3000
 
@@ -24,12 +24,12 @@ Objetivos: youtube (/work/brand-into-europe-4)
 - **PASS** youtube-preconsent / youtube: 0 provider requests and 0 provider iframes before consent
 - **PASS** youtube-reject / youtube: Not now: 0 provider requests; 0 iframes
 - **PASS** youtube-embed / youtube: Iframe created: https://www.youtube-nocookie.com/embed/fPhYHaNZ1qU?autoplay=1
-- **PASS** youtube-network / youtube: 23 provider requests after acceptance
+- **PASS** youtube-network / youtube: 22 provider requests after acceptance
 - **INFO** youtube-cookies / youtube: 0 provider-domain cookies after acceptance; 0 new provider-domain cookies (names and attributes in cookie-changes.csv)
 - **PASS** youtube-revoke-choice / youtube: Privacy settings Reject button aria-pressed=true
 - **PASS** youtube-revoke / youtube: After rejecting and revisiting episode: 0 provider iframes
 - **PASS** youtube-reconsent / youtube: After revocation Play requires consent again: prompt=true; iframes=0
-- **PASS** cloudinary: 72 responses; 0 set cookies
+- **PASS** cloudinary: 40 responses; 0 set cookies
 - **INFO** plausible: Not implemented in Greener; excluded from this audit
 
 ## Archivos
@@ -40,7 +40,7 @@ Objetivos: youtube (/work/brand-into-europe-4)
 - cookie-changes.csv: nombres y atributos de cookies después de aceptar, sin valores secretos.
 - storage-events.csv: mutaciones observadas de Storage.setItem/removeItem/clear (no incluye escrituras directas por propiedad).
 - audit.json: datos completos.
-- Capturas disponibles: youtube-A.png, youtube-B.png, youtube-C.png, youtube-D.png, youtube-E.png, youtube-F.png, youtube-G.png.
+- Capturas disponibles: ninguna.
 
 ## Fases
 

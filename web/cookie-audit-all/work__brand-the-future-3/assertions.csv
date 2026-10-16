@@ -11,5 +11,5 @@ status,category,target,message
 "PASS","youtube-revoke-choice","youtube","Privacy settings Reject button aria-pressed=true"
 "PASS","youtube-revoke","youtube","After rejecting and revisiting episode: 0 provider iframes"
 "PASS","youtube-reconsent","youtube","After revocation Play requires consent again: prompt=true; iframes=0"
-"PASS","cloudinary","","75 responses; 0 set cookies"
+"PASS","cloudinary","","72 responses; 0 set cookies"
 "INFO","plausible","","Not implemented in Greener; excluded from this audit"

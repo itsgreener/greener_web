@@ -1,5 +1,5 @@
 target,action,name,domain,path,httpOnly,secure,sameSite,expires,partitionKey
-"spotify","retained","greener_visitor","localhost","/","true","false","Lax","1792147999.851909",""
-"spotify","added","greener_consent","localhost","/","false","false","Lax","1826621605.634858",""
-"spotify","added","sp_t",".spotify.com","/","false","true","None","1823597606.124505",""
-"spotify","added","sp_landing",".spotify.com","/","true","true","None","1792148006.124579",""
+"spotify","retained","greener_visitor","localhost","/","true","false","Lax","1792232598.812695",""
+"spotify","added","greener_consent","localhost","/","false","false","Lax","1826706202.367734",""
+"spotify","added","sp_t",".spotify.com","/","false","true","None","1823682202.690548",""
+"spotify","added","sp_landing",".spotify.com","/","true","true","None","1792232602.690621",""
