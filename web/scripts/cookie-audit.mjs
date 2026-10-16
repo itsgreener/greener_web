@@ -25,7 +25,6 @@ const providerPattern = /(^|\.)(youtube\.com|youtube-nocookie\.com|youtu\.be|goo
 const providerHost = { spotify: /(^|\.)(spotify\.com|scdn\.co)$/i, youtube: /(^|\.)(youtube\.com|youtube-nocookie\.com|googlevideo\.com|ytimg\.com)$/i, vimeo: /(^|\.)(vimeo\.com|vimeocdn\.com)$/i };
 function isTargetProvider(url, provider) { return (providerHost[provider] || providerPattern).test(hostOf(url)); }
 const network = [], audits = [], assertions = [], storageEvents = [], screenshots = [], cookieChanges = [];
-const isLocal = ['localhost', '127.0.0.1'].includes(hostOf(base));
 function hostOf(url) { try { return new URL(url).hostname.toLowerCase(); } catch { return ''; } }
 function isProvider(url) { return providerPattern.test(hostOf(url)); }
 function abs(target) { return new URL(target, base).href; }

@@ -217,4 +217,39 @@ describe('Ventana de cookies', () => {
       'textVersion',
     ])
   })
+
+  it('una revocación hecha en otra pestaña se aplica al volver a esta', () => {
+    writeConsentRecord(createConsentRecord('accepted'))
+    mount()
+    expect(screen.getByTestId('status')).toHaveTextContent('accepted')
+
+    // Otra pestaña revoca: la cookie cambia sin que esta pestaña haga nada.
+    writeConsentRecord(createConsentRecord('rejected'))
+    fireEvent.focus(window)
+
+    expect(screen.getByTestId('status')).toHaveTextContent('rejected')
+  })
+
+  it('con las cookies bloqueadas, la decisión vale durante la visita y la ventana se cierra', () => {
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: () => '',
+      set: () => {},
+    })
+
+    try {
+      mount()
+      fireEvent.click(screen.getByRole('button', { name: 'Accept' }))
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByTestId('status')).toHaveTextContent('accepted')
+
+      // Volver a la pestaña no reabre la ventana.
+      fireEvent.focus(window)
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    } finally {
+      // Quita la propiedad propia y vuelve la de Document.prototype.
+      delete (document as unknown as { cookie?: string }).cookie
+    }
+  })
 })

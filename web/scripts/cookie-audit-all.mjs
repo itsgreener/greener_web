@@ -10,7 +10,6 @@ const out = path.resolve('cookie-audit-all');
 const maxPages = Number(process.env.COOKIE_AUDIT_DISCOVER_MAX || 500);
 const scrollRounds = Number(process.env.COOKIE_AUDIT_SCROLL_ROUNDS || 18);
 const explicitList = process.env.COOKIE_AUDIT_URLS_FILE || '';
-const allowVimeo = true;
 const providerNames = ['spotify','youtube','vimeo'];
 const normalize = href => {
   try {

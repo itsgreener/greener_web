@@ -4,12 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react'
-import { usePathname } from 'next/navigation'
 
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import {
@@ -38,47 +37,68 @@ interface ConsentContextValue {
 const ConsentContext = createContext<ConsentContextValue | null>(null)
 
 /**
- * El consentimiento se comparte mediante una cookie entre pestañas, pero el
- * estado de React no. Sincronizamos al montar, al cambiar de ruta y al volver
- * a una pestaña para respetar revocaciones hechas en otra ventana.
+ * La cookie `greener_consent` es la fuente de verdad y se comparte entre
+ * pestañas; React la lee como almacén externo (`useSyncExternalStore`).
+ * Se vuelve a leer al decidir en esta pestaña y al volver a ella (foco,
+ * visibilidad, `pageshow`), para respetar revocaciones hechas en otra ventana.
  */
+const cookieListeners = new Set<() => void>()
+
+function notifyConsentChange(): void {
+  for (const listener of cookieListeners) listener()
+}
+
+function subscribeToConsentCookie(onChange: () => void): () => void {
+  const onVisibilityChange = () => {
+    if (document.visibilityState === 'visible') onChange()
+  }
+
+  cookieListeners.add(onChange)
+  window.addEventListener('focus', onChange)
+  window.addEventListener('pageshow', onChange)
+  document.addEventListener('visibilitychange', onVisibilityChange)
+
+  return () => {
+    cookieListeners.delete(onChange)
+    window.removeEventListener('focus', onChange)
+    window.removeEventListener('pageshow', onChange)
+    document.removeEventListener('visibilitychange', onVisibilityChange)
+  }
+}
+
+function readCookieStatus(): ConsentStatus {
+  return consentStatusOf(readConsentRecord())
+}
+
+/** En el servidor no hay cookie que leer: aún no se sabe. */
+function readServerStatus(): ConsentStatus {
+  return 'unknown'
+}
+
 export function ConsentProvider({ children }: { children: ReactNode }) {
-  const pathname = usePathname()
-  const [status, setStatus] = useState<ConsentStatus>('unknown')
-  const [panelOpen, setPanelOpen] = useState(false)
+  const cookieStatus = useSyncExternalStore(
+    subscribeToConsentCookie,
+    readCookieStatus,
+    readServerStatus,
+  )
+  // Solo si el navegador bloquea las cookies: la decisión vive en memoria
+  // durante esta visita y se volverá a preguntar en la siguiente.
+  const [memoryDecision, setMemoryDecision] = useState<ConsentDecision | null>(
+    null,
+  )
 
-  const syncFromCookie = useCallback(() => {
-    const resolved = consentStatusOf(readConsentRecord())
-    setStatus(resolved)
-    setPanelOpen(resolved === 'undecided')
-  }, [])
-
-  useEffect(() => {
-    syncFromCookie()
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === 'visible') syncFromCookie()
-    }
-
-    const onFocus = () => syncFromCookie()
-    const onPageShow = () => syncFromCookie()
-
-    window.addEventListener('focus', onFocus)
-    window.addEventListener('pageshow', onPageShow)
-    document.addEventListener('visibilitychange', onVisibilityChange)
-
-    return () => {
-      window.removeEventListener('focus', onFocus)
-      window.removeEventListener('pageshow', onPageShow)
-      document.removeEventListener('visibilitychange', onVisibilityChange)
-    }
-  }, [pathname, syncFromCookie])
+  const status: ConsentStatus =
+    cookieStatus === 'undecided' && memoryDecision
+      ? memoryDecision
+      : cookieStatus
+  const panelOpen = status === 'undecided'
 
   const decide = useCallback(
     (decision: ConsentDecision, closedWithX: boolean) => {
       writeConsentRecord(createConsentRecord(decision))
-      setStatus(decision)
-      setPanelOpen(false)
+      const persisted = readCookieStatus() === decision
+      setMemoryDecision(persisted ? null : decision)
+      notifyConsentChange()
 
       trackAnalyticsEvent(
         'Cookie Choice',
