@@ -1,6 +1,6 @@
-# Contrato del paquete ZIP — Tools e Insights
+# Contrato del paquete ZIP — Tools, Insights y páginas satélite
 
-Especificación técnica para quien prepare los paquetes de una tool o insight. El ABM valida esto automáticamente al subir el ZIP — si algo no cumple el contrato, la subida se rechaza con el motivo exacto, no hay validación parcial ni "se sube pero con avisos".
+Especificación técnica para quien prepare los paquetes de una tool, un insight o una página satélite (§9). El ABM valida esto automáticamente al subir el ZIP — si algo no cumple el contrato, la subida se rechaza con el motivo exacto, no hay validación parcial ni "se sube pero con avisos".
 
 ---
 
@@ -58,7 +58,7 @@ El servidor asigna el tipo de contenido (Content-Type) por extensión. Reconoce 
 
 | Campo                  | Tipo                    | Notas                                                                                                                                                                  |
 | ---------------------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kind`                 | `"tool"` \| `"insight"` | Debe coincidir con el tipo de contenido al que se sube — si no coincide, se rechaza                                                                                    |
+| `kind`                 | `"tool"` \| `"insight"` \| `"variety"` | Debe coincidir con el tipo de contenido al que se sube (`variety` es el de una página satélite de `other`, §9) — si no coincide, se rechaza                                                                                    |
 | `entrypoint`           | texto                   | Nombre del archivo HTML que se sirve. Debe existir de verdad dentro del ZIP. Normalmente `"index.html"`                                                                |
 | `version`              | número entero positivo  | Versión del propio paquete (no confundir con la versión que asigna el ABM al subir)                                                                                    |
 | `requiredCapabilities` | lista de textos         | Documentación de qué necesita el paquete (`"canvas"`, `"worker"`, `"webgl"`, etc.) — informativo, no bloquea la subida                                                 |
@@ -318,7 +318,7 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] `metadata.ogImage`: imagen **PNG, JPG o WebP de verdad**, **mínimo 1200 × 630 px y proporción 1,91 : 1**, de **menos de 5 MB**, dentro de `assets/` y con su texto alternativo (§2.1)
 - [ ] Sin `<title>`, `og:*` ni `twitter:*` escritos a mano en el HTML: se descartan, los genera Greener desde `metadata` (§6.2)
 - [ ] `entrypoint` del manifest coincide con un archivo real del ZIP
-- [ ] `kind` del manifest coincide con el tipo de contenido (tool/insight)
+- [ ] `kind` del manifest coincide con el tipo de contenido (tool/insight/variety)
 - [ ] **Todo lo demás dentro de `assets/`** (CSS, JS, workers, imágenes), y referenciado como `./assets/...`
 - [ ] Solo extensiones `.js`, `.css`, `.json`, `.png`, `.svg`, `.jpg`, `.jpeg`, `.webp`, `.woff`, `.woff2` dentro de `assets/` (cualquier otra, probada antes en una subida real — §1)
 - [ ] **Ningún `<script>` con código inline ni manejadores `onclick=`**: todo el JS en archivo (§6)
@@ -337,3 +337,21 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] Nada de `100vw`/`100vh`/`window.innerWidth`/`window.innerHeight` en el código — solo `100%` o las variables `--greener-available-*`
 - [ ] Probado visualmente redimensionando la ventana del navegador (§6) — el viewport es real y dinámico por visitante desde el 21 de septiembre, ya no hay un único tamaño fijo contra el que probar
 - [ ] Si hay `<canvas>`: `canvas.width`/`canvas.height` fijados en JS, no solo el tamaño CSS
+
+---
+
+## 9. Páginas satélite (`kind: "variety"`)
+
+Añadido el 15 de octubre (plan de `other`, fase 4). Una **página satélite** es un contenido de tipo `other` y subtipo página: una página propia de Greener (una landing de campaña, una sección de careers, una página de evento…) que se publica como paquete HTML y se enlaza desde un pin del feed. Usa **el mismo contrato que una tool o un insight**, con estas particularidades:
+
+- **`kind` del manifest: `"variety"`.** Es el valor que tiene que llevar el `manifest.json` de una página satélite: de él dependen el `og:type`, el JSON-LD y que no se cargue la analítica de §6.7. Un paquete `variety` solo puede subirse a un contenido `other` de tipo página; a cualquier otro, la subida se rechaza.
+- **`metadata` obligatorio**, con las mismas reglas que en §2.1 (título, descripción, idioma e imagen para compartir). Una página satélite se comparte por su URL igual que un insight, así que el bloque es lo que ven LinkedIn, WhatsApp o Google. En el `<head>` el `og:type` es `website` y el JSON-LD es `WebPage`.
+- **URL pública: `/variety/{slug}/app`.** Los assets cuelgan de `/variety/{slug}/app/assets/...` y las rutas relativas del HTML se resuelven desde `/variety/{slug}/app/` (§6.1). `/variety/{slug}` a secas redirige a `/app`: la página no tiene ficha.
+- **Misma CSP que cualquier paquete** (§6.6): `default-src 'self'` y `connect-src 'self'`. **La página tiene que ser autocontenida**: JS en archivo, CSS y fuentes dentro del paquete, y nada cargado de otro dominio. Esto deja fuera, tal cual, los formularios o buscadores de empleo incrustados de terceros (un ATS, un formulario de un proveedor, un widget de calendario) y los `<iframe>` de otros sitios. Si una página satélite concreta necesita uno, es una decisión aparte sobre la CSP y no se resuelve subiendo el ZIP.
+- **Sin analítica automática del paquete.** El script de §6.7 no se carga en una página satélite: no hay evento «Open» propio. La apertura se mide en el feed, con el clic del pin.
+- **Sin vista previa de borrador**, como las tools y los insights: la página solo se ve una vez publicada.
+- **No entra en el sitemap ni en `llms.txt`.** Se llega a ella desde el feed, no desde buscadores. Eso no impide que quien tenga el enlace la comparta (con su tarjeta de §6.2).
+- **El pin del feed es un pin normal**, con `label` obligatorio. La página satélite no existe sin un pin que la enlace.
+
+El resto (estructura del ZIP, tipos de archivo, dominios externos, límites de tamaño, reglas de layout y checklist de §8) se aplica sin cambios.
+

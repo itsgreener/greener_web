@@ -6,6 +6,8 @@ src/app/(public)/(detail)/layout.tsx
 src/app/(public)/(detail)/tools/[slug]/app/assets/[...file]/route.ts
 src/app/(public)/(detail)/tools/[slug]/app/route.ts
 src/app/(public)/(detail)/tools/[slug]/page.tsx
+src/app/(public)/(detail)/variety/[slug]/app/assets/[...file]/route.ts
+src/app/(public)/(detail)/variety/[slug]/app/route.ts
 src/app/(public)/(detail)/variety/[slug]/page.tsx
 src/app/(public)/(detail)/work/[slug]/[locale]/page.tsx
 src/app/(public)/(detail)/work/[slug]/page.tsx
@@ -20,7 +22,6 @@ src/app/(public)/(feed)/work/page.tsx
 src/app/(public)/contact/ContactForm.module.css
 src/app/(public)/contact/ContactForm.tsx
 src/app/(public)/contact/contactActions.ts
-src/app/(public)/contact/newsletterActions.ts
 src/app/(public)/contact/page.module.css
 src/app/(public)/contact/page.tsx
 src/app/(public)/error.tsx
@@ -29,7 +30,11 @@ src/app/(public)/not-found.tsx
 src/app/(public)/privacy/page.module.css
 src/app/(public)/privacy/page.tsx
 src/app/(public)/privacy/policyContent.ts
+src/app/_actions/newsletterActions.ts
 src/app/admin/(auth)/login/page.tsx
+src/app/admin/(panel)/audit/page.tsx
+src/app/admin/(panel)/contents/ContentFilterPersistence.tsx
+src/app/admin/(panel)/contents/OtherOccupationNotice.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/BulkPinRow.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/index.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/rows.ts
@@ -43,6 +48,7 @@ src/app/admin/(panel)/contents/[id]/edit/ContentTranslations.tsx
 src/app/admin/(panel)/contents/[id]/edit/DeleteContentButton.tsx
 src/app/admin/(panel)/contents/[id]/edit/EditContentForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/EpisodeDetailForm.tsx
+src/app/admin/(panel)/contents/[id]/edit/OtherDetailForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/PackageUpload.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinList/DeletePinButtons.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinList/EditPinForm.tsx
@@ -64,6 +70,7 @@ src/app/admin/(panel)/contents/[id]/edit/discardUpload.ts
 src/app/admin/(panel)/contents/[id]/edit/discardUploadActions.ts
 src/app/admin/(panel)/contents/[id]/edit/editorLock.ts
 src/app/admin/(panel)/contents/[id]/edit/episodeActions.ts
+src/app/admin/(panel)/contents/[id]/edit/otherActions.ts
 src/app/admin/(panel)/contents/[id]/edit/packageActions.ts
 src/app/admin/(panel)/contents/[id]/edit/page.tsx
 src/app/admin/(panel)/contents/[id]/edit/pinActions.ts
@@ -73,7 +80,6 @@ src/app/admin/(panel)/contents/[id]/edit/translationActions.ts
 src/app/admin/(panel)/contents/[id]/edit/useCloudinaryUpload.ts
 src/app/admin/(panel)/contents/[id]/edit/useEditorOperation.ts
 src/app/admin/(panel)/contents/[id]/edit/warmActions.ts
-src/app/admin/(panel)/contents/ContentFilterPersistence.tsx
 src/app/admin/(panel)/contents/actions.ts
 src/app/admin/(panel)/contents/new/NewContentForm.tsx
 src/app/admin/(panel)/contents/new/page.tsx
@@ -89,6 +95,7 @@ src/app/api/admin/media/sign/route.ts
 src/app/api/analytics/package/route.ts
 src/app/api/feed/[sessionId]/route.ts
 src/app/api/feed/sessions/route.ts
+src/app/api/health/route.ts
 src/app/auth/callback/route.ts
 src/app/error.tsx
 src/app/global-error.tsx
@@ -131,12 +138,15 @@ src/components/masonry/useMasonryPositions.ts
 src/components/masonry/useSentinel.ts
 src/components/nav/AuxNav/AuxNav.module.css
 src/components/nav/AuxNav/index.tsx
+src/components/newsletter/NewsletterPinCard/NewsletterPinCard.module.css
+src/components/newsletter/NewsletterPinCard/index.tsx
 src/components/pin/PinCard/CardLink.tsx
 src/components/pin/PinCard/PinCard.module.css
 src/components/pin/PinCard/PinCardLabel.tsx
 src/components/pin/PinCard/PinCardMedia.tsx
 src/components/pin/PinCard/index.tsx
 src/components/pin/PinCard/types.ts
+src/components/pin/useHoverIntent.ts
 src/components/pin/usePinVideo/index.ts
 src/components/pin/useVideoSlot/index.ts
 src/components/pin/videoPlaybackCoordinator.ts
@@ -154,9 +164,9 @@ src/fonts/helvetica-neue-700.woff2
 src/fonts/kinder-400.woff2
 src/instrumentation.ts
 src/lib/auth/adminSession.ts
+src/lib/botTraps.ts
 src/lib/cache/feedCache.ts
 src/lib/cache/packageCache.ts
-src/lib/botTraps.ts
 src/lib/contentMetadata.ts
 src/lib/env.client.ts
 src/lib/env.ts
@@ -187,6 +197,11 @@ src/modules/analytics/AnalyticsProvider.tsx
 src/modules/analytics/ContentOpenTracker.tsx
 src/modules/analytics/analytics.ts
 src/modules/analytics/navigationAttribution.ts
+src/modules/audit/application/listAuditLog.ts
+src/modules/audit/container.ts
+src/modules/audit/domain/auditLogQuery.ts
+src/modules/audit/domain/auditLogRepository.ts
+src/modules/audit/infrastructure/supabaseAuditLogRepository.ts
 src/modules/consent/client/ConsentProvider.tsx
 src/modules/consent/client/consentCookie.ts
 src/modules/consent/domain/consent.ts
@@ -199,6 +214,7 @@ src/modules/contact/infrastructure/contactSubmissionLog.ts
 src/modules/contact/infrastructure/mailer.ts
 src/modules/content/application/addCaseCarouselMedia.ts
 src/modules/content/application/createContent.ts
+src/modules/content/application/createOther.ts
 src/modules/content/application/deleteContent.ts
 src/modules/content/application/generatePreviewLink.ts
 src/modules/content/application/publishContent.ts
@@ -207,6 +223,7 @@ src/modules/content/application/resolveDetailCover.ts
 src/modules/content/application/resolvePreviewContext.ts
 src/modules/content/application/unpublishContent.ts
 src/modules/content/application/updateContent.ts
+src/modules/content/application/updateOtherFrequency.ts
 src/modules/content/application/upsertCaseDetail.ts
 src/modules/content/application/upsertContentTranslation.ts
 src/modules/content/application/upsertEpisode.ts
@@ -225,6 +242,8 @@ src/modules/content/domain/episodeLinks.ts
 src/modules/content/domain/episodeRepository.ts
 src/modules/content/domain/episodeSchema.ts
 src/modules/content/domain/llmsTxt.ts
+src/modules/content/domain/otherRepository.ts
+src/modules/content/domain/otherSchema.ts
 src/modules/content/domain/pinFooter.ts
 src/modules/content/domain/publicContent.ts
 src/modules/content/domain/publicContentReader.ts
@@ -245,6 +264,7 @@ src/modules/content/infrastructure/supabaseCaseDetailRepository.ts
 src/modules/content/infrastructure/supabaseContentRepository.ts
 src/modules/content/infrastructure/supabaseContentTranslationRepository.ts
 src/modules/content/infrastructure/supabaseEpisodeRepository.ts
+src/modules/content/infrastructure/supabaseOtherRepository.ts
 src/modules/content/infrastructure/supabasePublicContentReader.ts
 src/modules/feed/application/createFeedSession.ts
 src/modules/feed/application/getFeedSessionBatch.ts
@@ -264,13 +284,15 @@ src/modules/feed/domain/interludes.ts
 src/modules/feed/domain/prng.ts
 src/modules/feed/domain/quotas.ts
 src/modules/feed/domain/rotateQueue.ts
-src/modules/feed/domain/types.ts
 src/modules/feed/domain/typeSkeleton.ts
+src/modules/feed/domain/types.ts
 src/modules/feed/infrastructure/cachedFeedCatalog.ts
 src/modules/feed/infrastructure/cursor.ts
 src/modules/feed/infrastructure/feedRateLimit.ts
 src/modules/feed/infrastructure/feedSessionRepository.ts
 src/modules/feed/infrastructure/supabaseFeedSource.ts
+src/modules/health/container.ts
+src/modules/health/infrastructure/databaseHealth.ts
 src/modules/masonry/domain/detailLayout.ts
 src/modules/masonry/domain/labelHeight.ts
 src/modules/masonry/domain/layout.ts
@@ -306,6 +328,7 @@ src/modules/media/infrastructure/supabaseMediaAssetRepository.ts
 src/modules/media/infrastructure/supabaseMediaRefs.ts
 src/modules/media/infrastructure/supabaseWarmRepository.ts
 src/modules/newsletter/application/subscribeToNewsletter.ts
+src/modules/newsletter/client/newsletterCookie.ts
 src/modules/newsletter/container.ts
 src/modules/newsletter/domain/newsletterCookie.ts
 src/modules/newsletter/domain/newsletterErrors.ts
@@ -326,6 +349,7 @@ src/modules/packages/domain/manifest.ts
 src/modules/packages/domain/manifestSchema.ts
 src/modules/packages/domain/packageErrors.ts
 src/modules/packages/domain/packageFiles.ts
+src/modules/packages/domain/packageKind.ts
 src/modules/packages/domain/packageLimits.ts
 src/modules/packages/domain/packageUploadPorts.ts
 src/modules/packages/domain/packageVersionSchema.ts

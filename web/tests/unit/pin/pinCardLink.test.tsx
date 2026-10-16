@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 /**
  * Auditoría 8 oct, P0-8: la tarjeta navegaba con un `<a>` plano y cada clic
  * recargaba el documento (se perdía el estado del feed). Ahora usa `Link`,
- * salvo para los route handlers `/tools|insights/{slug}/app`, que devuelven
+ * salvo para los route handlers `/tools|insights|variety/{slug}/app`, que devuelven
  * un documento propio y necesitan carga completa.
  */
 vi.mock('next/link', () => ({
@@ -70,6 +70,14 @@ describe('PinCard — navegación', () => {
 
     const link = screen.getByRole('link')
     expect(link).toHaveAttribute('href', '/insights/mi-insight/app')
+    expect(link).not.toHaveAttribute('data-next-link')
+  })
+
+  it('el /app de una página satélite (variety) también es un <a> normal', () => {
+    render(<PinCard pin={pin('/variety/mi-pagina/app')} style={STYLE} />)
+
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/variety/mi-pagina/app')
     expect(link).not.toHaveAttribute('data-next-link')
   })
 })

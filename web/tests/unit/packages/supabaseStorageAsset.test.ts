@@ -13,6 +13,7 @@ let published: Record<string, unknown> | null
 let queryError: { message: string } | null
 const download = vi.fn()
 const selectSpy = vi.fn()
+const eqSpy = vi.fn()
 
 function chain() {
   const builder = {
@@ -20,7 +21,10 @@ function chain() {
       selectSpy(...args)
       return builder
     },
-    eq: () => builder,
+    eq: (...args: unknown[]) => {
+      eqSpy(...args)
+      return builder
+    },
     maybeSingle: async () => ({ data: published, error: queryError }),
   }
   return builder
@@ -140,6 +144,25 @@ describe('getAsset — caché por ETag', () => {
     expect(asset.notModified).toBe(false)
     expect(asset.etag).toBe('"checksum-v1"')
   })
+
+  it.each([
+    ['tool', 'tool'],
+    ['insight', 'insight'],
+    ['variety', 'other'],
+  ] as const)(
+    'el paquete «%s» se busca entre los contenidos de tipo «%s» (variety → other)',
+    async (kind, contentType) => {
+      download.mockResolvedValue(fileWith('x'))
+
+      const { supabasePublishedPackageSource } =
+        await import('@/modules/packages/infrastructure/supabaseStorageSource')
+
+      await supabasePublishedPackageSource.getAsset(kind, 'mi-slug', ['a.js'])
+
+      expect(eqSpy).toHaveBeenCalledWith('type', contentType)
+      expect(eqSpy).toHaveBeenCalledWith('slug', 'mi-slug')
+    },
+  )
 
   it('sigue rechazando rutas con ".." antes de tocar Storage', async () => {
     const { supabasePublishedPackageSource } =

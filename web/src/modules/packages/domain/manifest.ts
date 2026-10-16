@@ -4,6 +4,8 @@
  * este spike, Supabase Storage en producción — arquitectura §5, §12.2).
  */
 
+import type { PackageKind } from './packageKind'
+
 /**
  * Metadatos de compartición y SEO del paquete (contrato del ZIP §2.1). Los
  * escribe el autor dentro del propio `manifest.json`; Greener los inyecta en
@@ -32,7 +34,7 @@ export interface PackageMetadata {
 }
 
 export interface PackageManifest {
-  kind: 'tool' | 'insight'
+  kind: PackageKind
   entrypoint: string
   version: number
   requiredCapabilities: string[]

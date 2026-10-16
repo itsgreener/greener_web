@@ -13,7 +13,8 @@ Documento para el asesor legal de Greener. Parte del documento «Política de co
 7. **Faltaba la tabla de cookies de terceros** (nombre, titular, finalidad, duración). Es obligatoria según la guía de la AEPD y hoy no se puede rellenar sin inventar: **pendiente de la medición con DevTools** (YouTube, Spotify y Cloudinary). Entre tanto, la página enlaza a las políticas de Google y Spotify.
 8. **Idioma.** El PDF dice «las dos versiones dicen lo mismo; prevalece la castellana». La web solo muestra el inglés, así que esa frase no se ha puesto (sería falsa en pantalla). Decidir cuándo se publica la versión en castellano; la estructura de los textos ya admite varios idiomas.
 9. **Revocar no borra lo ya instalado.** Al revocar desde `/privacy`, el reproductor se desmonta al instante, pero las cookies que el proveedor ya puso siguen en el dispositivo hasta que el navegador las borre. El texto actual solo dice que se puede revocar y bloquear/borrar desde el navegador; el asesor debe decidir si hay que decirlo más explícitamente.
-10. **Datos de los formularios.** Esta página es solo de cookies. El formulario de contacto y la newsletter tratan datos personales (ver `docs/cookies-y-privacidad/cookies-inventario.md` §4: SMTP, hash de IP sin plazo de conservación, proveedores). Falta una política de privacidad para ellos; la casilla del formulario enlaza hoy a esta misma página.
+10. **Newsletter (15 oct).** Se añade a `/privacy` la sección `#newsletter` (responsable, datos, finalidad y base legal, doble confirmación, Mailchimp como encargado con transferencia internacional, conservación, la cookie `greener_newsletter` y la medición con el evento anónimo de Plausible) y la fila de la cookie en la tabla de almacenamiento propio. Texto provisional en inglés. **No se ha subido `CONSENT_TEXT_VERSION`**: hasta que el asesor entregue el texto final, la ventana no se reabre a quien ya decidió (plan §8.1.7); al sustituir el texto hay que subirla. Bloquea publicar un `other` de newsletter.
+11. **Datos de los formularios.** Esta página es solo de cookies. El formulario de contacto y la newsletter tratan datos personales (ver `docs/cookies-y-privacidad/cookies-inventario.md` §4: SMTP, hash de IP sin plazo de conservación, proveedores). Falta una política de privacidad para ellos; la casilla del formulario enlaza hoy a esta misma página.
 
 ## 2. Qué dice el sitio y debe seguir diciendo el texto
 
@@ -30,6 +31,8 @@ Documento para el asesor legal de Greener. Parte del documento «Política de co
 4. Qué decir sobre transferencias internacionales (Google, Spotify, Cloudinary, Supabase, Plausible).
 5. Si hay que enumerar las cookies de terceros con nombre y duración, o basta con remitir a sus políticas.
 6. Texto final en castellano (prevalece) y en inglés.
+7. Si la cookie `greener_newsletter` queda exenta como preferencia pedida por el propio visitante, o exige consentimiento previo (plan B: guardarla solo si aceptó cookies).
+8. La sección «Newsletter» (base legal, encargado y transferencia internacional de Mailchimp, plazos).
 
 ## 4. Pendiente de Greener
 

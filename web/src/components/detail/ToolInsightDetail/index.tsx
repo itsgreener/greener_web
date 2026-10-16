@@ -25,8 +25,8 @@ import styles from './ToolInsightDetail.module.css'
  * no hay medio y se usa el ratio por defecto.
  *
  * Insight ya no pasa por aquí (su URL redirige al paquete) y `other` dejará
- * de usarla en la fase 3 (su página satélite abre directamente el paquete
- * HTML). El evento "Tool Open" (§18.2) se dispara solo para tools.
+ * de usarla (su página satélite abre directamente el paquete HTML, fase 4).
+ * El evento "Tool Open" (§18.2) se dispara solo para tools.
  */
 export function ToolInsightDetail({
   content,

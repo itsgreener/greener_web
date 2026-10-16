@@ -19,7 +19,7 @@ describe('publicContentPath — ruta pública por tipo (especificacion-final-for
     )
   })
 
-  it('other va a /variety/[slug]', () => {
-    expect(publicContentPath('other', 'mi-cosa')).toBe('/variety/mi-cosa')
+  it('other va directo a su página satélite, /variety/[slug]/app (sin ficha)', () => {
+    expect(publicContentPath('other', 'mi-cosa')).toBe('/variety/mi-cosa/app')
   })
 })

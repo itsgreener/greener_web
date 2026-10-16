@@ -1,0 +1,154 @@
+/*
+ * Tarjeta de newsletter del feed: una columna, 4:5, tipografía en `cqw`
+ * (unidades del ancho de la propia tarjeta) para que escale con la columna
+ * en 2, 3, 4 y 6 columnas. Cada tamaño tiene un suelo en rem para que el
+ * texto siga siendo legible en la columna más estrecha (móvil de 2
+ * columnas, ≈150 px).
+ */
+.card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  container-type: inline-size;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  will-change: transform;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4cqw;
+  height: 100%;
+  padding: 7cqw;
+}
+
+.copy {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.title {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: max(0.9rem, 9cqw);
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+/* El texto de apoyo (hasta ~200 caracteres, ver textLimits.ts) se acorta con
+   elipsis y desaparece en las columnas más estrechas, donde el formulario ya
+   ocupa casi toda la tarjeta. */
+.text {
+  display: -webkit-box;
+  margin: 2.5cqw 0 0;
+  overflow: hidden;
+  font-size: max(0.65rem, 4.6cqw);
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+}
+
+@container (max-width: 150px) {
+  .text {
+    display: none;
+  }
+}
+
+/* Columna mínima (móvil de 320 px, ≈106 px): el titular cede una línea. */
+@container (max-width: 120px) {
+  .title {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 2cqw;
+}
+
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.input {
+  width: 100%;
+  min-width: 0;
+  padding: 2.2cqw 3cqw;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: max(0.7rem, 4.6cqw);
+}
+
+.error {
+  margin: 0;
+  font-size: max(0.6rem, 3.6cqw);
+  line-height: 1.2;
+  color: var(--color-error);
+}
+
+.legal {
+  margin: 0;
+  font-size: max(0.55rem, 3.3cqw);
+  line-height: 1.2;
+
+  & a {
+    color: inherit;
+    text-decoration: underline;
+  }
+}
+
+.submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: max(1.9rem, 9cqw);
+  padding: 0 4cqw;
+  border: none;
+  border-radius: var(--radius-cta);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font: inherit;
+  font-size: max(0.7rem, 4.6cqw);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.success {
+  margin: auto 0;
+  font-size: max(0.65rem, 4.6cqw);
+  line-height: 1.3;
+}

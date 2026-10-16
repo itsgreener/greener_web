@@ -93,6 +93,16 @@ describe('toFeedBatchItem', () => {
     expect(item.cta).toBe('Read')
   })
 
+  it('other: abre directamente su página satélite y el CTA es Open', () => {
+    const item = toFeedBatchItem(
+      'p',
+      entry({ contentType: 'other', contentSlug: 'mi-pagina' }),
+    )
+
+    expect(item.destination).toBe('/variety/mi-pagina/app')
+    expect(item.cta).toBe('Open')
+  })
+
   it('episode se publica como kind channel', () => {
     expect(toFeedBatchItem('p', entry({ contentType: 'episode' })).kind).toBe(
       'channel',

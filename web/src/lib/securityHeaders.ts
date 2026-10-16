@@ -2,7 +2,7 @@
  * Cabeceras de seguridad globales (arquitectura §17.1). Dominio puro — nada
  * de Next.js/Edge aquí, para testear la construcción sin levantar un request.
  *
- * NUNCA se aplican a `/tools|insights/[slug]/app`: esas rutas llevan su
+ * NUNCA se aplican a `/tools|insights|variety/[slug]/app`: esas rutas llevan su
  * propia CSP (`contrato-zip-tools-insights.md` §12.4) y dos
  * `Content-Security-Policy` en una respuesta se combinan (intersección), lo
  * que podría romper `worker-src`/`canvas` sin error visible. Ver `src/proxy.ts`.

@@ -98,11 +98,18 @@ export const POLICY: PolicyDocument = {
               'Remembers your cookie choice, and the date and version of the text you saw, so that we do not ask you again.',
               '24 months',
             ],
+            [
+              'greener_newsletter',
+              'Cookie',
+              'Greener',
+              'Remembers that this device has subscribed to the newsletter, so that the newsletter card in the feed is not shown again. It holds the value 1, no email address and no identifier, and it is only set after you subscribe.',
+              '12 months',
+            ],
           ],
         },
         {
           type: 'p',
-          text: 'This storage is essential to provide the service you requested and, under article 22.2 of Spanish Law 34/2002, requires no consent.',
+          text: 'This storage is essential to provide the service you requested and, under article 22.2 of Spanish Law 34/2002, requires no consent. The newsletter cookie is only written when you ask to subscribe, and it does not depend on your cookie choice.',
         },
       ],
     },
@@ -117,6 +124,34 @@ export const POLICY: PolicyDocument = {
         {
           type: 'p',
           text: 'We also count, without identifying anyone, how many visitors accept, reject or close this window, so that we can tell whether it works.',
+        },
+      ],
+    },
+    {
+      id: 'newsletter',
+      heading: 'Newsletter',
+      blocks: [
+        {
+          type: 'p',
+          text: `If you subscribe to our newsletter from the card shown in the feed, the controller of your data is XAGA Creatividad Interactiva, S.A. (see "Who we are"). Write to us at ${POLICY_EMAIL} with any question about it.`,
+        },
+        {
+          type: 'list',
+          items: [
+            'What we collect: your email address, the label "Greener Website" and the record of your consent that Mailchimp keeps when you confirm.',
+            'Why, and on what basis: to send you the newsletter, with your consent.',
+            'How you subscribe: we send you an email asking you to confirm. You are not subscribed until you do (double opt-in).',
+            'Who processes it: Mailchimp (Intuit Inc.) stores your email on our behalf and may transfer it outside the European Union under appropriate safeguards. The subscription goes from our server to Mailchimp: this site loads no Mailchimp script or form, so Mailchimp sets no cookie on your device through it.',
+            'How long: until you unsubscribe, which you can do from any newsletter email. You can also exercise your rights as described in "Your rights".',
+          ],
+        },
+        {
+          type: 'p',
+          text: 'Storage on your device: once you subscribe, we save a cookie called greener_newsletter so that the newsletter card is not shown to you again. It holds the value 1, no email address and no identifier, it lasts 12 months and it is only written after you subscribe. It is a preference you ask for by subscribing and does not depend on your cookie choice.',
+        },
+        {
+          type: 'p',
+          text: 'Measurement: we count, without identifying anyone, how many people subscribe, using an anonymous Plausible Analytics event. It sets no cookie.',
         },
       ],
     },

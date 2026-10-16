@@ -17,9 +17,12 @@ import {
 } from '@/modules/packages/domain/manifest'
 import { storedPackageManifestSchema } from '@/modules/packages/domain/manifestSchema'
 import { PACKAGE_BUCKET } from '@/modules/packages/domain/packageFiles'
+import {
+  PACKAGE_KIND_CONTENT_TYPE,
+  type PackageKind,
+} from '@/modules/packages/domain/packageKind'
 import type {
   PackageAsset,
-  PackageKind,
   PublishedPackageSource,
 } from '@/modules/packages/domain/publishedPackageSource'
 
@@ -60,7 +63,8 @@ async function resolvePublishedVersion(
       )
     ` as const,
     )
-    .eq('type', kind)
+    // El tipo de paquete no siempre se llama como el contenido (variety → other).
+    .eq('type', PACKAGE_KIND_CONTENT_TYPE[kind])
     .eq('slug', slug)
     .eq('status', 'published')
     .maybeSingle()

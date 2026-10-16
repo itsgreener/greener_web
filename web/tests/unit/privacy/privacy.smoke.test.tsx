@@ -118,4 +118,50 @@ describe('/privacy — prueba de humo', () => {
       screen.getByRole('button', { name: 'Reject' }).className,
     )
   })
+
+  describe('sección «Newsletter» (plan de `other`, fase 3)', () => {
+    it('existe con el ancla #newsletter a la que apunta el pin del feed', () => {
+      const { container } = render(<PrivacyPage />)
+
+      const heading = container.querySelector('#newsletter')
+      expect(heading).not.toBeNull()
+      expect(heading).toHaveTextContent('Newsletter')
+      expect(POLICY.sections.map((section) => section.id)).toContain(
+        'newsletter',
+      )
+    })
+
+    it('declara responsable, Mailchimp, doble confirmación, la cookie y la medición anónima', () => {
+      const { container } = render(<PrivacyPage />)
+      const text = container.textContent ?? ''
+
+      for (const expected of [
+        'XAGA Creatividad Interactiva',
+        'Mailchimp',
+        'double opt-in',
+        'greener_newsletter',
+        'Plausible',
+      ]) {
+        expect(text).toContain(expected)
+      }
+      // No se carga nada de Mailchimp en el navegador: el texto lo dice.
+      expect(text).toMatch(/loads no Mailchimp script or form/)
+    })
+
+    it('la cookie greener_newsletter figura en la tabla de almacenamiento propio, con 12 meses', () => {
+      render(<PrivacyPage />)
+
+      const table = screen.getAllByRole('table')[0]
+      const row = within(table).getByText('greener_newsletter').closest('tr')!
+      expect(within(row).getByText('Cookie')).toBeInTheDocument()
+      expect(within(row).getByText('12 months')).toBeInTheDocument()
+    })
+
+    it('el enlace del pin y el id de la sección no se desincronizan', () => {
+      // La tarjeta enlaza a /privacy#newsletter: si cambia uno, cambia el otro.
+      expect(
+        POLICY.sections.some((section) => section.id === 'newsletter'),
+      ).toBe(true)
+    })
+  })
 })

@@ -39,6 +39,15 @@ export function getPrefetchLimit(viewportWidth: number): number {
 export const READY_TIMEOUT_MS = 10_000
 
 /**
+ * Intención de hover (plan de pendientes, A3): el puntero debe quedarse
+ * este tiempo sobre un pin de modo `hover` antes de pedir su vídeo. Un paso
+ * circunstancial (el ratón cruza el pin camino de otro punto) no descarga
+ * nada.
+ * El foco de teclado no espera: es una intención explícita.
+ */
+export const HOVER_INTENT_MS = 200
+
+/**
  * Esperas antes de cada reintento ante un ERROR (por ejemplo, una versión
  * aún generándose en Cloudinary): hasta dos reintentos, a 3 s y a 8 s.
  */

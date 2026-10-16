@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { NextRequest } from 'next/server'
 
 /**
- * Las dos rutas de assets (tools e insights) — cabeceras de caché reales
+ * Las dos rutas de assets (tools, insights y páginas satélite) — cabeceras de caché reales
  * de la respuesta, no solo la lógica interna. Storage va simulado.
  */
 
@@ -24,6 +24,11 @@ const ROUTES = [
     kind: 'insight' as const,
     load: () =>
       import('@/app/(public)/(detail)/insights/[slug]/app/assets/[...file]/route'),
+  },
+  {
+    kind: 'variety' as const,
+    load: () =>
+      import('@/app/(public)/(detail)/variety/[slug]/app/assets/[...file]/route'),
   },
 ]
 

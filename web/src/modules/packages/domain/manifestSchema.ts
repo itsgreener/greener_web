@@ -1,5 +1,6 @@
 import { z } from 'zod'
 
+import { PACKAGE_KINDS } from './packageKind'
 import { PACKAGE_LIMITS } from './packageLimits'
 
 /**
@@ -81,7 +82,7 @@ const packageMetadataSchema = z.object({
 })
 
 const manifestShape = {
-  kind: z.enum(['tool', 'insight']),
+  kind: z.enum(PACKAGE_KINDS),
 
   entrypoint: z.string().trim().min(1, 'Falta el entrypoint'),
 

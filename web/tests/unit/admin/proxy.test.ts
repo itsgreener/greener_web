@@ -44,13 +44,16 @@ beforeEach(() => {
   }
 })
 
-describe('proxy — rutas /app de tools/insights (contrato-zip-tools-insights.md §12.4)', () => {
+describe('proxy — rutas /app de tools/insights/variety (contrato-zip-tools-insights.md §12.4)', () => {
   it.each([
     '/tools/mi-tool/app',
     '/tools/mi-tool/app/',
     '/tools/mi-tool/app/assets/main.js',
     '/insights/mi-insight/app',
     '/insights/mi-insight/app/assets/style.css',
+    '/variety/mi-pagina/app',
+    '/variety/mi-pagina/app/',
+    '/variety/mi-pagina/app/assets/main.js',
   ])(
     '%s pasa sin ninguna cabecera de seguridad global añadida',
     async (pathname) => {
@@ -67,6 +70,14 @@ describe('proxy — rutas /app de tools/insights (contrato-zip-tools-insights.md
     const { proxy } = await import('@/proxy')
 
     const response = await proxy(makeRequest('/tools/mi-tool'))
+
+    expect(response.headers.get('Content-Security-Policy')).toBeTruthy()
+  })
+
+  it('/variety/[slug] (la redirección a /app) sí lleva las cabeceras globales', async () => {
+    const { proxy } = await import('@/proxy')
+
+    const response = await proxy(makeRequest('/variety/mi-pagina'))
 
     expect(response.headers.get('Content-Security-Policy')).toBeTruthy()
   })

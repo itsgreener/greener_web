@@ -49,6 +49,10 @@ export function buildSitemapEntries(
   }))
 
   for (const row of rows) {
+    // Las páginas satélite (`other`) no entran en el sitemap (plan de `other`,
+    // §6.8): se llega a ellas desde el feed, no por búsqueda.
+    if (row.type === 'other') continue
+
     const canonicalPath = publicContentPath(row.type, row.slug)
     const canonicalUrl = `${base}${canonicalPath}`
     const parsedDate = new Date(row.updatedAt)

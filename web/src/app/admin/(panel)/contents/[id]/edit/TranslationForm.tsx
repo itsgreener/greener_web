@@ -23,6 +23,10 @@ type Props = {
   showHighlightAndBody: boolean
   // Case y episodio no usan summary: su texto es highlight + body.
   showSummary: boolean
+  // El SEO solo tiene sentido en contenidos con página pública propia.
+  showSeo: boolean
+  // Pin de newsletter: título = titular de la tarjeta, summary = texto de apoyo.
+  newsletter: boolean
 }
 
 const initialState: TranslationActionState = {}
@@ -46,6 +50,8 @@ export default function TranslationForm({
   translation,
   showHighlightAndBody,
   showSummary,
+  showSeo,
+  newsletter,
 }: Props) {
   const [state, formAction, pending] = useActionState(
     saveTranslationAction,
@@ -82,7 +88,9 @@ export default function TranslationForm({
 
       <div className="admin-field">
         <div className="admin-field-heading">
-          <label htmlFor={`title-${locale}`}>Título</label>
+          <label htmlFor={`title-${locale}`}>
+            {newsletter ? 'Titular' : 'Título'}
+          </label>
 
           <CharCounter length={title.length} max={TEXT_LIMITS.title} />
         </div>
@@ -102,26 +110,33 @@ export default function TranslationForm({
       </div>
 
       <div className="admin-form-grid admin-form-grid-2">
-        <div className="admin-field">
-          <div className="admin-field-heading">
-            <label htmlFor={`seoTitle-${locale}`}>SEO title</label>
+        {showSeo && (
+          <div className="admin-field">
+            <div className="admin-field-heading">
+              <label htmlFor={`seoTitle-${locale}`}>SEO title</label>
 
-            <CharCounter length={seoTitle.length} max={TEXT_LIMITS.seoTitle} />
+              <CharCounter
+                length={seoTitle.length}
+                max={TEXT_LIMITS.seoTitle}
+              />
+            </div>
+
+            <input
+              id={`seoTitle-${locale}`}
+              name="seoTitle"
+              type="text"
+              defaultValue={translation?.seoTitle ?? ''}
+              onChange={seoTitle.onChange}
+            />
           </div>
-
-          <input
-            id={`seoTitle-${locale}`}
-            name="seoTitle"
-            type="text"
-            defaultValue={translation?.seoTitle ?? ''}
-            onChange={seoTitle.onChange}
-          />
-        </div>
+        )}
 
         {showSummary && (
           <div className="admin-field">
             <div className="admin-field-heading">
-              <label htmlFor={`summary-${locale}`}>Summary</label>
+              <label htmlFor={`summary-${locale}`}>
+                {newsletter ? 'Texto de apoyo' : 'Summary'}
+              </label>
 
               <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
             </div>
@@ -137,24 +152,26 @@ export default function TranslationForm({
         )}
       </div>
 
-      <div className="admin-field">
-        <div className="admin-field-heading">
-          <label htmlFor={`seoDescription-${locale}`}>SEO description</label>
+      {showSeo && (
+        <div className="admin-field">
+          <div className="admin-field-heading">
+            <label htmlFor={`seoDescription-${locale}`}>SEO description</label>
 
-          <CharCounter
-            length={seoDescription.length}
-            max={TEXT_LIMITS.seoDescription}
+            <CharCounter
+              length={seoDescription.length}
+              max={TEXT_LIMITS.seoDescription}
+            />
+          </div>
+
+          <textarea
+            id={`seoDescription-${locale}`}
+            name="seoDescription"
+            rows={4}
+            defaultValue={translation?.seoDescription ?? ''}
+            onChange={seoDescription.onChange}
           />
         </div>
-
-        <textarea
-          id={`seoDescription-${locale}`}
-          name="seoDescription"
-          rows={4}
-          defaultValue={translation?.seoDescription ?? ''}
-          onChange={seoDescription.onChange}
-        />
-      </div>
+      )}
 
       {showHighlightAndBody && (
         <>

@@ -10,7 +10,11 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
+import {
+  isNewsletterItem,
+  type FeedBatchItem,
+} from '@/modules/feed/domain/feedReadModels'
+import { hasNewsletterCookie } from '@/modules/newsletter/client/newsletterCookie'
 import { pageLoadId } from '@/components/masonry/pageLoadId'
 
 /**
@@ -37,7 +41,7 @@ import { pageLoadId } from '@/components/masonry/pageLoadId'
 
 interface ScopeFeedState {
   sessionId: string | null
-  items: FeedPinItem[]
+  items: FeedBatchItem[]
   batchSizes: number[]
   cursor: string | null
   hasMore: boolean
@@ -57,6 +61,35 @@ type FeedProviderState = Record<string, ScopeFeedState>
 
 const STORAGE_KEY = 'greener:feed'
 
+/**
+ * Quita de un scope las tarjetas de newsletter (salvo `keepPinId`, la que
+ * acaba de usarse y muestra su mensaje de éxito) y corrige el tamaño de cada
+ * lote para que la virtualización siga agrupando bien.
+ */
+function withoutNewsletter(
+  state: ScopeFeedState,
+  keepPinId?: string,
+): ScopeFeedState {
+  const items: FeedBatchItem[] = []
+  const batchSizes: number[] = []
+  let index = 0
+
+  for (const size of state.batchSizes) {
+    let kept = 0
+    for (const item of state.items.slice(index, index + size)) {
+      if (isNewsletterItem(item) && item.pinId !== keepPinId) continue
+      items.push(item)
+      kept += 1
+    }
+    batchSizes.push(kept)
+    index += size
+  }
+
+  return items.length === state.items.length
+    ? state
+    : { ...state, items, batchSizes }
+}
+
 function readFromSessionStorage(): FeedProviderState {
   if (typeof window === 'undefined') return {}
   try {
@@ -69,7 +102,18 @@ function readFromSessionStorage(): FeedProviderState {
     // El id no coincide: es una carga de documento distinta (recarga
     // real) — el estado guardado no vale, arquitectura §6.1.
     if (parsed.pageLoadId !== pageLoadId) return {}
-    return parsed.scopes ?? {}
+    const scopes = parsed.scopes ?? {}
+
+    // Un dispositivo ya suscrito (cookie `greener_newsletter`) no vuelve a ver
+    // el pin de newsletter, tampoco en el estado restaurado.
+    if (!hasNewsletterCookie()) return scopes
+
+    return Object.fromEntries(
+      Object.entries(scopes).map(([scope, state]) => [
+        scope,
+        withoutNewsletter(state),
+      ]),
+    )
   } catch {
     return {}
   }
@@ -95,13 +139,18 @@ interface FeedContextValue {
   appendBatch: (
     scope: string,
     batch: {
-      items: FeedPinItem[]
+      items: FeedBatchItem[]
       cursor: string
       hasMore: boolean
       rateLimited?: boolean
     },
   ) => void
   setScrollY: (scope: string, y: number) => void
+  /**
+   * Tras suscribirse: retira de todos los scopes las tarjetas de newsletter
+   * ya cargadas, salvo la usada (`keepPinId`), que enseña su confirmación.
+   */
+  retireNewsletterCards: (keepPinId: string) => void
 }
 
 const FeedContext = createContext<FeedContextValue | null>(null)
@@ -187,7 +236,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     (
       scope: string,
       batch: {
-        items: FeedPinItem[]
+        items: FeedBatchItem[]
         cursor: string
         hasMore: boolean
         rateLimited?: boolean
@@ -232,9 +281,26 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     if (scrollByScopeRef.current) scrollByScopeRef.current[scope] = y
   }, [])
 
+  const retireNewsletterCards = useCallback((keepPinId: string) => {
+    setScopes((prev) =>
+      Object.fromEntries(
+        Object.entries(prev).map(([scope, state]) => [
+          scope,
+          withoutNewsletter(state, keepPinId),
+        ]),
+      ),
+    )
+  }, [])
+
   const value = useMemo<FeedContextValue>(
-    () => ({ getState, setSessionId, appendBatch, setScrollY }),
-    [getState, setSessionId, appendBatch, setScrollY],
+    () => ({
+      getState,
+      setSessionId,
+      appendBatch,
+      setScrollY,
+      retireNewsletterCards,
+    }),
+    [getState, setSessionId, appendBatch, setScrollY, retireNewsletterCards],
   )
 
   return <FeedContext.Provider value={value}>{children}</FeedContext.Provider>

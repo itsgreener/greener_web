@@ -10,6 +10,7 @@ import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 import type { ContentListQuery } from './contentListQuery'
+import type { OtherKind } from './otherSchema'
 
 export type ContentListItem = {
   id: string
@@ -20,6 +21,8 @@ export type ContentListItem = {
   title: string
   createdAt: string
   publishAt: string | null
+  /** Subtipo de un `other` (newsletter o página); null en cualquier otro tipo. */
+  otherKind: OtherKind | null
 }
 
 export type ContentDetail = {

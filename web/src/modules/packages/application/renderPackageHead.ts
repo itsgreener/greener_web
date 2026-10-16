@@ -81,11 +81,13 @@ function jsonLd(
   const data =
     manifest.kind === 'insight'
       ? { ...base, '@type': 'Article', headline: metadata.title }
-      : {
-          ...base,
-          '@type': 'WebApplication',
-          applicationCategory: 'WebApplication',
-        }
+      : manifest.kind === 'variety'
+        ? { ...base, '@type': 'WebPage' }
+        : {
+            ...base,
+            '@type': 'WebApplication',
+            applicationCategory: 'WebApplication',
+          }
 
   // «<» escapado: un título con «</script>» no puede cerrar la etiqueta.
   const serialized = JSON.stringify(data).replace(/</g, '\\u003c')

@@ -6,6 +6,10 @@ import {
   createContentAction,
   type CreateContentActionState,
 } from '@/app/admin/(panel)/contents/actions'
+import {
+  OTHER_DEFAULT_FREQUENCY,
+  OTHER_MIN_FREQUENCY,
+} from '@/modules/content/domain/otherSchema'
 
 const initialState: CreateContentActionState = {}
 
@@ -39,12 +43,30 @@ const contentTypes = [
   {
     value: 'other',
     label: 'Other',
-    description: 'Contenido libre que no pertenece a los formatos principales.',
+    description:
+      'Pin de newsletter dentro del feed o página satélite de Greener.',
     symbol: 'O',
   },
 ] as const
 
 type ContentTypeValue = (typeof contentTypes)[number]['value']
+
+const otherKinds = [
+  {
+    value: 'newsletter',
+    symbol: 'N',
+    label: 'Pin de newsletter',
+    description:
+      'Tarjeta con formulario de alta dentro del feed. No tiene página ni destino: se rellena con título y texto.',
+  },
+  {
+    value: 'page',
+    symbol: 'P',
+    label: 'Página satélite',
+    description:
+      'Página propia de Greener (campaña, careers, evento…) servida como paquete HTML y enlazada desde un pin del feed.',
+  },
+] as const
 
 export default function NewContentForm() {
   const [state, formAction, pending] = useActionState(
@@ -53,6 +75,12 @@ export default function NewContentForm() {
   )
 
   const [selectedType, setSelectedType] = useState<ContentTypeValue>('case')
+
+  const [selectedKind, setSelectedKind] = useState<
+    (typeof otherKinds)[number]['value'] | null
+  >(null)
+
+  const isOther = selectedType === 'other'
 
   return (
     <form action={formAction} className="admin-form admin-new-content-form">
@@ -111,9 +139,99 @@ export default function NewContentForm() {
         )}
       </div>
 
+      {isOther && (
+        <div className="admin-new-section">
+          <div className="admin-new-section-heading">
+            <span className="admin-new-step">2</span>
+
+            <div>
+              <h3>Qué tipo de Other</h3>
+
+              <p>
+                Se elige ahora y no se puede cambiar después. Determina el
+                editor y cómo aparece en el feed.
+              </p>
+            </div>
+          </div>
+
+          <div className="admin-content-type-grid">
+            {otherKinds.map((kind) => {
+              const selected = selectedKind === kind.value
+
+              return (
+                <label
+                  key={kind.value}
+                  className={
+                    selected
+                      ? 'admin-content-type-card admin-content-type-card-selected'
+                      : 'admin-content-type-card'
+                  }
+                >
+                  <input
+                    type="radio"
+                    name="kind"
+                    value={kind.value}
+                    checked={selected}
+                    onChange={() => setSelectedKind(kind.value)}
+                    required
+                  />
+
+                  <span className="admin-content-type-symbol">
+                    {kind.symbol}
+                  </span>
+
+                  <span className="admin-content-type-copy">
+                    <strong>{kind.label}</strong>
+
+                    <small>{kind.description}</small>
+                  </span>
+
+                  <span className="admin-content-type-check" aria-hidden="true">
+                    {selected ? '✓' : ''}
+                  </span>
+                </label>
+              )
+            })}
+          </div>
+
+          {state.fieldErrors?.kind?.[0] && (
+            <p className="admin-field-error">{state.fieldErrors.kind[0]}</p>
+          )}
+
+          <div className="admin-field">
+            <label htmlFor="frequency">
+              Frecuencia (una aparición cada N pines)
+            </label>
+
+            <input
+              id="frequency"
+              name="frequency"
+              type="number"
+              inputMode="numeric"
+              min={OTHER_MIN_FREQUENCY}
+              step={1}
+              defaultValue={OTHER_DEFAULT_FREQUENCY}
+              required
+            />
+
+            <p className="admin-field-help">
+              Mínimo {OTHER_MIN_FREQUENCY}. Las primeras apariciones se reparten
+              desde el pin 10 y se espacian 8-15 pines entre contenidos;
+              después, cada N. Podrás cambiarla desde el editor.
+            </p>
+
+            {state.fieldErrors?.frequency?.[0] && (
+              <p className="admin-field-error">
+                {state.fieldErrors.frequency[0]}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="admin-new-section">
         <div className="admin-new-section-heading">
-          <span className="admin-new-step">2</span>
+          <span className="admin-new-step">{isOther ? 3 : 2}</span>
 
           <div>
             <h3>Datos básicos</h3>

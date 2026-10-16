@@ -57,6 +57,15 @@ export type AnalyticsEventMap = {
   }
 
   /**
+   * Alta nueva en la newsletter desde su pin del feed (plan de `other`,
+   * fase 3). Solo altas nuevas: «pendiente de confirmar» y «ya suscrito» no
+   * suman. Sin email ni ningún dato personal.
+   */
+  'Newsletter Signup': {
+    placement: 'feed'
+  }
+
+  /**
    * Contador anónimo de la ventana de cookies: qué se eligió y con qué
    * versión del texto. Sin identificador del visitante.
    */

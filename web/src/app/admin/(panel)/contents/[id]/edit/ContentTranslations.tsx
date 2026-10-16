@@ -8,11 +8,14 @@ import TranslationForm from './TranslationForm'
 
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
+import type { OtherKind } from '@/modules/content/domain/otherSchema'
 type Props = {
   contentId: string
   contentType: ContentType
   defaultLocale: Locale
   translations: ContentTranslation[]
+  /** Subtipo de un `other`; null en el resto de tipos. */
+  otherKind?: OtherKind | null
 }
 
 const allLocales: Locale[] = ['es', 'en', 'ca']
@@ -39,8 +42,14 @@ export default function ContentTranslations({
   contentType,
   defaultLocale,
   translations,
+  otherKind = null,
 }: Props) {
-  const locales = contentType === 'episode' ? [defaultLocale] : allLocales
+  // Episodio y other se muestran en un solo idioma: el principal. Un other no
+  // tiene versión por idioma en el feed (plan de other, §3).
+  const locales =
+    contentType === 'episode' || contentType === 'other'
+      ? [defaultLocale]
+      : allLocales
 
   const [activeLocale, setActiveLocale] = useState<Locale>(defaultLocale)
 
@@ -115,9 +124,16 @@ export default function ContentTranslations({
                 translation={translation}
                 showHighlightAndBody={showHighlightAndBody}
                 // Case y episodio no usan summary: su texto es highlight + body.
+                // Una página satélite solo necesita título: su contenido es el paquete.
                 showSummary={
-                  contentType !== 'case' && contentType !== 'episode'
+                  contentType !== 'case' &&
+                  contentType !== 'episode' &&
+                  otherKind !== 'page'
                 }
+                // El SEO de un other no se usa: la newsletter no tiene página y
+                // la satélite saca su head del manifest del paquete.
+                showSeo={contentType !== 'other'}
+                newsletter={otherKind === 'newsletter'}
               />
             </div>
           )

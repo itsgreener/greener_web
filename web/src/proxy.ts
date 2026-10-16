@@ -9,7 +9,7 @@ import { classifyBotTrap, logBotTrap } from '@/lib/botTraps'
 // ZIP. Dos cabeceras Content-Security-Policy en la misma respuesta no se
 // sustituyen, se combinan — nunca deben tocarse aquí, ni con el nonce ni
 // con el resto de cabeceras globales.
-const SANDBOXED_APP_PATTERN = /^\/(tools|insights)\/[^/]+\/app(\/.*)?$/
+const SANDBOXED_APP_PATTERN = /^\/(tools|insights|variety)\/[^/]+\/app(\/.*)?$/
 
 function isAdminRoute(pathname: string): boolean {
   return pathname.startsWith('/admin') || pathname.startsWith('/api/admin')

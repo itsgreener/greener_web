@@ -17,6 +17,7 @@ import type {
   UpdateContentInput,
 } from '@/modules/content/domain/contentSchema'
 import type { Locale } from '@/modules/shared/domain/locale'
+import type { OtherKind } from '@/modules/content/domain/otherSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
 type SupabaseContentRow = {
   id: string
@@ -31,6 +32,8 @@ type SupabaseContentRow = {
     locale: Locale
     title: string
   }>
+
+  other_detail?: { kind: OtherKind } | null
 }
 
 function mapContent(row: SupabaseContentRow): ContentDetail {
@@ -60,6 +63,7 @@ type SupabaseListRow = Pick<
   | 'created_at'
   | 'publish_at'
   | 'translations'
+  | 'other_detail'
 >
 
 function mapListItem(row: SupabaseListRow): ContentListItem {
@@ -76,6 +80,8 @@ function mapListItem(row: SupabaseListRow): ContentListItem {
     title: translation?.title ?? '',
     createdAt: row.created_at,
     publishAt: row.publish_at,
+
+    otherKind: row.other_detail?.kind ?? null,
   }
 }
 
@@ -117,6 +123,9 @@ export const supabaseContentRepository: ContentRepository = {
         translations:content_translation (
           locale,
           title
+        ),
+        other_detail (
+          kind
         )
       `,
         { count: 'exact' },

@@ -183,4 +183,20 @@ describe('composeToolDocument', () => {
       '<script src="/greener-package-analytics.js" data-greener-kind="insight" data-greener-slug="pixel-palette"></script>',
     )
   })
+
+  it('una página satélite (variety) no carga la analítica del paquete, pero sí compone igual (sidebar incluida)', () => {
+    const varietyDoc = composeToolDocument(
+      {
+        ...SAMPLE_PACKAGE,
+        manifest: { ...SAMPLE_PACKAGE.manifest, kind: 'variety' },
+      },
+      VIEWPORT,
+      '/variety/pixel-palette/app/',
+      SITE_URL,
+    )
+
+    expect(varietyDoc).not.toContain('greener-package-analytics.js')
+    expect(varietyDoc).toContain('<canvas id="canvas">')
+    expect(varietyDoc).toContain('<nav')
+  })
 })

@@ -69,13 +69,18 @@ function renderSidebar(): string {
  * Plausible como «Tool Used», con el mismo toolId que «Tool Open» (cruzables
  * en el dashboard).
  *
- * Se inyecta en Tools y en Insights, con `data-greener-kind` para que el
+ * Se inyecta en Tools y en Insights (no en las páginas satélite, `variety`),
+ * con `data-greener-kind` para que el
  * script sepa qué hacer: en una Tool queda a la escucha de «Tool Used»
  * (ÚNICO mecanismo, PROGRESO §2.17-§2.18); en un Insight registra UNA vez,
  * al cargar, «Insight Open» (no tiene ficha React donde dispararlo desde el
  * cliente: su URL pública es este mismo documento).
  */
 function renderPackageAnalyticsRuntime(pkg: ResolvedPackage): string {
+  // Una página satélite (`variety`) no tiene evento propio en el paquete: se
+  // mide con «Pin Click» desde el feed. No se inyecta nada.
+  if (pkg.manifest.kind === 'variety') return ''
+
   return `<script src="/greener-package-analytics.js" data-greener-kind="${pkg.manifest.kind}" data-greener-slug="${pkg.slug}"></script>`
 }
 

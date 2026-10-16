@@ -1,7 +1,10 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
+import {
+  isPinItem,
+  type FeedPinItem,
+} from '@/modules/feed/domain/feedReadModels'
 import {
   computeMasonryLayout,
   columnsForViewport,
@@ -149,7 +152,9 @@ export function useRecommendationMasonry(
       const batch = await fetchFeedBatch(sessionId, cursorRef.current)
       // Límite de peticiones superado: temporal, no toca ni cursor ni hasMore.
       if (batch.rateLimited) return
-      setItems((prev) => [...prev, ...batch.items])
+      // Las recomendaciones nunca llevan interludios (sesión con exclusión),
+      // pero el tipo del lote sí lo admite.
+      setItems((prev) => [...prev, ...batch.items.filter(isPinItem)])
       cursorRef.current = batch.cursor
       // Mismo criterio que FeedProvider.appendBatch: una ronda vacía es
       // definitiva (generateRound es determinista), así que se deja de pedir.

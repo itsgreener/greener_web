@@ -3,7 +3,15 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import ContentFilterPersistence from './ContentFilterPersistence'
 
-import { contents as contentRepository } from '@/modules/content/container'
+import OtherOccupationNotice from './OtherOccupationNotice'
+import {
+  contents as contentRepository,
+  others as otherRepository,
+} from '@/modules/content/container'
+import {
+  estimateOtherOccupation,
+  otherKindLabel,
+} from '@/modules/content/domain/otherSchema'
 import {
   contentPageCount,
   parseContentListQuery,
@@ -101,6 +109,20 @@ export default async function ContentsPage({ searchParams }: Props) {
       contentRepository.list(query),
       contentRepository.counts(),
     ])
+
+  // Con el filtro «Other», aviso de la ocupación del feed (plan de other,
+  // §7.6). Si no se puede calcular, la lista sigue funcionando sin él.
+  const otherOccupation =
+    type === 'other'
+      ? await otherRepository
+          .listPublishedFrequencies()
+          .then(estimateOtherOccupation)
+          .catch((error: unknown) => {
+            console.error(error)
+
+            return null
+          })
+      : null
 
   const totalContents = counts.published + counts.draft + counts.scheduled
 
@@ -203,6 +225,13 @@ export default async function ContentsPage({ searchParams }: Props) {
             )}
           </form>
 
+          {otherOccupation !== null && (
+            <OtherOccupationNotice
+              percent={otherOccupation}
+              scope="con los Other publicados"
+            />
+          )}
+
           <div className="admin-content-results">
             <span>
               {filteredTotal} {filteredTotal === 1 ? 'contenido' : 'contenidos'}
@@ -273,6 +302,9 @@ export default async function ContentsPage({ searchParams }: Props) {
                       <td>
                         <span className="admin-type-badge">
                           {getTypeLabel(content.type)}
+                          {content.otherKind
+                            ? ` · ${otherKindLabel(content.otherKind)}`
+                            : ''}
                         </span>
                       </td>
 

@@ -6,19 +6,14 @@ import type { FeedContentKind } from './types'
 type ContentType = PinDirectoryEntry['contentType']
 
 // Destino del pin: la ruta pública del contenido (contentPath.ts). Los
-// insights abren directamente /insights/[slug]/app, sin pasar por su detalle.
+// insights y las páginas satélite (`other`) abren directamente su paquete
+// (/insights/[slug]/app, /variety/[slug]/app), sin pasar por una ficha.
 function destinationFor(
   contentType: ContentType,
   slug: string,
   unitId: string,
 ): string {
   const path = publicContentPath(contentType, slug)
-
-  // Página satélite (`other`): el pin abre directamente su paquete, como un
-  // insight. La ficha `/variety/{slug}` desaparece en la fase 4 del plan.
-  if (contentType === 'other') {
-    return `${path}/app`
-  }
 
   if (contentType === 'tool') {
     // La ficha de Tool necesita saber desde qué pin se abrió para poder

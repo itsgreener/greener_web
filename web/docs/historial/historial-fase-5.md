@@ -1005,7 +1005,7 @@ Petición de Greener antes de empezar la fase 2: dejar el código limpio, que ex
 - `ToolInsightDetail`: la rama del tracker de insight. `CoverMedia`: la rama del vídeo con controles nativos (solo servía a insight y a `other` con portada, ambos ya sin medio) y la propiedad `isTool`; el vídeo es ahora siempre `ToolCoverVideo`.
 - `ContentOpenTracker`: el tipo `insight` y su `case`. Se documenta en el propio componente que «Insight Open» sale del servidor.
 - `feedPinDestination`: envoltorio idéntico a `publicContentPath` desde §2.74; el feed llama ya a `publicContentPath`.
-- `Newsletter Signup` (`AnalyticsEventMap`): sin emisor desde que el formulario salió de `/contact` (§2.73). La fase 4 lo da de alta con el pin de newsletter. `newsletterActions.ts` y el módulo `newsletter` no se tocan: la fase 4 los reutiliza.
+- `Newsletter Signup` (`AnalyticsEventMap`): sin emisor desde que el formulario salió de `/contact` (§2.73). La fase 3 lo da de alta con el pin de newsletter. `newsletterActions.ts` y el módulo `newsletter` no se tocan: la fase 4 los reutiliza.
 - Tests: los dos de vídeo de insight, el CTA «Read» de insight, el de `ContentOpenTracker` y los de `feedPinDestination` se retiran o se adaptan. `knip` no encuentra más ficheros sin uso; las exportaciones que señala se usan internamente y no se tocan.
 
 **2. «Insight Open» desde el servidor.** Un insight no tiene ficha React, así que el evento no puede salir del cliente de la ficha. `composeToolDocument` inyecta ahora `/greener-package-analytics.js` también en los insights, con `data-greener-kind` y `data-greener-slug` (antes `data-greener-tool-slug`, solo tools). Para `kind="insight"` el script hace un `POST /api/analytics/package` `{kind:'insight', slug}` al cargar y no expone nada al paquete. La ruta acepta ahora `kind` (`tool` por defecto, así que el formato antiguo sigue valiendo), resuelve el UUID con `publishedContentId('insight', slug)` y manda a Plausible «Insight Open» `{insightId}` con la URL `/insights/{slug}/app`; para tools sigue siendo «Tool Used» sin cambios. Mismas defensas que antes: `sec-fetch-site` same-origin, límite de 60/min por IP, solo contenido publicado y solo en producción. **Pendiente en Plausible:** «Insight Open» ya era objetivo (§2.21), no hay que dar de alta nada nuevo.
@@ -1431,3 +1431,110 @@ Petición de Greener: «Continua con las fase 2». Se implementa el motor de int
 **Pendiente de Greener.** Aplicar las cuatro migraciones (`npx supabase db push`) y `npm run db:types`; criterio del asesor sobre la cookie `greener_newsletter`; decidir el indicador de ocupación del ABM (plan §7.6).
 
 **Verificación.** 179 ficheros y 1902 tests en verde, `tsc` y ESLint limpios; tests nuevos de propiedades y unitarios del calendario, del caso de uso con interludios, de la ruta con la cookie, de `getFeedInterludes`, de la caché y del filtro de `fetchFeedBatch`.
+
+### 2.77 Fase 3 del plan de `other`: pin de newsletter (15 oct 2026)
+
+Petición de Greener: «Vamos con la fase 3»; trabaja en paralelo en el tema cookies y adjunta el `database.types.ts` regenerado tras aplicar las cuatro migraciones.
+
+**Tipos de la base.** Instalado el fichero generado. Solo difería de lo editado a mano en la cabecera (el aviso de «pendiente de regenerar») y en la versión de PostgREST (14.5 → 14.15). `tsc` limpio.
+
+**Acción de alta.** `newsletterActions.ts` sale de `app/(public)/contact/` a `app/_actions/` (carpeta privada de Next, sin ruta): la usa un componente del feed, no una página. Tras un resultado real (alta nueva, pendiente o ya suscrito) escribe `greener_newsletter=1` con `Set-Cookie` desde el servidor: 12 meses, `SameSite=Lax`, `Secure` en producción, `Path=/`, **no** `httpOnly` (la lee el cliente). El caso de uso marca ahora con `silent: true` el éxito silencioso del honeypot y la acción **no** escribe la cookie en ese caso (tampoco ante errores). El feed ya leía la cookie desde la fase 2; ahora el valor y la duración son constantes de `newsletter/domain/newsletterCookie.ts`.
+
+**Tarjeta (`components/newsletter/NewsletterPinCard`).** Una columna, proporción 4:5 y tipografía en `cqw` con suelos en rem. Titular (3 líneas como máximo, 2 en la columna mínima), texto de apoyo (4 líneas, oculto por debajo de 150 px de ancho), email, honeypot `company`, línea con enlace a `/privacy#newsletter` antes del botón y botón «Subscribe». Con el alta hecha solo queda el mensaje de confirmación (misma tarjeta, la retícula no se mueve). **Medida en Chromium** en viewport 320, 360, 390, 639, 700, 899, 1000, 1199, 1440 y 1920 px (2, 3, 4 y 6 columnas, columnas de ≈106 a ≈296 px) con el peor caso (titular de 80 caracteres y texto de 200, los límites de `textLimits.ts`): no desborda en ninguna; en la columna de 106 px el titular cede una línea y en las de menos de 150 px el texto de apoyo se oculta. El estado de éxito también cabe en todas.
+
+**Feed y estado.** `FeedProvider` guarda ahora `FeedBatchItem[]`. `retireNewsletterCards(keepPinId)` quita de todos los scopes las demás tarjetas de newsletter y corrige los tamaños de lote; al restaurar `sessionStorage`, un dispositivo con la cookie descarta todas. `useMasonryPositions` es genérico y coloca la tarjeta con proporción 4:5 y sin rótulo. `fetchFeedBatch` deja de filtrar la newsletter (el filtro transitorio de §2.76 desaparece); las recomendaciones de las fichas filtran los pines en su propio hook. `Pin Click` de las páginas lleva `destinationType: 'other'`.
+
+**Analítica.** `Newsletter Signup` (`placement: 'feed'`) vuelve a `AnalyticsEventMap`; solo cuentan las altas nuevas.
+
+**`/privacy` (provisional, en inglés).** Sección `#newsletter` (responsable, datos, finalidad y base legal, doble confirmación, Mailchimp como encargado con transferencia internacional y sin scripts ni formularios suyos en la web, conservación, cookie y medición anónima) y fila de `greener_newsletter` en la tabla de almacenamiento propio. **No se ha subido `CONSENT_TEXT_VERSION`** (plan §8.1.7): hasta que llegue el texto final del asesor la ventana de cookies no se reabre a quien ya decidió; `lastUpdated` queda como estaba. Actualizados `cookies-inventario.md` y `politica-cookies-cambios.md` (puntos 10, y 7-8 de §3). Se tocan ficheros de cookies mientras Greener trabaja en ellos en paralelo: posible fusión manual.
+
+**Estado tras la fase 3.** Una newsletter publicada ya se vería y funcionaría en el feed. Una página satélite sigue apuntando a `/variety/{slug}/app`, que no existe hasta la fase 4. Siguen sin poder publicarse `other` hasta la fase 5 (ABM).
+
+**Verificación.** 183 ficheros y 1934 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios. Tests nuevos: tarjeta (contenido, honeypot, enlace, éxito y errores, analítica), cookie en cliente, acción (cookie en los tres estados, no en honeypot ni en errores), estado del feed (retirar y restaurar), retícula 4:5 y feed con newsletter y página, sección de `/privacy`.
+
+### 2.78 Fase 4 del plan de `other`: página satélite (15 oct 2026)
+
+Petición de Greener: «Continua con la fase 4».
+
+**Paquete `variety`.** Nuevo `modules/packages/domain/packageKind.ts` con los tres tipos de paquete (`tool`, `insight`, `variety`) y su tipo de contenido (`variety` → `other`, el único que no se llama igual). `manifestSchema` acepta `kind: "variety"` (subida y manifest guardado), `supabaseStorageSource` busca el paquete por ese mapa, `renderPackageHead` genera `og:type` `website` y JSON-LD `WebPage`, y `composeToolDocument` no inyecta la analítica del paquete en una página satélite (el endpoint solo conoce tools e insights; la apertura se mide por el clic del pin). La barra lateral sale del mismo `composeToolDocument`, sin cambios.
+
+**Rutas.** `variety/[slug]/app/route.ts` y `variety/[slug]/app/assets/[...file]/route.ts`, copia de las de insights con `getPackage('variety', slug)`, misma CSP aislada (`default-src 'self'; connect-src 'self'`) y mismas cabeceras HSTS, Referrer-Policy y `nosniff`. `proxy.ts` añade `variety` a `SANDBOXED_APP_PATTERN`, de modo que no recibe la CSP con nonce global; `CardLink` trata `/variety/…/app` como documento (`<a>` normal, carga completa).
+
+**Sin ficha.** `variety/[slug]/page.tsx` pasa a ser un 307 a `/variety/{slug}/app`, sin consultar la base de datos, como el de insights. **Desviación respecto a la letra del plan** (§6 decía «404 si es newsletter»): el 404 de una newsletter lo da `/app` al no existir paquete, que da el mismo resultado sin una consulta más. `publicContentPath('other')` devuelve ya `/variety/{slug}/app`, de modo que el destino del pin, el enlace de vista previa y el sitemap salen de la misma tabla; se elimina el caso especial de `other` en `feedItemPresentation`.
+
+**Fuera del sitemap.** `buildSitemapEntries` descarta los `other`. `llms.txt` no necesita cambio: solo lista tipos con ficha.
+
+**Contrato.** `contrato-zip-tools-insights.md` documenta `kind: "variety"` (§2, §8) y una sección nueva §9: `metadata` obligatorio, URL pública, CSP y consecuencia práctica (la página tiene que ser autocontenida: un ATS o un formulario de terceros incrustado no funcionará), sin analítica automática, sin vista previa de borrador, fuera de sitemap y `llms.txt`, pin normal con `label`.
+
+**Pendiente de confirmar con Greener.** Si la página de careers va a depender de un ATS o un formulario de terceros incrustado, la CSP de los paquetes no lo permite; habría que decidir aparte entre una página autocontenida (con enlace al ATS) o ampliar la política para esa ruta.
+
+**Hueco que ya existía.** El contrato dice que un `kind` que no coincida con el tipo de contenido se rechaza, pero el código no lo compara al subir (lo deriva `create_html_package_version` por el tipo del contenido; el `kind` del manifest solo se usa al pintar). No cambia nada para la fase 4, queda anotado para una pasada de endurecimiento.
+
+**Estado tras la fase 4.** Una página satélite publicada ya se serviría y se enlazaría desde el feed. Subir un ZIP de prueba de verdad no es posible hasta la fase 5: sin ABM no hay forma de crear un `other` con subtipo `page` ni de subirle el paquete (la comprobación de extremo a extremo queda para entonces).
+
+**Verificación.** 183 ficheros y 1960 tests en verde, `tsc`, ESLint y `prettier` (CRLF) limpios. Tests nuevos o ampliados: `contentPath`, vista previa, sitemap (los `other` no entran), proxy (`/variety/x/app` sin cabeceras globales, `/variety/x` con ellas), rutas de documento y de assets de `variety` (cabeceras, 404, 503, OG absoluto), manifest `variety`, head y JSON-LD, composición sin analítica, mapeo `variety` → `other` en Storage, `CardLink`, destino en el feed y redirección sin base de datos.
+
+### 2.79 Fase 5 del plan de `other`: ABM (16 oct 2026)
+
+Petición de Greener: «Continua con la fase 5».
+
+**Migración nueva, `20261016090000_other_abm.sql` (hay que aplicarla con `npx supabase db push`).** Hasta ahora ninguna función escribía `other_detail`, así que un `other` no se podía crear con subtipo. Tres cambios:
+
+- `create_other_draft(p_slug, p_default_locale, p_title, p_kind, p_frequency)`: crea en una sola transacción el contenido, su traducción y su fila de `other_detail`, con `audit_log`. Frecuencia mínima 25 (`22023`).
+- `update_other_frequency(p_content_id, p_frequency)`: cambia la frecuencia con el mismo mínimo y `audit_log`. Si el contenido no es un `other` falla; si no tiene fila de subtipo, lanza ZG017.
+- `create_content_draft` rechaza ahora el tipo `other` (ZG017): por esa vía se creaba un `other` sin subtipo que no se podía publicar. Misma firma y mismo comportamiento para el resto de tipos.
+
+`database.types.ts` lleva las tres entradas de `Functions` escritas a mano (`create_other_draft`, `update_other_frequency`); se sobrescribirán al regenerar con `npm run db:types`, sin diferencias esperables.
+
+**Dominio y casos de uso (módulo `content`).** `otherSchema.ts` (subtipo, frecuencia con mínimo 25 y defecto 100, esquemas de alta y de cambio de frecuencia, etiquetas), `OtherRepository` con `getByContentId`, `createDraft` y `updateFrequency`, `supabaseOtherRepository`, y los casos de uso `createOther` y `updateOtherFrequency`. `createContentSchema` ya no admite `other` (un `other` solo se crea por su propio esquema). `ContentListItem` lleva `otherKind` (la lista lo trae con un `select` anidado de `other_detail`).
+
+**Alta (`/admin/contents/new`).** Al elegir «Other» aparece un paso nuevo con los dos subtipos («Pin de newsletter» y «Página satélite», con su descripción) y el campo de frecuencia (100 por defecto, mínimo 25). `createContentAction` bifurca por tipo: `other` pasa por `createOtherSchema` y `createOther`, el resto no cambia. Errores por campo para `kind` y `frequency`.
+
+**Editor (`/admin/contents/{id}/edit`).**
+
+- **Datos generales:** muestra el subtipo junto al tipo y, debajo, el formulario de frecuencia (`OtherDetailForm`, con la nota sobre el reparto de las primeras apariciones). Guarda con `saveOtherFrequencyAction`, que invalida la caché del feed.
+- **Newsletter:** sin pines, sin paquete y sin botón de calentar vídeos. Las traducciones ofrecen «Titular» (80) y «Texto de apoyo» (200).
+- **Página satélite:** paquete HTML (`supportsPackage` incluye el `other` de tipo página) y pines. Las traducciones solo piden título.
+- **Cualquier `other`:** se edita solo en el idioma principal (un `other` no tiene versión por idioma en el feed), sin campos de SEO (la newsletter no tiene página y la satélite saca el `<head>` del manifest) y sin botón Preview (no hay vista previa de borrador, plan §6.7). Si apareciera un `other` sin fila de subtipo, el editor lo avisa.
+- El texto del bloque del paquete deja de decir «Tool o Insight».
+
+**Listado.** La columna de tipo muestra «Other · Newsletter» u «Other · Página satélite».
+
+**Desviaciones respecto al plan.**
+
+- El plan hablaba de «traducciones» en plural para el `other`; el editor muestra solo el idioma principal para no dejar textos que nunca se ven (el feed usa el idioma por defecto, §3).
+- El formulario de frecuencia va en su propio formulario dentro de la tarjeta «Datos generales», no dentro del de slug e idioma, para que guardar uno no dependa del otro.
+- **Indicador de ocupación (§7.6): no implementado.** Sigue pendiente de confirmar con Greener; no cambia nada del motor ni del resto.
+
+**Estado tras la fase 5.** Ya se puede crear una newsletter o una página satélite desde el ABM, rellenarla, subir el paquete y publicarla. **Mientras no se aplique la migración nueva, el alta de un `other` falla** (la función no existe), y `create_content_draft` seguirá creando `other` sin subtipo. Queda por hacer la comprobación real de extremo a extremo de una página satélite (subir un ZIP de prueba con `kind: "variety"`), que requiere la migración aplicada y no se puede ejecutar aquí.
+
+**Verificación.** `tsc`, ESLint y `prettier` (CRLF) limpios. Tests nuevos: esquemas y casos de uso de `other`, acciones de alta y de frecuencia (bifurcación por tipo, mínimo 25, ZG017, sin sesión), repositorio, formularios (alta con subtipo y frecuencia, editor, traducciones por subtipo, Preview oculto) y la migración (funciones, mínimo, permisos y orden de ficheros).
+
+### 2.80 Plan de pendientes del 16 de octubre: bloques A, B y C (16 oct 2026)
+
+Petición de Greener: «Empieza a ejecutar», con el plan `docs/especificaciones/plan-pendientes-2026-10-16.md` ya aprobado (bloque A «todo bien», bloque B «adelante», bloque C: retirar las columnas muertas y dejar solo el `audit_log`). El bloque D (careers con n8n) espera el código de Greener y la fase 6 de `other` sigue en pausa.
+
+**Migraciones nuevas (hay que aplicarlas con `npx supabase db push` y regenerar los tipos con `npm run db:types`):**
+
+- `20261016100000_purge_feed_sessions_cron.sql`: índice por `feed_session.expires_at`, función `purge_expired_feed_sessions()` (security definer, borra por lotes de 5.000 las sesiones caducadas hace más de 24 h; `feed_round` cae en cascada, revocada a `public/anon/authenticated`) y job de `pg_cron` `purge-expired-feed-sessions` a las 03:15 UTC. Idempotente por nombre.
+- `20261016110000_feed_config_drop_dead_columns.sql`: retira `mix_window`, `distance_window`, `video_limit_desktop` y `video_limit_mobile` de `feed_config` (`drop column if exists`). El motor solo lee `ratios` y `batch_size`. `database.types.ts` ya está sin ellas (editado a mano; el regenerado no debe dar diferencias).
+
+**A1. Aviso de ocupación (no bloqueante).** `otherSchema.ts`: `OTHER_OCCUPANCY_WARNING_PERCENT = 10`, `estimateOtherOccupation(frecuencias)` (suma de `100 / N`; cota algo alta porque la separación mínima y el tope de retraso omiten alguna repetición) e `isOtherOccupationHigh`. `OtherRepository.listPublishedFrequencies(excludeContentId?)` lee `other_detail` con `content!inner(status)` filtrado por publicado. Componente `OtherOccupationNotice` (clases nuevas `.admin-notice` y `.admin-notice-warning`): informa siempre y avisa por encima del 10 %, sin bloquear nada. Se ve en el listado con el filtro «Other» y en el formulario de frecuencia, que recalcula mientras se teclea (con las demás publicadas más el valor escrito, rotulado «con este contenido publicado»).
+
+**A2. Preview solo en case y episode.** `previewAvailable` en la ficha de edición pasa a `type === 'case' || type === 'episode'`: ni los `other`, ni las tools, ni los insights lo ofrecen. El punto «Preview de una versión en borrador del paquete HTML» de PROGRESO queda cerrado como decidido (no se hace).
+
+**A3. Vídeo en hover.** Nuevo `useHoverIntent` (200 ms de permanencia del puntero, `HOVER_INTENT_MS` en `videoPlayback.ts`; el foco de teclado es inmediato; al salir se apaga y se cancela la espera). En `PinCard`: un pin `hover` ya **no hace prefetch** (solo `viewport` lo hace) y **no reproduce** con reduced-motion, save-data, 2G ni conexión lenta (antes el hover sí funcionaba en esos casos). Cruzar un pin de pasada no monta ni descarga nada. Tests nuevos en `pinVideoLifecycle.test.tsx`. **Simulación de carga sin prefetch** (a petición de Greener): `docs/operaciones/simulacion-video-hover.md`, con los scripts en `scripts/sim-video-hover/`. Con un clip típico de 0,33 MB el vídeo suena a los 276 ms en fibra, 324 ms en 4G bueno, 408 ms en 4G normal, 635 ms a 2 Mbps y 752 ms a 1,6 Mbps (los 200 ms de intención incluidos; con prefetch serían ≈ 200 ms). Con un CDN lento (derivada sin calentar, +600 ms al primer byte) sube a 0,84-1,16 s: calentar las derivadas es lo que más protege esta experiencia.
+
+**A4. Tipografía del ABM.** `admin.css`: el ABM usa `var(--font-body)` (Helvetica Neue) en sus dos pesos reales; los 23 pesos intermedios (600, 650, 750, 800, 850, 900) pasan a 700; el único `Georgia` (icono de ayuda) pasa a `--font-body`; las raíces `.admin-shell`, `.admin-editor-page` y `.admin-login-page` fijan la fuente y los controles de formulario (`button, input, select, textarea`) la heredan (no lo hacen por defecto). Kinder no se toca y se conserva la monoespaciada de los bloques de código.
+
+**B1. Zip bomb.** Verificado: adm-zip 0.6.1 corta el inflado en el tamaño declarado de cada entrada (el 0 declarado cuenta como 1 byte), así que el tope por lo declarado vale incluso si la cabecera miente. Pero el corte salía como un `RangeError` suelto (un 500 en la subida, sin mensaje para el admin). `readEntryData` envuelve `getData()`: cualquier fallo de inflado es ahora un `PackageValidationError` («corrupto o su tamaño real no coincide con el que declara el ZIP»), y se comprueba además el tamaño real contra el tope por fichero. Tres tests nuevos en `zipBomb.test.ts` con un ZIP cuya cabecera local y central se parchean a 1 KB y a 0 sobre 50 MB reales.
+
+**B2. `GET /api/health`.** `modules/health` (container + `infrastructure/databaseHealth.ts`): lectura mínima de `feed_config` con el cliente público y un tope de 3 s. 200 `{"status":"ok"}` o 503 `{"status":"error"}`, sin detalle del fallo, `Cache-Control: no-store`. No es trampa de bots ni ruta del ABM; el proxy solo le añade las cabeceras globales. Documentado en `docs/operaciones/despliegue.md` §8 (y las tareas de `pg_cron` en el §9).
+
+**B3.** Ver la migración de arriba. Documentado en `despliegue.md` §9.
+
+**C10.** Ver la migración de arriba. Se opta por retirar (no conectar) para que nadie crea que un valor de la base controla lo que no controla: el 2/1 de vídeos simultáneos sigue fijo en el cliente.
+
+**C13. Visor del `audit_log`.** Nuevo módulo `modules/audit` (dominio con `parseAuditLogQuery`, repositorio **solo de lectura** y caso de uso `listAuditLog`) y página `/admin/audit` («Actividad» en el menú): cuándo, quién, acción, entidad (con enlace a la ficha si es un contenido) y el JSON del detalle plegado; búsqueda por email o acción, filtro por entidad, filtro por id de entidad por URL (`?entityId=`) y paginación de 50. Lo lee la sesión del admin (la política `audit_log_admin_read` ya existía; no hay política de update ni de delete). No hay editor de `feed_config`, ni acceso, ni configuración: solo esto.
+
+**Verificación.** `tsc`, `eslint` y `prettier` limpios; suite completa en verde (ver PROGRESO).

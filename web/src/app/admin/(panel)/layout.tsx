@@ -26,6 +26,11 @@ export default function AdminPanelLayout({ children }: Props) {
             <span className="admin-sidebar-icon">▤</span>
             Contenidos
           </Link>
+
+          <Link href="/admin/audit" className="admin-sidebar-link">
+            <span className="admin-sidebar-icon">☰</span>
+            Actividad
+          </Link>
         </nav>
 
         <div className="admin-sidebar-bottom">

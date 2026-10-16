@@ -2,6 +2,25 @@
    web pública no los descargue. */
 
 /* =========================================================
+   ADMIN — TIPOGRAFÍA
+   Todo el ABM usa Helvetica Neue (la fuente del sitio, `--font-body`) en
+   sus dos pesos reales, 400 y 700; no hay semibold, así que ningún peso
+   intermedio. Los controles de formulario no heredan la fuente por defecto.
+   Se conserva la monoespaciada de los bloques de código.
+   ========================================================= */
+
+.admin-shell,
+.admin-editor-page,
+.admin-login-page {
+  font-family: var(--font-body);
+}
+
+:is(.admin-shell, .admin-editor-page, .admin-login-page)
+  :is(button, input, select, textarea) {
+  font-family: inherit;
+}
+
+/* =========================================================
    ADMIN — CONTENT EDITOR
    ========================================================= */
 
@@ -27,7 +46,7 @@
   margin-bottom: 22px;
   color: #575d6b;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   text-decoration: none;
   transition:
     color 150ms ease,
@@ -51,7 +70,7 @@
   margin: 0 0 6px;
   color: #727888;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -370,7 +389,7 @@
   padding: 0 9px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .admin-status-draft {
@@ -493,7 +512,7 @@
 
 .admin-language-tab > span:first-child {
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .admin-language-tab small {
@@ -558,7 +577,7 @@
   background: #eef1ff;
   color: #1941f5;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 /* =========================================================
@@ -570,7 +589,7 @@
   margin: 7px 0 0;
   color: #bc2525;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .admin-form-error {
@@ -588,7 +607,47 @@
   background: #f0faf3;
   color: #176b39;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+/* Detalle (payload JSON) del registro de actividad. */
+.admin-audit-payload summary {
+  cursor: pointer;
+  color: #575d6b;
+  font-size: 13px;
+}
+
+.admin-audit-payload pre {
+  max-width: 420px;
+  max-height: 260px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  overflow: auto;
+  border-radius: 8px;
+  background: #f6f8fc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Aviso informativo no bloqueante (p. ej. ocupación del feed por los other). */
+.admin-notice {
+  padding: 10px 12px;
+  margin: 0;
+  border: 1px solid #d9deea;
+  border-radius: 8px;
+  background: #f6f8fc;
+  color: #3a4256;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.admin-notice-warning {
+  border-color: #f0d9a4;
+  background: #fff8e8;
+  color: #7a5200;
 }
 
 /* =========================================================
@@ -611,7 +670,7 @@
 .admin-card th {
   color: #777d88;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -752,7 +811,7 @@
 
 .admin-sidebar-brand-name {
   font-size: 21px;
-  font-weight: 850;
+  font-weight: 700;
   letter-spacing: -0.04em;
 }
 
@@ -760,7 +819,7 @@
   margin-top: 2px;
   color: #7c828e;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -780,7 +839,7 @@
   border-radius: 9px;
   color: #5c626d;
   font-size: 14px;
-  font-weight: 650;
+  font-weight: 700;
   text-decoration: none;
   transition:
     background 150ms ease,
@@ -846,7 +905,7 @@
   margin: 0 0 8px;
   color: #777d88;
   font-size: 11px;
-  font-weight: 850;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
@@ -890,7 +949,7 @@
 .admin-stat-label {
   color: #767c87;
   font-size: 12px;
-  font-weight: 750;
+  font-weight: 700;
 }
 
 .admin-stat-card strong {
@@ -1065,7 +1124,7 @@
   background: #eef1ff;
   color: #1941f5;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .admin-quick-action strong {
@@ -1134,7 +1193,7 @@
   padding: 0 3px;
   color: #737986;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   text-decoration: none;
 }
 
@@ -1197,7 +1256,7 @@
   background: #fafafa;
   color: #7b818b;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.065em;
   text-align: left;
   text-transform: uppercase;
@@ -1465,7 +1524,7 @@
   background: #eef1ff;
   color: #1941f5;
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 /* =========================================================
@@ -1530,7 +1589,7 @@
   background: #f0f1f3;
   color: #555c67;
   font-size: 13px;
-  font-weight: 850;
+  font-weight: 700;
 }
 
 .admin-content-type-card-selected .admin-content-type-symbol {
@@ -1566,7 +1625,7 @@
   border-radius: 50%;
   color: transparent;
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .admin-content-type-card-selected .admin-content-type-check {
@@ -1635,7 +1694,7 @@
   border-radius: 50%;
   background: #eceef2;
   color: #656b76;
-  font-family: Georgia, serif;
+  font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
 }
@@ -1713,7 +1772,7 @@
 .admin-login-brand-name {
   color: #111111;
   font-size: 26px;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: -0.055em;
 }
 
@@ -1721,7 +1780,7 @@
   margin-top: 3px;
   color: #858b97;
   font-size: 10px;
-  font-weight: 850;
+  font-weight: 700;
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
@@ -1820,7 +1879,7 @@
   background: #e7f8ed;
   color: #167039;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .admin-login-security p {
@@ -1855,7 +1914,7 @@
 .admin-login-footer a {
   color: #626873;
   font-size: 12px;
-  font-weight: 650;
+  font-weight: 700;
   text-decoration: none;
 }
 

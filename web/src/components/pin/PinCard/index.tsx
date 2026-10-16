@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef } from 'react'
 import { buildFeedVideoSources } from '@/modules/media/client/cloudinaryUrl'
 import { canAnimateInFeed } from '@/modules/media/domain/mediaLimits'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
@@ -8,6 +8,7 @@ import { rememberNavigationSource } from '@/modules/analytics/navigationAttribut
 import { useMotionPreferences } from '@/lib/useMotionPreferences'
 import { useVideoSlot } from '@/components/pin/useVideoSlot'
 import { usePinVideo } from '@/components/pin/usePinVideo'
+import { useHoverIntent } from '@/components/pin/useHoverIntent'
 import { CardLink } from './CardLink'
 import { PinCardLabel } from './PinCardLabel'
 import { PinCardMedia } from './PinCardMedia'
@@ -44,17 +45,18 @@ function analyticsPinType(media: PinMediaData[]): 'image' | 'video' {
  * 'viewport' compite por uno de los
  * huecos globales del feed (2 escritorio / 1 móvil, §9.3, ver
  * videoPlaybackCoordinator.ts); 'hover' reproduce solo mientras el
- * puntero está encima, sin competir por ningún hueco (es una acción
- * explícita del usuario, no reproducción ambiental); `null` nunca
- * reproduce — poster estático siempre.
+ * puntero lleva ~200 ms encima (intención de hover: cruzar el pin de pasada
+ * no descarga nada; el foco de teclado es inmediato), sin competir por ningún
+ * hueco; `null` nunca reproduce — poster estático siempre.
  *
  * Carga del vídeo (contrato de medios, fase 1): el póster es
  * SIEMPRE la capa de base y el `<video>` se monta oculto encima cuando la
  * tarjeta está cerca del viewport (prefetch, con un tope global de billetes;
  * ver usePinVideo.ts), y solo se hace visible cuando ya está listo y
  * reproduciendo. Con `prefers-reduced-motion`, `save-data`, 2G o una
- * conexión lenta el feed no hace prefetch ni autoplay: póster fijo. El
- * hover es una acción explícita del usuario y sigue funcionando.
+ * conexión lenta el feed no hace prefetch, ni autoplay, ni vídeo en hover:
+ * póster fijo. Un pin `hover` no hace prefetch (el vídeo se pide con la
+ * intención de hover).
  */
 export function PinCard({
   pin,
@@ -76,7 +78,7 @@ export function PinCard({
   const videoId = instanceId ?? pin.pinId
   const media = pin.media
 
-  const [hovering, setHovering] = useState(false)
+  const { active: hovering, handlers: hoverHandlers } = useHoverIntent()
   const cardRef = useRef<HTMLAnchorElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const { feedAutoplayAllowed } = useMotionPreferences()
@@ -103,7 +105,9 @@ export function PinCard({
     (pin.autoplayMode === 'viewport'
       ? hasSlot
       : pin.autoplayMode === 'hover'
-        ? hovering
+        ? // Sin autoplay permitido (reduced-motion, save-data, conexión
+          // lenta) el hover tampoco reproduce: póster fijo.
+          feedAutoplayAllowed && hovering
         : false)
 
   // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
@@ -123,11 +127,11 @@ export function PinCard({
     videoRef,
     resetKey: current?.cloudinaryPublicId ?? '',
     sourceCount: sources.length,
-    // Solo se hace prefetch de lo que puede llegar a reproducirse: un pin de
-    // un único vídeo sin `autoplayMode` nunca se anima y no gasta ancho de
-    // banda (en Cloudinary Free cada MB cuenta).
+    // Solo se hace prefetch de lo que se reproduce solo al entrar en
+    // pantalla (`viewport`). Un pin `hover` no precarga nada: el vídeo se pide
+    // cuando hay intención de hover (en Cloudinary Free cada MB cuenta).
     prefetchEnabled:
-      isAnimatable && feedAutoplayAllowed && pin.autoplayMode !== null,
+      isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport',
     wantsPlay: isPlaying,
   })
 
@@ -166,10 +170,10 @@ export function PinCard({
         transform: `translate(${style.x}px, ${style.y}px)`,
         width: style.width,
       }}
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-      onFocus={() => setHovering(true)}
-      onBlur={() => setHovering(false)}
+      onMouseEnter={hoverHandlers.onMouseEnter}
+      onMouseLeave={hoverHandlers.onMouseLeave}
+      onFocus={hoverHandlers.onFocus}
+      onBlur={hoverHandlers.onBlur}
       onClick={handlePinClick}
     >
       <PinCardMedia

@@ -4,7 +4,12 @@ vi.mock('@/modules/newsletter/container', () => ({
   subscribeToNewsletter: vi.fn(),
 }))
 
-import { subscribeNewsletterAction } from '@/app/(public)/contact/newsletterActions'
+const cookieSet = vi.fn()
+vi.mock('next/headers', () => ({
+  cookies: async () => ({ set: cookieSet }),
+}))
+
+import { subscribeNewsletterAction } from '@/app/_actions/newsletterActions'
 import { NEWSLETTER_SUCCESS_MESSAGE } from '@/modules/newsletter/domain/newsletterMessages'
 import { subscribeToNewsletter } from '@/modules/newsletter/container'
 
@@ -76,6 +81,7 @@ describe('subscribeNewsletterAction', () => {
       ok: true,
       status: 'confirmation_sent',
       newSubscription: false,
+      silent: true,
     })
 
     const state = await subscribeNewsletterAction(
@@ -102,5 +108,65 @@ describe('subscribeNewsletterAction', () => {
     expect(
       await subscribeNewsletterAction({}, form({ newsletterEmail: 'a@b.co' })),
     ).toEqual({ formError: 'Nope' })
+  })
+
+  describe('cookie greener_newsletter', () => {
+    it.each([
+      'confirmation_sent',
+      'confirmation_pending',
+      'already_subscribed',
+    ] as const)(
+      'estado %s: el servidor la escribe, a 12 meses, legible por el cliente',
+      async (status) => {
+        mockSubscribe.mockResolvedValueOnce({
+          ok: true,
+          status,
+          newSubscription: status === 'confirmation_sent',
+        })
+
+        await subscribeNewsletterAction(
+          {},
+          form({ newsletterEmail: 'a@example.com' }),
+        )
+
+        expect(cookieSet).toHaveBeenCalledTimes(1)
+        expect(cookieSet).toHaveBeenCalledWith('greener_newsletter', '1', {
+          httpOnly: false,
+          secure: false,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: 365 * 24 * 60 * 60,
+        })
+      },
+    )
+
+    it('NO se escribe en el éxito silencioso del honeypot', async () => {
+      mockSubscribe.mockResolvedValueOnce({
+        ok: true,
+        status: 'confirmation_sent',
+        newSubscription: false,
+        silent: true,
+      })
+
+      await subscribeNewsletterAction(
+        {},
+        form({ newsletterEmail: 'bot@example.com', company: 'x' }),
+      )
+
+      expect(cookieSet).not.toHaveBeenCalled()
+    })
+
+    it('NO se escribe si el alta falla (campo inválido, límite o Mailchimp)', async () => {
+      mockSubscribe.mockResolvedValueOnce({
+        ok: false,
+        fieldErrors: { email: ['Enter a valid email address.'] },
+      })
+      mockSubscribe.mockResolvedValueOnce({ ok: false, formError: 'Nope' })
+
+      await subscribeNewsletterAction({}, form({ newsletterEmail: 'x' }))
+      await subscribeNewsletterAction({}, form({ newsletterEmail: 'a@b.co' }))
+
+      expect(cookieSet).not.toHaveBeenCalled()
+    })
   })
 })

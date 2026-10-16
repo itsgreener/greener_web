@@ -28,14 +28,17 @@ function functionBody(sql: string, name: string): string {
 }
 
 describe('orden de las migraciones', () => {
-  it('son las cuatro del plan, en orden y posteriores a los códigos de error', () => {
-    const files = readdirSync(dir).filter((name) => name >= '20261015')
+  it('son las cuatro del plan (más la del ABM), en orden y posteriores a los códigos de error', () => {
+    const files = readdirSync(dir).filter(
+      (name) => name >= '20261015' && name < '20261016100000',
+    )
 
     expect(files).toEqual([
       '20261015100000_other_detail.sql',
       '20261015110000_html_package_kind_variety.sql',
       '20261015120000_other_package_and_publish_rules.sql',
       '20261015130000_remove_other_cover.sql',
+      '20261016090000_other_abm.sql',
     ])
     expect(files[0] > '20261009120000_typed_error_codes.sql').toBe(true)
   })
@@ -122,7 +125,9 @@ describe('3. paquetes y reglas de publicación', () => {
       expect(body).toMatch(/if not found then[\s\S]*errcode = 'ZG017'/)
       // solo la página exige lo demás: la newsletter no necesita nada más
       expect(body).toMatch(/if v_other_kind = 'page' then/)
-      expect(body).toMatch(/current_version_id is not null[\s\S]*errcode = 'ZG009'/)
+      expect(body).toMatch(
+        /current_version_id is not null[\s\S]*errcode = 'ZG009'/,
+      )
       expect(body).toMatch(/join public\.pin_media pm[\s\S]*errcode = 'ZG018'/)
     },
   )
@@ -153,10 +158,14 @@ describe('4. retirada de la portada', () => {
 
   it('elimina el CHECK, las dos columnas y las tres RPC', () => {
     expect(noCover).toMatch(/drop constraint content_cover_only_for_other/)
-    expect(noCover).toMatch(/drop column cover_media_id,\s+drop column cover_ratio/)
+    expect(noCover).toMatch(
+      /drop column cover_media_id,\s+drop column cover_ratio/,
+    )
     expect(noCover).toMatch(/drop function public\.register_cover_image\(/)
     expect(noCover).toMatch(/drop function public\.register_cover_video\(/)
-    expect(noCover).toMatch(/drop function public\.unlink_and_delete_cover_media\(/)
+    expect(noCover).toMatch(
+      /drop function public\.unlink_and_delete_cover_media\(/,
+    )
   })
 
   it('delete_pin y delete_content se redefinen sin mirar la portada', () => {
@@ -165,9 +174,56 @@ describe('4. retirada de la portada', () => {
     )
 
     expect(afterDrop).toMatch(/create or replace function public\.delete_pin\(/)
-    expect(afterDrop).toMatch(/create or replace function public\.delete_content\(/)
+    expect(afterDrop).toMatch(
+      /create or replace function public\.delete_content\(/,
+    )
     expect(afterDrop).not.toMatch(/cover_media_id|cover_ratio/)
     // y siguen protegiendo la imagen de compartición
     expect(afterDrop).toMatch(/c\.og_media_id = ma\.id/)
+  })
+})
+
+describe('5. ABM de other (fase 5)', () => {
+  const abm = read('20261016090000_other_abm.sql')
+
+  it('create_other_draft crea contenido, traducción y subtipo, con frecuencia mínima 25 y audit_log', () => {
+    const body = functionBody(abm, 'create_other_draft')
+
+    expect(body).toContain('public.is_admin()')
+    expect(body).toMatch(/p_frequency < 25/)
+    expect(body).toMatch(/insert into public\.content /)
+    expect(body).toMatch(/insert into public\.content_translation/)
+    expect(body).toMatch(/insert into public\.other_detail/)
+    expect(body).toMatch(/insert into public\.audit_log/)
+    expect(body).toMatch(/'other', 'draft'/)
+  })
+
+  it('update_other_frequency valida el mínimo, falla sin subtipo (ZG017) y deja rastro', () => {
+    const body = functionBody(abm, 'update_other_frequency')
+
+    expect(body).toContain('public.is_admin()')
+    expect(body).toMatch(/p_frequency < 25/)
+    expect(body).toMatch(/errcode = 'ZG017'/)
+    expect(body).toMatch(/'other_detail'/)
+  })
+
+  it('create_content_draft rechaza el tipo other con ZG017 y conserva la firma', () => {
+    const body = functionBody(abm, 'create_content_draft')
+
+    expect(body).toMatch(/p_type = 'other'/)
+    expect(body).toMatch(/errcode = 'ZG017'/)
+    expect(body).toMatch(/p_type content_type,\s+p_slug text,/)
+  })
+
+  it('las dos funciones nuevas son solo para usuarios autenticados', () => {
+    expect(abm).toMatch(
+      /revoke all on function public\.create_other_draft\([^)]*\) from public/,
+    )
+    expect(abm).toMatch(
+      /grant execute on function public\.create_other_draft\([^)]*\) to authenticated/,
+    )
+    expect(abm).toMatch(
+      /grant execute on function public\.update_other_frequency\(uuid, integer\)\s+to authenticated/,
+    )
   })
 })

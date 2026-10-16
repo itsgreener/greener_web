@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 /**
- * Las dos rutas que sirven el documento completo de una tool/insight
- * (/tools|insights/[slug]/app, distintas de las de sus assets — ver
+ * Las dos rutas que sirven el documento completo de una tool/insight/página satélite
+ * (/tools|insights|variety/[slug]/app, distintas de las de sus assets — ver
  * assetRoutes.test.ts). Cabeceras de seguridad añadidas el 29 sep
  * (PROGRESO §4.8): src/proxy.ts salta estas rutas enteras para no
  * mezclar su CSP propia con la global, lo que dejaba sin HSTS ni
@@ -46,6 +46,10 @@ const ROUTES = [
     kind: 'insight' as const,
     load: () => import('@/app/(public)/(detail)/insights/[slug]/app/route'),
   },
+  {
+    kind: 'variety' as const,
+    load: () => import('@/app/(public)/(detail)/variety/[slug]/app/route'),
+  },
 ]
 
 const params = { params: Promise.resolve({ slug: 'mi-tool' }) }
@@ -80,7 +84,9 @@ describe.each(ROUTES)('/$kind/[slug]/app', ({ kind, load }) => {
 
   it('200: con metadata en el manifest, el head lleva la imagen OG con URL absoluta del sitio', async () => {
     const { env } = await import('@/lib/env')
-    const plural = kind === 'tool' ? 'tools' : 'insights'
+    const plural = { tool: 'tools', insight: 'insights', variety: 'variety' }[
+      kind
+    ]
 
     getStoragePackage.mockResolvedValue({
       ...SAMPLE_PACKAGE,

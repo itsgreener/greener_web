@@ -44,7 +44,7 @@ describe('fetchFeedBatch — URL', () => {
 })
 
 describe('fetchFeedBatch — newsletter', () => {
-  it('descarta los elementos de newsletter hasta que exista su tarjeta (fase 3) y conserva el resto', async () => {
+  it('entrega el lote tal cual, con las apariciones de newsletter incluidas', async () => {
     vi.stubGlobal('window', { innerWidth: 1440 })
     vi.stubGlobal(
       'fetch',
@@ -64,7 +64,11 @@ describe('fetchFeedBatch — newsletter', () => {
 
     const batch = await fetchFeedBatch('s1', null)
 
-    expect(batch.items.map((item) => item.pinId)).toEqual(['p1', 'p2'])
+    expect(batch.items.map((item) => item.pinId)).toEqual([
+      'p1',
+      'newsletter:n1:0',
+      'p2',
+    ])
     expect(batch.cursor).toBe('c')
   })
 })

@@ -67,7 +67,6 @@ describe('buildSitemapEntries — rutas por tipo de contenido', () => {
         row({ type: 'episode', slug: 'b' }),
         row({ type: 'tool', slug: 'c' }),
         row({ type: 'insight', slug: 'd' }),
-        row({ type: 'other', slug: 'e' }),
       ],
       SITE,
     )
@@ -78,9 +77,18 @@ describe('buildSitemapEntries — rutas por tipo de contenido', () => {
         'https://itsgreener.com/work/b',
         'https://itsgreener.com/tools/c',
         'https://itsgreener.com/insights/d/app',
-        'https://itsgreener.com/variety/e',
       ]),
     )
+  })
+
+  it('las páginas satélite (other) no entran en el sitemap (plan de other §6.8)', () => {
+    const entries = buildSitemapEntries(
+      [row({ type: 'other', slug: 'e' }), row({ type: 'case', slug: 'a' })],
+      SITE,
+    )
+
+    expect(urls(entries).some((u) => u.includes('/variety/'))).toBe(false)
+    expect(urls(entries)).toContain('https://itsgreener.com/work/a')
   })
 
   it('lleva la fecha de última modificación', () => {

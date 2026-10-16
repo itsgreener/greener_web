@@ -164,3 +164,18 @@ describe('/insights/[slug]', () => {
     expect(reader.pinCover).not.toHaveBeenCalled()
   })
 })
+
+describe('/variety/[slug]', () => {
+  it('redirige a /variety/[slug]/app sin leer nada de la base de datos', async () => {
+    const { default: VarietyPage } =
+      await import('@/app/(public)/(detail)/variety/[slug]/page')
+
+    await expect(
+      VarietyPage({ params: Promise.resolve({ slug: 'mi-pagina' }) }),
+    ).rejects.toThrow('NEXT_REDIRECT:/variety/mi-pagina/app')
+
+    expect(resolvePreviewContext).not.toHaveBeenCalled()
+    expect(reader.firstPinCover).not.toHaveBeenCalled()
+    expect(reader.pinCover).not.toHaveBeenCalled()
+  })
+})

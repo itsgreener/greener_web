@@ -9,7 +9,10 @@ import {
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
 import { isUuid } from '@/lib/validation/uuid'
-import { NEWSLETTER_COOKIE_NAME } from '@/modules/newsletter/domain/newsletterCookie'
+import {
+  NEWSLETTER_COOKIE_NAME,
+  NEWSLETTER_COOKIE_VALUE,
+} from '@/modules/newsletter/domain/newsletterCookie'
 
 /**
  * GET /api/feed/{sessionId}?cursor=...&size=... (§16.1): siguiente lote real
@@ -74,7 +77,8 @@ export async function GET(
   try {
     const batch = await getFeedSessionBatch(sessionId, cursor, size, {
       newsletterSubscribed:
-        request.cookies.get(NEWSLETTER_COOKIE_NAME)?.value === '1',
+        request.cookies.get(NEWSLETTER_COOKIE_NAME)?.value ===
+        NEWSLETTER_COOKIE_VALUE,
     })
     return respond(batch, {
       // El orden depende de la seed de sesión — igual que en el prototipo

@@ -5,7 +5,8 @@ import { localeSchema } from '@/modules/shared/domain/locale'
 import { idSchema } from '@/lib/validation/idSchema'
 
 export const createContentSchema = z.object({
-  type: contentTypeSchema,
+  // `other` no se crea por aquí: necesita subtipo y frecuencia (otherSchema.ts).
+  type: contentTypeSchema.exclude(['other']),
 
   slug: z
     .string()

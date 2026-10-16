@@ -1,0 +1,25 @@
+<!doctype html><meta charset=utf-8><body style="margin:0">
+<a id="card" href="#" style="display:block;width:300px;height:375px;position:relative"><div id="media" style="width:300px;height:375px;background:#ccc"></div></a>
+<script>
+const params = new URLSearchParams(location.search)
+const clip = params.get('clip'), mode = params.get('mode'), run = params.get('run')
+const t = {}
+function mount() {
+  const v = document.createElement('video')
+  v.muted = true; v.loop = true; v.playsInline = true; v.preload = 'auto'
+  v.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;opacity:0'
+  v.onloadeddata = () => t.loadeddata = performance.now()
+  v.oncanplay = () => { t.canplay ??= performance.now(); if (mode === 'hover' || hovered) v.play().catch(()=>{}) }
+  v.onplaying = () => { t.playing ??= performance.now(); window.__done = true }
+  const s = document.createElement('source'); s.src = `/${clip}.webm?r=${run}`; s.type = 'video/webm'
+  v.appendChild(s); document.getElementById('media').appendChild(v); t.mounted = performance.now()
+  return v
+}
+let hovered = false
+window.__t = t
+window.__prefetch = () => { mount() }       // modo prefetch: ya montado antes del hover
+window.__hoverStart = () => {               // mouseenter + 200 ms de intención
+  t.enter = performance.now(); hovered = true
+  setTimeout(() => { t.intent = performance.now(); if (mode === 'hover') mount(); else { const v = document.querySelector('video'); if (v.readyState >= 3) v.play() } }, 200)
+}
+</script>

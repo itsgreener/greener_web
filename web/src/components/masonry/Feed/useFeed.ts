@@ -19,7 +19,13 @@ import { useSentinel } from '@/components/masonry/useSentinel'
  */
 
 export function useFeed(scope: string) {
-  const { getState, setSessionId, appendBatch, setScrollY } = useFeedContext()
+  const {
+    getState,
+    setSessionId,
+    appendBatch,
+    setScrollY,
+    retireNewsletterCards,
+  } = useFeedContext()
   const state = getState(scope)
 
   const loadingRef = useRef(false)
@@ -138,5 +144,6 @@ export function useFeed(scope: string) {
     hasMore: state.hasMore,
     error,
     sentinelRef,
+    retireNewsletterCards,
   }
 }

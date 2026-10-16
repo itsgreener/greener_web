@@ -66,6 +66,7 @@ describe('subscribeToNewsletter', () => {
       ok: true,
       status: 'confirmation_sent',
       newSubscription: false,
+      silent: true,
     })
     expect(mockMailchimp).not.toHaveBeenCalled()
     expect(mockIp).not.toHaveBeenCalled()

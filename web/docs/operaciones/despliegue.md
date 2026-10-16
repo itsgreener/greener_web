@@ -167,3 +167,37 @@ Lo que sí conviene hacer con esas dos apps antiguas:
 2. **Apagarlas cuando la web nueva esté publicada** (`pm2 stop`/`pm2 delete` si corren con PM2), en vez de dejarlas encendidas: son código con dependencias sin mantener y contenido de pruebas que Google podría seguir mostrando.
 
 **Rutas antiguas del propio `itsgreener.com`.** Este caso es distinto: es el sitio corporativo actual, que la web nueva sustituye, y probablemente sí tiene enlaces y posicionamiento. Habría que sacar la lista de URLs **antes de cambiar el sitio** (por ejemplo, del `sitemap.xml` del sitio actual, mientras siga publicado) y decidir cuáles tienen una página equivalente en la nueva. Para esas se usa el bloque `redirects()` de `next.config.ts`. Ojo: **`permanent: true` devuelve un 308, no un 301**. Para Google equivalen; si se quiere un 301 literal, se escribe `statusCode: 301` en lugar de `permanent`.
+
+---
+
+## 8. Comprobación de vida: `GET /api/health`
+
+Un endpoint para el monitor del servidor (o para vosotros, con `curl`). Sin sesión, sin caché y sin detalles del fallo:
+
+| Respuesta | Cuerpo | Significa |
+| --- | --- | --- |
+| `200` | `{"status":"ok"}` | La app responde y llega a Supabase (lee la fila única de `feed_config`). |
+| `503` | `{"status":"error"}` | La app responde pero no llega a la base: caída, variables mal puestas o esquema sin aplicar. |
+
+Va con `Cache-Control: no-store`, tiene un tiempo máximo de 3 s para la lectura (un monitor no debe quedarse colgado) y no devuelve el motivo del fallo: el detalle está en el registro de PM2 (`pm2 logs`), no en una respuesta pública. El proxy solo le añade las cabeceras de seguridad globales; no entra en la CSP propia de las apps empaquetadas ni requiere sesión de admin.
+
+```
+curl -fsS https://<dominio>/api/health        # devuelve {"status":"ok"} o sale con error
+```
+
+Es una comprobación de **la app y su base de datos**, no del proceso PM2 (eso lo vigila el cron del §5): si el proceso está caído, simplemente no hay respuesta.
+
+---
+
+## 9. Tareas programadas en Supabase (`pg_cron`)
+
+Corren dentro de la base, no en el servidor de Dinahosting. Las crea la migración correspondiente (`npx supabase db push`) y son idempotentes por nombre: repetir la migración reemplaza el job, no lo duplica.
+
+| Job | Cuándo | Qué hace | Migración |
+| --- | --- | --- | --- |
+| `publish-scheduled-content` | cada minuto | Pasa a publicado el contenido programado cuya fecha ya ha llegado. | `20260922090000` |
+| `purge-expired-feed-sessions` | cada día a las 03:15 UTC | Borra las `feed_session` caducadas hace más de 24 h; `feed_round` se borra en cascada. Sin él la tabla solo crecía (cada visita a la home crea una sesión). Borra por lotes de 5.000. | `20261016100000` |
+
+Para comprobar que están programados, en el SQL Editor de Supabase: `select jobname, schedule, active from cron.job;`. Para ver sus últimas ejecuciones: `select jobname, status, start_time, return_message from cron.job_run_details order by start_time desc limit 20;`.
+
+La primera ejecución de la purga puede borrar mucho si la tabla llevaba meses acumulando; por eso va por lotes.

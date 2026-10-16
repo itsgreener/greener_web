@@ -1,7 +1,8 @@
 'use client'
 
 import { PinCard } from '@/components/pin/PinCard'
-import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import { NewsletterPinCard } from '@/components/newsletter/NewsletterPinCard'
+import { isNewsletterItem } from '@/modules/feed/domain/feedReadModels'
 import { feedCopy } from '@/components/masonry/copy'
 import { useFeed } from './useFeed'
 import styles from './Feed.module.css'
@@ -21,6 +22,7 @@ export function Feed({ scope }: { scope: string }) {
     hasMore,
     error,
     sentinelRef,
+    retireNewsletterCards,
   } = useFeed(scope)
 
   if (error) {
@@ -36,17 +38,25 @@ export function Feed({ scope }: { scope: string }) {
       >
         {positioned.map((p) =>
           p.mounted ? (
-            <PinCard
-              key={p.key}
-              pin={p.item}
-              instanceId={p.key}
-              style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
-              analyticsContext={{
-                section: scope,
-                destinationType: (p.item as FeedBatchResult['items'][number])
-                  .kind,
-              }}
-            />
+            isNewsletterItem(p.item) ? (
+              <NewsletterPinCard
+                key={p.key}
+                item={p.item}
+                style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
+                onSubscribed={retireNewsletterCards}
+              />
+            ) : (
+              <PinCard
+                key={p.key}
+                pin={p.item}
+                instanceId={p.key}
+                style={{ x: p.x, y: p.y, width: p.width, height: p.height }}
+                analyticsContext={{
+                  section: scope,
+                  destinationType: p.item.kind,
+                }}
+              />
+            )
           ) : (
             // Espaciador: conserva la posición de scroll sin mantener la
             // imagen en el DOM (arquitectura §10.2).

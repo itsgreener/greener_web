@@ -350,33 +350,21 @@ export type Database = {
       feed_config: {
         Row: {
           batch_size: number
-          distance_window: number
           id: string
-          mix_window: number
           ratios: Json
           updated_at: string
-          video_limit_desktop: number
-          video_limit_mobile: number
         }
         Insert: {
           batch_size?: number
-          distance_window?: number
           id?: string
-          mix_window?: number
           ratios?: Json
           updated_at?: string
-          video_limit_desktop?: number
-          video_limit_mobile?: number
         }
         Update: {
           batch_size?: number
-          distance_window?: number
           id?: string
-          mix_window?: number
           ratios?: Json
           updated_at?: string
-          video_limit_desktop?: number
-          video_limit_mobile?: number
         }
         Relationships: []
       }
@@ -797,6 +785,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_other_draft: {
+        Args: {
+          p_default_locale: Database["public"]["Enums"]["locale"]
+          p_frequency: number
+          p_kind: Database["public"]["Enums"]["other_kind"]
+          p_slug: string
+          p_title: string
+        }
+        Returns: string
+      }
       create_pin: {
         Args: {
           p_alt: string
@@ -830,6 +828,7 @@ export type Database = {
         Returns: string
       }
       publish_scheduled_content: { Args: never; Returns: number }
+      purge_expired_feed_sessions: { Args: never; Returns: number }
       remove_case_carousel_media: {
         Args: { p_content_id: string; p_media_id: string }
         Returns: string
@@ -845,6 +844,10 @@ export type Database = {
           p_default_locale: Database["public"]["Enums"]["locale"]
           p_slug: string
         }
+        Returns: string
+      }
+      update_other_frequency: {
+        Args: { p_content_id: string; p_frequency: number }
         Returns: string
       }
       update_pin: {

@@ -3,10 +3,10 @@ import Link from 'next/link'
 
 /**
  * Destinos que NO son páginas de Next sino route handlers que devuelven un
- * documento HTML propio (el paquete de una tool/insight): necesitan una
+ * documento HTML propio (el paquete de una tool, un insight o una página satélite): necesitan una
  * carga completa, el router de Next no sabe navegar a ellos.
  */
-const DOCUMENT_ROUTE = /^\/(tools|insights)\/[^/]+\/app(\/|$)/
+const DOCUMENT_ROUTE = /^\/(tools|insights|variety)\/[^/]+\/app(\/|$)/
 
 /**
  * Enlace de la tarjeta. Con un `<a>` plano cada clic

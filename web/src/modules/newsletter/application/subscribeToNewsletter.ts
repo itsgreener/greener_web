@@ -29,6 +29,11 @@ export type SubscribeNewsletterResult =
        * del honeypot lleva false para que un bot no engorde las cifras.
        */
       newSubscription: boolean
+      /**
+       * true solo en el éxito silencioso del honeypot: no ha pasado nada de
+       * verdad, así que tampoco se marca el dispositivo con la cookie.
+       */
+      silent?: true
     }
   | { ok: false; fieldErrors: Record<string, string[]> }
   | { ok: false; formError: string }
@@ -50,7 +55,12 @@ export function makeSubscribeToNewsletter({
     // Bots que rellenan el honeypot reciben éxito silencioso para no darles
     // información sobre el filtro.
     if (honeypot.trim()) {
-      return { ok: true, status: 'confirmation_sent', newSubscription: false }
+      return {
+        ok: true,
+        status: 'confirmation_sent',
+        newSubscription: false,
+        silent: true,
+      }
     }
 
     const parsed = newsletterSchema.safeParse(input)

@@ -8,6 +8,7 @@ import {
   contents,
   contentTranslations,
   episodes,
+  others,
 } from '@/modules/content/container'
 
 import { htmlPackages } from '@/modules/packages/container'
@@ -24,6 +25,7 @@ import CaseCarouselManager from './CaseCarouselManager'
 
 import EpisodeDetailForm from './EpisodeDetailForm'
 
+import OtherDetailForm from './OtherDetailForm'
 
 import PackageUpload from './PackageUpload'
 
@@ -41,6 +43,7 @@ import DeleteContentButton from './DeleteContentButton'
 import PublishControls from './PublishControls'
 import WarmVideosControl from './WarmVideosControl'
 import { contentWarming } from '@/modules/media/container'
+import { otherKindLabel } from '@/modules/content/domain/otherSchema'
 
 type Props = {
   params: Promise<{
@@ -74,11 +77,31 @@ export default async function EditContentPage({ params }: Props) {
     notFound()
   }
 
-  // especificacion-final-formato-detalle.md §1: tres formatos de
-  // detalle — tipo A (tool/insight, con paquete HTML, sin portada),
-  // tipo B (case/episode), y contenido libre (other, portada imagen o
-  // vídeo). El editor de bloques genérico desaparece por completo (§6).
-  const supportsPackage = content.type === 'tool' || content.type === 'insight'
+  // Un `other` lleva su subtipo (plan de other, §7): una newsletter no tiene
+  // pines, paquete ni página; una página satélite tiene paquete HTML y pines.
+  const otherDetail =
+    content.type === 'other' ? await others.getByContentId(content.id) : null
+
+  const otherKind = otherDetail?.kind ?? null
+
+  // Frecuencias de los demás Other publicados, para el aviso de ocupación.
+  const otherFrequencies = otherDetail
+    ? await others
+        .listPublishedFrequencies(content.id)
+        .catch((error: unknown) => {
+          console.error(error)
+
+          return []
+        })
+    : []
+
+  const isNewsletter = otherKind === 'newsletter'
+
+  // Tipo A (tool/insight) y página satélite: paquete HTML, sin portada.
+  const supportsPackage =
+    content.type === 'tool' ||
+    content.type === 'insight' ||
+    otherKind === 'page'
 
   const [
     translations,
@@ -106,7 +129,9 @@ export default async function EditContentPage({ params }: Props) {
       ? htmlPackages.listVersions(content.id)
       : Promise.resolve([]),
 
-    pinRepository.listByContentId(content.id),
+    isNewsletter
+      ? Promise.resolve([])
+      : pinRepository.listByContentId(content.id),
   ])
 
   let pendingWarming: number | null = null
@@ -129,6 +154,7 @@ export default async function EditContentPage({ params }: Props) {
             <div>
               <p className="admin-editor-eyebrow">
                 {getTypeLabel(content.type)}
+                {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
               </p>
 
               <h1>Editar contenido</h1>
@@ -136,6 +162,7 @@ export default async function EditContentPage({ params }: Props) {
               <div className="admin-editor-meta">
                 <span className="admin-type-badge">
                   {getTypeLabel(content.type)}
+                  {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
                 </span>
 
                 <code>{content.id}</code>
@@ -147,12 +174,17 @@ export default async function EditContentPage({ params }: Props) {
                 contentId={content.id}
                 status={content.status}
                 publishAt={content.publishAt}
+                previewAvailable={
+                  content.type === 'case' || content.type === 'episode'
+                }
               />
 
-              <WarmVideosControl
-                contentId={content.id}
-                pending={pendingWarming}
-              />
+              {!isNewsletter && (
+                <WarmVideosControl
+                  contentId={content.id}
+                  pending={pendingWarming}
+                />
+              )}
             </div>
           </div>
         </header>
@@ -172,7 +204,21 @@ export default async function EditContentPage({ params }: Props) {
               </div>
             </div>
 
-            <EditContentForm content={content} />
+            <EditContentForm content={content} otherKind={otherKind} />
+
+            {content.type === 'other' &&
+              (otherDetail ? (
+                <OtherDetailForm
+                  other={otherDetail}
+                  otherFrequencies={otherFrequencies}
+                />
+              ) : (
+                <p className="admin-form-error">
+                  Este Other no tiene subtipo (newsletter o página satélite) y
+                  no se puede publicar. Se crea siempre con él: revisa cómo se
+                  dio de alta.
+                </p>
+              ))}
           </section>
 
           <section className="admin-card">
@@ -194,6 +240,7 @@ export default async function EditContentPage({ params }: Props) {
               contentType={content.type}
               defaultLocale={content.defaultLocale}
               translations={translations}
+              otherKind={otherKind}
             />
           </section>
 
@@ -265,7 +312,10 @@ export default async function EditContentPage({ params }: Props) {
 
                   <h2>Paquete HTML</h2>
 
-                  <p>Gestiona las versiones publicadas de la Tool o Insight.</p>
+                  <p>
+                    Gestiona las versiones publicadas del paquete HTML de este
+                    contenido.
+                  </p>
                 </div>
               </div>
 
@@ -276,51 +326,53 @@ export default async function EditContentPage({ params }: Props) {
             </section>
           )}
 
-          <section className="admin-card">
-            <div className="admin-card-heading">
-              <div>
-                <p className="admin-card-kicker">Feed</p>
+          {!isNewsletter && (
+            <section className="admin-card">
+              <div className="admin-card-heading">
+                <div>
+                  <p className="admin-card-kicker">Feed</p>
 
-                <h2>Pines</h2>
+                  <h2>Pines</h2>
 
-                <p>
-                  Gestiona los pines que representan este contenido dentro del
-                  feed.
-                </p>
+                  <p>
+                    Gestiona los pines que representan este contenido dentro del
+                    feed.
+                  </p>
+                </div>
               </div>
-            </div>
 
-            <div className="admin-editor-subsection">
-              <PinList
-                contentId={content.id}
-                contentType={content.type}
-                pins={pins}
-              />
-            </div>
-
-            <div className="admin-editor-subsection">
-              <h3>Crear pines</h3>
-
-              <p>
-                Cada pin es un único medio (imagen o vídeo). Selecciona uno o
-                varios archivos, ajusta los datos de cada fila y quita los que
-                no quieras antes de subir.
-              </p>
-
-              {pins.length >= MAX_PINS_PER_CONTENT ? (
-                <p>
-                  Este contenido ya tiene {MAX_PINS_PER_CONTENT} pines, el
-                  máximo permitido. Elimina uno para crear otro.
-                </p>
-              ) : (
-                <BulkPinUpload
+              <div className="admin-editor-subsection">
+                <PinList
                   contentId={content.id}
                   contentType={content.type}
-                  availableSlots={remainingPinSlots(pins.length)}
+                  pins={pins}
                 />
-              )}
-            </div>
-          </section>
+              </div>
+
+              <div className="admin-editor-subsection">
+                <h3>Crear pines</h3>
+
+                <p>
+                  Cada pin es un único medio (imagen o vídeo). Selecciona uno o
+                  varios archivos, ajusta los datos de cada fila y quita los que
+                  no quieras antes de subir.
+                </p>
+
+                {pins.length >= MAX_PINS_PER_CONTENT ? (
+                  <p>
+                    Este contenido ya tiene {MAX_PINS_PER_CONTENT} pines, el
+                    máximo permitido. Elimina uno para crear otro.
+                  </p>
+                ) : (
+                  <BulkPinUpload
+                    contentId={content.id}
+                    contentType={content.type}
+                    availableSlots={remainingPinSlots(pins.length)}
+                  />
+                )}
+              </div>
+            </section>
+          )}
 
           <section className="admin-card admin-danger-card">
             <div className="admin-card-heading">

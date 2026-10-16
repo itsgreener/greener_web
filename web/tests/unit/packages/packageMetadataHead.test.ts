@@ -47,7 +47,7 @@ const PACKAGE_HTML = `<!doctype html>
 </html>`
 
 function compose(
-  kind: 'tool' | 'insight',
+  kind: 'tool' | 'insight' | 'variety',
   metadata: PackageMetadata | null = METADATA,
   html = PACKAGE_HTML,
 ) {
@@ -65,7 +65,9 @@ function compose(
     },
   }
 
-  const plural = kind === 'tool' ? 'tools' : 'insights'
+  const plural = { tool: 'tools', insight: 'insights', variety: 'variety' }[
+    kind
+  ]
 
   return composeToolDocument(
     pkg,
@@ -165,6 +167,18 @@ describe('contrato §6.2 — el head sale de metadata', () => {
     )
     expect(insight.inLanguage).toBe('es')
     expect(tool['@type']).toBe('WebApplication')
+  })
+
+  it('una página satélite (variety) es «website» y su JSON-LD es WebPage, con su propia URL', () => {
+    const $variety = head(compose('variety'))
+    const ld = JSON.parse($variety('script[type="application/ld+json"]').text())
+
+    expect($variety('meta[property="og:type"]').attr('content')).toBe('website')
+    expect($variety('link[rel="canonical"]').attr('href')).toBe(
+      `${SITE}/variety/informe-2026/app`,
+    )
+    expect(ld['@type']).toBe('WebPage')
+    expect(ld.image).toBe(`${SITE}/variety/informe-2026/app/assets/og.png`)
   })
 
   it('el JSON-LD no puede cerrar su <script> aunque el título lleve «</script>»', () => {

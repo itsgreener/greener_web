@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, act, fireEvent } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { PinCard, type PinCardData } from '@/components/pin/PinCard'
+import { HOVER_INTENT_MS } from '@/modules/media/domain/videoPlayback'
 
 /**
  * Ciclo de vida del vídeo de un pin del feed (contrato de medios §6):
@@ -305,19 +306,39 @@ describe('PinCard — vídeo del feed (fase 1 del contrato de medios)', () => {
       expect(q(container)).not.toBeInTheDocument()
     })
 
-    it('el hover es una acción explícita: sigue funcionando aunque haya reduced-motion', () => {
+    it('el hover tampoco reproduce con reduced-motion: póster fijo', () => {
       stubMatchMedia(true)
       const { container } = render(
         <PinCard pin={pin({ autoplayMode: 'hover' })} style={STYLE} />,
       )
 
-      expect(q(container)).not.toBeInTheDocument()
-
       act(() => {
         fireEvent.mouseEnter(container.querySelector('a')!)
+        vi.advanceTimersByTime(HOVER_INTENT_MS + 50)
       })
 
-      expect(q(container)).toBeInTheDocument()
+      expect(q(container)).not.toBeInTheDocument()
+    })
+
+    it('el hover tampoco reproduce con save-data ni con conexión lenta', () => {
+      for (const connection of [
+        { saveData: true },
+        { effectiveType: '2g' },
+        { downlink: 0.5 },
+      ]) {
+        setConnection(connection)
+        const { container, unmount } = render(
+          <PinCard pin={pin({ autoplayMode: 'hover' })} style={STYLE} />,
+        )
+
+        act(() => {
+          fireEvent.mouseEnter(container.querySelector('a')!)
+          vi.advanceTimersByTime(HOVER_INTENT_MS + 50)
+        })
+
+        expect(q(container)).not.toBeInTheDocument()
+        unmount()
+      }
     })
   })
 
@@ -329,9 +350,81 @@ describe('PinCard — vídeo del feed (fase 1 del contrato de medios)', () => {
     expect(q(container)).not.toBeInTheDocument()
   })
 
-  it('un pin con modo hover SÍ hace prefetch para que el hover arranque sin espera', () => {
+  describe('modo hover: intención de hover y sin prefetch (plan de pendientes, A3)', () => {
+    function renderHover() {
+      const view = render(
+        <PinCard pin={pin({ autoplayMode: 'hover' })} style={STYLE} />,
+      )
+
+      return { ...view, link: view.container.querySelector('a')! }
+    }
+
+    it('un pin hover NO hace prefetch: no hay <video> hasta que haya intención', () => {
+      const { container } = renderHover()
+
+      expect(q(container)).not.toBeInTheDocument()
+    })
+
+    it('un paso circunstancial del puntero (sale antes de 200 ms) no monta ni descarga nada', () => {
+      const { container, link } = renderHover()
+
+      act(() => {
+        fireEvent.mouseEnter(link)
+        vi.advanceTimersByTime(HOVER_INTENT_MS - 50)
+        fireEvent.mouseLeave(link)
+        vi.advanceTimersByTime(1000)
+      })
+
+      expect(q(container)).not.toBeInTheDocument()
+    })
+
+    it('con el puntero quieto 200 ms monta el vídeo y, al estar listo, lo reproduce', () => {
+      const { container, link } = renderHover()
+
+      act(() => {
+        fireEvent.mouseEnter(link)
+        vi.advanceTimersByTime(HOVER_INTENT_MS - 1)
+      })
+      expect(q(container)).not.toBeInTheDocument()
+
+      act(() => {
+        vi.advanceTimersByTime(1)
+      })
+      expect(q(container)).toBeInTheDocument()
+
+      ready(q(container)!)
+      expect(playSpy).toHaveBeenCalled()
+    })
+
+    it('al salir se quita el vídeo de inmediato', () => {
+      const { container, link } = renderHover()
+
+      act(() => {
+        fireEvent.mouseEnter(link)
+        vi.advanceTimersByTime(HOVER_INTENT_MS)
+      })
+      expect(q(container)).toBeInTheDocument()
+
+      act(() => {
+        fireEvent.mouseLeave(link)
+      })
+      expect(q(container)).not.toBeInTheDocument()
+    })
+
+    it('el foco de teclado es inmediato, sin esperar', () => {
+      const { container, link } = renderHover()
+
+      act(() => {
+        fireEvent.focus(link)
+      })
+
+      expect(q(container)).toBeInTheDocument()
+    })
+  })
+
+  it('un pin en modo viewport sí hace prefetch', () => {
     const { container } = render(
-      <PinCard pin={pin({ autoplayMode: 'hover' })} style={STYLE} />,
+      <PinCard pin={pin({ autoplayMode: 'viewport' })} style={STYLE} />,
     )
 
     expect(q(container)).toBeInTheDocument()

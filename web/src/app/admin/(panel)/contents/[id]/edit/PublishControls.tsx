@@ -23,6 +23,8 @@ type Props = {
   contentId: string
   status: ContentStatus
   publishAt: string | null
+  /** Los `other` no tienen vista previa de borrador (plan de other, §6.7). */
+  previewAvailable?: boolean
 }
 
 const publishInitialState: PublishActionState = {}
@@ -46,6 +48,7 @@ export default function PublishControls({
   contentId,
   status,
   publishAt,
+  previewAvailable = true,
 }: Props) {
   const [publishState, publishAction, publishing] = useActionState(
     publishContentAction,
@@ -88,7 +91,7 @@ export default function PublishControls({
       </div>
 
       <div className="admin-publish-actions">
-        {status !== 'published' && (
+        {status !== 'published' && previewAvailable && (
           <form action={previewAction}>
             <input type="hidden" name="id" value={contentId} />
 

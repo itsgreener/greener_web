@@ -43,7 +43,7 @@ describe('generatePreviewLink (§15.3)', () => {
       await setup({ id: 'c', type: 'other', slug: 'x' }).generatePreviewLink(
         'c',
       ),
-    ).toContain('/variety/x?preview=')
+    ).toContain('/variety/x/app?preview=')
   })
 
   it('devuelve null y no firma nada si el contenido no existe', async () => {

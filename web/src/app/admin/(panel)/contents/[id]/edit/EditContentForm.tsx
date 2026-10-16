@@ -3,6 +3,10 @@
 import { useActionState } from 'react'
 
 import type { ContentDetail } from '@/modules/content/domain/contentRepository'
+import {
+  otherKindLabel,
+  type OtherKind,
+} from '@/modules/content/domain/otherSchema'
 
 import { updateContentAction } from './actions'
 
@@ -13,6 +17,7 @@ const initialState = {
 
 type Props = {
   content: ContentDetail
+  otherKind?: OtherKind | null
 }
 
 function getContentTypeLabel(type: ContentDetail['type']) {
@@ -34,7 +39,7 @@ function getContentTypeLabel(type: ContentDetail['type']) {
   }
 }
 
-export default function EditContentForm({ content }: Props) {
+export default function EditContentForm({ content, otherKind }: Props) {
   const [state, formAction, pending] = useActionState(
     updateContentAction,
     initialState,
@@ -48,7 +53,10 @@ export default function EditContentForm({ content }: Props) {
         <div className="admin-readonly-field">
           <span className="admin-field-label">Tipo</span>
 
-          <strong>{getContentTypeLabel(content.type)}</strong>
+          <strong>
+            {getContentTypeLabel(content.type)}
+            {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
+          </strong>
         </div>
 
         <div className="admin-readonly-field">

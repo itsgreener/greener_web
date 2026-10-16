@@ -16,6 +16,7 @@ import {
   makeAddCaseCarouselVideo,
 } from './application/addCaseCarouselMedia'
 import { makeCreateContent } from './application/createContent'
+import { makeCreateOther } from './application/createOther'
 import { makeDeleteContent } from './application/deleteContent'
 import { makeGeneratePreviewLink } from './application/generatePreviewLink'
 import {
@@ -30,6 +31,7 @@ import { makeResolvePreviewContext } from './application/resolvePreviewContext'
 import { resolveDetailCover } from './application/resolveDetailCover'
 import { makeUnpublishContent } from './application/unpublishContent'
 import { makeUpdateContent } from './application/updateContent'
+import { makeUpdateOtherFrequency } from './application/updateOtherFrequency'
 import { makeUpsertCaseDetail } from './application/upsertCaseDetail'
 import { makeUpsertContentTranslation } from './application/upsertContentTranslation'
 import { makeUpsertEpisode } from './application/upsertEpisode'
@@ -42,6 +44,7 @@ import { supabaseCaseDetailRepository } from './infrastructure/supabaseCaseDetai
 import { supabaseContentRepository } from './infrastructure/supabaseContentRepository'
 import { supabaseContentTranslationRepository } from './infrastructure/supabaseContentTranslationRepository'
 import { supabaseEpisodeRepository } from './infrastructure/supabaseEpisodeRepository'
+import { supabaseOtherRepository } from './infrastructure/supabaseOtherRepository'
 import { requestScopedReader } from './infrastructure/requestScopedReader'
 import { createSupabasePublicContentReader } from './infrastructure/supabasePublicContentReader'
 
@@ -63,9 +66,15 @@ export const contentTranslations = supabaseContentTranslationRepository
 
 export const episodes = supabaseEpisodeRepository
 
+export const others = supabaseOtherRepository
+
 export const createContent = makeCreateContent({ contents })
 
+export const createOther = makeCreateOther({ others })
+
 export const updateContent = makeUpdateContent({ contents })
+
+export const updateOtherFrequency = makeUpdateOtherFrequency({ others })
 
 export const deleteContent = makeDeleteContent({
   contents,

@@ -1,6 +1,5 @@
 import type { ResolvedPackage } from './manifest'
-
-export type PackageKind = 'tool' | 'insight'
+import type { PackageKind } from './packageKind'
 
 /**
  * Resultado de pedir un asset: o bien el navegador ya tiene esta versión

@@ -102,9 +102,12 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
 
   const zipEntries = zip.getEntries()
 
-  // ZIP bomb: se comprueban los tamaños DECLARADOS
-  // antes de descomprimir nada. adm-zip ya corta la descompresión en el
-  // tamaño declarado de cada entrada, así que basta con acotar lo declarado.
+  // ZIP bomb: se comprueban los tamaños DECLARADOS antes de descomprimir
+  // nada. Eso solo vale si la descompresión no puede pasar de lo declarado:
+  // adm-zip la corta en el tamaño de la cabecera (y el 0 declarado cuenta como
+  // 1 byte, no como «sin tope»), y `readEntryData` convierte ese corte, o
+  // cualquier otro fallo de inflado, en un rechazo de validación. Una cabecera
+  // que miente, por tanto, no ocupa memoria de más ni acaba en un 500.
   assertWithinUncompressedLimits(zipEntries)
 
   for (const entry of zipEntries) {
@@ -133,7 +136,7 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     }
 
     entryPaths.add(path)
-    entries.push({ path, data: entry.getData() })
+    entries.push({ path, data: readEntryData(entry, path) })
   }
 
   if (structuralIssues.length > 0) {
@@ -318,6 +321,33 @@ function withMeasuredOgImage(
       ogImage: { ...ogImage, width: info.width, height: info.height },
     },
   }
+}
+
+/**
+ * Descomprime una entrada. Cualquier fallo (datos corruptos, o un flujo que
+ * al inflar supera el tamaño que declara la cabecera: bomba que miente) se
+ * traduce a un error de validación con un mensaje para el admin, sin volcar
+ * el error interno de la librería. Además comprueba el tamaño real obtenido
+ * contra los topes, por si la librería dejase de acotarlo.
+ */
+function readEntryData(entry: AdmZip.IZipEntry, path: string): Buffer {
+  let data: Buffer
+
+  try {
+    data = entry.getData()
+  } catch {
+    throw new PackageValidationError([
+      `"${path}" está corrupto o su tamaño real no coincide con el que declara el ZIP.`,
+    ])
+  }
+
+  if (data.byteLength > PACKAGE_LIMITS.maxEntryUncompressedBytes) {
+    throw new PackageValidationError([
+      `"${path}" ocupa más de ${PACKAGE_LIMITS.maxEntryUncompressedBytes / 1_000_000} MB descomprimido; el máximo por fichero es ${PACKAGE_LIMITS.maxEntryUncompressedBytes / 1_000_000} MB.`,
+    ])
+  }
+
+  return data
 }
 
 function assertWithinUncompressedLimits(zipEntries: AdmZip.IZipEntry[]): void {

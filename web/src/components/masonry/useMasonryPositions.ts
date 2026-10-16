@@ -14,6 +14,7 @@ import {
 } from '@/modules/masonry/domain/virtualization'
 import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
 import type { PinCardData } from '@/components/pin/PinCard'
+import type { FeedNewsletterItem } from '@/modules/feed/domain/feedReadModels'
 import { useContainerWidth } from './useContainerWidth'
 
 /**
@@ -28,7 +29,21 @@ import { useContainerWidth } from './useContainerWidth'
  * fijo asumido.
  */
 
-export interface PositionedPin {
+/**
+ * Lo que el masonry sabe colocar: un pin o la tarjeta de newsletter, que no
+ * lleva rótulo debajo y tiene proporción fija 4:5.
+ */
+export type MasonryEntry = PinCardData | FeedNewsletterItem
+
+export const NEWSLETTER_CARD_RATIO: PinRatio = '4:5'
+
+export function isNewsletterEntry(
+  entry: MasonryEntry,
+): entry is FeedNewsletterItem {
+  return 'kind' in entry && entry.kind === 'newsletter'
+}
+
+export interface PositionedPin<T extends MasonryEntry = MasonryEntry> {
   /**
    * Identidad de ESTA tarjeta en la lista, única aunque el mismo pin salga
    * varias veces (el feed es infinito y recicla pines: ver PROGRESO). La
@@ -37,7 +52,7 @@ export interface PositionedPin {
    * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
    */
   key: string
-  item: PinCardData
+  item: T
   x: number
   y: number
   width: number
@@ -54,8 +69,8 @@ function batchIndexForItem(index: number, batchSizes: number[]): number {
   return Math.max(0, batchSizes.length - 1)
 }
 
-export function useMasonryPositions(
-  items: PinCardData[],
+export function useMasonryPositions<T extends MasonryEntry>(
+  items: T[],
   batchSizes: number[],
 ) {
   const { containerRef, containerWidth } = useContainerWidth()
@@ -90,11 +105,19 @@ export function useMasonryPositions(
 
     const columnWidth = (containerWidth - GAP * (columnCount - 1)) / columnCount
 
-    return items.map((item) => ({
-      id: item.pinId,
-      ratio: item.ratio as PinRatio,
-      labelHeight: estimateLabelHeight(item, columnWidth),
-    }))
+    return items.map((item) =>
+      isNewsletterEntry(item)
+        ? {
+            id: item.pinId,
+            ratio: NEWSLETTER_CARD_RATIO,
+            labelHeight: 0,
+          }
+        : {
+            id: item.pinId,
+            ratio: item.ratio as PinRatio,
+            labelHeight: estimateLabelHeight(item, columnWidth),
+          },
+    )
   }, [items, containerWidth, columnCount])
 
   const layout = useMemo(() => {
@@ -102,7 +125,7 @@ export function useMasonryPositions(
     return computeMasonryLayout(layoutItems, containerWidth, columnCount)
   }, [layoutItems, containerWidth, columnCount])
 
-  const positioned: PositionedPin[] = useMemo(() => {
+  const positioned: PositionedPin<T>[] = useMemo(() => {
     if (!layout) return []
 
     // Altura de cada batch real (para la virtualización), incluyendo la

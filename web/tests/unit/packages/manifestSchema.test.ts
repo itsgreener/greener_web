@@ -27,7 +27,27 @@ describe('packageManifestSchema', () => {
     ).toBe(true)
   })
 
-  it('rechaza un kind que no sea tool ni insight', () => {
+  it('acepta kind variety (página satélite de other) y también su manifest guardado', () => {
+    expect(
+      packageManifestSchema.safeParse({ ...VALID, kind: 'variety' }).success,
+    ).toBe(true)
+    expect(
+      storedPackageManifestSchema.safeParse({ ...VALID, kind: 'variety' })
+        .success,
+    ).toBe(true)
+  })
+
+  it('variety exige metadata igual que tool e insight (se sube por el mismo contrato)', () => {
+    expect(
+      packageManifestSchema.safeParse({
+        ...VALID,
+        kind: 'variety',
+        metadata: undefined,
+      }).success,
+    ).toBe(false)
+  })
+
+  it('rechaza un kind que no sea tool, insight ni variety', () => {
     expect(
       packageManifestSchema.safeParse({ ...VALID, kind: 'page' }).success,
     ).toBe(false)
