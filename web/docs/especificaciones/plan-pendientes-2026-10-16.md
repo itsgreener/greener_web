@@ -1,6 +1,6 @@
 # Plan de pendientes — 16 de octubre de 2026
 
-**Estado (16 oct, tarde): bloques A, B y C ejecutados** (`docs/historial/historial-fase-5.md` §2.80). Pendientes: el bloque D (careers con n8n), a la espera del código de Greener, y el bloque E (fase 6 de `other`), en pausa. Sale de la ronda de decisiones del 16 de octubre (lista de 22 puntos y respuestas de Greener). Regla de trabajo: primero se planifica y luego se ejecuta.
+**Estado (16 oct, tarde): bloques A, B y C ejecutados** (`docs/historial/historial-fase-5.md` §2.80). Pendientes: el bloque D (careers con n8n; **fase 0 cerrada el 19 oct y fase 1 hecha el mismo día**, siguen la 2 y la 3) y el bloque E (fase 6 de `other`), en pausa. Sale de la ronda de decisiones del 16 de octubre (lista de 22 puntos y respuestas de Greener). Regla de trabajo: primero se planifica y luego se ejecuta.
 
 ## 1. Decisiones recogidas
 
@@ -85,7 +85,7 @@ Greener pidió más información. Se entrega en la conversación (resumen en §3
 
 ### Bloque D — Página de careers con n8n (punto 5)
 
-**Actualización (16 oct, tarde):** el código ya está revisado y el plan detallado vive en `plan-talent-careers.md` (los pasos de abajo quedan como borrador previo). Planificado, sin ejecutar, a la espera de la fase 0 (datos de Supabase-talent y workflows de n8n). Pasos previstos originalmente:
+**Actualización (16 oct, tarde):** el código ya está revisado y el plan detallado vive en `plan-talent-careers.md` (los pasos de abajo quedan como borrador previo). Planificado, sin ejecutar; **la fase 0 (datos de Supabase-talent y workflows de n8n) se cerró el 19 oct** y la fase 1 (servidor) se hizo ese mismo día (`plan-talent-careers.md` §3.1); siguen la 2 (paquete) y la 3 (ABM). Pasos previstos originalmente:
 
 1. Revisar la página y su backend `/admin` y confirmar qué parte puede ser un paquete (§4).
 2. Resolver la llamada al webhook de n8n de forma compatible con la CSP.
@@ -123,7 +123,7 @@ Cosas que aún no se pueden dar y que bloquean o condicionan lo anterior.
 | 3 | Texto legal final del asesor para `/privacy` (cookies y newsletter). Después se sube `CONSENT_TEXT_VERSION`. | Asesor | Bloque E; publicar cualquier `other` |
 | 6 | Política de privacidad de los formularios: mención de Mailchimp y plazo de retención de `contact_submission`. | Greener y asesor | Bloque E |
 | 4 | Tabla de cookies de terceros medida con DevTools (YouTube, Spotify, Cloudinary). «Casi lista.» | Greener | Bloque E |
-| 5 | Código de la página de careers, URL y formato del webhook de n8n, y descripción del backend `/admin`. | Greener | Bloque D |
+| 5 | ~~Código de la página de careers, URL y formato del webhook de n8n, y descripción del backend `/admin`.~~ **Entregado** (16 y 19 oct). Queda el identificador de la audiencia de Mailchimp de talent (`plan-talent-careers.md` §5.2) y volver a adjuntar `talent.zip` para la fase 2. | Greener | Puesta en marcha y fase 2 de talent |
 | 10 | Decidir: retirar las columnas muertas de `feed_config` (propuesto) o conectarlas. | Greener | Bloque C |
 | 13 | Decidir qué módulos del ABM entran (propuesto: solo visor de `audit_log`). | Greener | Bloque C |
 | 17 | Confirmar que las licencias de Helvetica Neue y Kinder cubren web autoalojada y la conversión a WOFF2. | Greener | Antes de publicar |

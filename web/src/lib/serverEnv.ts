@@ -122,12 +122,68 @@ export const getMailchimpEnv = createScopedEnv('Mailchimp', () =>
   }),
 )
 
+/**
+ * Talent (gestión de CVs): el proyecto de Supabase de talent es OTRO distinto
+ * al de la web (los datos no se mueven, decisión 1 del plan) y n8n hace parte
+ * del trabajo. Solo servidor; ninguna de estas variables llega al navegador.
+ *
+ * - La clave tiene que ser una clave SECRETA nueva (`sb_secret_…`). Las
+ *   heredadas (`service_role`, anon) están desactivadas desde el 19 oct 2026 y
+ *   la publicable no sirve para escribir: se rechazan al arrancar en vez de
+ *   fallar con un 401 en el primer alta.
+ * - Un webhook de n8n por uso. `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` solo lo usa
+ *   la subida del personal (ABM, fase 3), por eso es opcional de momento.
+ * - La cabecera de autenticación de los webhooks (fase 4) es opcional y va en
+ *   pareja: el día que se active la autenticación en n8n basta con rellenar las
+ *   dos variables, sin tocar código.
+ */
+export const getTalentEnv = createScopedEnv('Talent', () =>
+  z
+    .object({
+      TALENT_SUPABASE_URL: z.url(),
+      TALENT_SUPABASE_SECRET_KEY: z
+        .string()
+        .startsWith(
+          'sb_secret_',
+          'Debe ser una clave secreta nueva (sb_secret_…)',
+        ),
+      TALENT_N8N_SEND_LINK_WEBHOOK_URL: z.url(),
+      TALENT_N8N_PROCESS_FILES_WEBHOOK_URL: z.url(),
+      TALENT_N8N_PROCESS_CV_WEBHOOK_URL: z.url().optional(),
+      TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME: z.string().min(1).optional(),
+      TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE: z.string().min(1).optional(),
+    })
+    .refine(
+      (env) =>
+        Boolean(env.TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME) ===
+        Boolean(env.TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE),
+      {
+        message:
+          'La cabecera de autenticación de n8n necesita nombre Y valor (o ninguno de los dos)',
+        path: ['TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE'],
+      },
+    ),
+)
+
+/**
+ * Audiencia de Mailchimp de talent. Es otra audiencia de la MISMA cuenta que la
+ * newsletter de Greener (misma clave de API y mismo prefijo, ver
+ * `getMailchimpEnv`), así que solo cambia el identificador.
+ */
+export const getTalentMailchimpEnv = createScopedEnv('Mailchimp (talent)', () =>
+  z.object({
+    TALENT_MAILCHIMP_AUDIENCE_ID: z.string().min(1),
+  }),
+)
+
 const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
   ['Cloudinary', getCloudinaryEnv],
   ['Cloudmersive', getCloudmersiveEnv],
   ['contacto', getContactEnv],
   ['hash de IP', getIpHashEnv],
   ['Mailchimp', getMailchimpEnv],
+  ['Talent', getTalentEnv],
+  ['Mailchimp (talent)', getTalentMailchimpEnv],
 ]
 
 /**

@@ -3,7 +3,8 @@ import type { NextRequest, NextResponse } from 'next/server'
 
 /**
  * Identificador anónimo de "este navegador", usado ÚNICAMENTE para
- * limitar peticiones al feed público (§16.1, PROGRESO §2.16) — un UUID
+ * limitar peticiones al feed público (§16.1, PROGRESO §2.16) y a las rutas
+ * de talent (`/api/talent`, 19 oct 2026) — un UUID
  * aleatorio, sin ningún dato personal ni relación con ninguna cuenta.
  * No es una cookie de seguimiento: no se lee en ningún otro sitio, no
  * alimenta analítica, no identifica a la misma persona entre sesiones

@@ -17,8 +17,15 @@ async function getClientIp(): Promise<string | null> {
  * ver la migración de contact_submission.
  */
 export async function getHashedClientIp(): Promise<string> {
-  const ip = (await getClientIp()) ?? 'unknown'
+  return hashClientIp(await getClientIp())
+}
+
+/**
+ * El mismo hash para una IP ya leída (rutas API, que tienen la petición en la
+ * mano y no necesitan `headers()`). `null` = IP desconocida.
+ */
+export function hashClientIp(ip: string | null): string {
   return createHash('sha256')
-    .update(`${getIpHashEnv().CONTACT_IP_HASH_SALT}:${ip}`)
+    .update(`${getIpHashEnv().CONTACT_IP_HASH_SALT}:${ip ?? 'unknown'}`)
     .digest('hex')
 }

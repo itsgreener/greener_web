@@ -25,6 +25,16 @@ process.env.CONTACT_EMAIL_FROM ??= 'no-reply-test@example.com'
 process.env.MAILCHIMP_API_KEY ??= 'test-mailchimp-key-us21'
 process.env.MAILCHIMP_AUDIENCE_ID ??= 'test-audience-id'
 process.env.MAILCHIMP_SERVER_PREFIX ??= 'us21'
+process.env.TALENT_SUPABASE_URL ??= 'https://talent-test.supabase.co'
+process.env.TALENT_SUPABASE_SECRET_KEY ??=
+  'sb_secret_talent_test_00000000000000000000'
+process.env.TALENT_N8N_SEND_LINK_WEBHOOK_URL ??=
+  'https://n8n.test.local/webhook/send-link'
+process.env.TALENT_N8N_PROCESS_FILES_WEBHOOK_URL ??=
+  'https://n8n.test.local/webhook/process-files'
+process.env.TALENT_N8N_PROCESS_CV_WEBHOOK_URL ??=
+  'https://n8n.test.local/webhook/process-cv'
+process.env.TALENT_MAILCHIMP_AUDIENCE_ID ??= 'test-talent-audience-id'
 
 /**
  * cleanup() global (decisión del 22 sep): antes cada fichero con jsdom

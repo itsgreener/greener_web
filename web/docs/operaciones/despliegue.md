@@ -46,6 +46,8 @@ Hay dos tipos y se comportan distinto:
 
 El build también necesita un `.env.local` válido, porque `next build` importa `env.ts`. `NEXT_PUBLIC_SITE_URL` debe ser `https://itsgreener.com`; si lleva barra final, `env.ts` la recorta, y si falta en producción, avisa al arrancar.
 
+**Talent (gestión de CVs).** Ocho variables propias (`TALENT_*`), todas solo de servidor, con su bloque para el `.env.local.example` y los pasos fuera del repositorio (n8n y Supabase-talent): `docs/operaciones/talent-puesta-en-marcha.md`.
+
 ## 3. Arrancar con PM2 (verificado)
 
 `server.js` lee `PORT` y `HOSTNAME` del entorno (`parseInt(process.env.PORT) || 3000`, y `0.0.0.0` por defecto). **`PORT` es el que os asigne Dinahosting.** Un fichero de configuración de PM2, `ecosystem.config.cjs`, lo deja todo en un sitio:

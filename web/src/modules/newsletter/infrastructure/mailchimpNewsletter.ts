@@ -29,6 +29,23 @@ export const MAILCHIMP_TIMEOUT_MS = 8000
 
 export type MailchimpSubscribeResult = NewsletterSubscribeResult
 
+/**
+ * Qué audiencia y qué etiqueta usa el alta. Sin opciones es la newsletter de
+ * Greener; talent pasa la suya (otra audiencia de la misma cuenta, así que la
+ * clave de API y el prefijo son los mismos).
+ */
+export type MailchimpAudienceOptions = {
+  audienceId: string
+  tag: string
+}
+
+function defaultAudience(): MailchimpAudienceOptions {
+  return {
+    audienceId: getMailchimpEnv().MAILCHIMP_AUDIENCE_ID,
+    tag: 'Greener Website',
+  }
+}
+
 function apiUrl(path: string) {
   return `https://${getMailchimpEnv().MAILCHIMP_SERVER_PREFIX}.api.mailchimp.com/3.0${path}`
 }
@@ -92,12 +109,12 @@ async function parseMailchimpError(
  */
 export async function subscribeEmailInMailchimp(
   email: string,
+  audience: MailchimpAudienceOptions = defaultAudience(),
 ): Promise<MailchimpSubscribeResult> {
   const normalizedEmail = email.trim().toLowerCase()
   const hash = subscriberHash(normalizedEmail)
-  const memberPath = `/lists/${encodeURIComponent(
-    getMailchimpEnv().MAILCHIMP_AUDIENCE_ID,
-  )}/members/${hash}`
+  const audiencePath = `/lists/${encodeURIComponent(audience.audienceId)}`
+  const memberPath = `${audiencePath}/members/${hash}`
 
   const existingResponse = await mailchimpFetch(apiUrl(memberPath), {
     method: 'GET',
@@ -153,16 +170,14 @@ export async function subscribeEmailInMailchimp(
   }
 
   const createResponse = await mailchimpFetch(
-    apiUrl(
-      `/lists/${encodeURIComponent(getMailchimpEnv().MAILCHIMP_AUDIENCE_ID)}/members`,
-    ),
+    apiUrl(`${audiencePath}/members`),
     {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({
         email_address: normalizedEmail,
         status: 'pending',
-        tags: ['Greener Website'],
+        tags: [audience.tag],
       }),
       cache: 'no-store',
     },
@@ -182,5 +197,5 @@ export async function subscribeEmailInMailchimp(
 }
 
 export const mailchimpNewsletterSubscriber: NewsletterSubscriber = {
-  subscribe: subscribeEmailInMailchimp,
+  subscribe: (email) => subscribeEmailInMailchimp(email),
 }

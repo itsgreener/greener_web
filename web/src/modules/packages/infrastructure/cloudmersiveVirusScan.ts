@@ -32,6 +32,19 @@ type CloudmersiveScanResult = {
  * nativos de Node.
  */
 export async function scanZipForViruses(buffer: Buffer): Promise<void> {
+  await scanFileForViruses(buffer, 'package.zip', 'ZIP')
+}
+
+/**
+ * El mismo escaneo para cualquier fichero. Lo usa también talent con los CVs
+ * que sube un candidato (cuenta gratuita: mismo tope de 10 MB decimales).
+ * `label` solo cambia el texto del tope de tamaño («El ZIP supera…»).
+ */
+export async function scanFileForViruses(
+  buffer: Buffer,
+  fileName: string,
+  label = 'archivo',
+): Promise<void> {
   // Guarda defensiva: normalmente `validateHtmlPackageZip` ya habrá
   // rechazado un ZIP mayor (PACKAGE_LIMITS), pero si alguien sube ese
   // límite sin tocar este, mejor un mensaje claro y sin enviar 15 MB que
@@ -39,16 +52,12 @@ export async function scanZipForViruses(buffer: Buffer): Promise<void> {
   // bloqueante: nunca se publica un ZIP sin escanear.
   if (buffer.byteLength > CLOUDMERSIVE_MAX_FILE_BYTES) {
     throw new VirusScanError(
-      `El ZIP supera el tamaño máximo que admite el servicio de escaneo antivirus (${CLOUDMERSIVE_MAX_FILE_BYTES / 1_000_000} MB).`,
+      `El ${label} supera el tamaño máximo que admite el servicio de escaneo antivirus (${CLOUDMERSIVE_MAX_FILE_BYTES / 1_000_000} MB).`,
     )
   }
 
   const formData = new FormData()
-  formData.append(
-    'inputFile',
-    new Blob([new Uint8Array(buffer)]),
-    'package.zip',
-  )
+  formData.append('inputFile', new Blob([new Uint8Array(buffer)]), fileName)
 
   let response: Response
 
