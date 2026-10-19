@@ -32,7 +32,7 @@ export interface PolicyDocument {
   sections: PolicySection[]
 }
 
-export const POLICY_EMAIL = 'hi@itsgreener.com'
+const POLICY_EMAIL = 'hi@itsgreener.com'
 
 export const POLICY: PolicyDocument = {
   title: 'Cookie Policy',

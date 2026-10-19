@@ -1538,3 +1538,43 @@ Petición de Greener: «Empieza a ejecutar», con el plan `docs/especificaciones
 **C13. Visor del `audit_log`.** Nuevo módulo `modules/audit` (dominio con `parseAuditLogQuery`, repositorio **solo de lectura** y caso de uso `listAuditLog`) y página `/admin/audit` («Actividad» en el menú): cuándo, quién, acción, entidad (con enlace a la ficha si es un contenido) y el JSON del detalle plegado; búsqueda por email o acción, filtro por entidad, filtro por id de entidad por URL (`?entityId=`) y paginación de 50. Lo lee la sesión del admin (la política `audit_log_admin_read` ya existía; no hay política de update ni de delete). No hay editor de `feed_config`, ni acceso, ni configuración: solo esto.
 
 **Verificación.** `tsc`, `eslint` y `prettier` limpios; suite completa en verde (ver PROGRESO).
+
+### 2.81 ESLint y auditoría de código muerto (16 oct 2026)
+
+**ESLint.** Tres avisos: `allowVimeo` sin uso en `scripts/cookie-audit-all.mjs` e `isLocal` sin uso en `scripts/cookie-audit.mjs` (borrados), y el error `react-hooks/set-state-in-effect` en `ConsentProvider`. El proveedor ya no copia la cookie al estado de React dentro de un efecto: la lee como almacén externo con `useSyncExternalStore` (suscripción a `focus`, `pageshow` y `visibilitychange`, más un aviso propio al decidir en la pestaña; en el servidor, `unknown`). `panelOpen` pasa a ser derivado (`status === 'undecided'`). Si el navegador bloquea las cookies, la decisión vive en memoria durante la visita, como prometía el comentario de `writeConsentRecord` (antes un `focus` la perdía y reabría la ventana). Se deja de sincronizar en cada cambio de ruta: en la misma pestaña la cookie solo cambia al decidir, que ya avisa. Tests nuevos en `cookieBanner.test.tsx`: revocación hecha en otra pestaña al volver a esta, y cookies bloqueadas.
+
+**Código muerto.** Informe completo en `docs/auditorias/auditoria-codigo-muerto-2026-10-16.md`. Borrados `FALLBACK_RATIO` (`warm-cloudinary.mjs`), `CONTENT_TYPES` (`warm-probe.mjs`) y la dependencia `@types/adm-zip` (`adm-zip` 0.6 trae sus tipos). Retirado el `export` de 32 símbolos de `src` que solo se usan en su fichero. Sin cambios de comportamiento, sin migraciones ni variables nuevas.
+
+**Pendiente de Greener** (informe §4): confirmar que `20261009120000_typed_error_codes.sql` está aplicada en producción para retirar `LEGACY_KIND_BY_MESSAGE` y `stale_reference` (ZG013, que ya no lanza ninguna función); borrar `fix-video-durations.mjs` tras ejecutarlo; sacar `cookie-audit-all/` (puede contener tokens) y `tsconfig.tsbuildinfo` del repositorio.
+
+**Verificación.** `tsc` y ESLint limpios, 191 ficheros y 2055 tests en verde, `next build` correcto.
+
+### 2.82 Retirada del respaldo de errores antiguos, `stale_reference` y `fix-video-durations` (19 oct 2026)
+
+Greener pide quitar los tres primeros pendientes del informe de código muerto (§2.81); el cuarto (sacar `cookie-audit-all/` y `tsconfig.tsbuildinfo` del repositorio) se deja para más adelante.
+
+**Respaldo por texto.** Fuera `LEGACY_KIND_BY_MESSAGE` y `LEGACY_SQLSTATES` de `postgresErrors.ts`: `mapPostgresError` traduce solo por SQLSTATE. Antes de borrarlo se comprobó, reconstruyendo las 56 migraciones, que ninguna de las 31 funciones vivas lanza con `P0001`/`22023` ninguno de los 14 textos que el respaldo reconocía, así que no cambia ningún aviso. **A partir de ahora la migración `20261009120000_typed_error_codes.sql` es requisito:** una base que no la tenga mostrará los fallos de negocio como errores genéricos (`P0001` ya no se reconoce por texto).
+
+**`stale_reference` (ZG013).** Fuera el `kind` de `domainError.ts`, su frase de `adminErrorMessage.ts` y su línea del mapper. El código `ZG013` pasa a la lista de retirados del test de migraciones, junto a `ZG011` y `ZG012`.
+
+**`scripts/fix-video-durations.mjs`** y su test, borrados. Quien tenga todavía filas de `media_asset` con 10 s inventados (antes del 8 de octubre) debe corregirlas a mano o recuperar el script del historial.
+
+Tests: se retiran los del respaldo (14), la fila de ZG013 y los del script; se añade una comprobación de que un `P0001` con un texto antiguo ya no se traduce. 190 ficheros y 2035 tests en verde, `tsc`, ESLint y `next build` limpios. Sin migraciones ni variables nuevas.
+
+### 2.83 Alta de una newsletter sin «Datos básicos» (19 oct 2026)
+
+Greener, probando en la web de preview: al crear un `other` de tipo newsletter seguía saliendo la sección «Datos básicos» (título, slug e idioma principal) con el texto «forma parte de la URL pública», que no es cierto para una newsletter, y pide que no se muestre cuando se elige el pin.
+
+**Causa.** `NewContentForm` pintaba siempre el paso «Datos básicos» y `createContentAction` exigía los tres campos para cualquier tipo. La función SQL `create_other_draft` los necesita (slug único de `content`, idioma y la fila de `content_translation`), pero en una newsletter no hay URL y el titular de la tarjeta se escribe después en el editor («Titular», 80 caracteres), así que el formulario preguntaba algo que el editor vuelve a pedir.
+
+**Cambio.**
+
+- **Formulario.** Con «Other» y subtipo «Pin de newsletter» elegidos, la sección «Datos básicos» no se pinta (los campos se desmontan, no se ocultan con CSS: no viajan en el envío). Con la página satélite, o mientras no se haya elegido subtipo, sigue igual. La nota del pie cambia a «Después escribirás el titular y el texto en el editor antes de publicarla».
+- **Acción.** Si el tipo es `other` y el subtipo `newsletter` y el formulario no envía esos campos, la acción usa `newsletterDraftDefaults` (`otherSchema.ts`): título `Newsletter`, idioma `es` y slug `newsletter-{8 hex aleatorios}`. Si el formulario sí los envía, no se pisan. Si el slug generado chocara (1 entre 4.000 millones), sale un error del formulario («Inténtalo de nuevo») y no del campo oculto. La validación de zod y la función SQL no cambian.
+- **Después de crear.** El editor sigue permitiendo cambiar slug e idioma en «Datos generales», y el titular y el texto en las traducciones.
+
+**A tener en cuenta.** El titular por defecto es `Newsletter`: si se publica sin editarlo, la tarjeta del feed lo mostrará tal cual. Varias newsletters recién creadas son indistinguibles en el listado hasta ponerles titular. El idioma por defecto es `es`; en un `other` el feed usa solo el idioma principal, así que para una tarjeta en inglés hay que cambiarlo en el editor.
+
+**Base.** Se parte del zip actualizado de Greener (con §2.81 y §2.82). Ese zip no traía `plan-talent-careers.md` ni las dos referencias a él (plan de pendientes y PROGRESO): se restauran.
+
+**Verificación.** 190 ficheros y 2043 tests en verde (+8: 5 de la acción y 3 del formulario), `tsc` y ESLint limpios, formato con las opciones del `.prettierrc` (el zip no lo incluye). Sin migraciones ni variables nuevas.

@@ -14,7 +14,7 @@ import type {
  * comentario en supabase/migrations/20260806090700_rls_policies.sql).
  */
 
-export async function createFeedSessionRow(
+async function createFeedSessionRow(
   params: NewFeedSession,
   client: AppSupabaseClient = createServiceClient(),
 ): Promise<FeedSession> {
@@ -48,7 +48,7 @@ export async function createFeedSessionRow(
   }
 }
 
-export async function getFeedSessionRow(
+async function getFeedSessionRow(
   sessionId: string,
   client: AppSupabaseClient = createServiceClient(),
 ): Promise<FeedSession | null> {
@@ -72,7 +72,7 @@ export async function getFeedSessionRow(
   }
 }
 
-export async function getFeedRound(
+async function getFeedRound(
   sessionId: string,
   roundIndex: number,
   client: AppSupabaseClient = createServiceClient(),
@@ -98,7 +98,7 @@ export async function getFeedRound(
  * ronda por primera vez a la vez — el resultado, al ser determinista para
  * la misma seed+ronda, sería idéntico igualmente.
  */
-export async function saveFeedRound(
+async function saveFeedRound(
   sessionId: string,
   roundIndex: number,
   orderedPinIds: string[],

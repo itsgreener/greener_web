@@ -45,7 +45,7 @@ interface PublishedVersion {
 }
 
 /** TTL de la caché de versión publicada; el ABM la invalida por etiqueta. */
-export const PACKAGE_VERSION_TTL_SECONDS = 60
+const PACKAGE_VERSION_TTL_SECONDS = 60
 
 /** Versión publicada del paquete de un contenido publicado, o NotFound. */
 async function resolvePublishedVersion(

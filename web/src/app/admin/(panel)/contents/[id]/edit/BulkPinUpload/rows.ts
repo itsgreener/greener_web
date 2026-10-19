@@ -40,7 +40,7 @@ function labelFromFilename(filename: string): string {
   return filename.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
 }
 
-export function buildRow(
+function buildRow(
   file: File,
   index: number,
   csvRow: PinCsvRow | undefined,

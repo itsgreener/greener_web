@@ -85,7 +85,7 @@ Greener pidió más información. Se entrega en la conversación (resumen en §3
 
 ### Bloque D — Página de careers con n8n (punto 5)
 
-A la espera del código. Pasos previstos cuando llegue, en otra conversación:
+**Actualización (16 oct, tarde):** el código ya está revisado y el plan detallado vive en `plan-talent-careers.md` (los pasos de abajo quedan como borrador previo). Planificado, sin ejecutar, a la espera de la fase 0 (datos de Supabase-talent y workflows de n8n). Pasos previstos originalmente:
 
 1. Revisar la página y su backend `/admin` y confirmar qué parte puede ser un paquete (§4).
 2. Resolver la llamada al webhook de n8n de forma compatible con la CSP.
@@ -142,4 +142,4 @@ Tareas operativas de Greener, sin decisión de por medio:
 - Comprobar Plausible y la ventana de cookies ya desplegados.
 - Carga real de contenido en el ABM.
 - Apagar `tools.itsgreener.com` e `insight.itsgreener.com` tras publicar.
-- Scripts de vídeo y Cloudinary: `fix-video-durations`, `warm-cloudinary`, `reconcile-cloudinary`.
+- Scripts de vídeo y Cloudinary: `warm-cloudinary` y `reconcile-cloudinary` (`fix-video-durations` se retiró el 19 oct, §2.82).

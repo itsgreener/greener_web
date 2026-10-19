@@ -55,7 +55,7 @@ const VIDEO_FOLDER = 'greener/content/videos'
  * automático en Cloudinary pasa antes por aquí: nunca se toca nada fuera
  * de esa carpeta, aunque el navegador mande otro identificador.
  */
-export function isManagedPublicId(publicId: string): boolean {
+function isManagedPublicId(publicId: string): boolean {
   return publicId.startsWith(`${IMAGE_FOLDER}/`)
 }
 
@@ -441,7 +441,7 @@ export async function deleteCloudinaryAsset(
  * Solo vídeos de la carpeta de vídeos de Greener y solo con cadenas dadas
  * (nunca construye transformaciones por su cuenta).
  */
-export async function warmVideoRenditions(
+async function warmVideoRenditions(
   publicId: string,
   transformations: string[],
 ): Promise<void> {

@@ -20,7 +20,7 @@ export type AdminCheck =
 export const ADMIN_REQUIRED_MESSAGE =
   'Tu sesión ha caducado o no tienes permisos de administración. Vuelve a iniciar sesión.'
 
-export async function checkAdminSession(): Promise<AdminCheck> {
+async function checkAdminSession(): Promise<AdminCheck> {
   try {
     const supabase = await createClient()
 

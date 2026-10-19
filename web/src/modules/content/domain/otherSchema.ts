@@ -12,7 +12,7 @@ import { createContentSchema } from '@/modules/content/domain/contentSchema'
  *
  * Cada `other` lleva su propia frecuencia: «una aparición cada N pines».
  */
-export const OTHER_KINDS = ['newsletter', 'page'] as const
+const OTHER_KINDS = ['newsletter', 'page'] as const
 
 export const otherKindSchema = z.enum(OTHER_KINDS, {
   error: 'Elige el tipo de Other: newsletter o página satélite',
@@ -52,6 +52,33 @@ export function estimateOtherOccupation(
 
 export function isOtherOccupationHigh(percent: number): boolean {
   return percent > OTHER_OCCUPANCY_WARNING_PERCENT
+}
+
+/**
+ * Una newsletter no tiene página ni URL: su slug solo existe porque la tabla
+ * `content` lo exige, y su título es el titular de la tarjeta, que se escribe
+ * después en el editor. Por eso el alta no los pide y se rellenan con estos
+ * valores (el slug lleva un sufijo aleatorio para no chocar con otro). Slug
+ * e idioma siguen siendo editables en «Datos generales» del editor.
+ */
+export const NEWSLETTER_DEFAULT_TITLE = 'Newsletter'
+
+export const NEWSLETTER_DEFAULT_LOCALE = 'es'
+
+export function newsletterDraftDefaults(suffix: string): {
+  slug: string
+
+  defaultLocale: string
+
+  title: string
+} {
+  return {
+    slug: `newsletter-${suffix}`,
+
+    defaultLocale: NEWSLETTER_DEFAULT_LOCALE,
+
+    title: NEWSLETTER_DEFAULT_TITLE,
+  }
 }
 
 export const otherFrequencySchema = z

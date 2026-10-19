@@ -11,7 +11,7 @@ import type {
  * aquí si en producción resulta demasiado laxo o demasiado estricto.
  */
 export const RATE_LIMIT_MAX_SUBMISSIONS = 5
-export const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
 
 /**
  * Cuenta los envíos reales ("sent") de esta IP en la última hora — los

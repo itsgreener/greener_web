@@ -26,7 +26,6 @@ const BY_CODE: ReadonlyArray<readonly [string, DomainErrorKind]> = [
   ['ZG008', 'episode_locale_only'],
   ['ZG009', 'package_required'],
   ['ZG010', 'publish_date_in_past'],
-  ['ZG013', 'stale_reference'],
   ['ZG014', 'media_not_owned'],
   ['ZG015', 'only_draft_deletable'],
   ['ZG016', 'active_version_undeletable'],
@@ -43,9 +42,10 @@ describe('mapPostgresError — por SQLSTATE', () => {
     expect(error?.message).toBe('cualquier texto')
   })
 
-  it('un SQLSTATE desconocido, P0001 sin texto reconocible o sin código no es un caso de negocio', () => {
+  it('un SQLSTATE desconocido, P0001 (sea cual sea su texto) o sin código no es un caso de negocio', () => {
     expect(mapPostgresError('boom', '08006')).toBeNull()
     expect(mapPostgresError('algo raro', 'P0001')).toBeNull()
+    expect(mapPostgresError('Content is not a case', 'P0001')).toBeNull()
     expect(mapPostgresError('Image is too large')).toBeNull()
   })
 
@@ -53,58 +53,6 @@ describe('mapPostgresError — por SQLSTATE', () => {
     const mapped = new Set(BY_CODE.map(([, kind]) => kind))
 
     expect(DOMAIN_ERROR_KINDS.filter((kind) => !mapped.has(kind))).toEqual([])
-  })
-})
-
-describe('mapPostgresError — base de datos sin la migración de códigos', () => {
-  it.each([
-    ['22023', 'Image is too large', 'image_too_large'],
-    ['22023', 'Video is too large', 'video_too_large'],
-    ['22023', 'Animation is too long', 'video_too_long'],
-    ['22023', 'Video is too long', 'video_too_long'],
-    [
-      '22023',
-      'El rótulo del pin es obligatorio para este tipo de contenido',
-      'pin_label_required',
-    ],
-    ['P0001', 'Un pin admite hasta 8 medios', 'pin_media_limit'],
-    ['P0001', 'Content is not a case', 'not_a_case'],
-    ['P0001', 'Content is not an episode', 'not_an_episode'],
-    [
-      'P0001',
-      'Episode only supports its default locale',
-      'episode_locale_only',
-    ],
-    [
-      'P0001',
-      'Esta tool/insight no tiene un paquete HTML publicado — no se puede publicar sin él',
-      'package_required',
-    ],
-    [
-      '22023',
-      'La fecha de publicación debe ser futura',
-      'publish_date_in_past',
-    ],
-    [
-      'P0001',
-      'El contenido ya no apunta a este medio (posible carrera con otra pestaña)',
-      'stale_reference',
-    ],
-    ['P0001', 'Este medio no pertenece a este pin', 'media_not_owned'],
-    ['P0001', 'Only draft content can be deleted', 'only_draft_deletable'],
-    [
-      'P0001',
-      'No se puede borrar la versión activa. Publica otra versión antes.',
-      'active_version_undeletable',
-    ],
-  ] as const)('%s «%s» → %s', (code, message, kind) => {
-    expect(mapPostgresError(message, code)?.kind).toBe(kind)
-  })
-
-  it('un 22023 con otro texto sigue siendo un rechazo de validación', () => {
-    expect(
-      mapPostgresError('El alt del pin es obligatorio', '22023')?.kind,
-    ).toBe('validation_rejected')
   })
 })
 
@@ -134,9 +82,11 @@ describe('migraciones de códigos de error', () => {
   const sql = read('20261009120000_typed_error_codes.sql')
 
   // ZG011 y ZG012 eran los errores de la portada de other, retirada el
-  // 15 oct 2026 (20261015130000). Sus RPC ya no existen y el mapper no los
-  // conoce; el texto de la migración original sigue mencionándolos.
-  const RETIRED = ['ZG011', 'ZG012']
+  // 15 oct 2026 (20261015130000), y ZG013 lo lanzaba
+  // unlink_and_delete_cover_media, borrada ese mismo día. Sus RPC ya no
+  // existen y el mapper no los conoce; el texto de la migración original
+  // sigue mencionándolos.
+  const RETIRED = ['ZG011', 'ZG012', 'ZG013']
 
   const laterMigrations = readdirSync(dir)
     .filter((name) => name >= '20261015')
@@ -155,7 +105,7 @@ describe('migraciones de códigos de error', () => {
     expect([...used].sort()).toEqual(known.sort())
   })
 
-  it('los códigos de la portada retirada ya no están en el mapper', () => {
+  it('los códigos retirados ya no están en el mapper', () => {
     for (const code of RETIRED) {
       expect(mapPostgresError('cualquier texto', code)).toBeNull()
     }

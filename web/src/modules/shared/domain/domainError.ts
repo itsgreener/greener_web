@@ -21,7 +21,6 @@ export const DOMAIN_ERROR_KINDS = [
   'video_too_large',
   'video_too_long',
   'media_not_owned',
-  'stale_reference',
   // Contenido
   'not_a_case',
   'not_an_episode',

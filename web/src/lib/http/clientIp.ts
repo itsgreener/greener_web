@@ -6,7 +6,7 @@ import { getIpHashEnv } from '@/lib/serverEnv'
 export { clientIpFromHeaders }
 
 /** La misma lectura sobre las cabeceras de la petición en curso (Server Actions, Server Components). */
-export async function getClientIp(): Promise<string | null> {
+async function getClientIp(): Promise<string | null> {
   return clientIpFromHeaders(await headers())
 }
 

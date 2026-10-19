@@ -24,8 +24,6 @@ const DEFAULT_MESSAGES: Readonly<Partial<Record<DomainErrorKind, string>>> = {
     'Este contenido Other no tiene subtipo (newsletter o página satélite): no se puede publicar sin él.',
   page_pin_required:
     'Esta página satélite no tiene ningún pin con medio: añade uno antes de publicarla, o no saldrá en el feed.',
-  stale_reference:
-    'Este medio ha cambiado desde otra pestaña o sesión. Recarga la página antes de sustituirlo.',
   media_in_use:
     'Este medio se sigue usando en otro sitio y no se puede borrar.',
   only_draft_deletable: 'Solo se pueden eliminar contenidos en estado draft.',

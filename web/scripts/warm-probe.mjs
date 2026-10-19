@@ -146,8 +146,6 @@ export function chainsFor(kind, ratio) {
   )
 }
 
-export const CONTENT_TYPES = FORMATS.map((f) => f.contentType)
-
 export function deliveryUrl(cloudName, publicId, transformation) {
   return `https://res.cloudinary.com/${cloudName}/video/upload/${transformation}/${publicId}`
 }

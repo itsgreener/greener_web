@@ -14,7 +14,7 @@ import type { FeedSnapshot } from './types'
  * scope=related-cases (relacionados dentro de una página de caso) sigue sin
  * implementarse: no hay ninguna pantalla que lo pida.
  */
-export const SCOPE_TO_TYPES: Record<string, readonly ContentType[]> = {
+const SCOPE_TO_TYPES: Record<string, readonly ContentType[]> = {
   home: ['case', 'insight', 'tool', 'episode'],
   work: ['case'],
   insights: ['insight'],

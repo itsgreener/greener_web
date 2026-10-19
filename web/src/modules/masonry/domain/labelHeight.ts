@@ -13,12 +13,12 @@
  * la siguiente tarjeta empieza antes de que termine el rótulo.
  */
 
-export const LABEL_SIDE_PADDING = 12
+const LABEL_SIDE_PADDING = 12
 export const LABEL_TOP_GAP = 8
 export const LABEL_LINE_HEIGHT = 17
 export const LABEL_SECONDARY_GAP = 2
 export const LABEL_SAFETY = 2
-export const APPROX_CHAR_WIDTH = 6.5
+const APPROX_CHAR_WIDTH = 6.5
 
 /** Campos del pin que deciden qué rótulo se pinta. */
 export interface LabelHeightInput {

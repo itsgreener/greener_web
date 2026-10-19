@@ -76,6 +76,53 @@ describe('alta de contenido — Other (plan de other, §7.1)', () => {
     expect(kindRadio(container, 'newsletter')).not.toBeChecked()
   })
 
+  it('un case o una página satélite piden título, slug e idioma', () => {
+    const { container } = render(<NewContentForm />)
+
+    expect(screen.getByLabelText('Título')).toBeInTheDocument()
+    expect(screen.getByLabelText('Slug')).toBeInTheDocument()
+    expect(screen.getByLabelText('Idioma principal')).toBeInTheDocument()
+
+    fireEvent.click(typeRadio(container, 'other'))
+
+    // Sin subtipo elegido todavía se siguen mostrando.
+    expect(screen.getByLabelText('Título')).toBeInTheDocument()
+
+    fireEvent.click(kindRadio(container, 'page'))
+
+    expect(screen.getByLabelText('Título')).toBeInTheDocument()
+    expect(screen.getByLabelText('Slug')).toBeInTheDocument()
+    expect(screen.getByLabelText('Idioma principal')).toBeInTheDocument()
+  })
+
+  it('al elegir newsletter desaparecen título, slug e idioma, y la frecuencia se queda', () => {
+    const { container } = render(<NewContentForm />)
+
+    fireEvent.click(typeRadio(container, 'other'))
+    fireEvent.click(kindRadio(container, 'newsletter'))
+
+    expect(screen.queryByText('Datos básicos')).toBeNull()
+    expect(screen.queryByLabelText('Título')).toBeNull()
+    expect(screen.queryByLabelText('Slug')).toBeNull()
+    expect(screen.queryByLabelText('Idioma principal')).toBeNull()
+    expect(screen.getByLabelText(/Frecuencia/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Crear borrador/ })).toBeEnabled()
+    expect(
+      screen.getByText(/escribirás el titular y el texto en el editor/),
+    ).toBeInTheDocument()
+  })
+
+  it('si luego se cambia a página satélite, vuelven a aparecer', () => {
+    const { container } = render(<NewContentForm />)
+
+    fireEvent.click(typeRadio(container, 'other'))
+    fireEvent.click(kindRadio(container, 'newsletter'))
+    fireEvent.click(kindRadio(container, 'page'))
+
+    expect(screen.getByLabelText('Título')).toBeInTheDocument()
+    expect(screen.getByLabelText('Slug')).toBeInTheDocument()
+  })
+
   it('al volver a otro tipo desaparece la sección', () => {
     const { container } = render(<NewContentForm />)
 

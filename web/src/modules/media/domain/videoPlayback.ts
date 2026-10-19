@@ -60,7 +60,7 @@ export const RETRY_DELAYS_MS = [3_000, 8_000] as const
 export const SLOW_DOWNLINK_MBPS = 1.5
 
 /** HAVE_FUTURE_DATA: hay datos para reproducir un poco sin cortarse. */
-export const HAVE_FUTURE_DATA = 3
+const HAVE_FUTURE_DATA = 3
 
 export function isVideoReady(readyState: number): boolean {
   return readyState >= HAVE_FUTURE_DATA

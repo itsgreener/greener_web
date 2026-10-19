@@ -44,7 +44,7 @@ function escapeHtml(value: string): string {
  * recibido contesta directamente a la persona, no a la propia bandeja
  * de envío.
  */
-export async function sendContactEmail(input: ContactFormInput): Promise<void> {
+async function sendContactEmail(input: ContactFormInput): Promise<void> {
   const text = [
     `Nombre: ${input.name}`,
     `Teléfono: ${input.phone}`,

@@ -35,9 +35,9 @@ import { useContainerWidth } from './useContainerWidth'
  */
 export type MasonryEntry = PinCardData | FeedNewsletterItem
 
-export const NEWSLETTER_CARD_RATIO: PinRatio = '4:5'
+const NEWSLETTER_CARD_RATIO: PinRatio = '4:5'
 
-export function isNewsletterEntry(
+function isNewsletterEntry(
   entry: MasonryEntry,
 ): entry is FeedNewsletterItem {
   return 'kind' in entry && entry.kind === 'newsletter'

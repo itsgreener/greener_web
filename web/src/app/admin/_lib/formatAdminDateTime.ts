@@ -5,7 +5,7 @@
  * hidratación podrían no coincidir. Fijar la zona hace que ambos lados
  * escriban lo mismo.
  */
-export const ADMIN_TIME_ZONE = 'Europe/Madrid'
+const ADMIN_TIME_ZONE = 'Europe/Madrid'
 
 const formatter = new Intl.DateTimeFormat('es-ES', {
   dateStyle: 'medium',

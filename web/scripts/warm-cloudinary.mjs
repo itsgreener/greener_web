@@ -59,7 +59,6 @@ import { pathToFileURL } from 'node:url'
 export const FEED_WIDTH = 480
 export const MAX_ANIMATED_SECONDS = 8
 export const DEFAULT_MAX_CREDITS = 5
-export const FALLBACK_RATIO = '4:5'
 
 export const RUNG_M = {
   '16:9': { width: 1280, height: 720 },

@@ -82,6 +82,10 @@ export default function NewContentForm() {
 
   const isOther = selectedType === 'other'
 
+  // Una newsletter no tiene página ni URL, y su titular se escribe en el
+  // editor: no necesita título, slug ni idioma para crear el borrador.
+  const isNewsletter = isOther && selectedKind === 'newsletter'
+
   return (
     <form action={formAction} className="admin-form admin-new-content-form">
       <div className="admin-new-section">
@@ -229,89 +233,91 @@ export default function NewContentForm() {
         </div>
       )}
 
-      <div className="admin-new-section">
-        <div className="admin-new-section-heading">
-          <span className="admin-new-step">{isOther ? 3 : 2}</span>
+      {!isNewsletter && (
+        <div className="admin-new-section">
+          <div className="admin-new-section-heading">
+            <span className="admin-new-step">{isOther ? 3 : 2}</span>
 
-          <div>
-            <h3>Datos básicos</h3>
+            <div>
+              <h3>Datos básicos</h3>
 
-            <p>
-              Define cómo se identificará el contenido dentro del panel y en la
-              web.
-            </p>
+              <p>
+                Define cómo se identificará el contenido dentro del panel y en
+                la web.
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="admin-field">
-          <label htmlFor="title">Título</label>
-
-          <input
-            id="title"
-            name="title"
-            type="text"
-            placeholder="Ej. Nutrivo Group — Biotecnología"
-            required
-            autoFocus
-          />
-
-          <p className="admin-field-help">
-            Podrás modificarlo después y añadir traducciones desde el editor.
-          </p>
-
-          {state.fieldErrors?.title?.[0] && (
-            <p className="admin-field-error">{state.fieldErrors.title[0]}</p>
-          )}
-        </div>
-
-        <div className="admin-form-grid admin-form-grid-2">
           <div className="admin-field">
-            <label htmlFor="slug">Slug</label>
+            <label htmlFor="title">Título</label>
 
-            <div className="admin-slug-input">
-              <span>/</span>
+            <input
+              id="title"
+              name="title"
+              type="text"
+              placeholder="Ej. Nutrivo Group — Biotecnología"
+              required
+              autoFocus
+            />
 
-              <input
-                id="slug"
-                name="slug"
-                type="text"
-                placeholder="mi-primer-caso"
-                required
-              />
+            <p className="admin-field-help">
+              Podrás modificarlo después y añadir traducciones desde el editor.
+            </p>
+
+            {state.fieldErrors?.title?.[0] && (
+              <p className="admin-field-error">{state.fieldErrors.title[0]}</p>
+            )}
+          </div>
+
+          <div className="admin-form-grid admin-form-grid-2">
+            <div className="admin-field">
+              <label htmlFor="slug">Slug</label>
+
+              <div className="admin-slug-input">
+                <span>/</span>
+
+                <input
+                  id="slug"
+                  name="slug"
+                  type="text"
+                  placeholder="mi-primer-caso"
+                  required
+                />
+              </div>
+
+              <p className="admin-field-help">
+                Forma parte de la URL pública. Utiliza minúsculas y guiones.
+              </p>
+
+              {state.fieldErrors?.slug?.[0] && (
+                <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
+              )}
             </div>
 
-            <p className="admin-field-help">
-              Forma parte de la URL pública. Utiliza minúsculas y guiones.
-            </p>
+            <div className="admin-field">
+              <label htmlFor="defaultLocale">Idioma principal</label>
 
-            {state.fieldErrors?.slug?.[0] && (
-              <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
-            )}
-          </div>
+              <select id="defaultLocale" name="defaultLocale" defaultValue="es">
+                <option value="es">Español</option>
 
-          <div className="admin-field">
-            <label htmlFor="defaultLocale">Idioma principal</label>
+                <option value="en">English</option>
 
-            <select id="defaultLocale" name="defaultLocale" defaultValue="es">
-              <option value="es">Español</option>
+                <option value="ca">Català</option>
+              </select>
 
-              <option value="en">English</option>
-
-              <option value="ca">Català</option>
-            </select>
-
-            <p className="admin-field-help">
-              Será el idioma principal del contenido.
-            </p>
-
-            {state.fieldErrors?.defaultLocale?.[0] && (
-              <p className="admin-field-error">
-                {state.fieldErrors.defaultLocale[0]}
+              <p className="admin-field-help">
+                Será el idioma principal del contenido.
               </p>
-            )}
+
+              {state.fieldErrors?.defaultLocale?.[0] && (
+                <p className="admin-field-error">
+                  {state.fieldErrors.defaultLocale[0]}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {state.formError && <p className="admin-form-error">{state.formError}</p>}
 
@@ -320,8 +326,10 @@ export default function NewContentForm() {
           <span aria-hidden="true">i</span>
 
           <p>
-            <strong>Se creará como borrador.</strong> Después podrás añadir el
-            resto de información antes de publicarlo.
+            <strong>Se creará como borrador.</strong>{' '}
+            {isNewsletter
+              ? 'Después escribirás el titular y el texto en el editor antes de publicarla.'
+              : 'Después podrás añadir el resto de información antes de publicarlo.'}
           </p>
         </div>
 

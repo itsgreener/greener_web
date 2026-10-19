@@ -59,7 +59,7 @@ export function closestClosedRatio(
  * el ABM para AVISAR (nunca bloquear) de que el vídeo se va a recortar con
  * `object-fit: cover` si su ratio real no es el del pin.
  */
-export const RATIO_MATCH_TOLERANCE = 0.05
+const RATIO_MATCH_TOLERANCE = 0.05
 
 /** ¿Es este texto uno de los 7 ratios cerrados de pin? */
 export function isPinRatioValue(value: string): value is PinRatioValue {

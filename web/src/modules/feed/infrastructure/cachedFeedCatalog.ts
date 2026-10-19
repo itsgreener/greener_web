@@ -19,7 +19,7 @@ import {
  * La exclusión de la ficha en curso se aplica DESPUÉS, en memoria, para que
  * la entrada de caché sea una por scope y no una por ficha.
  */
-export const FEED_DATASET_TTL_SECONDS = 60
+const FEED_DATASET_TTL_SECONDS = 60
 
 const cachedDataset = unstable_cache(
   (scope: string) => getFeedDataset(scope),

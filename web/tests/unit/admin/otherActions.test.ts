@@ -114,6 +114,90 @@ describe('createContentAction — alta de un other', () => {
   })
 })
 
+describe('createContentAction — newsletter sin título, slug ni idioma', () => {
+  const NEWSLETTER_FORM = {
+    type: 'other',
+    kind: 'newsletter',
+    frequency: '100',
+  }
+
+  it('rellena título, slug e idioma por defecto cuando el formulario no los envía', async () => {
+    vi.mocked(createOther).mockResolvedValue(CONTENT_ID)
+
+    await expect(
+      createContentAction({}, formData(NEWSLETTER_FORM)),
+    ).rejects.toThrow(`NEXT_REDIRECT:/admin/contents/${CONTENT_ID}/edit`)
+
+    expect(createOther).toHaveBeenCalledWith({
+      slug: expect.stringMatching(/^newsletter-[0-9a-f]{8}$/),
+      defaultLocale: 'es',
+      title: 'Newsletter',
+      kind: 'newsletter',
+      frequency: 100,
+    })
+  })
+
+  it('cada alta genera un slug distinto', async () => {
+    vi.mocked(createOther).mockResolvedValue(CONTENT_ID)
+
+    for (let i = 0; i < 2; i++) {
+      await expect(
+        createContentAction({}, formData(NEWSLETTER_FORM)),
+      ).rejects.toThrow('NEXT_REDIRECT')
+    }
+
+    const [first, second] = vi
+      .mocked(createOther)
+      .mock.calls.map(([input]) => input.slug)
+
+    expect(first).not.toBe(second)
+  })
+
+  it('si el formulario sí envía los datos, no se pisan con los de por defecto', async () => {
+    vi.mocked(createOther).mockResolvedValue(CONTENT_ID)
+
+    await expect(
+      createContentAction(
+        {},
+        formData({
+          ...NEWSLETTER_FORM,
+          slug: 'boletin',
+          defaultLocale: 'en',
+          title: 'Join us',
+        }),
+      ),
+    ).rejects.toThrow('NEXT_REDIRECT')
+
+    expect(createOther).toHaveBeenCalledWith(
+      expect.objectContaining({
+        slug: 'boletin',
+        defaultLocale: 'en',
+        title: 'Join us',
+      }),
+    )
+  })
+
+  it('una página satélite sigue exigiendo título, slug e idioma', async () => {
+    const state = await createContentAction(
+      {},
+      formData({ type: 'other', kind: 'page', frequency: '100' }),
+    )
+
+    expect(state.fieldErrors?.title?.[0]).toBeTruthy()
+    expect(state.fieldErrors?.slug?.[0]).toBeTruthy()
+    expect(createOther).not.toHaveBeenCalled()
+  })
+
+  it('un choque del slug generado sale como error del formulario, no del campo oculto', async () => {
+    vi.mocked(createOther).mockRejectedValue(dbError('23505', 'duplicate key'))
+
+    const state = await createContentAction({}, formData(NEWSLETTER_FORM))
+
+    expect(state.fieldErrors?.slug).toBeUndefined()
+    expect(state.formError).toContain('Inténtalo de nuevo')
+  })
+})
+
 describe('createContentAction — el resto de tipos no cambia', () => {
   it('un case se crea con createContent y no pide subtipo ni frecuencia', async () => {
     vi.mocked(createContent).mockResolvedValue(CONTENT_ID)

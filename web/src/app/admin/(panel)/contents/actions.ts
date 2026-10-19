@@ -2,13 +2,18 @@
 
 import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 
+import { randomBytes } from 'node:crypto'
+
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 import { isDomainError } from '@/modules/shared/domain/domainError'
 
 import { createContentSchema } from '@/modules/content/domain/contentSchema'
-import { createOtherSchema } from '@/modules/content/domain/otherSchema'
+import {
+  createOtherSchema,
+  newsletterDraftDefaults,
+} from '@/modules/content/domain/otherSchema'
 
 import { createContent, createOther } from '@/modules/content/container'
 import {
@@ -26,10 +31,21 @@ export async function createContentAction(
 ): Promise<CreateContentActionState> {
   if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
 
+  // Una newsletter no pide título, slug ni idioma en el formulario (no tiene
+  // página: su titular se escribe en el editor). Se rellenan aquí con valores
+  // por defecto, y solo si el formulario no los envía.
+  const isNewsletter =
+    formData.get('type') === 'other' && formData.get('kind') === 'newsletter'
+
+  const generated = isNewsletter
+    ? newsletterDraftDefaults(randomBytes(4).toString('hex'))
+    : null
+
   const common = {
-    slug: formData.get('slug'),
-    defaultLocale: formData.get('defaultLocale'),
-    title: formData.get('title'),
+    slug: formData.get('slug') ?? generated?.slug ?? null,
+    defaultLocale:
+      formData.get('defaultLocale') ?? generated?.defaultLocale ?? null,
+    title: formData.get('title') ?? generated?.title ?? null,
   }
 
   // Un `other` se crea con su subtipo y su frecuencia (plan de other, §7.1):
@@ -67,6 +83,14 @@ export async function createContentAction(
     contentId = await creation()
   } catch (error) {
     if (isDomainError(error, 'duplicate')) {
+      // El slug de una newsletter lo genera el servidor: el visitante no tiene
+      // ningún campo donde ver el error, y basta con volver a intentarlo.
+      if (generated && formData.get('slug') === null) {
+        return {
+          formError: 'No se ha podido crear el contenido. Inténtalo de nuevo.',
+        }
+      }
+
       return {
         fieldErrors: {
           slug: ['Este slug ya existe'],

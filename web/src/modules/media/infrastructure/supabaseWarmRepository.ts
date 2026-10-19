@@ -57,7 +57,7 @@ function isRatio(value: unknown): value is PinRatioValue {
  * modo de reproducción y tipo de contenido), carrusel de casos.
  * Un mismo vídeo puede aparecer con varios usos.
  */
-export async function readContentWarmInfo(
+async function readContentWarmInfo(
   contentId: string,
 ): Promise<ContentWarmInfo> {
   const supabase = await createClient()
@@ -138,7 +138,7 @@ export async function readContentWarmInfo(
 }
 
 /** Contenido al que pertenece un pin (null si el pin ya no existe). */
-export async function readPinContentId(pinId: string): Promise<string | null> {
+async function readPinContentId(pinId: string): Promise<string | null> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -172,12 +172,12 @@ async function callMark(
 }
 
 /** Anota con la sesión del admin (botón del ABM). */
-export const markWarmedWithSession: WarmMarker = async (...args) => {
+const markWarmedWithSession: WarmMarker = async (...args) => {
   await callMark(await createClient(), ...args)
 }
 
 /** Anota con la clave de servicio (tareas en `after()`, sin sesión fiable). */
-export const markWarmedWithService: WarmMarker = async (...args) => {
+const markWarmedWithService: WarmMarker = async (...args) => {
   await callMark(createServiceClient(), ...args)
 }
 

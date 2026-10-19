@@ -33,7 +33,7 @@ function uniqueByMediaId(refs: MediaRef[]): MediaRef[] {
   return [...new Map(refs.map((ref) => [ref.mediaId, ref])).values()]
 }
 
-export async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
+async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
@@ -54,7 +54,7 @@ export async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
  * Todos los medios que cuelgan de un contenido: imagen de
  * compartición (og), medios de sus pines y carrusel de detalle (casos).
  */
-export async function listContentMediaRefs(
+async function listContentMediaRefs(
   contentId: string,
 ): Promise<MediaRef[]> {
   const supabase = await createClient()
@@ -103,7 +103,7 @@ export async function listContentMediaRefs(
 }
 
 /** Referencias (public id y tipo) de estos `media_asset.id`, leídas de Postgres. */
-export async function listMediaRefsByIds(
+async function listMediaRefsByIds(
   mediaIds: string[],
 ): Promise<MediaRef[]> {
   if (mediaIds.length === 0) return []
@@ -121,7 +121,7 @@ export async function listMediaRefsByIds(
 }
 
 /** De estos `media_asset.id`, cuáles siguen existiendo en Postgres. */
-export async function findExistingMediaIds(
+async function findExistingMediaIds(
   mediaIds: string[],
 ): Promise<Set<string>> {
   if (mediaIds.length === 0) return new Set()
@@ -139,7 +139,7 @@ export async function findExistingMediaIds(
 }
 
 /** ¿Hay alguna fila de `media_asset` con este public id de Cloudinary? */
-export async function isPublicIdRegistered(publicId: string): Promise<boolean> {
+async function isPublicIdRegistered(publicId: string): Promise<boolean> {
   const supabase = await createClient()
 
   const { data, error } = await supabase
