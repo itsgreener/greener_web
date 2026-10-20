@@ -138,6 +138,51 @@ describe('insertCandidate', () => {
   })
 })
 
+describe('updateCandidate', () => {
+  const row = {
+    email: 'a@b.co',
+    status: 'completed' as const,
+    phone: null,
+    comment: null,
+    profile: ['diseno'],
+    experience: null,
+    work_types: [],
+    rate_day: null,
+    rate_hour: null,
+    languages: {},
+    socials: {},
+    newsletter_accepted: false,
+  }
+
+  it('actualiza la fila del candidato con lo recibido', async () => {
+    program('candidates.update', { data: null })
+
+    await repository.updateCandidate('c1', row)
+
+    expect(stepsOf(0).update).toEqual([row])
+    expect(stepsOf(0).eq).toEqual(['id', 'c1'])
+  })
+
+  it('cambiar el email a uno que ya existe (23505) es error de dominio', async () => {
+    program('candidates.update', {
+      error: { code: '23505', message: 'duplicate key value' },
+    })
+
+    const error = await repository
+      .updateCandidate('c1', row)
+      .catch((e: unknown) => e)
+
+    expect(error).toBeInstanceOf(DuplicateCandidateEmailError)
+    expect((error as Error).message).not.toMatch(/duplicate key/)
+  })
+
+  it('cualquier otro error de la base se propaga', async () => {
+    program('candidates.update', { error: { message: 'boom' } })
+
+    await expect(repository.updateCandidate('c1', row)).rejects.toThrow(/boom/)
+  })
+})
+
 describe('findFormByToken', () => {
   it('lee solo las columnas del formulario (nunca select *)', async () => {
     program('candidates.select', {

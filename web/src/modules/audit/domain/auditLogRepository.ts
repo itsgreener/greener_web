@@ -26,9 +26,10 @@ export type AuditLogPage = {
 }
 
 /**
- * Registro de actividad del ABM: SOLO LECTURA. La escritura la hacen las
- * funciones SQL de cada acción (`audit_log` no tiene política de update ni
- * de delete), así que aquí no hay forma de modificarlo.
+ * Registro de actividad del ABM: este puerto es de SOLO LECTURA. La escritura
+ * la hacen las funciones SQL de cada acción de contenidos y, para lo que ocurre
+ * fuera de esa base (Talent), `AuditRecorder`; `audit_log` no tiene política de
+ * update ni de delete, así que nada puede modificarlo.
  */
 export interface AuditLogRepository {
   list(query: AuditLogQuery): Promise<AuditLogPage>

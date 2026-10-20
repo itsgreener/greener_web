@@ -32,7 +32,7 @@ describe('/privacy — prueba de humo', () => {
     expect(
       screen.getByRole('heading', { name: 'Privacy & Cookies', level: 1 }),
     ).toBeInTheDocument()
-    expect(screen.getByText('1 October 2026')).toBeInTheDocument()
+    expect(screen.getByText('19 October 2026')).toBeInTheDocument()
     expect(screen.queryByText(/placeholder/i)).not.toBeInTheDocument()
   })
 
@@ -52,6 +52,106 @@ describe('/privacy — prueba de humo', () => {
       expect(within(table).getByText(name)).toBeInTheDocument()
     }
     expect(screen.queryByText('greener_seed')).not.toBeInTheDocument()
+  })
+
+  it('las dos partes tienen su ancla (#privacy y #cookies), en ese orden, y son apartados principales', () => {
+    const { container } = render(<PrivacyPage />)
+
+    const privacy = container.querySelector('#privacy')
+    const cookies = container.querySelector('#cookies')
+
+    expect(privacy).toHaveTextContent('Privacy policy')
+    expect(cookies).toHaveTextContent('Cookie policy')
+    expect(privacy?.tagName).toBe('H2')
+    expect(cookies?.tagName).toBe('H2')
+    expect(
+      privacy!.compareDocumentPosition(cookies!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('el bloque «Your cookie choice» queda antes de las dos partes, al principio de la página', () => {
+    const { container } = render(<PrivacyPage />)
+
+    const choice = container.querySelector('#cookie-choice')!
+    const privacy = container.querySelector('#privacy')!
+
+    expect(
+      choice.compareDocumentPosition(privacy) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('los ids de las secciones no se repiten (los enlaces con ancla dependen de ello)', () => {
+    const ids = POLICY.sections.map((section) => section.id)
+
+    expect(new Set(ids).size).toBe(ids.length)
+    expect(ids).toEqual(expect.arrayContaining(['privacy', 'cookies']))
+  })
+
+  it('el correo del formulario sale por el servicio de correo de Dinahosting, hacia el buzón de Google Workspace', () => {
+    const { container } = render(<PrivacyPage />)
+    const text = container.textContent ?? ''
+
+    expect(text).toMatch(
+      /through the mail service of our hosting provider, Dinahosting/,
+    )
+    expect(text).toMatch(/Dinahosting: site hosting and the mail service/)
+    expect(text).toContain('Google Workspace')
+    // Ya no existe el proveedor sin nombre.
+    expect(text).not.toContain("The site's email sending service")
+  })
+
+  it('el registro antiabuso del formulario declara el mensaje de error y su borrado a los 30 días', () => {
+    const { container } = render(<PrivacyPage />)
+    const section = container.querySelector('#form-abuse')!.parentElement!
+
+    expect(section.textContent).toMatch(/technical error message/)
+    expect(section.textContent).toMatch(/deleted automatically after 30 days/)
+    expect(section.textContent).toMatch(/we do not store the IP address itself/)
+  })
+
+  it('declara los registros de seguridad del servidor (trampas para bots): qué se guarda, para qué y cuánto', () => {
+    const { container } = render(<PrivacyPage />)
+    const section = container.querySelector('#security-logs')!.parentElement!
+
+    expect(section.textContent).toMatch(/your IP address/)
+    expect(section.textContent).toMatch(/user agent/)
+    expect(section.textContent).toMatch(/detect and block abusive traffic/)
+    expect(section.textContent).toMatch(/after 30 days/)
+  })
+
+  it('la tabla de terceros lleva los siete elementos de la auditoría, con sus nombres completos', () => {
+    render(<PrivacyPage />)
+
+    const table = screen.getAllByRole('table')[1]
+    for (const name of [
+      'sp_t',
+      'sp_landing',
+      'sentryReplaySession',
+      'yt-player-caption-persistence',
+      'yt-icons-last-purged',
+      'ytidb::LAST_RESULT_ENTRY_KEY',
+      'YtIdbMeta',
+    ]) {
+      expect(within(table).getByText(name)).toBeInTheDocument()
+    }
+  })
+
+  it('los botones que cita el texto coinciden con la interfaz', () => {
+    const { container } = render(<PrivacyPage />)
+    const text = container.textContent ?? ''
+
+    for (const label of [
+      '"Accept"',
+      '"Reject"',
+      '"Accept cookies and play"',
+      '"Not now"',
+      '"Your cookie choice"',
+      '"Privacy & Cookies"',
+    ]) {
+      expect(text).toContain(label)
+    }
   })
 
   it('indica dónde se cambia la decisión: en esta página, a la que lleva «Privacy & Cookies» del menú (la web no tiene pie de página)', () => {

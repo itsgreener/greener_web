@@ -27,6 +27,11 @@ export default function AdminPanelLayout({ children }: Props) {
             Contenidos
           </Link>
 
+          <Link href="/admin/talent" className="admin-sidebar-link">
+            <span className="admin-sidebar-icon">☺</span>
+            Talent
+          </Link>
+
           <Link href="/admin/audit" className="admin-sidebar-link">
             <span className="admin-sidebar-icon">☰</span>
             Actividad

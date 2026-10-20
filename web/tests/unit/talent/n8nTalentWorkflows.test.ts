@@ -47,6 +47,29 @@ describe('webhooks de n8n', () => {
     expect(fetchMock.mock.calls[0][1].body).toBeUndefined()
   })
 
+  it('"Procesar nuevo CV" desde el ABM: POST sin cuerpo al webhook configurado', async () => {
+    await n8nTalentWorkflows.processPendingCvs()
+
+    const [url, init] = fetchMock.mock.calls[0]
+
+    expect(url).toBe('https://n8n.test.local/webhook/process-cv')
+    expect(init.method).toBe('POST')
+    expect(init.body).toBeUndefined()
+  })
+
+  it('sin la variable del webhook de CVs, un error propio y sin llamar a n8n', async () => {
+    vi.resetModules()
+    vi.stubEnv('TALENT_N8N_PROCESS_CV_WEBHOOK_URL', undefined)
+
+    const { n8nTalentWorkflows: fresh } =
+      await import('@/modules/talent/infrastructure/n8nTalentWorkflows')
+    const { WebhookNotConfiguredError: FreshError } =
+      await import('@/modules/talent/domain/talentErrors')
+
+    await expect(fresh.processPendingCvs()).rejects.toBeInstanceOf(FreshError)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('lleva un tiempo máximo', async () => {
     await n8nTalentWorkflows.sendFormLink('t')
 

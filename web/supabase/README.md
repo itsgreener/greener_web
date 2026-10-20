@@ -14,13 +14,13 @@ npx supabase link --project-ref <project-ref>
 npx supabase db push
 ```
 
-Esto aplica, en orden de nombre, todos los archivos de `migrations/` (56 a 19 oct 2026; lo que ya esté aplicado no se repite). El nombre empieza por la fecha, así que el orden es el cronológico. Por bloques:
+Esto aplica, en orden de nombre, todos los archivos de `migrations/` (57 a 20 oct 2026; lo que ya esté aplicado no se repite). El nombre empieza por la fecha, así que el orden es el cronológico. Por bloques:
 
 1. **`20260806*` — modelo base** (arquitectura §7): enumerados, supertipo `content` y traducciones, bloques, extensiones por tipo, medios y pines, taxonomía y `feed_config`, acceso de administración y auditoría, y las políticas de RLS (`is_admin()`).
 2. **`20260820*` a `20260828*` — funciones del ABM**: alta, edición y borrado de contenido, traducciones, bloques, medios de imagen y de vídeo.
 3. **`20260907*` a `20260910*` — auditoría y formatos**: `audit_log` en todas las mutaciones, estados editoriales (borrador, programado, publicado), bucket y versiones de los paquetes HTML, CRUD de pines y de sus medios, dominio permitido del ABM, y el rediseño de los formatos de detalle (`page` pasa a `other`, medios del caso, modelo de pin).
 4. **`20260914*` a `20260922*`**: `alt` de los medios de caso, `contact_submission` (formulario de contacto), exclusión del contenido visto en las recomendaciones, ratio de portada, **publicación programada con `pg_cron`**, episodios y la regla de que una tool o un insight sin paquete no se publica.
-5. **`20261005*` a `20261016*` — vídeo, `other` y mantenimiento**: límites de vídeo por tipo, medios huérfanos, pin con rótulo opcional, retirada de la portada de tool/insight y de los carruseles, orden automático de pines, borrado de versiones de paquete, seguimiento del calentamiento de vídeos, **códigos de error tipados** (`20261009120000`, requisito del código desde el 19 oct), el subtipo `other` y su ABM, la purga diaria de `feed_session` (`pg_cron`) y la retirada de las columnas muertas de `feed_config`.
+5. **`20261005*` a `20261016*` — vídeo, `other` y mantenimiento**: límites de vídeo por tipo, medios huérfanos, pin con rótulo opcional, retirada de la portada de tool/insight y de los carruseles, orden automático de pines, borrado de versiones de paquete, seguimiento del calentamiento de vídeos, **códigos de error tipados** (`20261009120000`, requisito del código desde el 19 oct), el subtipo `other` y su ABM, la purga diaria de `feed_session` (`pg_cron`), la purga a 30 días de `contact_submission` (`20261019140000`) y la retirada de las columnas muertas de `feed_config`.
 
 La lista exacta es el contenido de `migrations/`; cada fichero empieza con un comentario que dice qué cambia y por qué. Los pendientes de aplicar en producción están en `docs/PROGRESO.md` §4.0.
 

@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { getTalentEnv } from '@/lib/serverEnv'
+import { WebhookNotConfiguredError } from '@/modules/talent/domain/talentErrors'
 import type { TalentWorkflows } from '@/modules/talent/domain/talentPorts'
 
 /**
@@ -64,4 +65,14 @@ export const n8nTalentWorkflows: TalentWorkflows = {
     callWebhook(getTalentEnv().TALENT_N8N_PROCESS_FILES_WEBHOOK_URL, {
       candidate_id: candidateId,
     }),
+
+  processPendingCvs: async () => {
+    const url = getTalentEnv().TALENT_N8N_PROCESS_CV_WEBHOOK_URL
+
+    if (!url) {
+      throw new WebhookNotConfiguredError('TALENT_N8N_PROCESS_CV_WEBHOOK_URL')
+    }
+
+    return callWebhook(url, undefined)
+  },
 }

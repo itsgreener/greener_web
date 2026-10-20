@@ -1,9 +1,12 @@
 import { z } from 'zod'
 
 /**
- * Formulario de contacto real (brief §5.6, arquitectura §14.1): "Debe
- * incluir consentimiento de privacidad, honeypot, límite por IP,
- * validación de email y registro mínimo de entrega/error en Supabase."
+ * Formulario de contacto real (brief §5.6, arquitectura §14.1): honeypot,
+ * límite por IP, validación de email y registro mínimo de entrega/error en
+ * Supabase. El brief pedía además un consentimiento de privacidad; el texto
+ * legal de /privacy (19 oct 2026) lo sustituye por una casilla meramente
+ * informativa en el formulario («I have read the privacy policy»), que no es
+ * un consentimiento, no es obligatoria y por eso no entra en este schema.
  * Este schema valida los campos que el usuario ve y rellena a mano; el
  * honeypot y el límite por IP se resuelven en la capa de aplicación
  * (submitContactForm.ts), no aquí — no son "datos del formulario" en el
@@ -29,12 +32,6 @@ export const contactFormSchema = z.object({
     .trim()
     .min(1, 'Message is required')
     .max(5000, "Message can't be longer than 5000 characters"),
-
-  // "Debe incluir consentimiento de privacidad" (§14.1) — sin aceptar,
-  // ni siquiera llega a validarse el resto.
-  privacyConsent: z.literal(true, {
-    message: 'You need to accept the privacy policy',
-  }),
 })
 
 export type ContactFormInput = z.infer<typeof contactFormSchema>

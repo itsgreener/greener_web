@@ -2,6 +2,10 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 
 import {
+  PROFILE_VALUES,
+  WORK_TYPE_VALUES,
+} from '@/modules/talent/domain/talentConstants'
+import {
   buildCandidateUpdate,
   buildFileRow,
   buildProjectRows,
@@ -41,22 +45,70 @@ describe('alta por email → fila de candidates', () => {
 })
 
 describe('formulario → UPDATE de candidates', () => {
-  it('traduce columna a columna, con arrays y objetos y sin tocar status ni email', () => {
+  it('traduce columna a columna, con arrays y objetos; status = completed', () => {
     const form = candidateFormSchema.parse(validFormInput())
 
     expect(buildCandidateUpdate(form)).toEqual({
-      name: 'Ada Lovelace',
+      email: 'ada@example.com',
+      status: 'completed',
       phone: '+34 600 000 000',
       comment: 'Me gustaría colaborar.',
       profile: ['diseno', 'video'],
-      experience: '5 años en estudios',
-      work_types: ['Freelance', 'Presencial'],
+      experience: '5-10',
+      work_types: ['freelance', 'fulltime'],
       rate_day: 300,
       rate_hour: null,
-      languages: { English: 'C1', Castellano: 'Native', Català: 'B2' },
+      languages: {
+        English: 'avanzado',
+        Castellano: 'nativo',
+        Català: 'bilingue',
+      },
       socials: { LinkedIn: 'https://linkedin.com/in/ada' },
       newsletter_accepted: true,
     })
+  })
+
+  it('el status es completed (como la web antigua); closed lo pone n8n', () => {
+    const row = buildCandidateUpdate(
+      candidateFormSchema.parse(validFormInput()),
+    )
+
+    expect(row.status).toBe('completed')
+  })
+
+  it('las tarifas solo se guardan si marcó freelance', () => {
+    const row = buildCandidateUpdate(
+      candidateFormSchema.parse(
+        validFormInput({ workTypes: ['fulltime'], rateDay: 300, rateHour: 40 }),
+      ),
+    )
+
+    expect(row.rate_day).toBeNull()
+    expect(row.rate_hour).toBeNull()
+  })
+
+  it('si el email solo cambia en mayúsculas se conserva el guardado', () => {
+    const form = candidateFormSchema.parse(validFormInput())
+
+    expect(buildCandidateUpdate(form, 'Ada@Example.com').email).toBe(
+      'Ada@Example.com',
+    )
+    expect(buildCandidateUpdate(form, 'otra@example.com').email).toBe(
+      'ada@example.com',
+    )
+  })
+
+  it('"Otro" con texto libre guarda el texto y no la palabra otro', () => {
+    const form = candidateFormSchema.parse(
+      validFormInput({
+        profile: ['diseno', 'otro', 'Dirección de fotografía'],
+      }),
+    )
+
+    expect(buildCandidateUpdate(form).profile).toEqual([
+      'diseno',
+      'Dirección de fotografía',
+    ])
   })
 
   it('no escribe las columnas de n8n ni las de control', () => {
@@ -65,8 +117,7 @@ describe('formulario → UPDATE de candidates', () => {
     )
 
     for (const forbidden of [
-      'status',
-      'email',
+      'name',
       'access_token',
       'file_path',
       'file_name',
@@ -83,8 +134,8 @@ describe('formulario → UPDATE de candidates', () => {
 
   it('un formulario mínimo deja arrays vacíos y objetos vacíos, nunca null', () => {
     const form = candidateFormSchema.parse({
-      name: 'Ada',
-      profile: ['otro'],
+      email: 'ada@example.com',
+      profile: ['diseno'],
       projects: [{ link: 'https://ada.example' }],
     })
     const row = buildCandidateUpdate(form)
@@ -92,7 +143,7 @@ describe('formulario → UPDATE de candidates', () => {
     expect(row.work_types).toEqual([])
     expect(row.languages).toEqual({})
     expect(row.socials).toEqual({})
-    expect(row.profile).toEqual(['otro'])
+    expect(row.profile).toEqual(['diseno'])
     expect(row.newsletter_accepted).toBe(false)
     expect(row.phone).toBeNull()
     expect(row.comment).toBeNull()
@@ -102,7 +153,7 @@ describe('formulario → UPDATE de candidates', () => {
   it('la clave de idioma se guarda literal ("English", no "en")', () => {
     const row = buildCandidateUpdate(
       candidateFormSchema.parse(
-        validFormInput({ languages: { English: 'B1' } }),
+        validFormInput({ languages: { English: 'intermedio' } }),
       ),
     )
 
@@ -110,37 +161,22 @@ describe('formulario → UPDATE de candidates', () => {
   })
 
   it('PROPIEDAD: para cualquier formulario válido, lo que n8n lee nunca es null', () => {
-    const profile = fc.uniqueArray(
-      fc.constantFrom(
-        'cuentas',
-        'comercial',
-        'contenidos',
-        'copy',
-        'diseno',
-        'estrategia',
-        'produccion',
-        'programacion',
-        'video',
-        'otro',
+    const profile = fc.array(
+      fc.oneof(
+        fc.constantFrom(...PROFILE_VALUES),
+        fc.string({ minLength: 1, maxLength: 30 }),
       ),
-      { minLength: 1 },
+      { minLength: 1, maxLength: 6 },
     )
 
     fc.assert(
       fc.property(
         profile,
-        fc.array(
-          fc
-            .string({ minLength: 1, maxLength: 20 })
-            .filter((s) => s.trim().length > 0),
-          {
-            maxLength: 5,
-          },
-        ),
+        fc.array(fc.constantFrom(...WORK_TYPE_VALUES), { maxLength: 6 }),
         fc.boolean(),
         (profileValues, workTypes, newsletter) => {
           const parsed = candidateFormSchema.safeParse({
-            name: 'Ada',
+            email: 'ada@example.com',
             profile: profileValues,
             workTypes,
             newsletterAccepted: newsletter,
@@ -154,6 +190,7 @@ describe('formulario → UPDATE de candidates', () => {
           expect(Array.isArray(row.profile)).toBe(true)
           expect(row.profile.length).toBeGreaterThan(0)
           expect(Array.isArray(row.work_types)).toBe(true)
+          expect(row.status).toBe('completed')
           expect(row.languages).toEqual(expect.any(Object))
           expect(row.languages).not.toBeNull()
           expect(row.socials).not.toBeNull()

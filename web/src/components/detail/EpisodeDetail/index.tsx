@@ -224,7 +224,7 @@ export function EpisodeDetail({
                   <p className={styles.embedConsentText}>
                     Your choice is remembered, and you can change it at any time
                     on the Privacy &amp; Cookies page.{' '}
-                    <Link href="/privacy" target="_blank" rel="noopener">
+                    <Link href="/privacy#cookies" target="_blank" rel="noopener">
                       Privacy &amp; Cookies
                     </Link>
                   </p>

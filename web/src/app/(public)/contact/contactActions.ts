@@ -24,7 +24,6 @@ export async function submitContactAction(
       phone: formData.get('phone'),
       email: formData.get('email'),
       message: formData.get('message'),
-      privacyConsent: formData.get('privacyConsent') === 'on',
     },
     honeypot,
   )

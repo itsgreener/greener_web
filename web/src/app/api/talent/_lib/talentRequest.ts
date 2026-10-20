@@ -25,6 +25,7 @@ const STATUS_BY_FAILURE = {
   invalid: 400,
   rate_limited: 429,
   not_found: 404,
+  email_taken: 409,
   unavailable: 503,
 } as const
 

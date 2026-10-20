@@ -1,5 +1,7 @@
 # Política de cookies provisional: inconsistencias con la web y cambios propuestos
 
+> **Estado a 19 de octubre de 2026:** el asesor legal entregó el texto definitivo (P26096, versión del 19 de octubre) y ya está en `/privacy` (§2.86 del historial). Lo de abajo es el contexto con el que se redactó; lo vigente está en `policyContent.ts`. Los **tres añadidos que pidió Greener** (§5) siguen pendientes del visto bueno del asesor.
+
 Documento para el asesor legal de Greener. Parte del documento «Política de cookies · Cookie Policy» (P26096, actualizado el 1 de octubre de 2026) y lo contrasta con lo que **hace de verdad el sitio** a 13 de octubre de 2026. **No es un texto legal:** Claude no redacta la versión final. Recoge qué se ha corregido ya en `/privacy` (texto provisional en inglés, en `src/app/(public)/privacy/policyContent.ts`), qué queda para el asesor y qué falta por comprobar. Los hechos técnicos completos están en `docs/cookies-y-privacidad/cookies-inventario.md`.
 
 ## 1. Inconsistencias encontradas y qué se ha hecho en `/privacy`
@@ -38,3 +40,13 @@ Documento para el asesor legal de Greener. Parte del documento «Política de co
 
 1. **Tabla de cookies de terceros** medida en el navegador (nombre, dominio, duración, antes y después de aceptar y pulsar play, en un episodio de cada proveedor). Cuando esté, se añade a `policyContent.ts` y se sube la versión del texto.
 2. Texto final del asesor: se sustituye `policyContent.ts` (y, si cambia la ventana, `src/modules/consent/domain/copy.ts`) y se actualiza `CONSENT_TEXT_VERSION`.
+
+## 5. Añadidos pendientes de visto bueno del asesor (19 oct 2026)
+
+El texto del asesor se incorporó tal cual, con una excepción: Greener pidió añadir tres cosas que el texto no recogía y que **el asesor todavía no ha visto**. Están marcadas aquí para que se las pasen (la lista para el asesor, con las preguntas, es un documento aparte).
+
+1. **Correo del formulario por Dinahosting.** El texto decía «el servicio de envío de correo de la web» sin nombre. El proveedor es el servidor de correo de Dinahosting, al que se llega por SMTP con nodemailer (variables `CONTACT_SMTP_*`). En `/privacy`: «Where it goes» nombra a Dinahosting y la lista de encargados une «alojamiento» y «servicio de correo» en una sola línea (se retiró el punto del servicio sin nombre). El buzón de destino sigue siendo Google Workspace.
+2. **Campo `error` de `contact_submission`.** Si el envío falla, la tabla guarda el mensaje de error del servidor de correo, que en algún caso puede incluir la dirección de email del visitante. «Protecting the form from abuse» lo declara y dice que se borra con el resto del registro a los 30 días. «Where it goes» ya no afirma que el formulario no guarda nada: remite a ese apartado.
+3. **Registros de seguridad del servidor (trampas para bots).** `logBotTrap` escribe en el log de PM2 la ruta, la IP en claro y el user agent de las peticiones a la ruta señuelo y a rutas de escáner (`.php`, `.env`…). Nuevo apartado «Security logs», con base de interés legítimo. **El plazo de 30 días lo propone Claude** para igualarlo al del registro antiabuso: solo es cierto cuando el despliegue rote los logs (`despliegue.md` §10). Si el asesor prefiere otro plazo, se cambia ahí y en el texto.
+
+Además: el texto del asesor pide que la casilla del formulario sea informativa («I have read the privacy policy», sin marcar y no obligatoria). Hecho; la casilla no viaja con el formulario ni se valida.

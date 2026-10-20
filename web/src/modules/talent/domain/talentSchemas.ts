@@ -1,10 +1,12 @@
 import { z } from 'zod'
 
 import {
+  EXPERIENCE_VALUES,
   LANGUAGE_KEYS,
-  PROFILE_VALUES,
+  LANGUAGE_LEVELS,
   SOCIAL_KEYS,
   TALENT_TEXT_LIMITS,
+  WORK_TYPE_VALUES,
 } from './talentConstants'
 
 /**
@@ -31,10 +33,24 @@ function isHttpUrl(value: string) {
   }
 }
 
+/** `esquema:` al principio, salvo que lo siguiente sea un puerto (`host:3000`). */
+const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:(?!\d)/i
+
+/**
+ * Sin esquema se añade `https://`, como hacía el formulario antiguo al salir
+ * del campo (`normalizeUrl`): quien escribe `ada.example/portfolio` no tiene
+ * que saber qué es un protocolo. Con otro esquema (`javascript:`, `ftp:`,
+ * `mailto:`) no se toca y `isHttpUrl` lo rechaza.
+ */
+function withHttps(value: string) {
+  return !value || HAS_SCHEME.test(value) ? value : `https://${value}`
+}
+
 const httpUrlSchema = z
   .string()
   .trim()
   .max(TALENT_TEXT_LIMITS.url)
+  .transform(withHttps)
   .refine(isHttpUrl, 'Enter a valid link (https://…)')
 
 /** Texto opcional: la cadena vacía es «no ha escrito nada». */
@@ -56,27 +72,58 @@ export const projectSchema = z.object({
   comment: optionalText(TALENT_TEXT_LIMITS.projectComment),
 })
 
-const profileSchema = z
-  .array(z.enum(PROFILE_VALUES))
-  .min(1, 'Choose at least one role')
-  .max(PROFILE_VALUES.length)
-  .transform((values) => [...new Set(values)])
-
 /**
- * El nivel de cada idioma es texto corto: los valores reales que escribe el
- * formulario de hoy no se han verificado (consulta del §7 del contrato). La
- * clave sí se limita a los idiomas conocidos.
+ * Perfil: valores del formulario (`diseno`, `video`…) o el texto que escribe
+ * quien elige «Otro». La palabra `otro` sola no se guarda: la web antigua
+ * también la quitaba, y n8n manda a la carpeta `otro` lo que no reconoce.
  */
+const profileSchema = z
+  .array(z.string().trim().min(1).max(TALENT_TEXT_LIMITS.profileLabel))
+  .max(TALENT_TEXT_LIMITS.profiles)
+  .transform((values) => {
+    const seen = new Set<string>()
+
+    return values.filter((value) => {
+      const key = value.toLowerCase()
+
+      if (key === 'otro' || seen.has(key)) return false
+
+      seen.add(key)
+
+      return true
+    })
+  })
+  .refine((values) => values.length > 0, 'Choose at least one role')
+
+/** Idioma (nombre tal cual) → nivel (uno de los cinco del formulario). */
 const languagesSchema = z.partialRecord(
   z.enum(LANGUAGE_KEYS),
-  z.string().trim().min(1).max(TALENT_TEXT_LIMITS.languageLevel),
+  z.enum(LANGUAGE_LEVELS),
 )
+
+/**
+ * Teléfono: el formulario antiguo lo validaba en el navegador con
+ * `libphonenumber-js`. Aquí solo se descarta lo que no puede ser un teléfono
+ * (letras, símbolos, demasiado corto o largo): 7 a 15 dígitos, que es el rango
+ * del plan internacional E.164, con `+`, espacios, puntos, guiones y paréntesis.
+ */
+function isPlausiblePhone(value: string) {
+  if (!/^\+?[\d\s().-]+$/.test(value)) return false
+
+  const digits = value.replace(/\D/g, '').length
+
+  return digits >= 7 && digits <= 15
+}
 
 /** Una red sin enlace (cadena vacía) no se guarda. */
 const socialsSchema = z.partialRecord(
   z.enum(SOCIAL_KEYS),
   z.union([z.literal(''), httpUrlSchema]),
 )
+
+function orNull<T>(value: T | null | undefined): T | null {
+  return value ?? null
+}
 
 const rateSchema = z
   .number()
@@ -86,20 +133,25 @@ const rateSchema = z
   .optional()
   .transform((value) => value ?? null)
 
+/**
+ * El formulario NO pide el nombre: lo escribe n8n al analizar el CV (la web
+ * antigua solo lo leía, para saludar). Por eso no está aquí.
+ *
+ * El email sí se puede cambiar («¿prefieres cambiarlo?», último paso).
+ */
 export const candidateFormSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(1, 'Enter your name')
-    .max(TALENT_TEXT_LIMITS.name),
-  phone: optionalText(TALENT_TEXT_LIMITS.phone),
+  email: talentEmailSchema,
+  phone: optionalText(TALENT_TEXT_LIMITS.phone).refine(
+    (value) => value === null || isPlausiblePhone(value),
+    'Enter a valid phone number',
+  ),
   comment: optionalText(TALENT_TEXT_LIMITS.comment),
   profile: profileSchema,
-  experience: optionalText(TALENT_TEXT_LIMITS.experience),
+  experience: z.enum(EXPERIENCE_VALUES).nullish().transform(orNull),
   workTypes: z
-    .array(z.string().trim().min(1).max(TALENT_TEXT_LIMITS.workTypeLabel))
-    .max(TALENT_TEXT_LIMITS.workTypes)
-    .default([]),
+    .array(z.enum(WORK_TYPE_VALUES))
+    .default([])
+    .transform((values) => [...new Set(values)]),
   rateDay: rateSchema,
   rateHour: rateSchema,
   languages: languagesSchema.default({}),

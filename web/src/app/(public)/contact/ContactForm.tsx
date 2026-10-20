@@ -63,24 +63,20 @@ export function ContactForm() {
         )}
       </div>
 
-      {/* Consentimiento y botón en una misma fila (space-between). */}
+      {/* Aviso informativo y botón en una misma fila (space-between). La
+          casilla NO es un consentimiento (texto legal de /privacy, 19 oct
+          2026): el tratamiento se basa en la solicitud de quien escribe, así
+          que no es obligatoria, empieza sin marcar, no tiene `name` y no
+          viaja con el formulario. */}
       <div className={styles.actions}>
         <div className={styles.consent}>
-          <label htmlFor="privacyConsent">
-            <input
-              id="privacyConsent"
-              name="privacyConsent"
-              type="checkbox"
-              required
-            />
-            I agree to the{' '}
-            <Link href="/privacy" target="_blank" rel="noopener">
-              Privacy &amp; Cookies policy
+          <label htmlFor="privacyRead">
+            <input id="privacyRead" type="checkbox" />
+            I have read the{' '}
+            <Link href="/privacy#privacy" target="_blank" rel="noopener">
+              privacy policy
             </Link>
           </label>
-          {state.fieldErrors?.privacyConsent?.[0] && (
-            <p>{state.fieldErrors.privacyConsent[0]}</p>
-          )}
         </div>
 
         <button type="submit" disabled={pending} className={styles.submit}>

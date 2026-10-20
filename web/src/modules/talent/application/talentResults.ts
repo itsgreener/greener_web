@@ -16,4 +16,6 @@ export type TalentFailure =
   | { ok: false; reason: 'rate_limited' }
   | { ok: false; reason: 'not_found' }
   | { ok: false; reason: 'unavailable' }
+  /** El email nuevo ya es de otro candidato (409). */
+  | { ok: false; reason: 'email_taken' }
   | { ok: false; reason: 'file_rejected'; rejection: FileRejection }

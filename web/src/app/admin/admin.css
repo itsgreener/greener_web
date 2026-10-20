@@ -1952,3 +1952,132 @@
     font-size: 30px;
   }
 }
+
+/* =========================================================
+   TALENT (/admin/talent)
+   ========================================================= */
+
+.admin-talent-status-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.admin-talent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e2e4e8;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #3a4256;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.admin-talent-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-talent-chip-active {
+  border-color: #1a1a1a;
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.admin-talent-process {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid #f0d9a4;
+  border-radius: 10px;
+  background: #fff8e8;
+  color: #7a5200;
+  font-size: 13px;
+}
+
+.admin-talent-process p {
+  margin: 0;
+}
+
+.admin-talent-process-actions,
+.admin-talent-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.admin-talent-actions {
+  margin-bottom: 12px;
+}
+
+.admin-talent-data {
+  display: grid;
+  grid-template-columns: minmax(120px, 200px) 1fr;
+  gap: 10px 20px;
+  margin: 0;
+}
+
+.admin-talent-data dt {
+  color: #767c87;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-talent-data dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.admin-talent-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.admin-talent-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.admin-talent-list p {
+  flex-basis: 100%;
+  margin: 0;
+  color: #3a4256;
+  font-size: 13px;
+}
+
+.admin-talent-drop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 24px;
+  margin-bottom: 16px;
+  border: 1px dashed #c4c9d4;
+  border-radius: 12px;
+  background: #fafbfc;
+}
+
+@media (max-width: 700px) {
+  .admin-talent-data {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .admin-talent-data dd {
+    margin-bottom: 10px;
+  }
+}

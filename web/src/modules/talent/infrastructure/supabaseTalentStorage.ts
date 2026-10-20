@@ -24,4 +24,18 @@ export const supabaseTalentStorage: TalentFileStorage = {
     if (error)
       throw new Error(`Supabase-talent (storage.remove): ${error.message}`)
   },
+
+  async createSignedUrl(path, expiresInSeconds) {
+    const { data, error } = await getTalentClient()
+      .storage.from(CV_BUCKET)
+      .createSignedUrl(path, expiresInSeconds)
+
+    if (error || !data?.signedUrl) {
+      throw new Error(
+        `Supabase-talent (storage.createSignedUrl): ${error?.message ?? 'sin URL'}`,
+      )
+    }
+
+    return data.signedUrl
+  },
 }

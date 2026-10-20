@@ -7,7 +7,6 @@ const VALID_INPUT = {
   phone: '+34 600 000 000',
   email: 'marta@example.com',
   message: 'Hola, quería preguntaros por vuestros servicios.',
-  privacyConsent: true,
 }
 
 /** El caso de uso sobre puertos falsos: sin SMTP, sin Supabase, sin cabeceras. */

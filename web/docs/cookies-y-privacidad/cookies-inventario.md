@@ -49,14 +49,14 @@ Lo que se sabe de estos por la **auditoría del 22-23 de septiembre, sin repetir
 
 ## 4. Datos que trata el servidor (para la política de privacidad)
 
-**Formulario de contacto.** Campos: nombre, teléfono, email y mensaje, más una casilla de aceptación de la política, que ahora enlaza a `/privacy`.
+**Formulario de contacto.** Campos: nombre, teléfono, email y mensaje, más una casilla **informativa** («I have read the privacy policy»: no obligatoria, sin marcar y sin `name`, no viaja con el formulario) que enlaza a `/privacy#privacy` (desde el 19 oct 2026, §2.86).
 
-1. Nombre, teléfono, email y mensaje **viajan por correo (SMTP) y no se guardan en la base de datos**. El proveedor del buzón está por confirmar.
-2. Se guarda en `contact_submission` únicamente: un **hash con sal de la IP**, la fecha y el resultado del envío. Finalidad: límite anti-abuso de 5 envíos por hora por IP.
-3. **Conservación: sin plazo definido y sin purga automática.**
+1. Nombre, teléfono, email y mensaje **viajan por correo (SMTP) y no se guardan en la base de datos**. El servidor SMTP es el del servicio de correo de Dinahosting (nodemailer, `CONTACT_SMTP_*`; confirmado por Greener el 19 oct); el buzón de destino está en Google Workspace.
+2. Se guarda en `contact_submission` únicamente: un **hash con sal de la IP**, la fecha, el resultado del envío y, si falló, el **mensaje de error** del servidor de correo (puede incluir la dirección de email del visitante). Finalidad: límite anti-abuso de 5 envíos por hora por IP.
+3. **Conservación: 30 días**, con purga diaria por `pg_cron` (`purge-expired-contact-submissions`, migración `20261019140000`, §2.86; por aplicar en producción).
 4. Aviso técnico: si el proxy de Dinahosting no reenvía la IP del visitante (se comprueba tras el primer despliegue), todos los visitantes compartirían el mismo hash.
 
-**Proveedores que intervienen en el tratamiento:** Dinahosting (hosting y proxy), Supabase (base de datos, autenticación y almacenamiento de paquetes), Cloudinary (medios), Plausible (analítica) y el proveedor SMTP. Cloudmersive (antivirus) y Google OAuth solo intervienen en el ABM, no con datos de visitantes.
+**Proveedores que intervienen en el tratamiento:** Dinahosting (hosting y proxy), Supabase (base de datos, autenticación y almacenamiento de paquetes), Cloudinary (medios), Plausible (analítica) y el servicio de correo de Dinahosting (SMTP). Cloudmersive (antivirus) y Google OAuth solo intervienen en el ABM, no con datos de visitantes.
 
 ## 5. Analítica (Plausible)
 

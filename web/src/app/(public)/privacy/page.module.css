@@ -22,6 +22,22 @@
   font-size: 1.15rem;
 }
 
+.subsection {
+  margin-top: var(--space-md);
+}
+
+.subheading {
+  margin: 0 0 var(--space-xs);
+  font-size: 1rem;
+}
+
+.note {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
 .paragraph {
   margin: 0 0 var(--space-sm);
   line-height: 1.55;

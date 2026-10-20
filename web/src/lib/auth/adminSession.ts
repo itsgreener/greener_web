@@ -44,6 +44,29 @@ async function checkAdminSession(): Promise<AdminCheck> {
   }
 }
 
+/**
+ * Quién es el admin de esta petición, para anotarlo en el registro de
+ * actividad: su email, o `null` si no hay sesión de administrador. Hace la
+ * misma comprobación que `isAdminRequest`.
+ */
+export async function getAdminActor(): Promise<{ email: string } | null> {
+  try {
+    if (!(await checkAdminSession()).ok) return null
+
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.getClaims()
+    const email = data?.claims?.email
+
+    if (error || typeof email !== 'string' || !email) return null
+
+    return { email }
+  } catch (error) {
+    console.error(error)
+
+    return null
+  }
+}
+
 /** Atajo para las Server Actions: true solo con sesión de admin válida. */
 export async function isAdminRequest(): Promise<boolean> {
   return (await checkAdminSession()).ok

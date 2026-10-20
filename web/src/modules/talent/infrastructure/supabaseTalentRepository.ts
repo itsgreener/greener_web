@@ -180,7 +180,13 @@ export const supabaseTalentRepository: TalentRepository = {
       .update(row)
       .eq('id', candidateId)
 
-    if (error) fail('candidates.update', error)
+    if (error) {
+      // Cambiar el email a uno que ya tiene otra fila.
+      if (error.code === UNIQUE_VIOLATION)
+        throw new DuplicateCandidateEmailError()
+
+      fail('candidates.update', error)
+    }
   },
 
   /**

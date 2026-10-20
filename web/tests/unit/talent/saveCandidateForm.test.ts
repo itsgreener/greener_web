@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { makeSaveCandidateForm } from '@/modules/talent/application/saveCandidateForm'
+import { DuplicateCandidateEmailError } from '@/modules/talent/domain/talentErrors'
 import {
   CONTEXT,
   TOKEN,
@@ -63,12 +64,107 @@ describe('saveCandidateForm', () => {
     expect(processCandidate).toHaveBeenCalledExactlyOnceWith('c1')
   })
 
-  it('da de alta en la newsletter con el email del candidato, no con uno del cuerpo', async () => {
+  it('escribe status = completed, el email del formulario y no toca el nombre', async () => {
+    const { save, updates } = setup()
+
+    await save(TOKEN, validFormInput(), '', CONTEXT)
+
+    expect(updates[0].row).toMatchObject({
+      status: 'completed',
+      email: 'ada@example.com',
+    })
+    expect(updates[0].row).not.toHaveProperty('name')
+  })
+
+  it('da de alta en la newsletter con el email del formulario', async () => {
     const { save, subscribe } = setup()
 
-    await save(TOKEN, validFormInput({ email: 'otro@x.com' }), '', CONTEXT)
+    await save(
+      TOKEN,
+      validFormInput({ email: 'nuevo@example.com' }),
+      '',
+      CONTEXT,
+    )
 
-    expect(subscribe).toHaveBeenCalledExactlyOnceWith('ada@example.com')
+    expect(subscribe).toHaveBeenCalledExactlyOnceWith('nuevo@example.com')
+  })
+
+  it('permite cambiar el email a uno libre', async () => {
+    const { save, updates } = setup()
+
+    expect(
+      await save(
+        TOKEN,
+        validFormInput({ email: 'nuevo@example.com' }),
+        '',
+        CONTEXT,
+      ),
+    ).toEqual({ ok: true })
+    expect(updates[0].row.email).toBe('nuevo@example.com')
+  })
+
+  it('no permite quedarse con el email de otro candidato: email_taken, sin escribir', async () => {
+    const repo = fakeRepository([
+      CANDIDATE,
+      {
+        id: 'c2',
+        email: 'otra@example.com',
+        status: 'closed',
+        accessToken: 'x'.repeat(20),
+      },
+    ])
+    const { workflows, processCandidate } = fakeWorkflows()
+    const { newsletter, subscribe } = fakeNewsletter()
+    const save = makeSaveCandidateForm({
+      repository: repo.repository,
+      workflows,
+      newsletter,
+      limiters: openLimiters(),
+    })
+
+    expect(
+      await save(
+        TOKEN,
+        validFormInput({ email: 'Otra@Example.com' }),
+        '',
+        CONTEXT,
+      ),
+    ).toEqual({ ok: false, reason: 'email_taken' })
+    expect(repo.updates).toEqual([])
+    expect(subscribe).not.toHaveBeenCalled()
+    expect(processCandidate).not.toHaveBeenCalled()
+  })
+
+  it('si el índice único salta en la carrera, también es email_taken', async () => {
+    const repo = fakeRepository([CANDIDATE])
+    repo.repository.updateCandidate = async () => {
+      throw new DuplicateCandidateEmailError()
+    }
+    const { workflows } = fakeWorkflows()
+    const { newsletter } = fakeNewsletter()
+    const save = makeSaveCandidateForm({
+      repository: repo.repository,
+      workflows,
+      newsletter,
+      limiters: openLimiters(),
+    })
+
+    expect(
+      await save(
+        TOKEN,
+        validFormInput({ email: 'nuevo@example.com' }),
+        '',
+        CONTEXT,
+      ),
+    ).toEqual({ ok: false, reason: 'email_taken' })
+  })
+
+  it('con el mismo email (aunque cambien las mayúsculas) no se consulta la base', async () => {
+    const { save, log } = setup()
+
+    await save(TOKEN, validFormInput({ email: 'ADA@example.com' }), '', CONTEXT)
+
+    expect(log).not.toContain('findByEmail')
   })
 
   it('sin aceptar la newsletter no se llama a Mailchimp', async () => {

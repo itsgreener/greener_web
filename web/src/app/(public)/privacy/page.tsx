@@ -1,28 +1,49 @@
 import type { Metadata } from 'next'
 
 import { CookieChoice } from '@/components/consent/CookieChoice'
-import { POLICY, type PolicyBlock } from './policyContent'
+import {
+  POLICY,
+  type PolicyBlock,
+  type PolicyListItem,
+} from './policyContent'
 import styles from './page.module.css'
 
 /**
- * Página única «Privacy & Cookies». El texto vive en `policyContent.ts`
- * (provisional, pendiente del texto final del asesor legal); aquí solo se
- * pinta. El aviso legal, las condiciones y la política de privacidad del
- * formulario de contacto aún no tienen página propia (arquitectura §17.3).
+ * Página única «Privacy & Cookies», con dos partes ancladas (`#privacy` y
+ * `#cookies`). El texto es el del asesor legal y vive en `policyContent.ts`;
+ * aquí solo se pinta. El aviso legal y las condiciones aún no tienen página
+ * propia (arquitectura §17.3).
  */
 export const metadata: Metadata = {
   title: 'Privacy & Cookies',
+}
+
+function ListItem({ item }: { item: PolicyListItem }) {
+  if (typeof item === 'string') {
+    return <li>{item}</li>
+  }
+
+  return (
+    <li>
+      <strong>{item.label}</strong> {item.text}
+    </li>
+  )
 }
 
 function Block({ block }: { block: PolicyBlock }) {
   switch (block.type) {
     case 'p':
       return <p className={styles.paragraph}>{block.text}</p>
+    case 'note':
+      return <p className={styles.note}>{block.text}</p>
     case 'list':
       return (
         <ul className={styles.list}>
           {block.items.map((item) => (
-            <li key={item}>{item}</li>
+            <ListItem
+              key={typeof item === 'string' ? item : item.label}
+              item={item}
+            />
           ))}
         </ul>
       )
@@ -77,22 +98,37 @@ export default function PrivacyPage() {
     <div className={styles.page}>
       <h1 className={styles.title}>Privacy &amp; Cookies</h1>
       <p className={styles.updated}>
-        {POLICY.title} · Last updated:{' '}
+        Last updated:{' '}
         <time dateTime={POLICY.lastUpdatedIso}>{POLICY.lastUpdated}</time>
       </p>
+      <p className={styles.paragraph}>{POLICY.intro}</p>
 
       <CookieChoice />
 
-      {POLICY.sections.map((section) => (
-        <section key={section.id} className={styles.section}>
-          <h2 id={section.id} className={styles.heading}>
-            {section.heading}
-          </h2>
-          {section.blocks.map((block, index) => (
-            <Block key={index} block={block} />
-          ))}
-        </section>
-      ))}
+      {POLICY.sections.map((section) => {
+        const Heading = section.level === 3 ? 'h3' : 'h2'
+
+        return (
+          <section
+            key={section.id}
+            className={
+              section.level === 3 ? styles.subsection : styles.section
+            }
+          >
+            <Heading
+              id={section.id}
+              className={
+                section.level === 3 ? styles.subheading : styles.heading
+              }
+            >
+              {section.heading}
+            </Heading>
+            {section.blocks.map((block, index) => (
+              <Block key={index} block={block} />
+            ))}
+          </section>
+        )
+      })}
     </div>
   )
 }

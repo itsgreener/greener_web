@@ -828,6 +828,7 @@ export type Database = {
         Returns: string
       }
       publish_scheduled_content: { Args: never; Returns: number }
+      purge_expired_contact_submissions: { Args: never; Returns: number }
       purge_expired_feed_sessions: { Args: never; Returns: number }
       remove_case_carousel_media: {
         Args: { p_content_id: string; p_media_id: string }

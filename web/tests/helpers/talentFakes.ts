@@ -9,6 +9,7 @@ import type {
 } from '@/modules/talent/domain/talentModels'
 import type {
   AttemptLimiter,
+  TalentAdminRepository,
   TalentFileStorage,
   TalentNewsletter,
   TalentRepository,
@@ -20,6 +21,7 @@ import type {
   FileRow,
   NewCandidateRow,
   ProjectRow,
+  StaffUploadRow,
 } from '@/modules/talent/domain/talentRows'
 
 /** Token de ejemplo con forma de UUID v4. */
@@ -31,15 +33,19 @@ export const CONTEXT = { visitorKey: 'visitor-1', ipKey: 'ip-hash-1' }
 /** Cuerpo válido del formulario, tal y como llega del navegador. */
 export function validFormInput(overrides: Record<string, unknown> = {}) {
   return {
-    name: '  Ada Lovelace ',
+    email: '  Ada@Example.com ',
     phone: '+34 600 000 000',
     comment: 'Me gustaría colaborar.',
     profile: ['diseno', 'video', 'diseno'],
-    experience: '5 años en estudios',
-    workTypes: ['Freelance', 'Presencial'],
+    experience: '5-10',
+    workTypes: ['freelance', 'fulltime'],
     rateDay: 300,
     rateHour: null,
-    languages: { English: 'C1', Castellano: 'Native', Català: 'B2' },
+    languages: {
+      English: 'avanzado',
+      Castellano: 'nativo',
+      Català: 'bilingue',
+    },
     socials: { LinkedIn: 'https://linkedin.com/in/ada', Behance: '' },
     newsletterAccepted: true,
     projects: [
@@ -233,9 +239,14 @@ export function fakeRepository(initial: StoredCandidate[] = []) {
 export function fakeWorkflows() {
   const sendFormLink = vi.fn<(token: string) => Promise<void>>(async () => {})
   const processCandidate = vi.fn<(id: string) => Promise<void>>(async () => {})
-  const workflows: TalentWorkflows = { sendFormLink, processCandidate }
+  const processPendingCvs = vi.fn<() => Promise<void>>(async () => {})
+  const workflows: TalentWorkflows = {
+    sendFormLink,
+    processCandidate,
+    processPendingCvs,
+  }
 
-  return { workflows, sendFormLink, processCandidate }
+  return { workflows, sendFormLink, processCandidate, processPendingCvs }
 }
 
 export function fakeNewsletter() {
@@ -248,9 +259,13 @@ export function fakeNewsletter() {
 export function fakeStorage() {
   const upload = vi.fn<TalentFileStorage['upload']>(async () => {})
   const remove = vi.fn<TalentFileStorage['remove']>(async () => {})
-  const storage: TalentFileStorage = { upload, remove }
+  const createSignedUrl = vi.fn<TalentFileStorage['createSignedUrl']>(
+    async (path, seconds) =>
+      `https://signed.example/${path}?expires=${seconds}`,
+  )
+  const storage: TalentFileStorage = { upload, remove, createSignedUrl }
 
-  return { storage, upload, remove }
+  return { storage, upload, remove, createSignedUrl }
 }
 
 export function fakeScanner() {
@@ -273,4 +288,78 @@ export const FILE_BYTES = {
   doc: Uint8Array.from([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0, 0]),
   docx: Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0, 0, 0, 0, 0]),
   text: new TextEncoder().encode('esto es texto plano, no un documento'),
+}
+
+/**
+ * Repositorio del ABM en memoria. `calls` anota cada operación; `paths`
+ * programa la ruta que devuelve `findStoredPath` (clave `candidato` o
+ * `candidato:fichero`) y `counts` lo que cuenta cada estado.
+ */
+export function fakeAdminRepository(
+  options: {
+    access?: CandidateAccess[]
+    counts?: Record<string, number>
+    paths?: Record<string, string | null>
+    requeueResult?: boolean
+  } = {},
+) {
+  const calls: string[] = []
+  const failOn = new Set<string>()
+  const access = new Map((options.access ?? []).map((item) => [item.id, item]))
+  const staffRows: StaffUploadRow[] = []
+  const tokens: { id: string; token: string }[] = []
+  const counts = { ...(options.counts ?? {}) }
+
+  function step(name: string) {
+    calls.push(name)
+    if (failOn.has(name)) throw new Error(`fallo simulado en ${name}`)
+  }
+
+  const admin: TalentAdminRepository = {
+    async search() {
+      step('search')
+
+      return { items: [], total: 0 }
+    },
+    async findDetail() {
+      step('findDetail')
+
+      return null
+    },
+    async countByStatus() {
+      step('countByStatus')
+
+      return counts
+    },
+    async findStoredPath(candidateId, fileId) {
+      step('findStoredPath')
+      const key = fileId ? `${candidateId}:${fileId}` : candidateId
+
+      return options.paths?.[key] ?? null
+    },
+    async insertStaffCandidate(row) {
+      step('insertStaffCandidate')
+      staffRows.push(row)
+
+      return {
+        id: `00000000-0000-4000-8000-${String(staffRows.length).padStart(12, '0')}`,
+      }
+    },
+    async requeueForProcessing() {
+      step('requeueForProcessing')
+
+      return options.requeueResult ?? true
+    },
+    async findAccessById(id) {
+      step('findAccessById')
+
+      return access.get(id) ?? null
+    },
+    async setAccessToken(id, token) {
+      step('setAccessToken')
+      tokens.push({ id, token })
+    },
+  }
+
+  return { admin, calls, failOn, staffRows, tokens, counts }
 }

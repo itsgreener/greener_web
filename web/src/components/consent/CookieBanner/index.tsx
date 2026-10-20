@@ -49,7 +49,7 @@ export function CookieBanner() {
         <button type="button" className={styles.button} onClick={reject}>
           {copy.reject}
         </button>
-        <Link href="/privacy" className={styles.link}>
+        <Link href="/privacy#cookies" className={styles.link}>
           {copy.policyLink}
         </Link>
       </div>

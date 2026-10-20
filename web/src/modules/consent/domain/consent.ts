@@ -15,7 +15,7 @@ export const CONSENT_COOKIE_NAME = 'greener_consent'
  * cambie su contenido: quien decidió con una versión anterior vuelve a ver la
  * ventana. Formato: fecha de «Última actualización» de la política.
  */
-export const CONSENT_TEXT_VERSION = '2026-10-01'
+export const CONSENT_TEXT_VERSION = '2026-10-19'
 
 /** 24 meses (la guía de la AEPD no recomienda superar los 24). */
 export const CONSENT_MAX_AGE_DAYS = 730

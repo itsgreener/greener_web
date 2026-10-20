@@ -1,6 +1,7 @@
 import {
   CANDIDATE_STATUS,
   CV_UPLOAD_PREFIX,
+  WORK_TYPE_FREELANCE,
   type AllowedFileExtension,
 } from './talentConstants'
 import type { CandidateFormInput } from './talentSchemas'
@@ -20,7 +21,9 @@ export type NewCandidateRow = {
 }
 
 export type CandidateUpdateRow = {
-  name: string
+  email: string
+  /** `completed`: el candidato ha enviado el formulario (n8n lo cierra). */
+  status: typeof CANDIDATE_STATUS.completed
   phone: string | null
   comment: string | null
   profile: string[]
@@ -31,6 +34,18 @@ export type CandidateUpdateRow = {
   languages: Record<string, string>
   socials: Record<string, string>
   newsletter_accepted: boolean
+}
+
+/**
+ * CV subido por el personal desde el ABM. n8n (`Procesar nuevo CV`) lo recoge
+ * por `status = 'pending'` y rellena el resto: email, nombre, teléfono, perfil,
+ * `access_token`, `ai_comment`, `file_name`…
+ */
+export type StaffUploadRow = {
+  status: typeof CANDIDATE_STATUS.pending
+  file_path: string
+  /** Email de quien sube: n8n lo usa de copia y para avisarle de duplicados. */
+  uploaded_by: string
 }
 
 export type ProjectRow = {
@@ -63,12 +78,37 @@ export function buildSignupRow(
 }
 
 /**
+ * Subida del personal. Solo `status`, `file_path` y `uploaded_by`: la web
+ * antigua escribía además `uploaded_by_id` (el id de su propio usuario de
+ * Supabase), que n8n no lee y que aquí no tendría sentido (el admin es un
+ * usuario del proyecto de Greener, no del de talent).
+ */
+export function buildStaffUploadRow(
+  path: string,
+  uploadedBy: string,
+): StaffUploadRow {
+  return {
+    status: CANDIDATE_STATUS.pending,
+    file_path: path,
+    uploaded_by: uploadedBy,
+  }
+}
+
+/**
  * Datos del formulario. Los arrays y los objetos nunca son `null`; las redes
- * sin enlace se quitan (el aviso lista los valores del objeto). No se toca
- * `status`: de `sent` a `closed` pasa n8n cuando termina de procesar.
+ * sin enlace se quitan (el aviso lista los valores del objeto).
+ *
+ * - `status = 'completed'`, como la web antigua; `closed` lo pone n8n al
+ *   terminar. No se escribe `name` (lo pone n8n al analizar el CV) ni nada
+ *   más de n8n.
+ * - Las tarifas solo valen si el candidato marcó «freelance» (es el único
+ *   caso en que el formulario las pregunta).
+ * - `currentEmail` es el email que ya tiene la fila: si el del formulario es
+ *   el mismo salvo mayúsculas, se conserva tal cual está guardado.
  */
 export function buildCandidateUpdate(
   form: CandidateFormInput,
+  currentEmail: string | null = null,
 ): CandidateUpdateRow {
   const languages: Record<string, string> = {}
 
@@ -82,15 +122,19 @@ export function buildCandidateUpdate(
     if (url) socials[network] = url
   }
 
+  const freelance = form.workTypes.includes(WORK_TYPE_FREELANCE)
+  const sameEmail = currentEmail?.toLowerCase() === form.email
+
   return {
-    name: form.name,
+    email: sameEmail && currentEmail ? currentEmail : form.email,
+    status: CANDIDATE_STATUS.completed,
     phone: form.phone,
     comment: form.comment,
     profile: form.profile,
     experience: form.experience,
     work_types: form.workTypes,
-    rate_day: form.rateDay,
-    rate_hour: form.rateHour,
+    rate_day: freelance ? form.rateDay : null,
+    rate_hour: freelance ? form.rateHour : null,
     languages,
     socials,
     newsletter_accepted: form.newsletterAccepted,

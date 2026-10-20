@@ -248,6 +248,21 @@ describe('GET y PUT /api/talent/form/[token]', () => {
     ])
   })
 
+  it('PUT con un email que es de otro candidato responde 409 email_taken', async () => {
+    container.saveCandidateForm.mockResolvedValueOnce({
+      ok: false,
+      reason: 'email_taken',
+    })
+
+    const response = await putForm(
+      jsonRequest(`/api/talent/form/${TOKEN}`, {}, { method: 'PUT' }),
+      params,
+    )
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({ error: 'email_taken' })
+  })
+
   it('PUT con errores de validación devuelve los errores por campo', async () => {
     container.saveCandidateForm.mockResolvedValueOnce({
       ok: false,

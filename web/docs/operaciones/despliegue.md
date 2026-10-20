@@ -199,7 +199,24 @@ Corren dentro de la base, no en el servidor de Dinahosting. Las crea la migraci�
 | --- | --- | --- | --- |
 | `publish-scheduled-content` | cada minuto | Pasa a publicado el contenido programado cuya fecha ya ha llegado. | `20260922090000` |
 | `purge-expired-feed-sessions` | cada día a las 03:15 UTC | Borra las `feed_session` caducadas hace más de 24 h; `feed_round` se borra en cascada. Sin él la tabla solo crecía (cada visita a la home crea una sesión). Borra por lotes de 5.000. | `20261016100000` |
+| `purge-expired-contact-submissions` | cada día a las 03:30 UTC | Borra los `contact_submission` (hash de IP, resultado y error del envío) con más de **30 días**, el plazo que declara el texto de `/privacy`. Borra por lotes de 5.000. | `20261019140000` |
 
 Para comprobar que están programados, en el SQL Editor de Supabase: `select jobname, schedule, active from cron.job;`. Para ver sus últimas ejecuciones: `select jobname, status, start_time, return_message from cron.job_run_details order by start_time desc limit 20;`.
 
 La primera ejecución de la purga puede borrar mucho si la tabla llevaba meses acumulando; por eso va por lotes.
+
+## 10. Registros del servidor: 30 días (texto de `/privacy`)
+
+El texto de `/privacy` dice que los registros de seguridad (la ruta, la IP y el user agent de las visitas a la ruta señuelo y a rutas de escáner, `logBotTrap` en `src/lib/botTraps.ts`) «se borran automáticamente del log del servidor a los 30 días». PM2 **no rota los logs por sí solo**: sin lo de abajo, `~/.pm2/logs/greener-out.log` crece sin límite y la frase es falsa. Hay que hacerlo en el servidor de Dinahosting:
+
+```bash
+pm2 install pm2-logrotate
+pm2 set pm2-logrotate:rotateInterval '0 0 * * *'   # una vez al día, a medianoche
+pm2 set pm2-logrotate:max_size 1G                  # que el tamaño no fuerce rotaciones intermedias
+pm2 set pm2-logrotate:retain 30                    # conserva 30 ficheros rotados (≈ 30 días)
+pm2 set pm2-logrotate:compress true
+```
+
+`retain` cuenta ficheros, no días: con `max_size` alto y rotación diaria, 30 ficheros son unos 30 días. **No se ha probado aquí** (no hay PM2 contra el servidor real); tras configurarlo, comprobar con `pm2 conf pm2-logrotate` y, a los pocos días, que aparecen los ficheros rotados. Si el proxy de Dinahosting guarda además sus propios logs de acceso, su plazo no lo controla la aplicación: conviene preguntárselo al proveedor y, si es mayor, decírselo al asesor.
+
+El correo del formulario sale por el servidor SMTP de Dinahosting (`CONTACT_SMTP_*`, §2).

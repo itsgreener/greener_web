@@ -1,5 +1,6 @@
 import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
+import { DuplicateCandidateEmailError } from '@/modules/talent/domain/talentErrors'
 import type {
   TalentNewsletter,
   TalentRepository,
@@ -23,8 +24,9 @@ export type SaveCandidateFormResult = { ok: true } | TalentFailure
  * `PUT /api/talent/form/[token]`: la misma secuencia de hoy, con el control de
  * errores en un solo sitio.
  *
- * 1. candidato (`candidates`), 2. proyectos (`projects`), 3. newsletter si la
- * ha aceptado, 4. webhook `Guardar archivos` con `{candidate_id}`.
+ * 1. candidato (`candidates`, con el email nuevo si lo ha cambiado),
+ * 2. proyectos (`projects`), 3. newsletter si la ha aceptado, 4. webhook
+ * `Guardar archivos` con `{candidate_id}`.
  *
  * Reintentar es seguro: todo se sobrescribe. La newsletter no bloquea el envío
  * (un fallo de Mailchimp no debe impedir que el candidato termine). Sí falla
@@ -81,29 +83,45 @@ export function makeSaveCandidateForm({
 
       const form = parsed.data
 
-      await repository.updateCandidate(candidate.id, buildCandidateUpdate(form))
+      // El email se puede cambiar, pero no por el de otro candidato. El
+      // índice único lo impide igualmente (carrera entre dos guardados), y
+      // el repositorio traduce ese error; esto evita llegar a él.
+      if (candidate.email?.toLowerCase() !== form.email) {
+        const owner = await repository.findByEmail(form.email)
+
+        if (owner && owner.id !== candidate.id) {
+          return { ok: false, reason: 'email_taken' }
+        }
+      }
+
+      await repository.updateCandidate(
+        candidate.id,
+        buildCandidateUpdate(form, candidate.email),
+      )
       await repository.replaceProjects(
         candidate.id,
         buildProjectRows(candidate.id, candidate.accessToken, form),
       )
 
       if (form.newsletterAccepted) {
-        await subscribeBestEffort(candidate.email)
+        await subscribeBestEffort(form.email)
       }
 
       await workflows.processCandidate(candidate.id)
 
       return { ok: true }
     } catch (error) {
+      if (error instanceof DuplicateCandidateEmailError) {
+        return { ok: false, reason: 'email_taken' }
+      }
+
       console.error('Talent: no se pudo guardar el formulario', error)
 
       return { ok: false, reason: 'unavailable' }
     }
   }
 
-  async function subscribeBestEffort(email: string | null) {
-    if (!email) return
-
+  async function subscribeBestEffort(email: string) {
     try {
       await newsletter.subscribe(email)
     } catch (error) {

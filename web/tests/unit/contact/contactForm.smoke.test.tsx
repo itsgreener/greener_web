@@ -9,7 +9,7 @@ vi.mock('@/app/(public)/contact/contactActions', () => ({
 }))
 
 describe('ContactForm — prueba de humo', () => {
-  it('pinta los campos: name, phone, email, message y el consentimiento de privacidad', () => {
+  it('pinta los campos: name, phone, email, message y la casilla informativa de la política de privacidad', () => {
     render(<ContactForm />)
 
     expect(screen.getByLabelText('Name')).toBeInTheDocument()
@@ -17,32 +17,32 @@ describe('ContactForm — prueba de humo', () => {
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Message')).toBeInTheDocument()
     expect(
-      screen.getByLabelText('I agree to the Privacy & Cookies policy'),
+      screen.getByLabelText('I have read the privacy policy'),
     ).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Send' })).toBeInTheDocument()
   })
 
-  it('la casilla de consentimiento enlaza a la política (Privacy & Cookies) sin perder lo escrito: pestaña nueva y rel seguro', () => {
+  it('la casilla informativa enlaza a la parte de privacidad de la política sin perder lo escrito: pestaña nueva y rel seguro', () => {
     render(<ContactForm />)
 
-    const link = screen.getByRole('link', { name: 'Privacy & Cookies policy' })
+    const link = screen.getByRole('link', { name: 'privacy policy' })
 
-    expect(link).toHaveAttribute('href', '/privacy')
+    expect(link).toHaveAttribute('href', '/privacy#privacy')
     expect(link).toHaveAttribute('target', '_blank')
     expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
   })
 
-  it('el consentimiento de privacidad y el botón de enviar comparten fila (el CSS los reparte con space-between)', () => {
+  it('la casilla informativa y el botón de enviar comparten fila (el CSS los reparte con space-between)', () => {
     render(<ContactForm />)
 
     const consent = screen.getByLabelText(
-      'I agree to the Privacy & Cookies policy',
+      'I have read the privacy policy',
     )
     const send = screen.getByRole('button', { name: 'Send' })
     const row = send.parentElement as HTMLElement
 
     expect(row).toContainElement(consent)
-    // La fila solo lleva esos dos elementos: el texto legal y el botón.
+    // La fila solo lleva esos dos elementos: el aviso legal y el botón.
     expect(row.children).toHaveLength(2)
     expect(row.parentElement?.tagName).toBe('FORM')
   })
@@ -54,9 +54,16 @@ describe('ContactForm — prueba de humo', () => {
     expect(screen.getByLabelText('Phone')).toBeRequired()
     expect(screen.getByLabelText('Email')).toBeRequired()
     expect(screen.getByLabelText('Message')).toBeRequired()
-    expect(
-      screen.getByLabelText('I agree to the Privacy & Cookies policy'),
-    ).toBeRequired()
+  })
+
+  it('la casilla informativa no es obligatoria, empieza sin marcar y no viaja con el formulario', () => {
+    render(<ContactForm />)
+
+    const checkbox = screen.getByLabelText('I have read the privacy policy')
+
+    expect(checkbox).not.toBeRequired()
+    expect(checkbox).not.toBeChecked()
+    expect(checkbox).not.toHaveAttribute('name')
   })
 
   it('el honeypot existe en el DOM (para que un bot lo rellene) pero no es alcanzable por teclado', () => {

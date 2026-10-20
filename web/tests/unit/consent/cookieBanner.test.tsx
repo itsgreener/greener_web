@@ -79,7 +79,7 @@ describe('Ventana de cookies', () => {
 
     expect(screen.getByRole('link', { name: 'Cookie Policy' })).toHaveAttribute(
       'href',
-      '/privacy',
+      '/privacy#cookies',
     )
   })
 

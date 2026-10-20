@@ -394,7 +394,7 @@ describe('EpisodeDetail — prueba de humo', () => {
       )
 
       const link = screen.getByRole('link', { name: 'Privacy & Cookies' })
-      expect(link).toHaveAttribute('href', '/privacy')
+      expect(link).toHaveAttribute('href', '/privacy#cookies')
       expect(link).toHaveAttribute('target', '_blank')
       expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'))
 

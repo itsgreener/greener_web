@@ -36,10 +36,19 @@ function pageHref(
   return query ? `/admin/audit?${query}` : '/admin/audit'
 }
 
-/** Enlace a la ficha cuando la entidad es un contenido (puede estar borrado). */
+/**
+ * Enlace a la ficha cuando la entidad es un contenido o un candidato de
+ * Talent (puede estar borrado).
+ */
 function entityHref(entry: AuditLogEntry): string | null {
-  return entry.entity === 'content' && entry.entityId
-    ? `/admin/contents/${entry.entityId}/edit`
+  if (!entry.entityId) return null
+
+  if (entry.entity === 'content') {
+    return `/admin/contents/${entry.entityId}/edit`
+  }
+
+  return entry.entity === 'talent_candidate'
+    ? `/admin/talent/${entry.entityId}`
     : null
 }
 
@@ -108,6 +117,8 @@ export default async function AuditLogPage({ searchParams }: Props) {
               <option value="episode">Episode</option>
 
               <option value="other_detail">Other</option>
+
+              <option value="talent_candidate">Talent (candidato)</option>
             </select>
 
             {entityId && (

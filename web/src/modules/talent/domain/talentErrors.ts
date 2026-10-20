@@ -15,3 +15,12 @@ export class FileScanRejectedError extends Error {
     this.name = 'FileScanRejectedError'
   }
 }
+
+/** Falta la URL del webhook (variable de entorno opcional hasta la fase 3). */
+export class WebhookNotConfiguredError extends Error {
+  constructor(variable: string) {
+    super(`Falta la variable ${variable}.`)
+
+    this.name = 'WebhookNotConfiguredError'
+  }
+}

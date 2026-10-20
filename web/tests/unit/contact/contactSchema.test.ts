@@ -7,7 +7,6 @@ describe('contactFormSchema', () => {
     phone: '+34 600 000 000',
     email: 'marta@example.com',
     message: 'Hola, quería preguntaros por vuestros servicios.',
-    privacyConsent: true,
   }
 
   it('acepta un envío válido', () => {
@@ -38,14 +37,9 @@ describe('contactFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rechaza sin aceptar la política de privacidad (§14.1: obligatorio)', () => {
-    expect(
-      contactFormSchema.safeParse({ ...base, privacyConsent: false }).success,
-    ).toBe(false)
-    expect(
-      contactFormSchema.safeParse({ ...base, privacyConsent: undefined })
-        .success,
-    ).toBe(false)
+  it('no exige ninguna casilla de privacidad: la casilla del formulario es solo informativa', () => {
+    expect(contactFormSchema.safeParse(base).success).toBe(true)
+    expect(contactFormSchema.shape).not.toHaveProperty('privacyConsent')
   })
 
   it('recorta espacios de los campos de texto', () => {

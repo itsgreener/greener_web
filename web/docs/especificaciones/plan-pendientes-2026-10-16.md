@@ -85,7 +85,7 @@ Greener pidió más información. Se entrega en la conversación (resumen en §3
 
 ### Bloque D — Página de careers con n8n (punto 5)
 
-**Actualización (16 oct, tarde):** el código ya está revisado y el plan detallado vive en `plan-talent-careers.md` (los pasos de abajo quedan como borrador previo). Planificado, sin ejecutar; **la fase 0 (datos de Supabase-talent y workflows de n8n) se cerró el 19 oct** y la fase 1 (servidor) se hizo ese mismo día (`plan-talent-careers.md` §3.1); siguen la 2 (paquete) y la 3 (ABM). Pasos previstos originalmente:
+**Actualización (16 oct, tarde):** el código ya está revisado y el plan detallado vive en `plan-talent-careers.md` (los pasos de abajo quedan como borrador previo). Planificado, sin ejecutar; **la fase 0 (datos de Supabase-talent y workflows de n8n) se cerró el 19 oct** y las fases 1 (servidor) y 2 (paquete) se hicieron ese mismo día (`plan-talent-careers.md` §3.1 y §3.2) y la 3 (ABM) el 19 oct también (§3.3); sigue la 4 (puesta en marcha, de Greener). Pasos previstos originalmente:
 
 1. Revisar la página y su backend `/admin` y confirmar qué parte puede ser un paquete (§4).
 2. Resolver la llamada al webhook de n8n de forma compatible con la CSP.
@@ -120,10 +120,10 @@ Cosas que aún no se pueden dar y que bloquean o condicionan lo anterior.
 
 | Nº | Qué falta | De quién | Bloquea |
 | --- | --- | --- | --- |
-| 3 | Texto legal final del asesor para `/privacy` (cookies y newsletter). Después se sube `CONSENT_TEXT_VERSION`. | Asesor | Bloque E; publicar cualquier `other` |
-| 6 | Política de privacidad de los formularios: mención de Mailchimp y plazo de retención de `contact_submission`. | Greener y asesor | Bloque E |
-| 4 | Tabla de cookies de terceros medida con DevTools (YouTube, Spotify, Cloudinary). «Casi lista.» | Greener | Bloque E |
-| 5 | ~~Código de la página de careers, URL y formato del webhook de n8n, y descripción del backend `/admin`.~~ **Entregado** (16 y 19 oct). Queda el identificador de la audiencia de Mailchimp de talent (`plan-talent-careers.md` §5.2) y volver a adjuntar `talent.zip` para la fase 2. | Greener | Puesta en marcha y fase 2 de talent |
+| 3 | ~~Texto legal final del asesor para `/privacy` (cookies y newsletter). Después se sube `CONSENT_TEXT_VERSION`.~~ **Incorporado el 19 oct (§2.86), con `CONSENT_TEXT_VERSION` = `2026-10-19`.** Queda el visto bueno del asesor a los tres añadidos de Greener (`politica-cookies-cambios.md` §5). | Asesor | Bloque E; publicar cualquier `other` |
+| 6 | ~~Política de privacidad de los formularios: mención de Mailchimp y plazo de retención de `contact_submission`.~~ **Hecho el 19 oct (§2.86):** Mailchimp en el texto y purga a 30 días (migración `20261019140000`, por aplicar). | Greener y asesor | Bloque E |
+| 4 | ~~Tabla de cookies de terceros medida con DevTools (YouTube, Spotify, Cloudinary).~~ **Hecha** con la auditoría del 15-16 de octubre e incorporada a `/privacy` el 19 (§2.86). | Greener | Bloque E |
+| 5 | ~~Código de la página de careers, URL y formato del webhook de n8n, y descripción del backend `/admin`.~~ **Entregado** (16 y 19 oct). `talent.zip` recibido el 19 oct y fases 2 y 3 hechas. Queda el identificador de la audiencia de Mailchimp de talent (`TALENT_MAILCHIMP_AUDIENCE_ID`, `plan-talent-careers.md` §5.2). | Greener | Puesta en marcha de talent |
 | 10 | Decidir: retirar las columnas muertas de `feed_config` (propuesto) o conectarlas. | Greener | Bloque C |
 | 13 | Decidir qué módulos del ABM entran (propuesto: solo visor de `audit_log`). | Greener | Bloque C |
 | 17 | Confirmar que las licencias de Helvetica Neue y Kinder cubren web autoalojada y la conversión a WOFF2. | Greener | Antes de publicar |
