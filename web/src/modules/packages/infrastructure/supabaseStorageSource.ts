@@ -97,6 +97,53 @@ const cachedPublishedVersion = unstable_cache(
   { tags: [PACKAGE_CACHE_TAG], revalidate: PACKAGE_VERSION_TTL_SECONDS },
 )
 
+/** TTL de la lista de slugs publicados; el ABM la invalida por etiqueta. */
+const PUBLISHED_SLUGS_TTL_SECONDS = 60
+
+/**
+ * Slugs publicados con versión publicada, de una sola consulta. PostgREST
+ * devuelve como mucho 1000 filas: para páginas satélite (decenas como mucho)
+ * sobra, y quien lo use para otro tipo con más catálogo tendría que paginar.
+ */
+async function readPublishedSlugs(kind: PackageKind): Promise<string[]> {
+  const { data, error } = await createPublicReadClient()
+    .from('content')
+    .select(
+      `
+      slug,
+      html_package (
+        current_version:html_package_version!html_package_current_version_fk (
+          status
+        )
+      )
+    ` as const,
+    )
+    .eq('type', PACKAGE_KIND_CONTENT_TYPE[kind])
+    .eq('status', 'published')
+
+  if (error) {
+    throw new PackageSourceUnavailableError(kind, { cause: error })
+  }
+
+  return (data ?? [])
+    .filter((row) => {
+      const pkg = Array.isArray(row.html_package)
+        ? row.html_package[0]
+        : row.html_package
+
+      return pkg?.current_version?.status === 'published'
+    })
+    .map((row) => row.slug)
+}
+
+// Una entrada por tipo de paquete (no por slug), así que una URL inventada no
+// ocupa memoria. Los fallos no se cachean.
+const cachedPublishedSlugs = unstable_cache(
+  readPublishedSlugs,
+  ['published-package-slugs'],
+  { tags: [PACKAGE_CACHE_TAG], revalidate: PUBLISHED_SLUGS_TTL_SECONDS },
+)
+
 async function downloadFile(slug: string, path: string): Promise<Blob> {
   const { data: file, error } = await createServiceClient()
     .storage.from(PACKAGE_BUCKET)
@@ -187,5 +234,6 @@ async function getStoragePackageAsset(
 
 export const supabasePublishedPackageSource: PublishedPackageSource = {
   getPackage: getStoragePackage,
+  listPublishedSlugs: cachedPublishedSlugs,
   getAsset: getStoragePackageAsset,
 }

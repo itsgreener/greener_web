@@ -16,6 +16,16 @@ export interface PublishedPackageSource {
   getPackage(kind: PackageKind, slug: string): Promise<ResolvedPackage>
 
   /**
+   * Slugs de los contenidos publicados de ese tipo de paquete que tienen una
+   * versión publicada. Una sola lectura (no una por slug), pensada para las
+   * rutas que tienen que saber si un slug existe sin consultar la base por
+   * cada URL inventada.
+   *
+   * @throws PackageSourceUnavailableError
+   */
+  listPublishedSlugs(kind: PackageKind): Promise<string[]>
+
+  /**
    * Un asset (CSS/JS/etc.) del paquete publicado, por ruta relativa. Con
    * `ifNoneMatch` igual al ETag vigente no se descarga nada.
    *

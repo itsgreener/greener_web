@@ -67,6 +67,35 @@ describe('otherFrequencySchema', () => {
   })
 })
 
+describe('createOtherSchema — slugs reservados', () => {
+  it('rechaza en una página un slug que ya es una ruta de la web', () => {
+    const result = createOtherSchema.safeParse({
+      ...base,
+      kind: 'page',
+      slug: 'contact',
+    })
+
+    expect(result.success).toBe(false)
+  })
+
+  it('acepta un slug libre en una página', () => {
+    expect(
+      createOtherSchema.safeParse({ ...base, kind: 'page', slug: 'talent' })
+        .success,
+    ).toBe(true)
+  })
+
+  it('una newsletter no tiene URL: el slug reservado no le afecta', () => {
+    expect(
+      createOtherSchema.safeParse({
+        ...base,
+        kind: 'newsletter',
+        slug: 'tools',
+      }).success,
+    ).toBe(true)
+  })
+})
+
 describe('createOtherSchema', () => {
   it('acepta un other completo', () => {
     expect(createOtherSchema.safeParse(base).success).toBe(true)

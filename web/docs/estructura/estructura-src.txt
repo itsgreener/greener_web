@@ -19,6 +19,7 @@ src/app/(public)/(feed)/layout.tsx
 src/app/(public)/(feed)/page.tsx
 src/app/(public)/(feed)/tools/page.tsx
 src/app/(public)/(feed)/work/page.tsx
+src/app/(public)/[slug]/page.tsx
 src/app/(public)/contact/ContactForm.module.css
 src/app/(public)/contact/ContactForm.tsx
 src/app/(public)/contact/contactActions.ts
@@ -263,6 +264,7 @@ src/modules/content/domain/otherSchema.ts
 src/modules/content/domain/pinFooter.ts
 src/modules/content/domain/publicContent.ts
 src/modules/content/domain/publicContentReader.ts
+src/modules/content/domain/reservedSlugs.ts
 src/modules/content/domain/sitemap.ts
 src/modules/content/domain/textLimits.ts
 src/modules/content/infrastructure/episodePoster.ts

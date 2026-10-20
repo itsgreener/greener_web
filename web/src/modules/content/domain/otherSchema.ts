@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { idSchema } from '@/lib/validation/idSchema'
 import { createContentSchema } from '@/modules/content/domain/contentSchema'
+import { isReservedRootSegment } from '@/modules/content/domain/reservedSlugs'
 
 /**
  * ABM de los contenidos `other` (plan de other, §3 y §7). Tienen dos
@@ -95,6 +96,16 @@ export const createOtherSchema = createContentSchema
     kind: otherKindSchema,
 
     frequency: otherFrequencySchema,
+  })
+  .superRefine((value, ctx) => {
+    // Solo las páginas tienen URL (`/{slug}` redirige a `/variety/{slug}/app`).
+    if (value.kind === 'page' && isReservedRootSegment(value.slug)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['slug'],
+        message: 'Ese slug está reservado por la web. Elige otro',
+      })
+    }
   })
 
 export const updateOtherFrequencySchema = z.object({

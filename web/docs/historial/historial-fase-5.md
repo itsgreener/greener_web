@@ -1720,3 +1720,28 @@ Greener comparte una versión de la web con el texto legal (§2.86) y pide fusio
 **Verificación.** `tsc` y ESLint limpios; **213 ficheros y 2.454 tests en verde** (2.275 de talent fase 2 + 163 de la fase 3 + 16 de la línea legal); `next build` correcto. Migraciones: 57.
 
 **Lo que la fusión deja a la vista (consultas para el asesor, 10 a 24).** El texto de privacidad **del paquete** de talent no se ha tocado y sigue siendo el de mayo: nombra a Anthropic cuando los workflows de n8n llaman a OpenAI, menciona datos que el formulario no pide («ciudad o localidad», YouTube), no guarda prueba de que se marcó la casilla de consentimiento, y el correo que reciben las personas cuyo CV sube el personal no lleva información de privacidad. `/privacy` ya es el texto del asesor pero no cubre talent. El documento `Consultas_para_el_asesor_legal_texto_de_privacy.md` se amplía con una sección de talent (cómo funciona hoy, tabla de datos y 15 consultas) y con lo que tiene que aportar Greener.
+
+### 2.90 Talent, fase 4 (arranque): URL corta de las páginas satélite y pin provisional (20 oct 2026)
+
+Greener pide arrancar la fase 4 tras revisar el plan. Respuestas: la web **no está en producción** (preview de Vercel; el enlace del correo de n8n apunta provisionalmente ahí); migraciones aplicadas y todas las variables de entorno puestas, también las opcionales; el texto legal que se carga es el que ya hay; pin provisional por mi parte; y una redirección corta que valga **para cualquier página bajo `variety`**, no solo para talent.
+
+**Revisión previa (hallazgos que no estaban en los documentos).**
+
+- Una página `variety` solo se sirve si su contenido está `published` (`resolvePublishedVersion` filtra por `content.status`) y los `other` no tienen Preview: no se puede probar el formulario real en borrador. Las rutas `/api/talent` y el ABM de Talent sí se pueden probar antes, porque no dependen del paquete.
+- Publicar una página satélite exige al menos un pin con medio (ZG018): los documentos de talent hablaban del `og.png` del paquete pero no del pin del feed.
+- El `talent.zip` adjuntado es el repo original de mayo (Supabase y Google en el navegador, sin `build:package`), no el adaptado de la fase 2: sin ese repo, o sin el `talent-form-package.zip` ya generado, no se puede subir el paquete ni tocar `mail.html`. Queda pendiente de Greener.
+- La autenticación de los webhooks de n8n ya no depende de retirar la web antigua: dejó de funcionar el 19 oct.
+- `audit_log.entity` es texto libre y los administradores pueden insertar (`audit_log_admin_insert`): las entidades y acciones de talent no necesitan migración y la apertura de un CV no falla cerrada por la base.
+
+**URL corta.** `src/app/(public)/[slug]/page.tsx`: si el slug es de una página satélite publicada con versión publicada, 307 a `/variety/{slug}/app`; si no, `notFound()`. Decisiones:
+
+- *Una consulta, no una por URL.* Una ruta dinámica en la raíz recibe todo lo que no sea una ruta estática (bots incluidos). `listPublishedSlugs(kind)` (puerto `PublishedPackageSource`, implementado en `supabaseStorageSource.ts`) lee de una vez los slugs publicados con versión publicada y se cachea 60 s con la misma etiqueta que la versión publicada (`PACKAGE_CACHE_TAG`), que ya invalidan las acciones de publicar y de paquete. Los fallos no se cachean y suben como `PackageSourceUnavailableError`, no como lista vacía.
+- *Las rutas estáticas ganan.* En Next.js una ruta estática se resuelve antes que una dinámica, así que `/contact` o `/tools` nunca llegan a `[slug]`. Una página con ese slug seguiría funcionando en `/variety/{slug}/app` pero su URL corta no. Por eso `createOtherSchema` rechaza, solo en las páginas, los slugs de `RESERVED_ROOT_SEGMENTS` (`reservedSlugs.ts`). La edición posterior del slug no lo comprueba (solo pierde la URL corta). Un test lee las carpetas reales de `src/app` (y sus grupos) y de `public` y falla si falta, o sobra, un segmento en la lista.
+- *Temporal (307)*, igual que `/variety/{slug}`: la página puede despublicarse y un 301 quedaría en la caché del navegador. El fragmento `#/form/<token>` sobrevive a la redirección porque la respuesta no lleva otro; la cadena de consulta no se arrastra.
+- *Sin analítica ni sitemap:* no cambia nada para las páginas satélite, que siguen fuera del sitemap.
+
+**Pin provisional.** `talent-45-img.webp` (1024×1280, 4:5, WebP calidad 86, 39 KB; tabla de §5.2 del contrato de medios para pin solo-feed) renderizado en Chromium con Coolvetica, el verde ácido como color principal y el logo; nombre según la convención de §10.4 y un `pin-talent.csv` (`filename,label,ratio,language,alt`) con el rótulo «Join the Greener team» (el pie del pin de un `other` es el rótulo del admin), ratio `4:5`, idioma `en` y alt descriptivo. Se entrega aparte, no forma parte del repositorio.
+
+**Verificación.** `tsc` y ESLint limpios; **216 ficheros y 2.469 tests en verde** (+3 ficheros y +15 tests: la ruta corta, los slugs reservados contra las carpetas reales, `listPublishedSlugs` y la validación del alta); `next build` correcto con la ruta `/[slug]` dinámica (con variables ficticias). Prettier con la configuración del proyecto (el repositorio comparte `.prettierrc` como archivo oculto) y los ficheros existentes conservan su fin de línea. **No se ha probado contra Supabase real**: la lista de slugs y la redirección se comprueban con dobles.
+
+**Para Greener.** Antes de publicar la página: `docs/operaciones/talent-puesta-en-marcha.md` §5 y §6 (rutas y ABM, sin página) y, con el paquete adaptado, §2.1 (subirla, cargar el pin, publicar). Con la página publicada, `/talent` redirige a `/variety/talent/app`.

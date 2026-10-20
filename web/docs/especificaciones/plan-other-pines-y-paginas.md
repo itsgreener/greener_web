@@ -124,6 +124,7 @@ No hay valor «0 = desactivado»: para retirar un `other` del feed se despublica
 6. **Pin.** Pin normal de imagen o vídeo con gancho (`label` obligatorio como hasta ahora). No desaparece al hacer clic.
 7. **Sin preview de borrador.** Igual que tools e insights (limitación ya anotada en PROGRESO §4.2).
 8. **Sitemap y `llms.txt`.** No se listan las páginas satélite.
+9. **URL corta (añadida el 20 oct, §2.90 del historial).** `/{slug}` redirige (307) a `/variety/{slug}/app` para cualquier página satélite publicada (`src/app/(public)/[slug]/page.tsx`). Lista de slugs publicados cacheada 60 s e invalidada al publicar o despublicar (`listPublishedSlugs`); sin consulta por URL inventada. Los slugs que coinciden con una ruta de la web se rechazan al crear la página (`reservedSlugs.ts`).
 
 ## 7. ABM
 

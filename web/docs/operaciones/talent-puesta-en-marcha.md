@@ -53,10 +53,15 @@ TALENT_MAILCHIMP_AUDIENCE_ID=xxxxxxxxxx
 
 El ZIP sale del repo `talent` con `npm run build:package` (`talent-form-package.zip`, unos 200 KB). Pasos:
 
+0. **Antes de publicar nada,** haz la prueba del §5 con `curl` (sin la página) y la del ABM del §6: ni las rutas `/api/talent` ni el ABM dependen del paquete. Una página `variety` no se puede probar en borrador (solo se sirve publicada y no tiene Preview), así que la prueba con el formulario real se hace después del paso 2, en el preview de Vercel o en producción.
 1. En el ABM de la web, **Otros** → crear una página de tipo `variety` → subir el ZIP. Si rechaza la subida, el mensaje dice qué dominio o qué regla incumple (lo habitual: un enlace nuevo sin declarar en `externalDomains` del `manifest.json`). Queda en borrador hasta publicarlo.
 2. Con la página publicada, la URL es `https://itsgreener.com/variety/talent/app` (slug `talent`). En **Otros** la frecuencia es una vez cada 125 pines (el mínimo es 25 y el valor por defecto 100). Las rutas internas llevan `#`: el formulario es `…/app#/form/<token>`.
+   **Pin obligatorio.** Para publicar una página satélite hace falta al menos un pin con imagen o vídeo (error ZG018 si no): en el editor de la página, bloque **Pines** → carga masiva: `talent-45-img.webp` en «Imágenes y vídeos (varios)» y `pin-talent.csv` en el campo del CSV (4:5, idioma `en`, rótulo «Join the Greener team» y alt descriptivo, ya rellenados en el CSV). Es un visual provisional; se sustituye cuando Greener tenga el definitivo (la ficha del pin se edita sin tocar el paquete). Una página no se publica sin paquete publicado (ZG009).
+   **URL corta.** Con la página publicada, `https://itsgreener.com/talent` (y `/{slug}` de cualquier otra página satélite) redirige a `/variety/talent/app`. El fragmento `#/form/<token>` se conserva, así que el enlace del correo puede usar cualquiera de las dos formas. El slug no puede ser el de una ruta de la web (`contact`, `tools`, `privacy`…): el alta lo rechaza.
 3. **Cambiar el enlace del correo.** En la plantilla del nodo `Enviar mail a candidato` de n8n, y en `mail.html` del repo `talent` (el botón de la línea con `talent.itsgreener.com/form/`), el enlace pasa a `https://itsgreener.com/variety/talent/app#/form/{{ $json.access_token }}`.
-4. Prueba del §5. Después se retira la web antigua.
+4. Prueba del §5 completa (con el paquete publicado). Después se retira la web antigua.
+
+**Estado (20 oct).** La web se prueba en un preview de Vercel y el enlace del correo apunta a esa URL de forma provisional; al salir a producción se cambia a `itsgreener.com`. El paquete se sube con el texto de privacidad que ya lleva (el de 13 de mayo): el texto nuevo es la fase 5.
 
 Cada cambio del paquete es un ZIP nuevo, es decir, una versión nueva en el ABM. Hasta decidir la política de privacidad (decisión 4 del plan) el paquete lleva el texto de 13 de mayo de 2026.
 
@@ -78,7 +83,7 @@ Nada las vuelve a procesar. Ver §4.2.
 
 ### 3.4 Autenticación de los webhooks (con la fase 4)
 
-En el nodo `Webhook` de los tres workflows: **Authentication → Header Auth**, con una credencial de n8n cuyo nombre de cabecera y valor son los de `TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME` y `TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE`. Primero se rellenan esas dos variables en el servidor y se despliega (el código ya envía la cabecera si existen), y después se activa la autenticación en n8n; a la inversa, las llamadas darían 403. Tiene que hacerse **a la vez** que se retira la web antigua, que llama a los webhooks sin cabecera.
+En el nodo `Webhook` de los tres workflows: **Authentication → Header Auth**, con una credencial de n8n cuyo nombre de cabecera y valor son los de `TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME` y `TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE`. Primero se rellenan esas dos variables en el servidor y se despliega (el código ya envía la cabecera si existen), y después se activa la autenticación en n8n; a la inversa, las llamadas darían 403. Ya no hace falta esperar a retirar la web antigua: dejó de funcionar el 19 oct (claves heredadas desactivadas) y no llega a llamar a los webhooks. Antes de activarla, comprueba que `Procesar nuevo CV` llama a `Enviar mail a candidato` con un nodo de subworkflow y no por su URL (si fuese por URL, la cabecera lo rompería).
 
 ## 4. SQL para el proyecto de Supabase de talent
 
