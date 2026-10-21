@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useId, useRef } from 'react'
+import { useActionState, useEffect, useId, useRef, useState } from 'react'
 import Link from 'next/link'
 
 import {
@@ -43,6 +43,7 @@ export function NewsletterPinCard({
   )
   const emailId = useId()
   const reported = useRef(false)
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
 
   useEffect(() => {
     if (!state.success || reported.current) return
@@ -74,62 +75,55 @@ export function NewsletterPinCard({
     >
       <div className={styles.inner}>
         {state.success ? (
-          // Con el alta hecha la tarjeta solo enseña la confirmación: en la
-          // columna más estrecha no cabría junto al titular.
-          <p className={styles.success} role="status">
-            {state.message}
-          </p>
+          <div className={styles.success} role="status">{state.message}</div>
         ) : (
           <>
-            <div className={styles.copy}>
-              <h2 className={`${styles.title} text-display`}>{item.title}</h2>
-              {item.text && <p className={styles.text}>{item.text}</p>}
+          <h2 className={styles.headline}>
+            Like what<br />you see? We’ll<br />write you<br />when there’s<br />more
+          </h2>
+          <form action={formAction} className={styles.form}>
+            <div className={styles.honeypot} aria-hidden="true">
+              <label htmlFor={`${emailId}-company`}>Company</label>
+              <input id={`${emailId}-company`} name="company" type="text" tabIndex={-1} autoComplete="off" />
             </div>
-
-            <form action={formAction} className={styles.form}>
-              {/* Honeypot: fuera de pantalla, no display:none (ver ContactForm). */}
-              <div className={styles.honeypot} aria-hidden="true">
-                <label htmlFor={`${emailId}-company`}>Company</label>
-                <input
-                  id={`${emailId}-company`}
-                  name="company"
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                />
-              </div>
-
-              <label htmlFor={emailId} className={styles.srOnly}>
-                Email
-              </label>
-              <input
-                id={emailId}
-                name="newsletterEmail"
-                type="email"
-                placeholder="Email"
-                autoComplete="email"
-                required
-                className={styles.input}
-              />
-              {(emailError || state.formError) && (
-                <p className={styles.error} role="alert">
-                  {emailError ?? state.formError}
-                </p>
-              )}
-
-              <p className={styles.legal}>
-                How we use your email and the cookie this saves:{' '}
-                <Link href="/privacy#newsletter">Privacy</Link>
+            <label htmlFor={emailId} className={styles.srOnly}>Your email</label>
+            <input
+              id={emailId}
+              name="newsletterEmail"
+              type="email"
+              placeholder="Your email here"
+              autoComplete="email"
+              required
+              className={styles.input}
+            />
+            {(emailError || state.formError) && (
+              <p className={styles.error} role="alert">
+                {emailError ?? state.formError}
               </p>
-
+            )}
+            <div className={styles.bottomRow}>
+              <label className={styles.legal}>
+                <input
+                  type="checkbox"
+                  name="privacyAccepted"
+                  checked={privacyAccepted}
+                  onChange={(event) => setPrivacyAccepted(event.target.checked)}
+                  className={styles.checkbox}
+                />
+                <span>
+                  I agree to the <Link href="/privacy#newsletter" onClick={(event) => event.stopPropagation()}>Privacy Policy</Link>.
+                </span>
+              </label>
               <button
                 type="submit"
-                disabled={pending}
+                disabled={pending || !privacyAccepted}
+                aria-label={pending ? 'Sending subscription' : 'Subscribe to newsletter'}
                 className={styles.submit}
               >
                 {pending ? 'Sending…' : 'Subscribe'}
               </button>
-            </form>
+            </div>
+          </form>
           </>
         )}
       </div>

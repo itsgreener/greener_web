@@ -1,4 +1,4 @@
-import type { CSSProperties, RefObject } from 'react'
+import { useRef, useState, type CSSProperties, type RefObject } from 'react'
 
 import {
   buildImageSrcSet,
@@ -32,6 +32,7 @@ export function PinCardMedia({
   video,
   videoRef,
   sources,
+  hoverPreview,
 }: {
   pinId: string
   ratio: string
@@ -43,6 +44,7 @@ export function PinCardMedia({
   video: VideoState
   videoRef: RefObject<HTMLVideoElement | null>
   sources: { type: string; src: string }[]
+  hoverPreview: boolean
 }) {
   const isVideo = media.kind === 'video'
 
@@ -90,6 +92,7 @@ export function PinCardMedia({
           // El póster de debajo ya lleva el `alt`.
           aria-hidden="true"
           onCanPlay={video.handlers.onCanPlay}
+          onLoadedData={video.handlers.onLoadedData}
           onPlaying={video.handlers.onPlaying}
           onPause={video.handlers.onPause}
           onError={video.handlers.onVideoError}
@@ -104,7 +107,45 @@ export function PinCardMedia({
           ))}
         </video>
       )}
+      {hoverPreview && <HoverPreview key={media.cloudinaryPublicId} sources={sources} />}
       {cta && <span className={styles.cta}>{cta}</span>}
     </div>
+  )
+}
+
+/** A preview triggered by the pointer, entirely independent of the autoplay coordinator.
+ * It mounts only for the hovered video and unmounts immediately on exit. */
+function HoverPreview({ sources }: { sources: { type: string; src: string }[] }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+
+  const play = () => {
+    const el = ref.current
+    if (!el) return
+    el.muted = true
+    const attempt = el.play()
+    attempt?.catch(() => setPlaying(false))
+  }
+
+  return (
+    <video
+      ref={ref}
+      className={`${styles.video} ${playing ? styles.videoVisible : ''}`}
+      muted
+      autoPlay
+      loop
+      playsInline
+      preload="auto"
+      aria-hidden="true"
+      onLoadedData={play}
+      onCanPlay={play}
+      onPlaying={() => setPlaying(true)}
+      onPause={() => setPlaying(false)}
+      onError={() => setPlaying(false)}
+    >
+      {sources.map((source) => (
+        <source key={source.type} src={source.src} type={source.type} />
+      ))}
+    </video>
   )
 }
