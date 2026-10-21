@@ -1,4 +1,5 @@
 import type {
+  CandidateDeletionTarget,
   CandidateDetail,
   CandidateSearchResult,
   StatusCounts,
@@ -86,6 +87,21 @@ export interface TalentAdminRepository {
   findAccessById(candidateId: string): Promise<CandidateAccess | null>
 
   setAccessToken(candidateId: string, accessToken: string): Promise<void>
+
+  /** Qué hay que borrar de un candidato; `null` si no existe. */
+  findDeletionTarget(
+    candidateId: string,
+  ): Promise<CandidateDeletionTarget | null>
+
+  /** Borra proyectos, ficheros y la propia fila del candidato, en ese orden. */
+  deleteCandidateRows(candidateId: string): Promise<void>
+
+  /**
+   * Ids de los candidatos cuyo plazo de conservación ha vencido a `now` (más
+   * antiguos primero, los de `created_at` nulo los primeros si ya les toca).
+   * El criterio está en `talentRetention.ts`.
+   */
+  listExpiredCandidateIds(now: Date, limit: number): Promise<string[]>
 }
 
 /** Bucket privado `cvs`. */

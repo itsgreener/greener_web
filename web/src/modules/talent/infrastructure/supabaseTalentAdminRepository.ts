@@ -10,9 +10,16 @@ import type {
   CandidateFileDetail,
   CandidateListItem,
 } from '@/modules/talent/domain/talentAdminModels'
-import { classifyCvLocation } from '@/modules/talent/domain/talentCvLocation'
+import {
+  classifyCvLocation,
+  isBucketPath,
+} from '@/modules/talent/domain/talentCvLocation'
 import type { CandidateProject } from '@/modules/talent/domain/talentModels'
 import type { TalentAdminRepository } from '@/modules/talent/domain/talentPorts'
+import {
+  RETENTION_YEARS,
+  UNDATED_RETENTION_END,
+} from '@/modules/talent/domain/talentRetention'
 
 import { getTalentClient } from './talentSupabaseClient'
 
@@ -314,5 +321,102 @@ export const supabaseTalentAdminRepository: TalentAdminRepository = {
       .eq('id', candidateId)
 
     if (error) fail('candidates.setAccessToken', error)
+  },
+
+  async findDeletionTarget(candidateId) {
+    const client = getTalentClient()
+
+    const { data, error } = await client
+      .from('candidates')
+      .select('id,file_path,newsletter_accepted,created_at')
+      .eq('id', candidateId)
+      .limit(1)
+
+    if (error) fail('candidates.findDeletionTarget', error)
+
+    const row = (
+      data as
+        | {
+            id: string
+            file_path: string | null
+            newsletter_accepted: boolean | null
+            created_at: string | null
+          }[]
+        | null
+    )?.[0]
+
+    if (!row) return null
+
+    const files = await client
+      .from('files')
+      .select('path')
+      .eq('candidate_id', candidateId)
+
+    if (files.error) fail('files.findDeletionTarget', files.error)
+
+    const paths = [
+      row.file_path,
+      ...((files.data ?? []) as { path: string | null }[]).map((f) => f.path),
+    ]
+      .map((path) => path?.trim() ?? '')
+      .filter((path) => path !== '')
+
+    const bucketPaths = [...new Set(paths.filter(isBucketPath))]
+
+    return {
+      id: row.id,
+      bucketPaths,
+      externalPaths: paths.filter((path) => !isBucketPath(path)),
+      newsletterAccepted: row.newsletter_accepted === true,
+      createdAt: row.created_at ?? null,
+    }
+  },
+
+  async deleteCandidateRows(candidateId) {
+    const client = getTalentClient()
+
+    // Primero los hijos: no se sabe si las claves foráneas son en cascada.
+    const projects = await client
+      .from('projects')
+      .delete()
+      .eq('candidate_id', candidateId)
+
+    if (projects.error) fail('projects.delete', projects.error)
+
+    const files = await client
+      .from('files')
+      .delete()
+      .eq('candidate_id', candidateId)
+
+    if (files.error) fail('files.delete', files.error)
+
+    const candidate = await client
+      .from('candidates')
+      .delete()
+      .eq('id', candidateId)
+
+    if (candidate.error) fail('candidates.delete', candidate.error)
+  },
+
+  async listExpiredCandidateIds(now, limit) {
+    const cutoff = new Date(now)
+
+    cutoff.setUTCFullYear(cutoff.getUTCFullYear() - RETENTION_YEARS)
+
+    // Un `timestamp` sin zona se compara como UTC, que es como se guarda.
+    const dated = `created_at.lt.${cutoff.toISOString()}`
+    const undatedDue = now.getTime() >= UNDATED_RETENTION_END.getTime()
+
+    const { data, error } = await getTalentClient()
+      .from('candidates')
+      .select('id')
+      .or(undatedDue ? `${dated},created_at.is.null` : dated)
+      .order('created_at', { ascending: true, nullsFirst: true })
+      .order('id', { ascending: true })
+      .limit(limit)
+
+    if (error) fail('candidates.listExpired', error)
+
+    return ((data ?? []) as { id: string }[]).map((row) => row.id)
   },
 }

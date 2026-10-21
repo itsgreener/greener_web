@@ -416,3 +416,145 @@ describe('findAccessById / setAccessToken', () => {
     expect(stepsOf(0).eq).toEqual(['id', 'c1'])
   })
 })
+
+describe('findDeletionTarget', () => {
+  it('reúne las rutas del bucket (sin repetir) y cuenta las que no lo son', async () => {
+    program('candidates.select', {
+      data: [
+        {
+          id: 'c1',
+          file_path: 'uploads/cv.pdf',
+          newsletter_accepted: true,
+          created_at: '2024-05-01T09:30:00.123456',
+        },
+      ],
+    })
+    program('files.select', {
+      data: [
+        { path: 'uploads/cv.pdf' },
+        { path: 'uploads/portfolio.png' },
+        { path: 'https://drive.google.com/file/d/abc/view' },
+        { path: null },
+        { path: '  ' },
+      ],
+    })
+
+    expect(await repository.findDeletionTarget('c1')).toEqual({
+      id: 'c1',
+      bucketPaths: ['uploads/cv.pdf', 'uploads/portfolio.png'],
+      externalPaths: ['https://drive.google.com/file/d/abc/view'],
+      newsletterAccepted: true,
+      createdAt: '2024-05-01T09:30:00.123456',
+    })
+    expect(stepsOf(0).eq).toEqual(['id', 'c1'])
+    expect(stepsOf(1).eq).toEqual(['candidate_id', 'c1'])
+  })
+
+  it('un CV ya en Drive cuenta como externo y newsletter null es false', async () => {
+    program('candidates.select', {
+      data: [
+        {
+          id: 'c1',
+          file_path: 'https://drive.google.com/file/d/x/view',
+          newsletter_accepted: null,
+        },
+      ],
+    })
+    program('files.select', { data: [] })
+
+    expect(await repository.findDeletionTarget('c1')).toEqual({
+      id: 'c1',
+      bucketPaths: [],
+      externalPaths: ['https://drive.google.com/file/d/x/view'],
+      newsletterAccepted: false,
+      createdAt: null,
+    })
+  })
+
+  it('un candidato que no existe es null y no consulta ficheros', async () => {
+    program('candidates.select', { data: [] })
+
+    expect(await repository.findDeletionTarget('c1')).toBeNull()
+    expect(calls).toHaveLength(1)
+  })
+
+  it('ignora una ruta del bucket con ..: no se borraría nada fuera de uploads/', async () => {
+    program('candidates.select', {
+      data: [
+        { id: 'c1', file_path: 'uploads/../otro', newsletter_accepted: false },
+      ],
+    })
+    program('files.select', { data: [] })
+
+    const target = await repository.findDeletionTarget('c1')
+
+    expect(target?.bucketPaths).toEqual([])
+    expect(target?.externalPaths).toEqual(['uploads/../otro'])
+  })
+})
+
+describe('deleteCandidateRows', () => {
+  it('borra primero proyectos, luego ficheros y al final el candidato', async () => {
+    await repository.deleteCandidateRows('c1')
+
+    expect(calls.map((call) => call.table)).toEqual([
+      'projects',
+      'files',
+      'candidates',
+    ])
+    expect(calls.map((call) => call.steps[0][0])).toEqual([
+      'delete',
+      'delete',
+      'delete',
+    ])
+    expect(stepsOf(0).eq).toEqual(['candidate_id', 'c1'])
+    expect(stepsOf(1).eq).toEqual(['candidate_id', 'c1'])
+    expect(stepsOf(2).eq).toEqual(['id', 'c1'])
+  })
+
+  it('si falla un borrado no sigue con el siguiente', async () => {
+    program('projects.delete', { error: { message: 'boom' } })
+
+    await expect(repository.deleteCandidateRows('c1')).rejects.toThrow(
+      'projects.delete',
+    )
+    expect(calls).toHaveLength(1)
+  })
+})
+
+describe('listExpiredCandidateIds', () => {
+  const NOW = new Date('2026-10-20T10:00:00Z')
+
+  it('pide los creados antes de hace 2 años, los más antiguos primero', async () => {
+    program('candidates.select', { data: [{ id: 'c1' }, { id: 'c2' }] })
+
+    expect(await repository.listExpiredCandidateIds(NOW, 51)).toEqual([
+      'c1',
+      'c2',
+    ])
+    expect(stepsOf(0).select).toEqual(['id'])
+    expect(stepsOf(0).or).toEqual(['created_at.lt.2024-10-20T10:00:00.000Z'])
+    expect(stepsOf(0).limit).toEqual([51])
+  })
+
+  it('las filas sin fecha solo entran a partir del 20 de octubre de 2027', async () => {
+    await repository.listExpiredCandidateIds(NOW, 10)
+    await repository.listExpiredCandidateIds(
+      new Date('2027-10-20T00:00:00Z'),
+      10,
+    )
+
+    expect(stepsOf(0).or).not.toEqual([expect.stringContaining('is.null')])
+    expect(stepsOf(1).or).toEqual([
+      'created_at.lt.2025-10-20T00:00:00.000Z,created_at.is.null',
+    ])
+  })
+
+  it('si falla la consulta lanza', async () => {
+    program('candidates.select', { error: { message: 'boom' } })
+
+    await expect(
+      repository.listExpiredCandidateIds(NOW, 10),
+    ).rejects.toThrow('candidates.listExpired')
+  })
+})

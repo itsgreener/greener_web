@@ -2,6 +2,7 @@ import { vi } from 'vitest'
 
 import type { TalentLimiters } from '@/modules/talent/application/talentLimiters'
 import { DuplicateCandidateEmailError } from '@/modules/talent/domain/talentErrors'
+import type { CandidateDeletionTarget } from '@/modules/talent/domain/talentAdminModels'
 import type {
   CandidateAccess,
   CandidateFileRecord,
@@ -301,6 +302,8 @@ export function fakeAdminRepository(
     counts?: Record<string, number>
     paths?: Record<string, string | null>
     requeueResult?: boolean
+    deletionTargets?: Record<string, CandidateDeletionTarget>
+    expiredIds?: string[]
   } = {},
 ) {
   const calls: string[] = []
@@ -309,6 +312,7 @@ export function fakeAdminRepository(
   const staffRows: StaffUploadRow[] = []
   const tokens: { id: string; token: string }[] = []
   const counts = { ...(options.counts ?? {}) }
+  const deletedIds: string[] = []
 
   function step(name: string) {
     calls.push(name)
@@ -359,7 +363,21 @@ export function fakeAdminRepository(
       step('setAccessToken')
       tokens.push({ id, token })
     },
+    async findDeletionTarget(id) {
+      step('findDeletionTarget')
+
+      return options.deletionTargets?.[id] ?? null
+    },
+    async deleteCandidateRows(id) {
+      step('deleteCandidateRows')
+      deletedIds.push(id)
+    },
+    async listExpiredCandidateIds(_now, limit) {
+      step('listExpiredCandidateIds')
+
+      return (options.expiredIds ?? []).slice(0, limit)
+    },
   }
 
-  return { admin, calls, failOn, staffRows, tokens, counts }
+  return { admin, calls, failOn, staffRows, tokens, counts, deletedIds }
 }

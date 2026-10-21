@@ -9,8 +9,10 @@ import {
   type PinRatio,
 } from '@/modules/masonry/domain/layout'
 import {
-  computeVirtualization,
-  type BatchHeight,
+  computeBatchBounds,
+  computeMountedRange,
+  type BatchBounds,
+  type MountedRange,
 } from '@/modules/masonry/domain/virtualization'
 import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
 import type { PinCardData } from '@/components/pin/PinCard'
@@ -37,9 +39,7 @@ export type MasonryEntry = PinCardData | FeedNewsletterItem
 
 const NEWSLETTER_CARD_RATIO: PinRatio = '4:5'
 
-function isNewsletterEntry(
-  entry: MasonryEntry,
-): entry is FeedNewsletterItem {
+function isNewsletterEntry(entry: MasonryEntry): entry is FeedNewsletterItem {
   return 'kind' in entry && entry.kind === 'newsletter'
 }
 
@@ -60,43 +60,38 @@ export interface PositionedPin<T extends MasonryEntry = MasonryEntry> {
   mounted: boolean
 }
 
-function batchIndexForItem(index: number, batchSizes: number[]): number {
-  let acc = 0
+/**
+ * Lote de cada pin, en el mismo orden que `items`. Si `batchSizes` no cubre
+ * todos los pines (no debería pasar), los sobrantes cuentan como del último.
+ */
+function batchIndexByItem(count: number, batchSizes: number[]): number[] {
+  const result: number[] = []
   for (let b = 0; b < batchSizes.length; b++) {
-    acc += batchSizes[b]
-    if (index < acc) return b
+    for (let k = 0; k < batchSizes[b] && result.length < count; k++) {
+      result.push(b)
+    }
   }
-  return Math.max(0, batchSizes.length - 1)
+  const last = Math.max(0, batchSizes.length - 1)
+  while (result.length < count) result.push(last)
+  return result
 }
+
+/**
+ * Colchón de montaje, en alturas de viewport, por encima y por debajo de lo
+ * visible. Con dos viewports de margen se montan unos cinco viewports de
+ * contenido (unos 2-3 lotes), suficiente para que no se vea nada vacío al
+ * scrollear rápido y para que el prefetch de imágenes llegue a tiempo.
+ */
+const MOUNT_MARGIN_VIEWPORTS = 2
+
+/** Antes de medir nada se montan los dos primeros lotes (la primera pantalla). */
+const INITIAL_MOUNTED_RANGE: MountedRange = { first: 0, last: 1 }
 
 export function useMasonryPositions<T extends MasonryEntry>(
   items: T[],
   batchSizes: number[],
 ) {
   const { containerRef, containerWidth } = useContainerWidth()
-
-  // Centro del viewport relativo al contenedor, para estimar qué batch
-  // está "visible" (heurística — la versión de producción usaría
-  // IntersectionObserver por batch, arquitectura §10.2). Se calcula dentro
-  // del handler de scroll (efecto, no render), donde sí es seguro leer refs.
-  const [relativeScrollCenter, setRelativeScrollCenter] = useState(0)
-  useEffect(() => {
-    let raf = 0
-    const onScroll = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => {
-        const containerTop = containerRef.current?.offsetTop ?? 0
-        const center = window.scrollY + window.innerHeight / 2
-        setRelativeScrollCenter(Math.max(0, center - containerTop))
-      })
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    onScroll()
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      cancelAnimationFrame(raf)
-    }
-  }, [containerRef])
 
   const columnCount = columnsForViewport(containerWidth || 1200)
 
@@ -125,51 +120,82 @@ export function useMasonryPositions<T extends MasonryEntry>(
     return computeMasonryLayout(layoutItems, containerWidth, columnCount)
   }, [layoutItems, containerWidth, columnCount])
 
+  // Franja vertical real de cada lote (rótulo incluido). Los lotes se solapan
+  // en vertical, así que no se pueden ordenar sumando alturas: ver
+  // `virtualization.ts`.
+  const batchBounds = useMemo<BatchBounds[]>(() => {
+    if (!layout) return []
+
+    return computeBatchBounds(
+      layout.positions.map((position, index) => ({
+        y: position.y,
+        height: position.height,
+        labelHeight: layoutItems[index]?.labelHeight ?? 0,
+      })),
+      batchSizes,
+    )
+  }, [layout, layoutItems, batchSizes])
+
+  // Lotes montados. El estado solo cambia cuando cambia el RANGO, no en cada
+  // frame de scroll: guardar aquí el scroll en píxeles re-renderizaba el feed
+  // entero (y todas las tarjetas montadas) en cada frame. Se recalcula al
+  // scrollear, al cambiar el tamaño de la ventana y cuando cambia el layout
+  // (llega un lote, se retira la newsletter, cambian las columnas).
+  const [mountedRange, setMountedRange] = useState<MountedRange>(
+    INITIAL_MOUNTED_RANGE,
+  )
+
+  useEffect(() => {
+    let raf = 0
+
+    const update = () => {
+      // Sin lotes (aún sin ancho o sin pines) se conserva el rango inicial: con
+      // un rango vacío, el primer layout se pintaría un frame sin ningún pin.
+      if (batchBounds.length === 0) return
+
+      // La posición del contenedor en el documento se mide con el rect, no
+      // con `offsetTop`, que es relativo al primer ancestro posicionado.
+      const containerTop = containerRef.current
+        ? containerRef.current.getBoundingClientRect().top + window.scrollY
+        : 0
+      const viewportTop = window.scrollY - containerTop
+      const viewportHeight = window.innerHeight
+
+      const next = computeMountedRange(
+        batchBounds,
+        viewportTop,
+        viewportTop + viewportHeight,
+        viewportHeight * MOUNT_MARGIN_VIEWPORTS,
+      )
+
+      setMountedRange((prev) =>
+        prev.first === next.first && prev.last === next.last ? prev : next,
+      )
+    }
+
+    const schedule = () => {
+      cancelAnimationFrame(raf)
+      raf = requestAnimationFrame(update)
+    }
+
+    window.addEventListener('scroll', schedule, { passive: true })
+    window.addEventListener('resize', schedule)
+    schedule()
+
+    return () => {
+      window.removeEventListener('scroll', schedule)
+      window.removeEventListener('resize', schedule)
+      cancelAnimationFrame(raf)
+    }
+  }, [containerRef, batchBounds])
+
   const positioned: PositionedPin<T>[] = useMemo(() => {
     if (!layout) return []
 
-    // Altura de cada batch real (para la virtualización), incluyendo la
-    // reserva estimada del texto. Antes solo se contaba el medio, lo que
-    // hacía la estimación cada vez menos precisa cuando el rótulo ocupaba
-    // más de una línea.
-    const batchHeights: BatchHeight[] = []
-    let start = 0
-    for (let b = 0; b < batchSizes.length; b++) {
-      const batchStart = start
-      const slice = layout.positions.slice(start, start + batchSizes[b])
-      start += batchSizes[b]
-      if (slice.length === 0) continue
-
-      const top = Math.min(...slice.map((p) => p.y))
-      const bottom = Math.max(
-        ...slice.map((p, offset) => {
-          const labelHeight = layoutItems[batchStart + offset]?.labelHeight ?? 0
-          return p.y + p.height + labelHeight
-        }),
-      )
-
-      batchHeights.push({ batchIndex: b, height: bottom - top })
-    }
-
-    const relativeCenter = relativeScrollCenter
-    let visibleBatchIndex = 0
-    let acc = 0
-    for (const b of batchHeights) {
-      if (relativeCenter < acc + b.height) {
-        visibleBatchIndex = b.batchIndex
-        break
-      }
-      acc += b.height
-      visibleBatchIndex = b.batchIndex
-    }
-
-    const { mountedBatchIndexes } = computeVirtualization(
-      batchHeights,
-      visibleBatchIndex,
-    )
+    const batchOfItem = batchIndexByItem(items.length, batchSizes)
 
     return layout.positions.map((pos, index) => {
-      const batchIndex = batchIndexForItem(index, batchSizes)
+      const batchIndex = batchOfItem[index]
       return {
         key: `${index}:${items[index].pinId}`,
         item: items[index],
@@ -177,10 +203,11 @@ export function useMasonryPositions<T extends MasonryEntry>(
         y: pos.y,
         width: pos.width,
         height: pos.height,
-        mounted: mountedBatchIndexes.has(batchIndex),
+        mounted:
+          batchIndex >= mountedRange.first && batchIndex <= mountedRange.last,
       }
     })
-  }, [layout, layoutItems, items, batchSizes, relativeScrollCenter])
+  }, [layout, items, batchSizes, mountedRange])
 
   return {
     containerRef,

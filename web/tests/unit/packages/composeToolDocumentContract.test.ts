@@ -38,7 +38,7 @@ function compose(): string {
 
   return composeToolDocument(
     pkg,
-    { width: 'calc(100dvw - 64px)', height: '100dvh', sidebarWidth: 64 },
+    { width: 'calc(100cqw - 64px)', height: '100dvh', sidebarWidth: 64 },
     '/tools/mi-tool/app/',
     'https://itsgreener.com',
   )

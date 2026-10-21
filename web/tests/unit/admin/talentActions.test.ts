@@ -7,11 +7,19 @@ const recordAuditEvent = vi.fn()
 const uploadStaffCv = vi.fn()
 const processPendingCvs = vi.fn()
 const reprocessCandidate = vi.fn()
+const deleteCandidate = vi.fn()
+const redirect = vi.fn((url: string) => {
+  throw new Error(`NEXT_REDIRECT ${url}`)
+})
 const resendFormLink = vi.fn()
 const revalidatePath = vi.fn()
 
 vi.mock('next/cache', () => ({
   revalidatePath: (path: string) => revalidatePath(path),
+}))
+
+vi.mock('next/navigation', () => ({
+  redirect: (url: string) => redirect(url),
 }))
 
 vi.mock('@/lib/auth/adminSession', () => ({
@@ -27,6 +35,7 @@ vi.mock('@/modules/talent/container', () => ({
   uploadStaffCv: (...args: unknown[]) => uploadStaffCv(...args),
   processPendingCvs: (...args: unknown[]) => processPendingCvs(...args),
   reprocessCandidate: (...args: unknown[]) => reprocessCandidate(...args),
+  deleteCandidate: (...args: unknown[]) => deleteCandidate(...args),
   resendFormLink: (...args: unknown[]) => resendFormLink(...args),
 }))
 
@@ -52,12 +61,14 @@ beforeEach(() => {
     uploadStaffCv,
     processPendingCvs,
     reprocessCandidate,
+    deleteCandidate,
     resendFormLink,
     revalidatePath,
   ]) {
     mock.mockReset()
   }
 
+  redirect.mockClear()
   getAdminActor.mockResolvedValue({ email: 'ana@itsgreener.com' })
   recordAuditEvent.mockResolvedValue(true)
 })
@@ -95,6 +106,79 @@ describe('sin sesión de admin, ninguna acción hace nada', () => {
       await actions.resendFormLinkAction({}, form({ candidateId: CANDIDATE })),
     ).toEqual({ error: 'sesión caducada' })
     expect(resendFormLink).not.toHaveBeenCalled()
+  })
+
+  it('deleteCandidateAction', async () => {
+    expect(
+      await actions.deleteCandidateAction({}, form({ candidateId: CANDIDATE })),
+    ).toEqual({ error: 'sesión caducada' })
+    expect(deleteCandidate).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteCandidateAction', () => {
+  it('elimina, anota sin datos personales y vuelve al listado con el aviso', async () => {
+    deleteCandidate.mockResolvedValue({
+      ok: true,
+      bucketFiles: 1,
+      externalFiles: 1,
+      newsletterAccepted: true,
+    })
+
+    await expect(
+      actions.deleteCandidateAction({}, form({ candidateId: CANDIDATE })),
+    ).rejects.toThrow(
+      'NEXT_REDIRECT /admin/talent?deleted=1&drive=1&newsletter=1',
+    )
+
+    expect(deleteCandidate).toHaveBeenCalledWith(CANDIDATE)
+    expect(recordAuditEvent).toHaveBeenCalledWith({
+      actorEmail: 'ana@itsgreener.com',
+      action: 'talent.candidate_delete',
+      entity: 'talent_candidate',
+      entityId: CANDIDATE,
+      payload: { bucketFiles: 1, externalFiles: 1, newsletter: true },
+    })
+    expect(revalidatePath).toHaveBeenCalledWith('/admin/talent')
+  })
+
+  it('sin Drive ni newsletter el aviso no lleva avisos de pendientes', async () => {
+    deleteCandidate.mockResolvedValue({
+      ok: true,
+      bucketFiles: 2,
+      externalFiles: 0,
+      newsletterAccepted: false,
+    })
+
+    await expect(
+      actions.deleteCandidateAction({}, form({ candidateId: CANDIDATE })),
+    ).rejects.toThrow('NEXT_REDIRECT /admin/talent?deleted=1')
+  })
+
+  it('un id que no es uuid no llega al caso de uso', async () => {
+    const state = await actions.deleteCandidateAction(
+      {},
+      form({ candidateId: "x' or 1=1" }),
+    )
+
+    expect(state.error).toBeTruthy()
+    expect(deleteCandidate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['not_found', 'ya no existe'],
+    ['unavailable', 'repetirlo es seguro'],
+  ])('%s se explica y no deja rastro en Actividad', async (reason, text) => {
+    deleteCandidate.mockResolvedValue({ ok: false, reason })
+
+    const state = await actions.deleteCandidateAction(
+      {},
+      form({ candidateId: CANDIDATE }),
+    )
+
+    expect(state.error).toContain(text)
+    expect(recordAuditEvent).not.toHaveBeenCalled()
+    expect(redirect).not.toHaveBeenCalled()
   })
 })
 

@@ -80,3 +80,42 @@ describe('supabaseAuditRecorder', () => {
     await expect(supabaseAuditRecorder.record(event)).rejects.toThrow()
   })
 })
+
+describe('serviceAuditRecorder', () => {
+  const insert = vi.fn()
+
+  beforeEach(() => {
+    insert.mockReset().mockResolvedValue({ error: null })
+    vi.resetModules()
+    vi.doMock('@/lib/supabase/serviceClient', () => ({
+      createServiceClient: () => ({ from: () => ({ insert }) }),
+    }))
+  })
+
+  it('inserta con la clave de servicio, sin sesión de admin', async () => {
+    const { serviceAuditRecorder } =
+      await import('@/modules/audit/infrastructure/serviceAuditRecorder')
+
+    await serviceAuditRecorder.record({
+      ...event,
+      actorEmail: 'system:talent-purge',
+    })
+
+    expect(insert).toHaveBeenCalledWith({
+      actor_email: 'system:talent-purge',
+      action: 'talent.cv_open',
+      entity: 'talent_candidate',
+      entity_id: event.entityId,
+      payload: { kind: 'drive' },
+    })
+  })
+
+  it('si Supabase devuelve error, lanza (recordAuditEvent lo traga y lo registra)', async () => {
+    insert.mockResolvedValue({ error: { message: 'RLS', code: '42501' } })
+
+    const { serviceAuditRecorder } =
+      await import('@/modules/audit/infrastructure/serviceAuditRecorder')
+
+    await expect(serviceAuditRecorder.record(event)).rejects.toThrow()
+  })
+})

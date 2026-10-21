@@ -81,7 +81,7 @@ describe('composeToolDocument', () => {
     const dynamicDoc = composeToolDocument(
       SAMPLE_PACKAGE,
       {
-        width: 'calc(100dvw - 64px)',
+        width: 'calc(100cqw - 64px)',
         height: '100dvh',
         sidebarWidth: 64,
       },
@@ -90,7 +90,7 @@ describe('composeToolDocument', () => {
     )
 
     expect(dynamicDoc).toContain(
-      '--greener-available-width: calc(100dvw - 64px)',
+      '--greener-available-width: calc(100cqw - 64px)',
     )
 
     expect(dynamicDoc).toContain('--greener-available-height: 100dvh')
@@ -100,6 +100,29 @@ describe('composeToolDocument', () => {
     expect(dynamicDoc).not.toContain('--greener-available-width: 1136px')
 
     expect(dynamicDoc).not.toContain('--greener-available-height: 800px')
+  })
+
+  it('el shell mide 100dvh, el menú es border-box y el ancho no cuenta la barra de scroll (20 oct)', () => {
+    const style = doc.slice(doc.indexOf('<style>'), doc.indexOf('</style>'))
+
+    const rule = (selector: string) =>
+      style.match(new RegExp(`${selector}\\s*\\{([^}]*)\\}`))?.[1] ?? ''
+
+    // El shell mide 100dvh (Greener volvió a `height` el 20 oct). Lo que
+    // causaba la franja blanca de 32px era el padding del menú en
+    // content-box, que ahora es border-box.
+    expect(rule('\\.greener-shell')).toMatch(/(^|\s)height: 100dvh/)
+    expect(rule('\\.greener-shell')).not.toContain('min-height')
+    expect(rule('\\.greener-shell')).toContain('container-type: inline-size')
+
+    expect(rule('\\.greener-sidebar')).toContain('box-sizing: border-box')
+    expect(rule('\\.greener-sidebar')).toContain('position: fixed')
+    expect(rule('\\.greener-package-content')).toContain('grid-column: 2')
+
+    // El ancho lo da la columna del grid: 100dvw cuenta la barra de scroll y
+    // desbordaba en horizontal.
+    expect(rule('\\.greener-package-content')).not.toMatch(/(^|\s)width:/)
+    expect(style).not.toContain('100dvw')
   })
 
   it('conserva el <link> y el <script> del paquete, con rutas relativas intactas', () => {

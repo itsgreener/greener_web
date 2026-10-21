@@ -107,12 +107,16 @@ const SHELL_STYLES = `
     grid-template-columns: var(--greener-sidebar-width) minmax(0, 1fr);
     width: 100%;
     height: 100dvh;
+    container-type: inline-size;
   }
 
   .greener-sidebar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     z-index: 10;
+    box-sizing: border-box;
+    width: var(--greener-sidebar-width);
     height: 100dvh;
     display: flex;
     flex-direction: column;
@@ -209,8 +213,8 @@ const SHELL_STYLES = `
   }
 
   .greener-package-content {
+    grid-column: 2;
     min-width: 0;
-    width: var(--greener-available-width);
     min-height: var(--greener-available-height);
   }
 `
@@ -227,7 +231,14 @@ const SHELL_STYLES = `
  * --greener-sidebar-width
  *
  * width y height pueden ser números (útil para tests) o expresiones CSS
- * dinámicas como calc(100dvw - 64px) y 100dvh.
+ * dinámicas como calc(100cqw - 64px) y 100dvh. Para el ancho se usa 100cqw
+ * (ancho del shell, que es un container) y NO 100dvw: dvw cuenta la barra de
+ * scroll vertical y produciría un scroll lateral de ~15px en escritorio.
+ * El shell mide exactamente 100dvh (decisión de Greener, 20 oct: las tools e
+ * insights están pensados para caber en una pantalla, y con min-height los
+ * insights se veían mal). La barra lateral es border-box (sin franja blanca
+ * por padding) y fixed: si el contenido es más alto que la ventana (una
+ * página satélite con formulario, p. ej.) el menú no se va con el scroll.
  *
  * `siteUrl` (sin barra final) y `basePath` (con barra inicial y final) dan las
  * URLs ABSOLUTAS de las etiquetas Open Graph / canonical. Si el manifest

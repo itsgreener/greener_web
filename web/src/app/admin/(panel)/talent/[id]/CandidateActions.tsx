@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import {
+  deleteCandidateAction,
   reprocessCandidateAction,
   resendFormLinkAction,
   type TalentActionState,
@@ -22,6 +23,7 @@ function ActionForm({
   label,
   pendingLabel,
   confirmText,
+  danger = false,
 }: {
   action: (
     previous: TalentActionState,
@@ -31,6 +33,7 @@ function ActionForm({
   label: string
   pendingLabel: string
   confirmText: string
+  danger?: boolean
 }) {
   const [state, formAction, isPending] = useActionState(action, initialState)
 
@@ -45,7 +48,11 @@ function ActionForm({
 
       <button
         type="submit"
-        className="admin-button admin-button-secondary"
+        className={
+          danger
+            ? 'admin-button admin-button-danger'
+            : 'admin-button admin-button-secondary'
+        }
         disabled={isPending}
       >
         {isPending ? pendingLabel : label}
@@ -84,6 +91,15 @@ export default function CandidateActions({
           confirmText="¿Reenviar el enlace del formulario a este candidato? Recibirá un email."
         />
       )}
+
+      <ActionForm
+        action={deleteCandidateAction}
+        candidateId={candidateId}
+        label="Eliminar candidato"
+        pendingLabel="Eliminando…"
+        danger
+        confirmText="¿Eliminar a este candidato? Se borran de forma definitiva sus datos, sus proyectos y sus ficheros del bucket. El CV que ya esté en Google Drive y la suscripción de Mailchimp hay que quitarlos a mano. No se puede deshacer."
+      />
     </div>
   )
 }

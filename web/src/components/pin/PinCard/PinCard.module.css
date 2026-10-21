@@ -31,6 +31,7 @@
     color: var(--color-cta-text);
     font-size: 0.875rem;
     font-weight: 600;
+    white-space: nowrap; /* «Upload your CV» no debe partirse en dos líneas */
     opacity: 0;
     transition: opacity 0.15s ease;
   }

@@ -3,6 +3,7 @@ import 'server-only'
 import { makeListAuditLog } from './application/listAuditLog'
 import { makeRecordAuditEvent } from './application/recordAuditEvent'
 import { supabaseAuditLogRepository } from './infrastructure/supabaseAuditLogRepository'
+import { serviceAuditRecorder } from './infrastructure/serviceAuditRecorder'
 import { supabaseAuditRecorder } from './infrastructure/supabaseAuditRecorder'
 
 /**
@@ -15,4 +16,9 @@ export const listAuditLog = makeListAuditLog({
 
 export const recordAuditEvent = makeRecordAuditEvent({
   recorder: supabaseAuditRecorder,
+})
+
+/** Sin sesión de admin (purga por plazo): con la clave de servicio. */
+export const recordSystemAuditEvent = makeRecordAuditEvent({
+  recorder: serviceAuditRecorder,
 })

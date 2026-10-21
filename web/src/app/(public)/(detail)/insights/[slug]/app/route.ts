@@ -27,7 +27,7 @@ export async function GET(
     const html = composeToolDocument(
       pkg,
       {
-        width: `calc(100dvw - ${SIDEBAR_WIDTH}px)`,
+        width: `calc(100cqw - ${SIDEBAR_WIDTH}px)`,
         height: '100dvh',
         sidebarWidth: SIDEBAR_WIDTH,
       },

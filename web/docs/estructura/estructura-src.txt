@@ -106,10 +106,12 @@ src/app/api/analytics/package/route.ts
 src/app/api/feed/[sessionId]/route.ts
 src/app/api/feed/sessions/route.ts
 src/app/api/health/route.ts
+src/app/api/talent/_lib/purgeAuth.ts
 src/app/api/talent/_lib/talentRequest.ts
 src/app/api/talent/candidates/route.ts
 src/app/api/talent/form/[token]/files/route.ts
 src/app/api/talent/form/[token]/route.ts
+src/app/api/talent/purge/route.ts
 src/app/auth/callback/route.ts
 src/app/error.tsx
 src/app/global-error.tsx
@@ -217,6 +219,7 @@ src/modules/audit/container.ts
 src/modules/audit/domain/auditLogQuery.ts
 src/modules/audit/domain/auditLogRepository.ts
 src/modules/audit/domain/auditRecorder.ts
+src/modules/audit/infrastructure/serviceAuditRecorder.ts
 src/modules/audit/infrastructure/supabaseAuditLogRepository.ts
 src/modules/audit/infrastructure/supabaseAuditRecorder.ts
 src/modules/consent/client/ConsentProvider.tsx
@@ -404,9 +407,11 @@ src/modules/shared/domain/hash.ts
 src/modules/shared/domain/locale.ts
 src/modules/shared/domain/mediaKind.ts
 src/modules/shared/domain/ratio.ts
+src/modules/talent/application/deleteCandidate.ts
 src/modules/talent/application/deleteCandidateFile.ts
 src/modules/talent/application/getCandidateForm.ts
 src/modules/talent/application/processPendingCvs.ts
+src/modules/talent/application/purgeExpiredCandidates.ts
 src/modules/talent/application/registerCandidate.ts
 src/modules/talent/application/reprocessCandidate.ts
 src/modules/talent/application/resendFormLink.ts
@@ -425,6 +430,7 @@ src/modules/talent/domain/talentErrors.ts
 src/modules/talent/domain/talentFileKind.ts
 src/modules/talent/domain/talentModels.ts
 src/modules/talent/domain/talentPorts.ts
+src/modules/talent/domain/talentRetention.ts
 src/modules/talent/domain/talentRows.ts
 src/modules/talent/domain/talentSchemas.ts
 src/modules/talent/domain/talentSearchQuery.ts

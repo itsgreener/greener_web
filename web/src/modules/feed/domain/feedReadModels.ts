@@ -30,6 +30,9 @@ export interface PinDirectoryEntry {
   // en Insight.
   displaySecondary?: string | null
   alt: string
+  // Idioma del pin (`pin.language`: es, en o ca). Hoy solo decide el CTA de
+  // los pines de página satélite (`other`). Ausente = se trata como inglés.
+  language?: string
   // Solo tiene efecto real en un pin de vídeo (§9.1): 'viewport' lo
   // reproduce vía IntersectionObserver (compite por el hueco global del
   // feed, videoPlaybackCoordinator.ts), 'hover' solo mientras el puntero

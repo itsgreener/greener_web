@@ -183,6 +183,6 @@ describe('otros pines del feed', () => {
     })
 
     expect(item.destination).toBe('/variety/mi-pagina/app')
-    expect(item.cta).toBe('Open')
+    expect(item.cta).toBe('Upload your CV')
   })
 })

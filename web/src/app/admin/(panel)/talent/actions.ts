@@ -1,12 +1,14 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
 import { ADMIN_REQUIRED_MESSAGE, getAdminActor } from '@/lib/auth/adminSession'
 
 import { recordAuditEvent } from '@/modules/audit/container'
 import {
+  deleteCandidate,
   processPendingCvs,
   reprocessCandidate,
   resendFormLink,
@@ -149,6 +151,57 @@ export async function reprocessCandidateAction(
   revalidatePath('/admin/talent')
 
   return { message: processingMessage(result.processing) }
+}
+
+/**
+ * «Eliminar candidato» (derecho de supresión). Deja constancia en Actividad
+ * **sin datos personales** (solo recuentos) y vuelve al listado con un aviso de
+ * lo que queda por borrar a mano (Drive y Mailchimp).
+ */
+export async function deleteCandidateAction(
+  _previousState: TalentActionState,
+  formData: FormData,
+): Promise<TalentActionState> {
+  const actor = await getAdminActor()
+
+  if (!actor) return { error: ADMIN_REQUIRED_MESSAGE }
+
+  const id = candidateIdSchema.safeParse(formData.get('candidateId'))
+
+  if (!id.success) return { error: 'El identificador no es válido.' }
+
+  const result = await deleteCandidate(id.data)
+
+  if (!result.ok) {
+    return {
+      error:
+        result.reason === 'not_found'
+          ? 'El candidato ya no existe.'
+          : 'No se ha podido eliminar. Inténtalo de nuevo: repetirlo es seguro.',
+    }
+  }
+
+  await recordAuditEvent({
+    actorEmail: actor.email,
+    action: 'talent.candidate_delete',
+    entity: TALENT_AUDIT_ENTITY,
+    entityId: id.data,
+    payload: {
+      bucketFiles: result.bucketFiles,
+      externalFiles: result.externalFiles,
+      newsletter: result.newsletterAccepted,
+    },
+  })
+
+  revalidatePath('/admin/talent')
+
+  const params = new URLSearchParams({ deleted: '1' })
+
+  if (result.externalFiles > 0) params.set('drive', '1')
+
+  if (result.newsletterAccepted) params.set('newsletter', '1')
+
+  redirect(`/admin/talent?${params.toString()}`)
 }
 
 export async function resendFormLinkAction(

@@ -15,7 +15,7 @@ const SIDEBAR_WIDTH = 64
  * El espacio disponible se comunica al paquete mediante variables CSS.
  *
  * No intentamos calcular el viewport desde el servidor: el navegador
- * resuelve 100dvw / 100dvh y actualiza los valores automáticamente
+ * resuelve 100cqw / 100dvh y actualiza los valores automáticamente
  * cuando cambia el tamaño de la ventana.
  */
 export async function GET(
@@ -30,7 +30,7 @@ export async function GET(
     const html = composeToolDocument(
       pkg,
       {
-        width: `calc(100dvw - ${SIDEBAR_WIDTH}px)`,
+        width: `calc(100cqw - ${SIDEBAR_WIDTH}px)`,
         height: '100dvh',
         sidebarWidth: SIDEBAR_WIDTH,
       },

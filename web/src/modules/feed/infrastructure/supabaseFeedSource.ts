@@ -120,6 +120,7 @@ export function buildFeedUnitsForPin(
         displayTitle: text.displayTitle,
         displaySecondary: text.displaySecondary,
         alt: pin.alt,
+        language: pin.language,
         autoplayMode: pin.autoplay_mode,
         media: [toFeedItemMedia(media)],
       },

@@ -18,6 +18,13 @@ import { useSentinel } from '@/components/masonry/useSentinel'
  * documento; filtrar más (etiqueta, idioma…) sería otra capa, no este hook.
  */
 
+/**
+ * Espera antes de volver a pedir un lote que el servidor devolvió vacío por
+ * superar el límite de peticiones (`rateLimited`). El límite es de 50 lotes
+ * por minuto, así que unos segundos bastan y no se martillea la API.
+ */
+export const RATE_LIMIT_RETRY_MS = 4000
+
 export function useFeed(scope: string) {
   const {
     getState,
@@ -30,6 +37,12 @@ export function useFeed(scope: string) {
 
   const loadingRef = useRef(false)
   const [isLoading, setIsLoading] = useState(false)
+
+  // Reintento tras un lote vacío por límite de peticiones: tras la espera se
+  // incrementa `recheck`, que recrea el observer del sentinel (ver
+  // `useSentinel`). Si el visitante ya se alejó del final, no pasa nada.
+  const [recheck, setRecheck] = useState(0)
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Abrir sesión solo si este scope, en esta carga del documento,
@@ -64,6 +77,17 @@ export function useFeed(scope: string) {
       const batch = await fetchFeedBatch(current.sessionId, current.cursor)
 
       appendBatch(scope, batch)
+
+      // `appendBatch` ignora el lote vacío por límite de peticiones y no
+      // cambia el estado, así que nada volvería a disparar la carga: el
+      // visitante se quedaba en el final hasta subir y volver a bajar.
+      if (batch.rateLimited) {
+        if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+        retryTimerRef.current = setTimeout(() => {
+          retryTimerRef.current = null
+          setRecheck((n) => n + 1)
+        }, RATE_LIMIT_RETRY_MS)
+      }
 
       // Un batch vacío (fin de catálogo real, o límite de peticiones
       // superado — feedRateLimit.ts) no cuenta como profundidad real
@@ -100,7 +124,14 @@ export function useFeed(scope: string) {
 
   // Prefetch del siguiente lote al entrar en el último tramo del scroll
   // (arquitectura §10.3).
-  const sentinelRef = useSentinel(loadMore)
+  const sentinelRef = useSentinel(loadMore, recheck)
+
+  useEffect(
+    () => () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+    },
+    [],
+  )
 
   // Guarda la posición de scroll continuamente (throttled por rAF) para
   // poder restaurarla si se vuelve de un detalle.

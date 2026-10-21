@@ -14,6 +14,21 @@ import type { CandidateProject } from './talentModels'
  */
 export type CvLocationKind = 'drive' | 'bucket' | 'external' | 'none'
 
+/**
+ * Lo que hay que saber para borrar a un candidato entero (derecho de
+ * supresión). Sin datos personales: solo rutas del bucket y recuentos.
+ */
+export type CandidateDeletionTarget = {
+  id: string
+  /** Objetos del bucket `cvs` que cuelgan de la fila o de sus `files`. */
+  bucketPaths: string[]
+  /** Rutas que no son del bucket (Drive u otro enlace): no se pueden borrar desde aquí. */
+  externalPaths: string[]
+  newsletterAccepted: boolean
+  /** `created_at` (para el plazo de conservación); `null` si la fila no tiene. */
+  createdAt: string | null
+}
+
 export type CandidateListItem = {
   id: string
   name: string | null

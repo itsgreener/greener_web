@@ -152,6 +152,13 @@ export const getTalentEnv = createScopedEnv('Talent', () =>
       TALENT_N8N_PROCESS_CV_WEBHOOK_URL: z.url().optional(),
       TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME: z.string().min(1).optional(),
       TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE: z.string().min(1).optional(),
+      // Al revés que los anteriores: es la credencial con la que n8n llama a la
+      // web (`POST /api/talent/purge`, purga por plazo). Sin ella la ruta
+      // responde `not_configured`. 32 caracteres como mínimo.
+      TALENT_PURGE_SECRET: z.preprocess(
+        (value) => (value === '' ? undefined : value),
+        z.string().min(32).optional(),
+      ),
     })
     .refine(
       (env) =>

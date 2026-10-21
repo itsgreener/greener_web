@@ -221,10 +221,10 @@ Tres variables CSS, disponibles en `:root` desde el primer render, sin nada que 
 
 Las variables SÍ reflejan la pantalla real de cada visitante, y se recalculan solas al redimensionar la ventana:
 
-- `--greener-available-width: calc(100dvw - 64px)`
+- `--greener-available-width: calc(100cqw - 64px)`
 - `--greener-available-height: 100dvh`
 
-(`64px` es el ancho real del menú lateral de iconos.) No hay ningún cálculo de tamaño de pantalla hecho en el servidor ni ningún `postMessage`: son expresiones CSS dinámicas de toda la vida, que el propio navegador resuelve y mantiene actualizadas.
+(`64px` es el ancho real del menú lateral de iconos; `cqw` es el ancho del contenedor del shell, que es lo que mide la ventana **sin** la barra de scroll vertical. Hasta el 20 de octubre la variable usaba `100dvw`, que cuenta esa barra y provocaba un scroll lateral de unos 15 px en escritorio: no lo uses en tu CSS, usa `100%`.) El shell mide exactamente `100dvh` (las tools y los insights están pensados para **caber en una sola pantalla**; una más alta se desborda hacia abajo y se ve algo peor) y el menú lateral es `position: fixed`, así que se queda a la vista aunque la página haga scroll. No hay ningún cálculo de tamaño de pantalla hecho en el servidor ni ningún `postMessage`: son expresiones CSS dinámicas de toda la vida, que el propio navegador resuelve y mantiene actualizadas.
 
 **Para comprobar visualmente que algo se ve bien, pruébese redimensionando la ventana del navegador** en varios tamaños — ya no existe un único número que represente "lo que recibe cualquier tool publicada hoy", cada visitante recibe el suyo.
 

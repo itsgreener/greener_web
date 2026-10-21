@@ -4,9 +4,13 @@ import { randomUUID } from 'node:crypto'
 
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 
+import { recordSystemAuditEvent } from '@/modules/audit/container'
+
+import { makeDeleteCandidate } from './application/deleteCandidate'
 import { makeDeleteCandidateFile } from './application/deleteCandidateFile'
 import { makeGetCandidateForm } from './application/getCandidateForm'
 import { makeProcessPendingCvs } from './application/processPendingCvs'
+import { makePurgeExpiredCandidates } from './application/purgeExpiredCandidates'
 import { makeRegisterCandidate } from './application/registerCandidate'
 import { makeReprocessCandidate } from './application/reprocessCandidate'
 import { makeResendFormLink } from './application/resendFormLink'
@@ -105,6 +109,28 @@ export const processPendingCvs = makeProcessPendingCvs({
 export const reprocessCandidate = makeReprocessCandidate({
   admin: supabaseTalentAdminRepository,
   processPendingCvs,
+})
+
+export const deleteCandidate = makeDeleteCandidate({
+  admin: supabaseTalentAdminRepository,
+  storage: supabaseTalentStorage,
+})
+
+export { PURGE_MAX_BATCH } from './application/purgeExpiredCandidates'
+
+/** Purga por plazo de conservación: la llama n8n (`/api/talent/purge`). */
+export const purgeExpiredCandidates = makePurgeExpiredCandidates({
+  admin: supabaseTalentAdminRepository,
+  storage: supabaseTalentStorage,
+  now: () => new Date(),
+  recordAudit: (event) =>
+    recordSystemAuditEvent({
+      actorEmail: 'system:talent-purge',
+      action: event.action,
+      entity: 'talent_candidate',
+      entityId: event.entityId,
+      payload: event.payload,
+    }),
 })
 
 export const resendFormLink = makeResendFormLink({

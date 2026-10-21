@@ -93,14 +93,42 @@ describe('toFeedBatchItem', () => {
     expect(item.cta).toBe('Read')
   })
 
-  it('other: abre directamente su página satélite y el CTA es Open', () => {
+  it('other: abre directamente su página satélite y el CTA es «Upload your CV»', () => {
     const item = toFeedBatchItem(
       'p',
       entry({ contentType: 'other', contentSlug: 'mi-pagina' }),
     )
 
     expect(item.destination).toBe('/variety/mi-pagina/app')
-    expect(item.cta).toBe('Open')
+    expect(item.cta).toBe('Upload your CV')
+  })
+
+  it.each([
+    ['en', 'Upload your CV'],
+    ['es', 'Sube tu portfolio'],
+    ['ca', 'Puja el teu CV'],
+    [undefined, 'Upload your CV'],
+    ['fr', 'Upload your CV'],
+  ])(
+    'other: el CTA sigue el idioma del pin (%s -> %s) y cae al inglés',
+    (language, cta) => {
+      const item = toFeedBatchItem(
+        'p',
+        entry({ contentType: 'other', contentSlug: 'talent', language }),
+      )
+
+      expect(item.cta).toBe(cta)
+    },
+  )
+
+  it('el idioma del pin no cambia el CTA de los demás tipos', () => {
+    expect(
+      toFeedBatchItem('p', entry({ contentType: 'tool', language: 'es' })).cta,
+    ).toBe('Use')
+    expect(
+      toFeedBatchItem('p', entry({ contentType: 'insight', language: 'ca' }))
+        .cta,
+    ).toBe('Read')
   })
 
   it('episode se publica como kind channel', () => {

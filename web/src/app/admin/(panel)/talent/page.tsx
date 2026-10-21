@@ -21,6 +21,10 @@ type Props = {
     status?: string
     profile?: string
     page?: string
+    /** Aviso tras «Eliminar candidato» (lo pone la acción al redirigir). */
+    deleted?: string
+    drive?: string
+    newsletter?: string
   }>
 }
 
@@ -44,7 +48,8 @@ function pageHref(
 }
 
 export default async function AdminTalentPage({ searchParams }: Props) {
-  const query = parseCandidateSearchQuery(await searchParams)
+  const params = await searchParams
+  const query = parseCandidateSearchQuery(params)
   const { q, status, profile } = query
   const hasFilters = Boolean(q || status || profile)
 
@@ -89,6 +94,20 @@ export default async function AdminTalentPage({ searchParams }: Props) {
             Subir CVs
           </Link>
         </header>
+
+        {params.deleted === '1' && (
+          <p className="admin-notice" role="status">
+            Candidato eliminado: sus datos, proyectos y ficheros del bucket ya
+            no existen.
+            {(params.drive === '1' || params.newsletter === '1') &&
+              ' Quedan por quitar a mano:'}
+            {params.drive === '1' && ' su CV en Google Drive'}
+            {params.drive === '1' && params.newsletter === '1' && ' y'}
+            {params.newsletter === '1' &&
+              ' su suscripción en Mailchimp (audiencia de talent)'}
+            {(params.drive === '1' || params.newsletter === '1') && '.'}
+          </p>
+        )}
 
         {result === null ? (
           <p className="admin-notice admin-notice-warning">

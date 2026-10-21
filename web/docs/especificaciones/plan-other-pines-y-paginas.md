@@ -2,7 +2,7 @@
 
 **Estado: plan cerrado el 15 de octubre de 2026 (revisado tres veces ese día), en ejecución: fases 0 a 4 hechas el 15 de octubre (§2.72, §2.73, §2.76, §2.77 y §2.78 del historial) y fase 5 el 16 (§2.79).** Sale de la auditoría del 14 de octubre (`docs/auditorias/auditoria-other-2026-10-14.md`), de la reunión con Greener y de las respuestas del 15 de octubre. Cuando se implemente, lo que quede vigente se traslada a `especificacion-final-formato-detalle.md` (§1, §3, §7) y este plan pasa a historial.
 
-**Primera revisión:** la frecuencia pasa de ser un parámetro global a un campo de **cada contenido `other`**, con primera aparición aleatoria; la cookie la fija el servidor; valores confirmados (CTA «Open», frecuencia mínima 25, páginas fuera del sitemap).
+**Primera revisión:** la frecuencia pasa de ser un parámetro global a un campo de **cada contenido `other`**, con primera aparición aleatoria; la cookie la fija el servidor; valores confirmados (CTA «Open» —cambiado el 20 oct a «Upload your CV», §2.92, y por idioma del pin, §2.94—, frecuencia mínima 25, páginas fuera del sitemap).
 
 **Segunda revisión:** la suscripción se gestiona **solo desde el pin**: el formulario de `/contact` deja de llevar la newsletter. No habrá página `/privacy-newsletter`: el texto legal de la newsletter es una sección de `/privacy`.
 
@@ -25,7 +25,7 @@
 | Texto legal | Sección **«Newsletter»** dentro de `/privacy` (Mailchimp, la cookie y la medición), enlazada desde el pin con `/privacy#newsletter`. Sin página propia |
 | Formulario de contacto | **Deja de incluir la newsletter**. El pin es el único punto de alta |
 | Portada de `other` | **Se retira** (columnas, restricción, RPC y bloque del ABM) |
-| CTA del pin de página | «Open» |
+| CTA del pin de página | Según el idioma del pin: `en` «Upload your CV», `es` «Sube tu portfolio», `ca` «Puja el teu CV»; otro idioma, inglés (era «Open» hasta el 20 oct, §2.92 y §2.94) |
 | Sitemap | Las páginas satélite **no** entran |
 | Encuesta | Fuera de alcance. No se prepara nada (ver §9) |
 
@@ -90,7 +90,7 @@ No hay valor «0 = desactivado»: para retirar un `other` del feed se despublica
 
 **Elemento del feed.** `FeedBatchItem` pasa a ser una unión:
 
-1. `kind` de pin (el actual), con `pinId`, medio, etc. Un pin de página lleva `destination = /variety/{slug}/app` y CTA «Open».
+1. `kind` de pin (el actual), con `pinId`, medio, etc. Un pin de página lleva `destination = /variety/{slug}/app` y CTA según el idioma del pin («Upload your CV», «Sube tu portfolio» o «Puja el teu CV»; antes «Open»).
 2. `kind: 'newsletter'`: `contentId`, titular y texto. Su `pinId` se compone con el número de aparición (`newsletter:{contentId}:{j}`), único por aparición, para no repetir `key` en el masonry.
 
 ## 5. Pin de newsletter

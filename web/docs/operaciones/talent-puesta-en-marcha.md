@@ -16,6 +16,7 @@ Se añaden al `.env.local` de producción (junto a `server.js`, ver `despliegue.
 | `TALENT_N8N_PROCESS_FILES_WEBHOOK_URL` | sí | Webhook de `Guardar archivos`. |
 | `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` | sí, para la subida del personal (fase 3) | Webhook de `Procesar nuevo CV`; lo llama el ABM tras subir CVs o al reprocesar. Sin ella, las filas quedan en `pending` y el ABM avisa de que el procesado no está configurado. |
 | `TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME` y `TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE` | no (fase 4) | Cabecera de autenticación de los tres webhooks. Van las dos o ninguna. Ver §3.4. |
+| `TALENT_PURGE_SECRET` | no (hasta activar la purga, §7) | Credencial con la que n8n llama a `POST /api/talent/purge`. Mínimo 32 caracteres (`openssl rand -base64 48`). Sin ella la ruta responde 503 `not_configured` y no hace nada. |
 | `TALENT_MAILCHIMP_AUDIENCE_ID` | sí | Identificador de la audiencia de talent. La clave de API y el prefijo (`us13`) son los de la newsletter (`MAILCHIMP_API_KEY`, `MAILCHIMP_SERVER_PREFIX`). |
 
 Bloque para añadir a `.env.local` y a `.env.local.example` (este último es un fichero oculto que no viaja en el zip):
@@ -35,6 +36,9 @@ TALENT_N8N_PROCESS_CV_WEBHOOK_URL=https://your-n8n.example/webhook/xxxxxxxx
 # Opcional: autenticación por cabecera de los webhooks (las dos o ninguna).
 # TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME=X-Greener-Key
 # TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE=un-valor-largo-y-aleatorio
+
+# Opcional: credencial de la purga por plazo (n8n llama a la web, §7).
+# TALENT_PURGE_SECRET=un-secreto-largo-y-aleatorio-de-32-caracteres-o-mas
 
 # Audiencia de Mailchimp de talent (misma cuenta que la newsletter).
 TALENT_MAILCHIMP_AUDIENCE_ID=xxxxxxxxxx
@@ -56,6 +60,7 @@ El ZIP sale del repo `talent` con `npm run build:package` (`talent-form-package.
 0. **Antes de publicar nada,** haz la prueba del §5 con `curl` (sin la página) y la del ABM del §6: ni las rutas `/api/talent` ni el ABM dependen del paquete. Una página `variety` no se puede probar en borrador (solo se sirve publicada y no tiene Preview), así que la prueba con el formulario real se hace después del paso 2, en el preview de Vercel o en producción.
 1. En el ABM de la web, **Otros** → crear una página de tipo `variety` → subir el ZIP. Si rechaza la subida, el mensaje dice qué dominio o qué regla incumple (lo habitual: un enlace nuevo sin declarar en `externalDomains` del `manifest.json`). Queda en borrador hasta publicarlo.
 2. Con la página publicada, la URL es `https://itsgreener.com/variety/talent/app` (slug `talent`). En **Otros** la frecuencia es una vez cada 125 pines (el mínimo es 25 y el valor por defecto 100). Las rutas internas llevan `#`: el formulario es `…/app#/form/<token>`.
+   **Idioma del pin y CTA.** El texto del botón del pin del feed depende del idioma del pin (columna `language` del CSV): `en` → «Upload your CV», `es` → «Sube tu portfolio», `ca` → «Puja el teu CV». Un idioma que no sea ninguno de los tres cae al inglés. Para tener el pin en los tres idiomas, se cargan tres pines (uno por idioma) en la misma página.
    **Pin obligatorio.** Para publicar una página satélite hace falta al menos un pin con imagen o vídeo (error ZG018 si no): en el editor de la página, bloque **Pines** → carga masiva: `talent-45-img.webp` en «Imágenes y vídeos (varios)» y `pin-talent.csv` en el campo del CSV (4:5, idioma `en`, rótulo «Join the Greener team» y alt descriptivo, ya rellenados en el CSV). Es un visual provisional; se sustituye cuando Greener tenga el definitivo (la ficha del pin se edita sin tocar el paquete). Una página no se publica sin paquete publicado (ZG009).
    **URL corta.** Con la página publicada, `https://itsgreener.com/talent` (y `/{slug}` de cualquier otra página satélite) redirige a `/variety/talent/app`. El fragmento `#/form/<token>` se conserva, así que el enlace del correo puede usar cualquiera de las dos formas. El slug no puede ser el de una ruta de la web (`contact`, `tools`, `privacy`…): el alta lo rechaza.
 3. **Cambiar el enlace del correo.** En la plantilla del nodo `Enviar mail a candidato` de n8n, y en `mail.html` del repo `talent` (el botón de la línea con `talent.itsgreener.com/form/`), el enlace pasa a `https://itsgreener.com/variety/talent/app#/form/{{ $json.access_token }}`.
@@ -103,6 +108,8 @@ where relnamespace = 'public'::regnamespace and relname in ('candidates', 'files
 
 **Resultado (Greener, 19 oct, tarde).** RLS activada en las tres tablas, sin `FORCE`. Políticas permisivas para `public` (que incluye `anon`): `candidates` tiene *allow update with token*, *allow_insert*, *allow_select* e *insert candidates public*; `files`, *delete files secure*, *insert files with token* y *select files*; `projects`, tres de inserción; `storage.objects`, *allow_delete_true 24bk_0*, *allow_delete_true 24bk_1* (de lectura) y *allow_upload 24bk_0*. Conclusión: con los privilegios que tienen `anon` y `authenticated`, la RLS no protege nada hoy, y el §4.3 es necesario. Las de `storage.objects` pueden ser de **todos** los buckets (sin filtrar por `cvs`): el borrado del §4.3 las quita solo si nombran `cvs`; antes de ejecutarlo, mira en `pg_policies` la columna `qual` de esas tres y, si alguna es general, se revisa a mano.
 
+**Segunda lectura (20 oct, con el listado completo de `qual` y `with_check`).** Mismas políticas. Las dos de lectura y borrado de `storage.objects` llevan `bucket_id = 'cvs'`, pero **`allow_upload 24bk_0` es un `INSERT` con `with_check = true`: no nombra el bucket**, es decir, deja subir a cualquier bucket del proyecto. El borrado por texto del §4.3 (`%cvs%`) no la habría quitado, por eso el paso 4 ahora borra además las tres por nombre. Son las únicas políticas de `storage.objects` del proyecto, así que no se quita nada que use otro bucket.
+
 ### 4.2 Reprocesar las 23 filas atascadas en `started` (hecho el 19 oct)
 
 Greener ya lo ha hecho (recuento de 23 y reprocesado). Se deja el procedimiento por si vuelve a pasar. Todas tenían el CV en el bucket (`uploads/…`). Primero se cuentan:
@@ -127,6 +134,8 @@ curl -i -X POST "$WEBHOOK_PROCESAR_CV"
 Esto es el equivalente manual de la acción «Reprocesar» del ABM (§6), que hace lo mismo para una fila y con la guarda de procesado. Con las filas ya procesadas, el CV pasa a Drive y desaparece del bucket.
 
 ### 4.3 Cerrar el acceso anónimo (fase 4, con la web antigua ya apagada)
+
+**Aplicado el 20 oct (con la versión corregida del paso 4).** Las dos comprobaciones posteriores devolvieron cero filas.
 
 Las claves heredadas están desactivadas desde el 19 oct, así que hoy no hay clave pública que lo aproveche; esto lo deja cerrado también a nivel de base de datos. La clave secreta (n8n y la web nueva) se salta RLS y no se ve afectada. Se ejecuta de una vez, dentro de una transacción para poder deshacerlo:
 
@@ -153,14 +162,17 @@ begin
   end loop;
 end $$;
 
--- 4. Fuera las políticas de storage que nombran el bucket cvs
+-- 4. Fuera las políticas de storage del bucket cvs. OJO: allow_upload no
+--    nombra el bucket (with_check = true), por eso se borra también por nombre.
 do $$
 declare p record;
 begin
   for p in
     select policyname from pg_policies
     where schemaname = 'storage' and tablename = 'objects'
-      and (coalesce(qual, '') ilike '%cvs%' or coalesce(with_check, '') ilike '%cvs%')
+      and (coalesce(qual, '') ilike '%cvs%'
+        or coalesce(with_check, '') ilike '%cvs%'
+        or policyname in ('allow_delete_true 24bk_0', 'allow_delete_true 24bk_1', 'allow_upload 24bk_0'))
   loop
     execute format('drop policy %I on storage.objects', p.policyname);
   end loop;
@@ -175,9 +187,9 @@ commit;
 Comprobación posterior (cada consulta por separado). No debe quedar ninguna política ni ningún privilegio para `anon` o `authenticated`:
 
 ```sql
-select count(*) from pg_policies
-where (schemaname = 'public' and tablename in ('candidates', 'files', 'projects'))
-   or (schemaname = 'storage' and (coalesce(qual, '') ilike '%cvs%' or coalesce(with_check, '') ilike '%cvs%'));
+select schemaname, tablename, policyname from pg_policies
+where schemaname = 'public' and tablename in ('candidates', 'files', 'projects')
+   or (schemaname = 'storage' and tablename = 'objects');
 ```
 
 ```sql
@@ -186,9 +198,11 @@ where table_schema = 'public' and table_name in ('candidates', 'files', 'project
   and grantee in ('anon', 'authenticated');
 ```
 
-Los dos tienen que devolver cero filas. Después, una prueba de extremo a extremo (§5): n8n y la web siguen funcionando porque usan la clave secreta.
+Los dos tienen que devolver cero filas (la primera lista cualquier política que quede en esas tablas y en `storage.objects`; si sale alguna de otro bucket, es de otro uso y se revisa a mano). Después, una prueba de extremo a extremo (§5): n8n y la web siguen funcionando porque usan la clave secreta.
 
 ### 4.4 Límites del bucket (segunda barrera, opcional)
+
+**Aplicado el 20 oct.**
 
 El servidor ya impone 10 MB y la lista de tipos; fijarlo también en el bucket protege si algún día se sube desde otro sitio. Se aplica **después** de retirar la web antigua:
 
@@ -205,6 +219,8 @@ where id = 'cvs';
 ```
 
 ### 4.5 La función `subscribe-mailchimp`
+
+**20 oct:** Greener la borra junto con sus secretos.
 
 La web nueva da de alta en Mailchimp desde su servidor, así que la función de Supabase-talent (versión 7) y sus secretos `MAILCHIMP_API_KEY`, `MAILCHIMP_LIST_ID` y `MAILCHIMP_SERVER_PREFIX` dejan de hacer falta. Se borran con el resto de la web antigua (Edge Functions → `subscribe-mailchimp` → Delete, y los secretos en Edge Functions → Secrets). La clave de API de Mailchimp que contenía sigue siendo la de la cuenta: si se quiere, se rota en Mailchimp.
 
@@ -229,7 +245,17 @@ Para el personal con acceso al panel. Menú lateral → **Talent**.
 - **Procesar pendientes.** Si hay filas `pending`, el botón lanza el procesado. No hace nada si no hay pendientes ni si n8n está trabajando (`started`); en ese caso aparece «Lanzar igualmente», que pide confirmación (úsalo solo si la fila lleva horas en `started`). Entre dos lanzamientos pasan al menos 2 minutos. n8n no avisa de que termina: se ve en los contadores.
 - **Ficha.** Datos, valoración de la IA, proyectos y ficheros. «Reprocesar CV» (solo en `started` o `error` con el CV todavía en el bucket) y «Reenviar enlace del formulario» (no con la fila en `pending` o `started`, ni sin email). Un `closed` al que se reenvía el enlace vuelve a `sent`.
 - **Abrir un CV.** Siempre por la web, nunca con el enlace de Drive pegado a mano: queda registrado quién lo abrió y cuándo. Bucket: enlace temporal de 60 s. Si el registro falla, no se abre.
-- **Actividad.** `/admin/audit` → entidad **Talent (candidato)**: `talent.cv_upload`, `talent.process_launch`, `talent.reprocess`, `talent.link_resend`, `talent.cv_open`, `talent.file_open`. La ficha enlaza con el historial del candidato.
+- **Actividad.** `/admin/audit` → entidad **Talent (candidato)**: `talent.cv_upload`, `talent.process_launch`, `talent.reprocess`, `talent.link_resend`, `talent.cv_open`, `talent.file_open`, `talent.candidate_delete` y `talent.candidate_purge` (la purga por plazo, con el actor `system:talent-purge`). La ficha enlaza con el historial del candidato. El registro de un borrado **no lleva nombre ni email**, solo el id y los recuentos (ficheros del bucket, ficheros externos, suscripción), para no conservar datos de quien ha pedido que se borren.
+- **Eliminar candidato (derecho de supresión).** Botón en la ficha, con confirmación. Borra de forma definitiva los ficheros del bucket y después las filas (proyectos, ficheros y candidato). Vuelve al listado con un aviso de lo que **queda por quitar a mano**: el CV que ya esté en Google Drive (n8n lo guarda ahí y desde la web no se puede borrar) y, si había aceptado el newsletter, su suscripción en Mailchimp (audiencia de talent). Si falla a medias se puede repetir: borrar un objeto que ya no existe no da error.
+- **Plazo de conservación (criterio de Greener, 20 oct).** Cuenta la fecha en que el candidato (alta por email) o el personal (subida de CV) lo introduce en la base de datos, es decir `created_at`: caduca a los **2 años**. Las filas **sin fecha** caducan **un año después de publicar esta actualización** (a partir del 20 de octubre de 2027; si se despliega más tarde, esa fecha se mueve). La regla está en `src/modules/talent/domain/talentRetention.ts`; la purga automática es la ruta `POST /api/talent/purge` que llama un workflow de n8n (§7). El texto de `/privacy` del paquete dice lo mismo (2 años desde que los datos entran en la base de datos).
+
+**Prueba de «Eliminar candidato»** (para borrar un candidato propio de prueba):
+
+1. Busca tu email en el listado y abre la ficha.
+2. Pulsa **Eliminar candidato** y acepta la confirmación. Vuelve al listado con el aviso «Candidato eliminado…»; si tenías el CV en Drive o el newsletter, el aviso dice qué queda por quitar a mano.
+3. Comprueba en Supabase-talent que ya no hay fila con ese email en `candidates`, ni filas con su `candidate_id` en `files` y `projects`, y que el bucket `cvs` no conserva su CV.
+4. En `/admin/audit` (entidad **Talent (candidato)**) aparece `talent.candidate_delete` con el id y sin datos personales.
+5. Borra a mano el CV en Drive y, si procede, la suscripción en Mailchimp (audiencia de talent).
 
 **Prueba del ABM** (después del §5, con la variable `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` puesta):
 
@@ -239,3 +265,29 @@ Para el personal con acceso al panel. Menú lateral → **Talent**.
 4. Pulsa **Procesar pendientes** de nuevo con nada pendiente: no debe llamar a n8n.
 5. Prueba **Reprocesar** con una de las filas que sigan en `started` con el CV en el bucket, si queda alguna.
 6. Mira el log del servidor (PM2): sin errores `Talent:` ni `Audit:`.
+
+## 7. Purga por plazo de conservación (`POST /api/talent/purge`)
+
+La web no borra nada por sí sola (no hay `pg_cron` en Supabase-talent): la **llama un workflow programado de n8n**, que además es quien puede quitar el CV de Drive. La ruta solo borra filas que **ya han caducado** según el criterio de Greener (2 años desde `created_at`; sin fecha, a partir del 20 de octubre de 2027), lo vuelve a comprobar por cada id y deja cada borrado en Actividad (`talent.candidate_purge`, actor `system:talent-purge`, sin nombre ni email).
+
+**Activarla (una vez desplegado):**
+
+1. Genera un secreto de 32 caracteres o más (`openssl rand -base64 48`), ponlo en `.env.local` como `TALENT_PURGE_SECRET` y reinicia con PM2.
+2. En n8n crea una credencial **Header Auth** con nombre `Authorization` y valor `Bearer <el secreto>`.
+3. Sin el secreto, o con uno distinto, la ruta responde 503 o 401 y no toca nada.
+
+**Contrato.** Todas las llamadas son `POST` con `content-type: application/json` y la cabecera `Authorization: Bearer …`. Dos modos, para que n8n borre lo de Drive **antes** de que la web pierda los enlaces:
+
+- `{ "mode": "list", "limit": 50 }` (el límite es opcional, de 1 a 50) devuelve `{ "ok": true, "expired": [{ "id", "bucketFiles", "externalLinks": ["https://drive.google.com/…"] }], "more": false }`. No borra nada. `more` indica que quedan más caducados que los devueltos.
+- `{ "mode": "delete", "ids": ["<uuid>", …] }` (hasta 50) devuelve `{ "ok": true, "results": [{ "id", "status" }] }`. Borra los objetos del bucket y después las filas. `status` es `deleted`, `not_expired` (no ha caducado: no se toca), `not_found` (ya no existe) o `error` (reintentar). Repetir la llamada es seguro.
+- Errores: 401 `unauthorized`, 503 `not_configured` o `unavailable`, 400 `invalid`, `invalid_json` o `unsupported_media_type`, 413 `too_large`.
+
+**Workflow de n8n sugerido** (un disparo semanal basta; si hay más de 50 caducados, se repite hasta que `more` sea `false`):
+
+1. `Schedule Trigger` (semanal) → `HTTP Request` `list` con la credencial anterior.
+2. Si `expired` está vacío, termina. Si no, `Split Out` por candidato y, por cada `externalLinks`, el nodo de Drive **Delete** (el id del fichero va en la URL `…/file/d/<id>/view`).
+3. `HTTP Request` `delete` con los ids de **todos** los candidatos cuyos ficheros de Drive se han borrado bien. Si un borrado de Drive falla, ese candidato no se incluye y se reintenta en la siguiente ejecución, sin perder el enlace.
+4. Si `more` era `true`, vuelve al paso 1.
+5. La suscripción de Mailchimp (audiencia de talent) no se toca desde aquí: sigue siendo manual, o un nodo de Mailchimp aparte si Greener lo quiere (la ruta no devuelve emails a propósito).
+
+**Prueba.** Con la ruta activada, `curl -X POST …/api/talent/purge -H 'authorization: Bearer <secreto>' -H 'content-type: application/json' -d '{"mode":"list"}'` debe devolver `expired: []` mientras no haya filas de más de 2 años. Para ver un borrado real hace falta una fila antigua (p. ej. una de prueba con `created_at` de hace más de 2 años en Supabase-talent); entonces `list` la devuelve, `delete` la quita y aparece `talent.candidate_purge` en Actividad.

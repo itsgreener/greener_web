@@ -27,6 +27,7 @@ vi.mock('@/app/admin/(panel)/talent/actions', () => ({
   processPendingCvsAction,
   reprocessCandidateAction: vi.fn(),
   resendFormLinkAction: vi.fn(),
+  deleteCandidateAction: vi.fn(),
 }))
 
 import AdminTalentCandidatePage from '@/app/admin/(panel)/talent/[id]/page'
@@ -68,6 +69,31 @@ describe('/admin/talent — listado', () => {
     expect(
       screen.getAllByRole('link', { name: /Ada Lovelace/ })[0],
     ).toHaveAttribute('href', `/admin/talent/${ID}`)
+  })
+
+  it('tras eliminar un candidato avisa de lo que queda por borrar a mano', async () => {
+    await renderList({ deleted: '1', drive: '1', newsletter: '1' })
+
+    const notice = screen.getByRole('status')
+
+    expect(notice).toHaveTextContent('Candidato eliminado')
+    expect(notice).toHaveTextContent('su CV en Google Drive')
+    expect(notice).toHaveTextContent('su suscripción en Mailchimp')
+  })
+
+  it('el aviso de eliminación no menciona pendientes si no los hay', async () => {
+    await renderList({ deleted: '1' })
+
+    const notice = screen.getByRole('status')
+
+    expect(notice).toHaveTextContent('Candidato eliminado')
+    expect(notice).not.toHaveTextContent('Quedan por quitar a mano')
+  })
+
+  it('sin el parámetro no hay aviso', async () => {
+    await renderList()
+
+    expect(screen.queryByRole('status')).toBeNull()
   })
 
   it('el CV se abre por la ruta que deja constancia, nunca por un enlace directo', async () => {
@@ -344,6 +370,14 @@ describe('/admin/talent/[id] — ficha', () => {
 
     detail.mockResolvedValue(null)
     await expect(renderDetail()).rejects.toThrow('NEXT_NOT_FOUND')
+  })
+
+  it('«Eliminar candidato» sale siempre y pide confirmación', async () => {
+    await renderDetail()
+
+    expect(
+      screen.getByRole('button', { name: 'Eliminar candidato' }),
+    ).toBeInTheDocument()
   })
 
   it('enlaza con su historial en Actividad', async () => {

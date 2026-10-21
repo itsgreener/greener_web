@@ -366,6 +366,19 @@
   background: #f5f6f8;
 }
 
+/* Acción destructiva e irreversible (p. ej. eliminar un candidato). */
+.admin-button-danger,
+.admin-card .admin-button-danger {
+  border-color: #e3b4b4;
+  background: #ffffff;
+  color: #a32020;
+}
+
+.admin-button-danger:hover:not(:disabled),
+.admin-card .admin-button-danger:hover:not(:disabled) {
+  background: #fdf1f1;
+}
+
 /* Botones de componentes antiguos que todavía no tienen clase */
 .admin-card button:not(.admin-button) {
   border-color: #d9dce2;

@@ -32,7 +32,23 @@ function kindFor(contentType: ContentType): FeedContentKind {
 // especificacion-final-formato-detalle.md §1: el CTA del pin en el feed
 // es fijo por tipo de contenido, no un texto libre por pin — pin.cta
 // desaparece del modelo (§3, "Pin (todos los tipos)" ya no lo lista).
-function ctaFor(contentType: ContentType): string | null {
+//
+// `other` (página satélite): el CTA de talent, según el idioma del pin (20 oct
+// 2026). Es fijo para todas las páginas satélite porque hoy solo existe la de
+// talent; si llegan otras páginas con otro propósito habrá que pasar el CTA a
+// un campo de cada página (hoy no existe).
+export const PAGE_CTA_BY_LANGUAGE: Record<string, string> = {
+  en: 'Upload your CV',
+  es: 'Sube tu portfolio',
+  ca: 'Puja el teu CV',
+}
+
+const PAGE_CTA_FALLBACK_LANGUAGE = 'en'
+
+function ctaFor(
+  contentType: ContentType,
+  language: string | undefined,
+): string | null {
   switch (contentType) {
     case 'tool':
       return 'Use'
@@ -42,7 +58,10 @@ function ctaFor(contentType: ContentType): string | null {
     case 'episode':
       return 'Watch'
     case 'other':
-      return 'Open'
+      return (
+        PAGE_CTA_BY_LANGUAGE[language ?? PAGE_CTA_FALLBACK_LANGUAGE] ??
+        PAGE_CTA_BY_LANGUAGE[PAGE_CTA_FALLBACK_LANGUAGE]
+      )
   }
 }
 
@@ -60,7 +79,7 @@ export function toFeedBatchItem(
     label: meta.label,
     displayTitle: meta.displayTitle ?? null,
     displaySecondary: meta.displaySecondary ?? null,
-    cta: ctaFor(meta.contentType),
+    cta: ctaFor(meta.contentType, meta.language),
     alt: meta.alt,
     autoplayMode: meta.autoplayMode,
     media: meta.media,
