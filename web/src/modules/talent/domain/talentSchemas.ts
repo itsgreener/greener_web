@@ -16,7 +16,7 @@ import {
  */
 
 /** Email normalizado: sin espacios y en minúsculas, que es como se guarda. */
-export const talentEmailSchema = z
+const talentEmailSchema = z
   .string()
   .trim()
   .toLowerCase()
@@ -67,7 +67,7 @@ export const signupSchema = z.object({
   email: talentEmailSchema,
 })
 
-export const projectSchema = z.object({
+const projectSchema = z.object({
   link: httpUrlSchema,
   comment: optionalText(TALENT_TEXT_LIMITS.projectComment),
 })

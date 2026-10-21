@@ -1,6 +1,6 @@
 # Plan — `other`: pin de newsletter y páginas satélite
 
-**Estado: plan cerrado el 15 de octubre de 2026 (revisado tres veces ese día), en ejecución: fases 0 a 4 hechas el 15 de octubre (§2.72, §2.73, §2.76, §2.77 y §2.78 del historial) y fase 5 el 16 (§2.79).** Sale de la auditoría del 14 de octubre (`docs/auditorias/auditoria-other-2026-10-14.md`), de la reunión con Greener y de las respuestas del 15 de octubre. Cuando se implemente, lo que quede vigente se traslada a `especificacion-final-formato-detalle.md` (§1, §3, §7) y este plan pasa a historial.
+**Estado: plan cerrado el 15 de octubre de 2026 (revisado tres veces ese día), fases 0 a 4 hechas el 15 de octubre (§2.72, §2.73, §2.76, §2.77 y §2.78 del historial) y fase 5 el 16 (§2.79); la fase 6 (documentación final, inventario de cookies y registro) está en pausa hasta tener el visto bueno del asesor.** Sale de la auditoría del 14 de octubre (archivada en `docs/historial/historial-informes-cerrados-oct-2026.md`, informe 2), de la reunión con Greener y de las respuestas del 15 de octubre. Cuando se implemente, lo que quede vigente se traslada a `especificacion-final-formato-detalle.md` (§1, §3, §7) y este plan pasa a historial.
 
 **Primera revisión:** la frecuencia pasa de ser un parámetro global a un campo de **cada contenido `other`**, con primera aparición aleatoria; la cookie la fija el servidor; valores confirmados (CTA «Open» —cambiado el 20 oct a «Upload your CV», §2.92, y por idioma del pin, §2.94—, frecuencia mínima 25, páginas fuera del sitemap).
 

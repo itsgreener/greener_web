@@ -1,11 +1,7 @@
 import type { Metadata } from 'next'
 
 import { CookieChoice } from '@/components/consent/CookieChoice'
-import {
-  POLICY,
-  type PolicyBlock,
-  type PolicyListItem,
-} from './policyContent'
+import { POLICY, type PolicyBlock, type PolicyListItem } from './policyContent'
 import styles from './page.module.css'
 
 /**
@@ -111,9 +107,7 @@ export default function PrivacyPage() {
         return (
           <section
             key={section.id}
-            className={
-              section.level === 3 ? styles.subsection : styles.section
-            }
+            className={section.level === 3 ? styles.subsection : styles.section}
           >
             <Heading
               id={section.id}

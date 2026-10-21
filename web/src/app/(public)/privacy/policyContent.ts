@@ -98,7 +98,7 @@ export const POLICY: PolicyDocument = {
             },
             {
               label: 'Where it goes:',
-              text: "the form does not store your name, phone number, email address or message in the site's database (the only record it keeps is the one described under \"Protecting the form from abuse\"). It sends them by email through the mail service of our hosting provider, Dinahosting, which delivers them to Greener's inbox, hosted on Google Workspace.",
+              text: 'the form does not store your name, phone number, email address or message in the site\'s database (the only record it keeps is the one described under "Protecting the form from abuse"). It sends them by email through the mail service of our hosting provider, Dinahosting, which delivers them to Greener\'s inbox, hosted on Google Workspace.',
             },
             {
               label: 'How long:',
@@ -124,7 +124,10 @@ export const POLICY: PolicyDocument = {
       level: 3,
       heading: 'Newsletter',
       blocks: [
-        { type: 'p', text: 'If you subscribe from the card shown in the feed:' },
+        {
+          type: 'p',
+          text: 'If you subscribe from the card shown in the feed:',
+        },
         {
           type: 'list',
           items: [
@@ -308,7 +311,7 @@ export const POLICY: PolicyDocument = {
         },
         {
           type: 'p',
-          text: 'This storage serves the site\'s security, functions you ask for or your preferences, so it requires no consent under article 22.2 of Spanish Law 34/2002 on information society services. You ask for the greener_newsletter cookie by subscribing, and it does not depend on your cookie choice.',
+          text: "This storage serves the site's security, functions you ask for or your preferences, so it requires no consent under article 22.2 of Spanish Law 34/2002 on information society services. You ask for the greener_newsletter cookie by subscribing, and it does not depend on your cookie choice.",
         },
       ],
     },
@@ -429,7 +432,7 @@ export const POLICY: PolicyDocument = {
         },
         {
           type: 'p',
-          text: "When you withdraw it, the player disappears at once and does not load again until you accept. Anything YouTube or Spotify had already saved on your device, however, stays there until you delete it: you can do so in your browser settings, by clearing the site data for youtube-nocookie.com and spotify.com, or all cookies and site data.",
+          text: 'When you withdraw it, the player disappears at once and does not load again until you accept. Anything YouTube or Spotify had already saved on your device, however, stays there until you delete it: you can do so in your browser settings, by clearing the site data for youtube-nocookie.com and spotify.com, or all cookies and site data.',
         },
         {
           type: 'p',

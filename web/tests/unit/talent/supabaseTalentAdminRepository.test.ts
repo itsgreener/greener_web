@@ -553,8 +553,8 @@ describe('listExpiredCandidateIds', () => {
   it('si falla la consulta lanza', async () => {
     program('candidates.select', { error: { message: 'boom' } })
 
-    await expect(
-      repository.listExpiredCandidateIds(NOW, 10),
-    ).rejects.toThrow('candidates.listExpired')
+    await expect(repository.listExpiredCandidateIds(NOW, 10)).rejects.toThrow(
+      'candidates.listExpired',
+    )
   })
 })

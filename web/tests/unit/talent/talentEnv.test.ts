@@ -72,6 +72,43 @@ describe('getTalentEnv', () => {
   })
 })
 
+describe('getTalentPurgeEnv', () => {
+  const LONG = 'purga-secreta-de-prueba-con-32-caracteres!'
+
+  it('es opcional: sin el secreto no falla y la ruta queda cerrada', async () => {
+    delete process.env.TALENT_PURGE_SECRET
+    const { getTalentPurgeEnv } = await env()
+
+    expect(getTalentPurgeEnv().TALENT_PURGE_SECRET).toBeUndefined()
+  })
+
+  it('trata el valor vacío como ausente', async () => {
+    vi.stubEnv('TALENT_PURGE_SECRET', '')
+    const { getTalentPurgeEnv } = await env()
+
+    expect(getTalentPurgeEnv().TALENT_PURGE_SECRET).toBeUndefined()
+  })
+
+  it('acepta 32 caracteres y rechaza 31', async () => {
+    vi.stubEnv('TALENT_PURGE_SECRET', LONG.slice(0, 32))
+    const { getTalentPurgeEnv } = await env()
+    expect(getTalentPurgeEnv().TALENT_PURGE_SECRET).toHaveLength(32)
+
+    vi.resetModules()
+    vi.stubEnv('TALENT_PURGE_SECRET', LONG.slice(0, 31))
+    const again = await env()
+    expect(() => again.getTalentPurgeEnv()).toThrow(/purga/)
+  })
+
+  it('un secreto demasiado corto no tumba el resto de talent', async () => {
+    vi.stubEnv('TALENT_PURGE_SECRET', 'corto')
+    const serverEnv = await env()
+
+    expect(serverEnv.validateServerEnv()).toEqual(['Talent (purga)'])
+    expect(serverEnv.getTalentEnv().TALENT_SUPABASE_URL).toBeTruthy()
+  })
+})
+
 describe('getTalentMailchimpEnv', () => {
   it('exige el identificador de la audiencia de talent', async () => {
     vi.stubEnv('TALENT_MAILCHIMP_AUDIENCE_ID', '')

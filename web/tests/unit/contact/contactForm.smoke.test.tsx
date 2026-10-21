@@ -35,9 +35,7 @@ describe('ContactForm — prueba de humo', () => {
   it('la casilla informativa y el botón de enviar comparten fila (el CSS los reparte con space-between)', () => {
     render(<ContactForm />)
 
-    const consent = screen.getByLabelText(
-      'I have read the privacy policy',
-    )
+    const consent = screen.getByLabelText('I have read the privacy policy')
     const send = screen.getByRole('button', { name: 'Send' })
     const row = send.parentElement as HTMLElement
 

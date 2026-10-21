@@ -133,13 +133,18 @@ describe('NewsletterPinCard — alta', () => {
     expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
 
+    // La analítica y el aviso al feed salen de un efecto que corre después de
+    // pintar la confirmación: con la máquina cargada llegaba tarde y la
+    // aserción inmediata fallaba de vez en cuando.
+    await waitFor(() => {
+      expect(onSubscribed).toHaveBeenCalledWith('newsletter:n1:0')
+    })
     expect(mocks.track).toHaveBeenCalledTimes(1)
     expect(mocks.track).toHaveBeenCalledWith(
       'Newsletter Signup',
       { placement: 'feed' },
       { interactive: true },
     )
-    expect(onSubscribed).toHaveBeenCalledWith('newsletter:n1:0')
   })
 
   it('pendiente o ya suscrito: confirmación y retirada de tarjetas, pero sin evento', async () => {
@@ -153,8 +158,10 @@ describe('NewsletterPinCard — alta', () => {
     submit()
 
     await screen.findByRole('status')
+    await waitFor(() => {
+      expect(onSubscribed).toHaveBeenCalledTimes(1)
+    })
     expect(mocks.track).not.toHaveBeenCalled()
-    expect(onSubscribed).toHaveBeenCalledTimes(1)
   })
 
   it('error de campo: lo enseña y no retira nada ni cuenta nada', async () => {

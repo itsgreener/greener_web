@@ -20,7 +20,9 @@ describe('purga diaria de contact_submission', () => {
     expect(purge).toMatch(
       /cron\.schedule\(\s*'purge-expired-contact-submissions',\s*'30 3 \* \* \*'/,
     )
-    expect(purge).toMatch(/select public\.purge_expired_contact_submissions\(\)/)
+    expect(purge).toMatch(
+      /select public\.purge_expired_contact_submissions\(\)/,
+    )
   })
 
   it('borra solo los registros con más de 30 días', () => {

@@ -54,9 +54,7 @@ async function listPinMediaRefs(pinId: string): Promise<MediaRef[]> {
  * Todos los medios que cuelgan de un contenido: imagen de
  * compartición (og), medios de sus pines y carrusel de detalle (casos).
  */
-async function listContentMediaRefs(
-  contentId: string,
-): Promise<MediaRef[]> {
+async function listContentMediaRefs(contentId: string): Promise<MediaRef[]> {
   const supabase = await createClient()
 
   const refs: MediaRef[] = []
@@ -103,9 +101,7 @@ async function listContentMediaRefs(
 }
 
 /** Referencias (public id y tipo) de estos `media_asset.id`, leídas de Postgres. */
-async function listMediaRefsByIds(
-  mediaIds: string[],
-): Promise<MediaRef[]> {
+async function listMediaRefsByIds(mediaIds: string[]): Promise<MediaRef[]> {
   if (mediaIds.length === 0) return []
 
   const supabase = await createClient()
@@ -121,9 +117,7 @@ async function listMediaRefsByIds(
 }
 
 /** De estos `media_asset.id`, cuáles siguen existiendo en Postgres. */
-async function findExistingMediaIds(
-  mediaIds: string[],
-): Promise<Set<string>> {
+async function findExistingMediaIds(mediaIds: string[]): Promise<Set<string>> {
   if (mediaIds.length === 0) return new Set()
 
   const supabase = await createClient()

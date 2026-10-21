@@ -71,8 +71,7 @@ export function ContactForm() {
       <div className={styles.actions}>
         <div className={styles.consent}>
           <label htmlFor="privacyRead">
-            <input id="privacyRead" type="checkbox" />
-            I have read the{' '}
+            <input id="privacyRead" type="checkbox" />I have read the{' '}
             <Link href="/privacy#privacy" target="_blank" rel="noopener">
               privacy policy
             </Link>

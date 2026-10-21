@@ -19,8 +19,10 @@ function walk(dir: string): string[] {
   })
 }
 
-const sources = [...walk(join(root, 'src')), ...walk(join(root, 'scripts'))]
-  .filter((path) => /\.(ts|tsx|mjs|css)$/.test(path))
+const sources = [
+  ...walk(join(root, 'src')),
+  ...walk(join(root, 'scripts')),
+].filter((path) => /\.(ts|tsx|mjs|css)$/.test(path))
 
 const REMNANTS = [
   /cover_media_id/,

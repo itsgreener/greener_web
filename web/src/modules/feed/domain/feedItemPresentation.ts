@@ -37,7 +37,7 @@ function kindFor(contentType: ContentType): FeedContentKind {
 // 2026). Es fijo para todas las páginas satélite porque hoy solo existe la de
 // talent; si llegan otras páginas con otro propósito habrá que pasar el CTA a
 // un campo de cada página (hoy no existe).
-export const PAGE_CTA_BY_LANGUAGE: Record<string, string> = {
+const PAGE_CTA_BY_LANGUAGE: Record<string, string> = {
   en: 'Upload your CV',
   es: 'Sube tu portfolio',
   ca: 'Puja el teu CV',

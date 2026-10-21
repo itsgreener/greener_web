@@ -177,6 +177,11 @@ describe('virtualización con feeds largos', () => {
 
   for (const scenario of SCENARIOS) {
     it(`ningún pin del viewport queda sin montar en ${scenario.name}, con 40 lotes`, () => {
+      // Las violaciones se acumulan y se afirma una sola vez al final: una
+      // aserción por pin y por posición de scroll son millones de llamadas y
+      // el test tardaba más que el límite de 5 s en cuanto la máquina iba justa.
+      const violations: string[] = []
+
       for (const seed of [1, 2, 3]) {
         const feed = buildFeed(
           40,
@@ -207,16 +212,17 @@ describe('virtualización con feeds largos', () => {
                 card.y + card.height + card.labelHeight > scrollY &&
                 card.y < scrollY + scenario.viewport
 
-              if (inViewport) {
-                expect(
-                  b >= range.first && b <= range.last,
+              if (inViewport && (b < range.first || b > range.last)) {
+                violations.push(
                   `seed ${seed}, scrollY ${scrollY}: el pin ${index} (lote ${b}) está en pantalla y su lote no se monta (${range.first}-${range.last})`,
-                ).toBe(true)
+                )
               }
             }
           }
         }
       }
+
+      expect(violations.slice(0, 5)).toEqual([])
     })
 
     it(`sigue virtualizando (no monta todo) en ${scenario.name}, con 40 lotes`, () => {

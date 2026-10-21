@@ -14,4 +14,6 @@ for spec in light:250k typical:420k heavy:850k; do n=${spec%%:*}; b=${spec##*:}
 python3 run.py            # TTFB del CDN por defecto: 40 ms (env TTFB=600 para una derivada sin calentar)
 ```
 
+Los resultados de la medición del 16 de octubre están en `docs/historial/historial-informes-cerrados-oct-2026.md` (informe 5).
+
 Mide desde el `mouseenter` hasta el evento `playing` del `<video>`. Los 200 ms de intención de hover están incluidos. Con prefetch el vídeo ya está descargado y solo se espera esa intención (≈200 ms).

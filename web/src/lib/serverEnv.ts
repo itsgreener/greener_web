@@ -152,13 +152,6 @@ export const getTalentEnv = createScopedEnv('Talent', () =>
       TALENT_N8N_PROCESS_CV_WEBHOOK_URL: z.url().optional(),
       TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME: z.string().min(1).optional(),
       TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE: z.string().min(1).optional(),
-      // Al revés que los anteriores: es la credencial con la que n8n llama a la
-      // web (`POST /api/talent/purge`, purga por plazo). Sin ella la ruta
-      // responde `not_configured`. 32 caracteres como mínimo.
-      TALENT_PURGE_SECRET: z.preprocess(
-        (value) => (value === '' ? undefined : value),
-        z.string().min(32).optional(),
-      ),
     })
     .refine(
       (env) =>
@@ -170,6 +163,23 @@ export const getTalentEnv = createScopedEnv('Talent', () =>
         path: ['TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE'],
       },
     ),
+)
+
+/**
+ * Credencial de la purga por plazo (`POST /api/talent/purge`): al revés que las
+ * demás variables de talent, es el secreto con el que n8n llama a la web. Va en
+ * su propio ámbito a propósito: si estuviera dentro de `getTalentEnv`, un valor
+ * demasiado corto (mínimo 32 caracteres) invalidaría todo el bloque y tumbaría
+ * también el formulario de candidatos y el ABM. Así solo cierra la purga, y el
+ * log del arranque lo avisa. Sin ella la ruta responde `not_configured`.
+ */
+export const getTalentPurgeEnv = createScopedEnv('Talent (purga)', () =>
+  z.object({
+    TALENT_PURGE_SECRET: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(32).optional(),
+    ),
+  }),
 )
 
 /**
@@ -190,6 +200,7 @@ const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
   ['hash de IP', getIpHashEnv],
   ['Mailchimp', getMailchimpEnv],
   ['Talent', getTalentEnv],
+  ['Talent (purga)', getTalentPurgeEnv],
   ['Mailchimp (talent)', getTalentMailchimpEnv],
 ]
 

@@ -62,9 +62,9 @@ export function isOtherOccupationHigh(percent: number): boolean {
  * valores (el slug lleva un sufijo aleatorio para no chocar con otro). Slug
  * e idioma siguen siendo editables en «Datos generales» del editor.
  */
-export const NEWSLETTER_DEFAULT_TITLE = 'Newsletter'
+const NEWSLETTER_DEFAULT_TITLE = 'Newsletter'
 
-export const NEWSLETTER_DEFAULT_LOCALE = 'es'
+const NEWSLETTER_DEFAULT_LOCALE = 'es'
 
 export function newsletterDraftDefaults(suffix: string): {
   slug: string

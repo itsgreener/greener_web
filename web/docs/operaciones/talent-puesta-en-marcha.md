@@ -16,7 +16,7 @@ Se añaden al `.env.local` de producción (junto a `server.js`, ver `despliegue.
 | `TALENT_N8N_PROCESS_FILES_WEBHOOK_URL` | sí | Webhook de `Guardar archivos`. |
 | `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` | sí, para la subida del personal (fase 3) | Webhook de `Procesar nuevo CV`; lo llama el ABM tras subir CVs o al reprocesar. Sin ella, las filas quedan en `pending` y el ABM avisa de que el procesado no está configurado. |
 | `TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME` y `TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE` | no (fase 4) | Cabecera de autenticación de los tres webhooks. Van las dos o ninguna. Ver §3.4. |
-| `TALENT_PURGE_SECRET` | no (hasta activar la purga, §7) | Credencial con la que n8n llama a `POST /api/talent/purge`. Mínimo 32 caracteres (`openssl rand -base64 48`). Sin ella la ruta responde 503 `not_configured` y no hace nada. |
+| `TALENT_PURGE_SECRET` | no (hasta activar la purga, §7) | Credencial con la que n8n llama a `POST /api/talent/purge`. Mínimo 32 caracteres (`openssl rand -base64 48`). Sin ella la ruta responde 503 `not_configured` y no hace nada. Se valida en su propio ámbito, `Talent (purga)`: si es más corta, el log del arranque lo avisa y solo se cierra la purga; el formulario y el ABM de talent no se ven afectados. |
 | `TALENT_MAILCHIMP_AUDIENCE_ID` | sí | Identificador de la audiencia de talent. La clave de API y el prefijo (`us13`) son los de la newsletter (`MAILCHIMP_API_KEY`, `MAILCHIMP_SERVER_PREFIX`). |
 
 Bloque para añadir a `.env.local` y a `.env.local.example` (este último es un fichero oculto que no viaja en el zip):
@@ -282,12 +282,54 @@ La web no borra nada por sí sola (no hay `pg_cron` en Supabase-talent): la **ll
 - `{ "mode": "delete", "ids": ["<uuid>", …] }` (hasta 50) devuelve `{ "ok": true, "results": [{ "id", "status" }] }`. Borra los objetos del bucket y después las filas. `status` es `deleted`, `not_expired` (no ha caducado: no se toca), `not_found` (ya no existe) o `error` (reintentar). Repetir la llamada es seguro.
 - Errores: 401 `unauthorized`, 503 `not_configured` o `unavailable`, 400 `invalid`, `invalid_json` o `unsupported_media_type`, 413 `too_large`.
 
-**Workflow de n8n sugerido** (un disparo semanal basta; si hay más de 50 caducados, se repite hasta que `more` sea `false`):
+**Workflow de n8n (activo desde el 21 de octubre de 2026)**, «Purgar candidatos antiguos - CV system». Se ejecuta una vez por semana (lunes); si hay más de 50 caducados, el resto cae en la ejecución siguiente o se lanza a mano desde n8n, así que no hay bucle por `more`. Ocho nodos, en este orden:
 
-1. `Schedule Trigger` (semanal) → `HTTP Request` `list` con la credencial anterior.
-2. Si `expired` está vacío, termina. Si no, `Split Out` por candidato y, por cada `externalLinks`, el nodo de Drive **Delete** (el id del fichero va en la URL `…/file/d/<id>/view`).
-3. `HTTP Request` `delete` con los ids de **todos** los candidatos cuyos ficheros de Drive se han borrado bien. Si un borrado de Drive falla, ese candidato no se incluye y se reintenta en la siguiente ejecución, sin perder el enlace.
-4. Si `more` era `true`, vuelve al paso 1.
-5. La suscripción de Mailchimp (audiencia de talent) no se toca desde aquí: sigue siendo manual, o un nodo de Mailchimp aparte si Greener lo quiere (la ruta no devuelve emails a propósito).
+1. `Schedule Trigger`: semanal.
+2. `POST Expired Candidates`: `HTTP Request` `POST` a `https://itsgreener.com/api/talent/purge` con la credencial Header Auth («Purge Bearer Secret») y cuerpo JSON `{ "mode": "list" }`. Sin `limit`: la ruta usa 50 por defecto, y un `"50"` como texto daría 400 (el campo es numérico).
+3. `If expired`: condición de tipo **array**, «is not empty», sobre `{{ $json.expired }}`. El operador de texto no vale: con la validación estricta de tipos n8n lo rechaza.
+4. `Dividir candidatos`: `Code` en «Run Once for All Items» y con «Always Output Data» activo. Emite un item por cada enlace de Drive; los candidatos sin enlaces no generan item (siguen en la lista `expired` y se borran igualmente).
+5. `Delete a file`: Google Drive, Delete, `{{ $json.driveId }}`, con «Delete Permanently» activo (sin él el fichero queda 30 días en la papelera) y `On Error: Continue (using regular output)`, de modo que un fallo no corta el flujo y el item lleva `error` con el orden y el número de items intactos.
+6. `IDs a borrar`: `Code` que descarta los candidatos con algún borrado fallido y devuelve `{ ids: [...] }`.
+7. `If IDs`: igual que el 3, sobre `{{ $json.ids }}`.
+8. `HTTP Request`: `POST` con cuerpo JSON `{{ JSON.stringify({ mode: 'delete', ids: $json.ids }) }}`.
+
+Código del nodo 4:
+
+```js
+const out = []
+for (const c of $input.first().json.expired) {
+  for (const link of c.externalLinks) {
+    const driveId = (link.match(/\/d\/([^/?]+)/) || [])[1]
+    if (driveId) out.push({ json: { id: c.id, driveId } })
+  }
+}
+return out
+```
+
+Código del nodo 6:
+
+```js
+const expired = $('POST Expired Candidates').first().json.expired
+const files = $('Dividir candidatos')
+  .all()
+  .map((i) => i.json)
+  .filter((f) => f.driveId)
+const results = $input.all()
+
+const failed = new Set()
+files.forEach((f, i) => {
+  if (results[i]?.json?.error) failed.add(f.id)
+})
+
+const ids = expired.map((c) => c.id).filter((id) => !failed.has(id))
+return [{ json: { ids } }]
+```
+
+Cuatro puntos a tener en cuenta:
+
+- Los nombres de los nodos 2 y 4 están escritos en el código del 6 (`$('…')`); si se renombran, hay que cambiarlos también ahí.
+- Si un candidato tiene varios ficheros y falla el borrado de uno, no se incluye en `delete`: conserva sus enlaces y se reintenta en la semana siguiente.
+- Solo se borran de Drive los enlaces `drive.google.com/…/d/<id>`. Un enlace de otro origen no se toca desde n8n; la fila sí se borra cuando caduca.
+- La suscripción de Mailchimp (audiencia de talent) no se toca desde aquí: sigue siendo manual, o un nodo de Mailchimp aparte si Greener lo quiere (la ruta no devuelve emails a propósito).
 
 **Prueba.** Con la ruta activada, `curl -X POST …/api/talent/purge -H 'authorization: Bearer <secreto>' -H 'content-type: application/json' -d '{"mode":"list"}'` debe devolver `expired: []` mientras no haya filas de más de 2 años. Para ver un borrado real hace falta una fila antigua (p. ej. una de prueba con `created_at` de hace más de 2 años en Supabase-talent); entonces `list` la devuelve, `delete` la quita y aparece `talent.candidate_purge` en Actividad.

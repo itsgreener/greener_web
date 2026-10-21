@@ -9,7 +9,10 @@ import type {
  * salen bien, las filas. Lo comparten el botón del ABM y la purga por plazo.
  */
 export async function removeCandidate(
-  { admin, storage }: { admin: TalentAdminRepository; storage: TalentFileStorage },
+  {
+    admin,
+    storage,
+  }: { admin: TalentAdminRepository; storage: TalentFileStorage },
   target: CandidateDeletionTarget,
 ): Promise<void> {
   for (const path of target.bucketPaths) await storage.remove(path)

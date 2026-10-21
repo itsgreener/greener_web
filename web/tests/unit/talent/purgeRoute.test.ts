@@ -15,7 +15,7 @@ vi.mock('@/modules/talent/container', () => ({
   ...container,
   PURGE_MAX_BATCH: 50,
 }))
-vi.mock('@/lib/serverEnv', () => ({ getTalentEnv: () => env.get() }))
+vi.mock('@/lib/serverEnv', () => ({ getTalentPurgeEnv: () => env.get() }))
 
 const { POST } = await import('@/app/api/talent/purge/route')
 

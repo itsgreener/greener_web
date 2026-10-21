@@ -43,7 +43,7 @@ Documento para el asesor legal de Greener. Parte del documento «Política de co
 
 ## 5. Añadidos pendientes de visto bueno del asesor (19 oct 2026)
 
-El texto del asesor se incorporó tal cual, con una excepción: Greener pidió añadir tres cosas que el texto no recogía y que **el asesor todavía no ha visto**. Están marcadas aquí para que se las pasen (la lista para el asesor, con las preguntas, es un documento aparte).
+El texto del asesor se incorporó tal cual, con una excepción: Greener pidió añadir tres cosas que el texto no recogía y que **el asesor todavía no ha visto**. Están marcadas aquí para que se las pasen (la lista para el asesor, con las preguntas, es un documento aparte: `consultas-asesor-legal.md`, de esta misma carpeta).
 
 1. **Correo del formulario por Dinahosting.** El texto decía «el servicio de envío de correo de la web» sin nombre. El proveedor es el servidor de correo de Dinahosting, al que se llega por SMTP con nodemailer (variables `CONTACT_SMTP_*`). En `/privacy`: «Where it goes» nombra a Dinahosting y la lista de encargados une «alojamiento» y «servicio de correo» en una sola línea (se retiró el punto del servicio sin nombre). El buzón de destino sigue siendo Google Workspace.
 2. **Campo `error` de `contact_submission`.** Si el envío falla, la tabla guarda el mensaje de error del servidor de correo, que en algún caso puede incluir la dirección de email del visitante. «Protecting the form from abuse» lo declara y dice que se borra con el resto del registro a los 30 días. «Where it goes» ya no afirma que el formulario no guarda nada: remite a ese apartado.

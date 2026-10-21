@@ -2,7 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 
 import type { NextRequest } from 'next/server'
 
-import { getTalentEnv } from '@/lib/serverEnv'
+import { getTalentPurgeEnv } from '@/lib/serverEnv'
 
 export type PurgeAuth = 'ok' | 'not_configured' | 'unauthorized'
 
@@ -20,7 +20,7 @@ export function checkPurgeAuth(request: NextRequest): PurgeAuth {
   let secret: string | undefined
 
   try {
-    secret = getTalentEnv().TALENT_PURGE_SECRET
+    secret = getTalentPurgeEnv().TALENT_PURGE_SECRET
   } catch {
     return 'not_configured'
   }
