@@ -53,8 +53,15 @@ p,
 h1 {
   padding: 0;
   margin: 0;
-  background: var(--color-bg);
   color: var(--color-text);
+}
+
+/* El fondo solo lo lleva la página: un <p> o un <h1> con fondo propio se
+   pintaba como una caja blanca sobre cualquier superficie que no lo fuera
+   (el gris del ABM, por ejemplo). */
+html,
+body {
+  background: var(--color-bg);
 }
 
 body {

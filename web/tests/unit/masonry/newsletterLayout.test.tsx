@@ -111,7 +111,9 @@ describe('Feed con newsletter', () => {
       ).toHaveLength(2)
     })
     expect(
-      screen.getByRole('heading', { name: 'Brand news, once a month' }),
+      screen.getByRole('heading', {
+        name: 'Like what you see? We’ll write you when there’s more',
+      }),
     ).toBeInTheDocument()
   })
 

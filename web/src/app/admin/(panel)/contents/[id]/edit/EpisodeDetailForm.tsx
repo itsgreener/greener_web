@@ -10,6 +10,16 @@ import {
   type Episode,
 } from '@/modules/content/domain/episodeSchema'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import { saveEpisodeAction, type EpisodeActionState } from './episodeActions'
 
 type Props = {
@@ -32,93 +42,93 @@ export default function EpisodeDetailForm({ contentId, episode }: Props) {
   )
 
   return (
-    <form action={formAction}>
+    <AdminForm action={formAction}>
       <input type="hidden" name="contentId" value={contentId} />
 
-      <div>
-        <label htmlFor="program">Programa</label>
-
-        <select
-          id="program"
-          name="program"
-          defaultValue={episode?.program ?? episodeProgramSchema.options[0]}
+      <AdminFormGrid>
+        <AdminField
+          label="Programa"
+          htmlFor="program"
+          error={state.fieldErrors?.program?.[0]}
         >
-          {episodeProgramSchema.options.map((option) => (
-            <option key={option} value={option}>
-              {EPISODE_PROGRAM_LABEL[option]}
-            </option>
-          ))}
-        </select>
+          <AdminSelect
+            id="program"
+            name="program"
+            defaultValue={episode?.program ?? episodeProgramSchema.options[0]}
+          >
+            {episodeProgramSchema.options.map((option) => (
+              <option key={option} value={option}>
+                {EPISODE_PROGRAM_LABEL[option]}
+              </option>
+            ))}
+          </AdminSelect>
+        </AdminField>
 
-        {state.fieldErrors?.program?.[0] && (
-          <p>{state.fieldErrors.program[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="provider">Proveedor</label>
-
-        <select
-          id="provider"
-          name="provider"
-          defaultValue={episode?.provider ?? episodeProviderSchema.options[0]}
+        <AdminField
+          label="Tipo de episodio"
+          htmlFor="episodeKind"
+          error={state.fieldErrors?.episodeKind?.[0]}
         >
-          {episodeProviderSchema.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+          <AdminSelect
+            id="episodeKind"
+            name="episodeKind"
+            defaultValue={episode?.episodeKind ?? episodeKindSchema.options[0]}
+          >
+            {episodeKindSchema.options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </AdminSelect>
+        </AdminField>
 
-        {state.fieldErrors?.provider?.[0] && (
-          <p>{state.fieldErrors.provider[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="embedId">
-          ID del embed (el propio proveedor, no una URL completa)
-        </label>
-
-        <input
-          id="embedId"
-          name="embedId"
-          type="text"
-          defaultValue={episode?.embedId ?? ''}
-        />
-
-        {state.fieldErrors?.embedId?.[0] && (
-          <p>{state.fieldErrors.embedId[0]}</p>
-        )}
-      </div>
-
-      <div>
-        <label htmlFor="episodeKind">Tipo de episodio</label>
-
-        <select
-          id="episodeKind"
-          name="episodeKind"
-          defaultValue={episode?.episodeKind ?? episodeKindSchema.options[0]}
+        <AdminField
+          label="Proveedor"
+          htmlFor="provider"
+          error={state.fieldErrors?.provider?.[0]}
         >
-          {episodeKindSchema.options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-        </select>
+          <AdminSelect
+            id="provider"
+            name="provider"
+            defaultValue={episode?.provider ?? episodeProviderSchema.options[0]}
+          >
+            {episodeProviderSchema.options.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </AdminSelect>
+        </AdminField>
 
-        {state.fieldErrors?.episodeKind?.[0] && (
-          <p>{state.fieldErrors.episodeKind[0]}</p>
-        )}
-      </div>
+        <AdminField
+          label="ID del embed (el propio proveedor, no una URL completa)"
+          htmlFor="embedId"
+          error={state.fieldErrors?.embedId?.[0]}
+        >
+          <AdminInput
+            id="embedId"
+            name="embedId"
+            type="text"
+            defaultValue={episode?.embedId ?? ''}
+          />
+        </AdminField>
+      </AdminFormGrid>
 
-      {state.formError && <p>{state.formError}</p>}
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
+      )}
 
-      {state.success && <p>Datos del episodio guardados correctamente.</p>}
+      {state.success && (
+        <AdminMessage kind="success">
+          Datos del episodio guardados correctamente.
+        </AdminMessage>
+      )}
 
-      <button type="submit" disabled={pending}>
-        {pending ? 'Guardando...' : 'Guardar datos del episodio'}
-      </button>
-    </form>
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
+          {pending ? 'Guardando...' : 'Guardar datos del episodio'}
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

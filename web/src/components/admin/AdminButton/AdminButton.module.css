@@ -1,0 +1,82 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: var(--admin-button-height);
+  padding: 0 var(--space-md);
+  border: 1px solid transparent;
+  border-radius: var(--admin-radius-sm);
+  font: inherit;
+  font-size: var(--admin-fs-md);
+  font-weight: 700;
+  line-height: 1.2;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--admin-transition),
+    border-color var(--admin-transition),
+    color var(--admin-transition),
+    opacity var(--admin-transition),
+    transform 100ms ease;
+}
+
+.compact {
+  min-height: var(--admin-button-height-compact);
+  padding: 0 var(--admin-space-12);
+  font-size: var(--admin-fs-sm);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-cta);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primary {
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--admin-cta-hover);
+}
+
+.secondary {
+  border-color: var(--admin-border-control);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+/* Acción destructiva e irreversible (p. ej. eliminar un candidato). */
+.danger {
+  border-color: var(--admin-danger-border);
+  background: var(--color-bg);
+  color: var(--color-error);
+}
+
+.danger:hover:not(:disabled) {
+  background: var(--admin-danger-bg);
+}
+
+/* La misma, cuando es la acción principal de una zona peligrosa. */
+.dangerSolid {
+  background: var(--color-error);
+  color: var(--color-cta-text);
+}
+
+.dangerSolid:hover:not(:disabled) {
+  background: var(--admin-danger-hover);
+}

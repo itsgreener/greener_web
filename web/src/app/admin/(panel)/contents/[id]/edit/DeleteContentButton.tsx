@@ -2,6 +2,9 @@
 
 import { useActionState } from 'react'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import {
   deleteContentAction,
   type DeleteContentActionState,
@@ -23,11 +26,9 @@ export default function DeleteContentButton({ id, status }: Props) {
 
   if (status !== 'draft') {
     return (
-      <div>
-        <p>
-          Este contenido no se puede eliminar porque no está en estado draft.
-        </p>
-      </div>
+      <AdminMessage>
+        Este contenido no se puede eliminar porque no está en estado draft.
+      </AdminMessage>
     )
   }
 
@@ -46,11 +47,11 @@ export default function DeleteContentButton({ id, status }: Props) {
     >
       <input type="hidden" name="id" value={id} />
 
-      {state.error && <p>{state.error}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
 
-      <button type="submit" disabled={pending}>
+      <AdminButton type="submit" variant="danger-solid" disabled={pending}>
         {pending ? 'Eliminando...' : 'Eliminar contenido'}
-      </button>
+      </AdminButton>
     </form>
   )
 }

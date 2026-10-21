@@ -1,0 +1,43 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0 var(--admin-space-12);
+  border-radius: var(--admin-radius-pill);
+  font-size: var(--admin-fs-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brand {
+  background: var(--admin-cta-soft);
+  color: var(--color-cta);
+}
+
+.neutral,
+.draft {
+  background: var(--color-surface-muted);
+  color: var(--admin-text-secondary);
+}
+
+.scheduled {
+  background: var(--admin-warning-bg);
+  color: var(--admin-warning-text);
+}
+
+.published {
+  background: var(--admin-success-bg);
+  color: var(--admin-success-text);
+}
+
+.locale {
+  justify-content: center;
+  min-width: 38px;
+  min-height: 28px;
+  padding: 0 var(--space-sm);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-cta-soft);
+  color: var(--color-cta);
+  font-size: var(--admin-fs-xs);
+}

@@ -1,6 +1,19 @@
-import Link from 'next/link'
-
 import { notFound } from 'next/navigation'
+
+import {
+  AdminCard,
+  AdminCardHeader,
+  AdminCardSection,
+  AdminCardText,
+} from '@/components/admin/AdminCard'
+import { AdminBadge } from '@/components/admin/AdminBadge'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import {
+  AdminBackLink,
+  AdminPage,
+  AdminPageHeader,
+} from '@/components/admin/AdminPage'
+import { contentTypeLabel } from '@/components/admin/contentLabels'
 
 import {
   caseCarousels,
@@ -42,6 +55,7 @@ import DeleteContentButton from './DeleteContentButton'
 
 import PublishControls from './PublishControls'
 import WarmVideosControl from './WarmVideosControl'
+import styles from './page.module.css'
 import { contentWarming } from '@/modules/media/container'
 import { otherKindLabel } from '@/modules/content/domain/otherSchema'
 
@@ -49,23 +63,6 @@ type Props = {
   params: Promise<{
     id: string
   }>
-}
-
-function getTypeLabel(type: string) {
-  switch (type) {
-    case 'case':
-      return 'Case'
-    case 'insight':
-      return 'Insight'
-    case 'tool':
-      return 'Tool'
-    case 'episode':
-      return 'Episode'
-    case 'other':
-      return 'Other'
-    default:
-      return type
-  }
 }
 
 export default async function EditContentPage({ params }: Props) {
@@ -142,255 +139,193 @@ export default async function EditContentPage({ params }: Props) {
     console.error(error)
   }
 
+  const typeLabel = `${contentTypeLabel(content.type)}${
+    otherKind ? ` · ${otherKindLabel(otherKind)}` : ''
+  }`
+
   return (
-    <main className="admin-editor-page">
-      <div className="admin-editor-shell">
-        <header className="admin-editor-header">
-          <Link href="/admin/contents" className="admin-back-link">
-            ← Volver a contenidos
-          </Link>
+    <AdminPage>
+      <AdminBackLink href="/admin/contents">
+        ← Volver a contenidos
+      </AdminBackLink>
 
-          <div className="admin-editor-title-row">
-            <div>
-              <p className="admin-editor-eyebrow">
-                {getTypeLabel(content.type)}
-                {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
-              </p>
+      <AdminPageHeader
+        eyebrow={typeLabel}
+        title="Editar contenido"
+        meta={
+          <>
+            <AdminBadge>{typeLabel}</AdminBadge>
 
-              <h1>Editar contenido</h1>
+            <code className={styles.id}>{content.id}</code>
+          </>
+        }
+        actions={
+          <div className={styles.controls}>
+            <PublishControls
+              contentId={content.id}
+              status={content.status}
+              publishAt={content.publishAt}
+              previewAvailable={
+                content.type === 'case' || content.type === 'episode'
+              }
+            />
 
-              <div className="admin-editor-meta">
-                <span className="admin-type-badge">
-                  {getTypeLabel(content.type)}
-                  {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
-                </span>
-
-                <code>{content.id}</code>
-              </div>
-            </div>
-
-            <div>
-              <PublishControls
+            {!isNewsletter && (
+              <WarmVideosControl
                 contentId={content.id}
-                status={content.status}
-                publishAt={content.publishAt}
-                previewAvailable={
-                  content.type === 'case' || content.type === 'episode'
-                }
+                pending={pendingWarming}
               />
-
-              {!isNewsletter && (
-                <WarmVideosControl
-                  contentId={content.id}
-                  pending={pendingWarming}
-                />
-              )}
-            </div>
+            )}
           </div>
-        </header>
+        }
+      />
 
-        <div className="admin-editor-stack">
-          <section className="admin-card">
-            <div className="admin-card-heading">
-              <div>
-                <p className="admin-card-kicker">Configuración</p>
+      <div className={styles.stack}>
+        <AdminCard>
+          <AdminCardHeader
+            kicker="Configuración"
+            title="Datos generales"
+            description="Configura la URL, el idioma principal y los datos básicos del contenido."
+          />
 
-                <h2>Datos generales</h2>
-
-                <p>
-                  Configura la URL, el idioma principal y los datos básicos del
-                  contenido.
-                </p>
-              </div>
-            </div>
-
+          <AdminCardSection>
             <EditContentForm content={content} otherKind={otherKind} />
+          </AdminCardSection>
 
-            {content.type === 'other' &&
-              (otherDetail ? (
+          {content.type === 'other' && (
+            <AdminCardSection>
+              {otherDetail ? (
                 <OtherDetailForm
                   other={otherDetail}
                   otherFrequencies={otherFrequencies}
                 />
               ) : (
-                <p className="admin-form-error">
+                <AdminMessage kind="error">
                   Este Other no tiene subtipo (newsletter o página satélite) y
                   no se puede publicar. Se crea siempre con él: revisa cómo se
                   dio de alta.
-                </p>
-              ))}
-          </section>
-
-          <section className="admin-card">
-            <div className="admin-card-heading">
-              <div>
-                <p className="admin-card-kicker">Contenido</p>
-
-                <h2>Traducciones</h2>
-
-                <p>
-                  Edita el título, resumen y metadatos de cada idioma
-                  disponible.
-                </p>
-              </div>
-            </div>
-
-            <ContentTranslations
-              contentId={content.id}
-              contentType={content.type}
-              defaultLocale={content.defaultLocale}
-              translations={translations}
-              otherKind={otherKind}
-            />
-          </section>
-
-          {content.type === 'case' && (
-            <>
-              <section className="admin-card">
-                <div className="admin-card-heading">
-                  <div>
-                    <p className="admin-card-kicker">Case</p>
-
-                    <h2>Datos del Case</h2>
-
-                    <p>
-                      Información específica del proyecto y configuración de su
-                      ficha.
-                    </p>
-                  </div>
-                </div>
-
-                <CaseDetailForm
-                  contentId={content.id}
-                  caseDetail={caseDetail}
-                />
-              </section>
-
-              <section className="admin-card">
-                <div className="admin-card-heading">
-                  <div>
-                    <p className="admin-card-kicker">Media</p>
-
-                    <h2>Carrusel de detalle</h2>
-
-                    <p>Gestiona las imágenes y vídeos del carrusel del Case.</p>
-                  </div>
-                </div>
-
-                <CaseCarouselManager
-                  contentId={content.id}
-                  items={caseCarousel}
-                />
-              </section>
-            </>
+                </AdminMessage>
+              )}
+            </AdminCardSection>
           )}
+        </AdminCard>
 
-          {content.type === 'episode' && (
-            <section className="admin-card">
-              <div className="admin-card-heading">
-                <div>
-                  <p className="admin-card-kicker">Channel</p>
+        <AdminCard>
+          <AdminCardHeader
+            kicker="Contenido"
+            title="Traducciones"
+            description="Edita el título, resumen y metadatos de cada idioma disponible."
+          />
 
-                  <h2>Datos del episodio</h2>
+          <ContentTranslations
+            contentId={content.id}
+            contentType={content.type}
+            defaultLocale={content.defaultLocale}
+            translations={translations}
+            otherKind={otherKind}
+          />
+        </AdminCard>
 
-                  <p>
-                    Configura programa, proveedor y datos específicos del
-                    episodio.
-                  </p>
-                </div>
-              </div>
-
-              <EpisodeDetailForm contentId={content.id} episode={episode} />
-            </section>
-          )}
-
-          {supportsPackage && (
-            <section className="admin-card">
-              <div className="admin-card-heading">
-                <div>
-                  <p className="admin-card-kicker">Runtime</p>
-
-                  <h2>Paquete HTML</h2>
-
-                  <p>
-                    Gestiona las versiones publicadas del paquete HTML de este
-                    contenido.
-                  </p>
-                </div>
-              </div>
-
-              <PackageUpload
-                contentId={content.id}
-                versions={packageVersions}
+        {content.type === 'case' && (
+          <>
+            <AdminCard>
+              <AdminCardHeader
+                kicker="Case"
+                title="Datos del Case"
+                description="Información específica del proyecto y configuración de su ficha."
               />
-            </section>
-          )}
 
-          {!isNewsletter && (
-            <section className="admin-card">
-              <div className="admin-card-heading">
-                <div>
-                  <p className="admin-card-kicker">Feed</p>
+              <CaseDetailForm contentId={content.id} caseDetail={caseDetail} />
+            </AdminCard>
 
-                  <h2>Pines</h2>
+            <AdminCard>
+              <AdminCardHeader
+                kicker="Media"
+                title="Carrusel de detalle"
+                description="Gestiona las imágenes y vídeos del carrusel del Case."
+              />
 
-                  <p>
-                    Gestiona los pines que representan este contenido dentro del
-                    feed.
-                  </p>
-                </div>
-              </div>
+              <CaseCarouselManager
+                contentId={content.id}
+                items={caseCarousel}
+              />
+            </AdminCard>
+          </>
+        )}
 
-              <div className="admin-editor-subsection">
-                <PinList
+        {content.type === 'episode' && (
+          <AdminCard>
+            <AdminCardHeader
+              kicker="Channel"
+              title="Datos del episodio"
+              description="Configura programa, proveedor y datos específicos del episodio."
+            />
+
+            <EpisodeDetailForm contentId={content.id} episode={episode} />
+          </AdminCard>
+        )}
+
+        {supportsPackage && (
+          <AdminCard>
+            <AdminCardHeader
+              kicker="Runtime"
+              title="Paquete HTML"
+              description="Gestiona las versiones publicadas del paquete HTML de este contenido."
+            />
+
+            <PackageUpload contentId={content.id} versions={packageVersions} />
+          </AdminCard>
+        )}
+
+        {!isNewsletter && (
+          <AdminCard>
+            <AdminCardHeader
+              kicker="Feed"
+              title="Pines"
+              description="Gestiona los pines que representan este contenido dentro del feed."
+            />
+
+            <AdminCardSection>
+              <PinList
+                contentId={content.id}
+                contentType={content.type}
+                pins={pins}
+              />
+            </AdminCardSection>
+
+            <AdminCardSection title="Crear pines">
+              <AdminCardText>
+                Cada pin es un único medio (imagen o vídeo). Selecciona uno o
+                varios archivos, ajusta los datos de cada fila y quita los que
+                no quieras antes de subir.
+              </AdminCardText>
+
+              {pins.length >= MAX_PINS_PER_CONTENT ? (
+                <AdminMessage kind="warning">
+                  Este contenido ya tiene {MAX_PINS_PER_CONTENT} pines, el
+                  máximo permitido. Elimina uno para crear otro.
+                </AdminMessage>
+              ) : (
+                <BulkPinUpload
                   contentId={content.id}
                   contentType={content.type}
-                  pins={pins}
+                  availableSlots={remainingPinSlots(pins.length)}
                 />
-              </div>
+              )}
+            </AdminCardSection>
+          </AdminCard>
+        )}
 
-              <div className="admin-editor-subsection">
-                <h3>Crear pines</h3>
+        <AdminCard tone="danger">
+          <AdminCardHeader
+            kicker="Danger zone"
+            title="Zona peligrosa"
+            description="Estas acciones pueden eliminar definitivamente el contenido."
+          />
 
-                <p>
-                  Cada pin es un único medio (imagen o vídeo). Selecciona uno o
-                  varios archivos, ajusta los datos de cada fila y quita los que
-                  no quieras antes de subir.
-                </p>
-
-                {pins.length >= MAX_PINS_PER_CONTENT ? (
-                  <p>
-                    Este contenido ya tiene {MAX_PINS_PER_CONTENT} pines, el
-                    máximo permitido. Elimina uno para crear otro.
-                  </p>
-                ) : (
-                  <BulkPinUpload
-                    contentId={content.id}
-                    contentType={content.type}
-                    availableSlots={remainingPinSlots(pins.length)}
-                  />
-                )}
-              </div>
-            </section>
-          )}
-
-          <section className="admin-card admin-danger-card">
-            <div className="admin-card-heading">
-              <div>
-                <p className="admin-card-kicker">Danger zone</p>
-
-                <h2>Zona peligrosa</h2>
-
-                <p>
-                  Estas acciones pueden eliminar definitivamente el contenido.
-                </p>
-              </div>
-            </div>
-
-            <DeleteContentButton id={content.id} status={content.status} />
-          </section>
-        </div>
+          <DeleteContentButton id={content.id} status={content.status} />
+        </AdminCard>
       </div>
-    </main>
+    </AdminPage>
   )
 }

@@ -1,47 +1,18 @@
-import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import Link from 'next/link'
 
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { AdminBadge, AdminStatusBadge } from '@/components/admin/AdminBadge'
+import { AdminButtonLink } from '@/components/admin/AdminButton'
+import { AdminCard, AdminCardHeader } from '@/components/admin/AdminCard'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import { AdminPage, AdminPageHeader } from '@/components/admin/AdminPage'
+import { AdminTextLink } from '@/components/admin/AdminTextLink'
+import { contentTypeLabel } from '@/components/admin/contentLabels'
 import { contents as contentRepository } from '@/modules/content/container'
 
-function getTypeLabel(type: string) {
-  switch (type) {
-    case 'case':
-      return 'Case'
+import styles from './page.module.css'
 
-    case 'tool':
-      return 'Tool'
-
-    case 'insight':
-      return 'Insight'
-
-    case 'episode':
-      return 'Episode'
-
-    case 'other':
-      return 'Other'
-
-    default:
-      return type
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch (status) {
-    case 'published':
-      return 'Publicado'
-
-    case 'scheduled':
-      return 'Programado'
-
-    case 'draft':
-      return 'Borrador'
-
-    default:
-      return status
-  }
-}
-
-export default async function AdminPage() {
+export default async function AdminPanelPage() {
   const [counts, recent] = await Promise.all([
     contentRepository.counts(),
     contentRepository.list({ q: '', page: 1, pageSize: 6 }),
@@ -53,175 +24,151 @@ export default async function AdminPage() {
 
   const recentContents = recent.items
 
+  const stats = [
+    { label: 'Contenidos', value: total, caption: 'contenidos totales' },
+    {
+      label: 'Publicados',
+      value: published,
+      caption: 'visibles en producción',
+    },
+    {
+      label: 'Borradores',
+      value: drafts,
+      caption: 'pendientes de publicación',
+    },
+    {
+      label: 'Programados',
+      value: scheduled,
+      caption: 'publicaciones programadas',
+    },
+  ]
+
   return (
-    <main className="admin-dashboard-page">
-      <div className="admin-dashboard-shell">
-        <header className="admin-page-header">
-          <div>
-            <p className="admin-page-eyebrow">Greener Admin</p>
-
-            <h1>Panel</h1>
-
-            <p className="admin-page-description">
-              Gestiona el contenido publicado y en preparación de Greener.
-            </p>
-          </div>
-
-          <Link
-            href="/admin/contents/new"
-            className="admin-button admin-button-primary admin-link-button"
-          >
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Greener Admin"
+        title="Panel"
+        description="Gestiona el contenido publicado y en preparación de Greener."
+        actions={
+          <AdminButtonLink href="/admin/contents/new" variant="primary">
             + Nuevo contenido
-          </Link>
-        </header>
+          </AdminButtonLink>
+        }
+      />
 
-        <section className="admin-stat-grid">
-          <article className="admin-stat-card">
-            <span className="admin-stat-label">Contenidos</span>
+      <section className={styles.stats}>
+        {stats.map((stat) => (
+          <AdminCard
+            key={stat.label}
+            as="article"
+            padded={false}
+            className={styles.stat}
+          >
+            <span className={styles.statLabel}>{stat.label}</span>
 
-            <strong>{total}</strong>
+            <strong className={styles.statValue}>{stat.value}</strong>
 
-            <span className="admin-stat-caption">contenidos totales</span>
-          </article>
+            <span className={styles.statCaption}>{stat.caption}</span>
+          </AdminCard>
+        ))}
+      </section>
 
-          <article className="admin-stat-card">
-            <span className="admin-stat-label">Publicados</span>
+      <section className={styles.grid}>
+        <AdminCard as="article">
+          <AdminCardHeader
+            tight
+            kicker="Contenido"
+            title="Contenido reciente"
+            description="Accede rápidamente a los últimos contenidos del sitio."
+            actions={
+              <AdminTextLink href="/admin/contents">Ver todos →</AdminTextLink>
+            }
+          />
 
-            <strong>{published}</strong>
-
-            <span className="admin-stat-caption">visibles en producción</span>
-          </article>
-
-          <article className="admin-stat-card">
-            <span className="admin-stat-label">Borradores</span>
-
-            <strong>{drafts}</strong>
-
-            <span className="admin-stat-caption">
-              pendientes de publicación
-            </span>
-          </article>
-
-          <article className="admin-stat-card">
-            <span className="admin-stat-label">Programados</span>
-
-            <strong>{scheduled}</strong>
-
-            <span className="admin-stat-caption">
-              publicaciones programadas
-            </span>
-          </article>
-        </section>
-
-        <section className="admin-dashboard-grid">
-          <article className="admin-dashboard-card admin-dashboard-recent">
-            <div className="admin-dashboard-card-heading">
-              <div>
-                <p className="admin-card-kicker">Contenido</p>
-
-                <h2>Contenido reciente</h2>
-
-                <p>Accede rápidamente a los últimos contenidos del sitio.</p>
-              </div>
-
-              <Link href="/admin/contents" className="admin-text-link">
-                Ver todos →
-              </Link>
-            </div>
-
-            {recentContents.length === 0 ? (
-              <div className="admin-empty-state">
-                <strong>Todavía no hay contenidos</strong>
-
-                <p>Crea el primer contenido para empezar.</p>
-
-                <Link
-                  href="/admin/contents/new"
-                  className="admin-button admin-button-primary admin-link-button"
-                >
+          {recentContents.length === 0 ? (
+            <AdminEmptyState
+              title="Todavía no hay contenidos"
+              description="Crea el primer contenido para empezar."
+              action={
+                <AdminButtonLink href="/admin/contents/new" variant="primary">
                   Crear contenido
+                </AdminButtonLink>
+              }
+            />
+          ) : (
+            <div className={styles.recentList}>
+              {recentContents.map((content) => (
+                <Link
+                  key={content.id}
+                  href={`/admin/contents/${content.id}/edit`}
+                  className={styles.recentItem}
+                >
+                  <div className={styles.recentMain}>
+                    <strong className={styles.recentTitle}>
+                      {content.title || content.slug}
+                    </strong>
+
+                    <span className={styles.recentSlug}>/{content.slug}</span>
+                  </div>
+
+                  <div className={styles.recentMeta}>
+                    <AdminBadge>{contentTypeLabel(content.type)}</AdminBadge>
+
+                    <AdminStatusBadge status={content.status} />
+
+                    <span className={styles.recentDate}>
+                      {formatAdminDateTime(content.publishAt, 'Sin publicar')}
+                    </span>
+
+                    <span className={styles.arrow}>→</span>
+                  </div>
                 </Link>
-              </div>
-            ) : (
-              <div className="admin-recent-list">
-                {recentContents.map((content) => (
-                  <Link
-                    key={content.id}
-                    href={`/admin/contents/${content.id}/edit`}
-                    className="admin-recent-item"
-                  >
-                    <div className="admin-recent-main">
-                      <strong>{content.title || content.slug}</strong>
+              ))}
+            </div>
+          )}
+        </AdminCard>
 
-                      <span>/{content.slug}</span>
-                    </div>
+        <AdminCard as="aside">
+          <AdminCardHeader
+            tight
+            kicker="Acciones"
+            title="Acceso rápido"
+            description="Las tareas más frecuentes del panel."
+          />
 
-                    <div className="admin-recent-meta">
-                      <span className="admin-type-badge">
-                        {getTypeLabel(content.type)}
-                      </span>
+          <div className={styles.quickList}>
+            <Link href="/admin/contents/new" className={styles.quick}>
+              <span className={styles.quickIcon}>+</span>
 
-                      <span
-                        className={`admin-status admin-status-${content.status}`}
-                      >
-                        {getStatusLabel(content.status)}
-                      </span>
-
-                      <span className="admin-recent-date">
-                        {formatAdminDateTime(content.publishAt, 'Sin publicar')}
-                      </span>
-
-                      <span className="admin-recent-arrow">→</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </article>
-
-          <aside className="admin-dashboard-card admin-quick-actions">
-            <div className="admin-dashboard-card-heading">
               <div>
-                <p className="admin-card-kicker">Acciones</p>
+                <strong className={styles.quickTitle}>Crear contenido</strong>
 
-                <h2>Acceso rápido</h2>
-
-                <p>Las tareas más frecuentes del panel.</p>
+                <span className={styles.quickText}>
+                  Añade un Case, Tool, Insight o Episode.
+                </span>
               </div>
-            </div>
 
-            <div className="admin-quick-action-list">
-              <Link href="/admin/contents/new" className="admin-quick-action">
-                <div>
-                  <span className="admin-quick-action-icon">+</span>
-                </div>
+              <span className={styles.arrow}>→</span>
+            </Link>
 
-                <div>
-                  <strong>Crear contenido</strong>
+            <Link href="/admin/contents" className={styles.quick}>
+              <span className={styles.quickIcon}>▤</span>
 
-                  <span>Añade un Case, Tool, Insight o Episode.</span>
-                </div>
+              <div>
+                <strong className={styles.quickTitle}>
+                  Gestionar contenidos
+                </strong>
 
-                <span>→</span>
-              </Link>
+                <span className={styles.quickText}>
+                  Edita, publica o revisa contenido existente.
+                </span>
+              </div>
 
-              <Link href="/admin/contents" className="admin-quick-action">
-                <div>
-                  <span className="admin-quick-action-icon">▤</span>
-                </div>
-
-                <div>
-                  <strong>Gestionar contenidos</strong>
-
-                  <span>Edita, publica o revisa contenido existente.</span>
-                </div>
-
-                <span>→</span>
-              </Link>
-            </div>
-          </aside>
-        </section>
-      </div>
-    </main>
+              <span className={styles.arrow}>→</span>
+            </Link>
+          </div>
+        </AdminCard>
+      </section>
+    </AdminPage>
   )
 }

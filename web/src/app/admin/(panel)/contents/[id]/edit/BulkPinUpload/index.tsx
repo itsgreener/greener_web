@@ -2,6 +2,13 @@
 
 import type { ContentType } from '@/modules/shared/domain/contentType'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField, AdminFieldset } from '@/components/admin/AdminField'
+import { AdminFormBody } from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { AdminTable } from '@/components/admin/AdminTable'
+
 import { BulkPinRow } from './BulkPinRow'
 import { LANGUAGES, RATIOS } from './rows'
 import { useBulkPinUpload } from './useBulkPinUpload'
@@ -38,9 +45,9 @@ export default function BulkPinUpload(props: Props) {
   } = useBulkPinUpload(props)
 
   return (
-    <div>
+    <AdminFormBody>
       {derivedLabel && (
-        <p>
+        <AdminMessage>
           El texto del feed es automático para{' '}
           {contentType === 'case'
             ? 'Case'
@@ -48,75 +55,80 @@ export default function BulkPinUpload(props: Props) {
               ? 'Insight'
               : 'Episode'}
           . No se usa ninguna frase gancho del CSV ni del nombre del archivo.
-        </p>
+        </AdminMessage>
       )}
 
-      <label htmlFor="bulk-files">Imágenes y vídeos (varios)</label>
-      <input
-        id="bulk-files"
-        type="file"
-        accept="image/*,video/*,.mov,.mp4,.webm"
-        multiple
+      <AdminField label="Imágenes y vídeos (varios)" htmlFor="bulk-files">
+        <AdminInput
+          id="bulk-files"
+          type="file"
+          accept="image/*,video/*,.mov,.mp4,.webm"
+          multiple
+          disabled={uploading}
+          onChange={(event) => handleFilesChange(event.target.files)}
+        />
+      </AdminField>
+
+      <AdminField
+        label={`Plantilla CSV (opcional): ${
+          derivedLabel
+            ? 'filename,ratio,language,alt'
+            : 'filename,label,ratio,language,alt'
+        }`}
+        htmlFor="bulk-csv"
+      >
+        <AdminInput
+          id="bulk-csv"
+          type="file"
+          accept=".csv,text/csv"
+          disabled={uploading}
+          onChange={(event) => handleCsvChange(event.target.files)}
+        />
+      </AdminField>
+
+      <AdminFieldset
+        legend="Campos comunes (se usan cuando el CSV no trae ese valor)"
         disabled={uploading}
-        onChange={(event) => handleFilesChange(event.target.files)}
-      />
-
-      <label htmlFor="bulk-csv">
-        Plantilla CSV (opcional):{' '}
-        {derivedLabel
-          ? 'filename,ratio,language,alt'
-          : 'filename,label,ratio,language,alt'}
-      </label>
-      <input
-        id="bulk-csv"
-        type="file"
-        accept=".csv,text/csv"
-        disabled={uploading}
-        onChange={(event) => handleCsvChange(event.target.files)}
-      />
-
-      <fieldset disabled={uploading}>
-        <legend>
-          Campos comunes (se usan cuando el CSV no trae ese valor)
-        </legend>
-
-        <label htmlFor="bulk-default-ratio">Ratio por defecto</label>
-        <select
-          id="bulk-default-ratio"
-          value={defaultRatio}
-          onChange={(event) => changeDefaultRatio(event.target.value)}
+      >
+        <AdminField
+          label="Ratio por defecto"
+          htmlFor="bulk-default-ratio"
+          help="Solo se usa si el CSV y el nombre del archivo no indican proporción (nombre esperado: nombre-1x1-tipo.jpg)."
         >
-          {RATIOS.map((ratio) => (
-            <option key={ratio} value={ratio}>
-              {ratio}
-            </option>
-          ))}
-        </select>
-        <small>
-          Solo se usa si el CSV y el nombre del archivo no indican proporción
-          (nombre esperado: nombre-1x1-tipo.jpg).
-        </small>
+          <AdminSelect
+            id="bulk-default-ratio"
+            value={defaultRatio}
+            onChange={(event) => changeDefaultRatio(event.target.value)}
+          >
+            {RATIOS.map((ratio) => (
+              <option key={ratio} value={ratio}>
+                {ratio}
+              </option>
+            ))}
+          </AdminSelect>
+        </AdminField>
 
-        <label htmlFor="bulk-default-language">Idioma por defecto</label>
-        <select
-          id="bulk-default-language"
-          value={defaultLanguage}
-          onChange={(event) => changeDefaultLanguage(event.target.value)}
-        >
-          {LANGUAGES.map((language) => (
-            <option key={language} value={language}>
-              {language}
-            </option>
-          ))}
-        </select>
+        <AdminField label="Idioma por defecto" htmlFor="bulk-default-language">
+          <AdminSelect
+            id="bulk-default-language"
+            value={defaultLanguage}
+            onChange={(event) => changeDefaultLanguage(event.target.value)}
+          >
+            {LANGUAGES.map((language) => (
+              <option key={language} value={language}>
+                {language}
+              </option>
+            ))}
+          </AdminSelect>
+        </AdminField>
 
         {/* Solo hace falta si el lote trae algún vídeo: las imágenes no se animan. */}
         {hasVideo && (
-          <>
-            <label htmlFor="bulk-video-autoplay">
-              Reproducción de los vídeos en el feed
-            </label>
-            <select
+          <AdminField
+            label="Reproducción de los vídeos en el feed"
+            htmlFor="bulk-video-autoplay"
+          >
+            <AdminSelect
               id="bulk-video-autoplay"
               value={videoAutoplay}
               onChange={(event) =>
@@ -125,13 +137,13 @@ export default function BulkPinUpload(props: Props) {
             >
               <option value="viewport">Al entrar en pantalla</option>
               <option value="hover">Al pasar el ratón</option>
-            </select>
-          </>
+            </AdminSelect>
+          </AdminField>
         )}
-      </fieldset>
+      </AdminFieldset>
 
       {rows.length > 0 && (
-        <table>
+        <AdminTable>
           <thead>
             <tr>
               <th>Archivo</th>
@@ -156,23 +168,30 @@ export default function BulkPinUpload(props: Props) {
               />
             ))}
           </tbody>
-        </table>
+        </AdminTable>
       )}
 
-      {formError && <p>{formError}</p>}
+      {formError && <AdminMessage kind="error">{formError}</AdminMessage>}
 
       {rows.length > 0 && (
-        <button type="button" disabled={uploading} onClick={handleUploadAll}>
-          {uploading ? 'Subiendo lote...' : `Subir ${rows.length} pines`}
-        </button>
+        <div>
+          <AdminButton
+            type="button"
+            variant="primary"
+            disabled={uploading}
+            onClick={handleUploadAll}
+          >
+            {uploading ? 'Subiendo lote...' : `Subir ${rows.length} pines`}
+          </AdminButton>
+        </div>
       )}
 
       {(okCount > 0 || errorCount > 0) && (
-        <p>
+        <AdminMessage kind={errorCount > 0 ? 'warning' : 'success'}>
           {okCount} subidos correctamente
           {errorCount > 0 && `, ${errorCount} con error`}.
-        </p>
+        </AdminMessage>
       )}
-    </div>
+    </AdminFormBody>
   )
 }

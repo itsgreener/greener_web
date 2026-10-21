@@ -1,5 +1,8 @@
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminCellActions } from '@/components/admin/AdminTable'
+
 import { DeletePinButton } from './DeletePinButtons'
 
 export function PinRow({
@@ -31,11 +34,13 @@ export function PinRow({
             : 'Imagen'}
       </td>
       <td>
-        <button type="button" onClick={onToggle}>
-          {expanded ? 'Cerrar' : 'Editar'}
-        </button>
+        <AdminCellActions>
+          <AdminButton type="button" compact onClick={onToggle}>
+            {expanded ? 'Cerrar' : 'Editar'}
+          </AdminButton>
 
-        <DeletePinButton pin={pin} contentId={contentId} />
+          <DeletePinButton pin={pin} contentId={contentId} />
+        </AdminCellActions>
       </td>
     </tr>
   )

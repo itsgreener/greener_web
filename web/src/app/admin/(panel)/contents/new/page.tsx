@@ -1,46 +1,34 @@
-import Link from 'next/link'
+import {
+  AdminBackLink,
+  AdminPage,
+  AdminPageHeader,
+} from '@/components/admin/AdminPage'
+import { AdminCard, AdminCardHeader } from '@/components/admin/AdminCard'
 
 import NewContentForm from './NewContentForm'
 
 export default function NewContentPage() {
   return (
-    <main className="admin-contents-page">
-      <div className="admin-new-content-shell">
-        <Link href="/admin/contents" className="admin-back-link">
-          ← Volver a contenidos
-        </Link>
+    <AdminPage width="narrow">
+      <AdminBackLink href="/admin/contents">
+        ← Volver a contenidos
+      </AdminBackLink>
 
-        <header className="admin-page-header admin-new-content-header">
-          <div>
-            <p className="admin-page-eyebrow">Gestión de contenidos</p>
+      <AdminPageHeader
+        eyebrow="Gestión de contenidos"
+        title="Nuevo contenido"
+        description="Crea la ficha inicial del contenido. Después podrás completar traducciones, medios, pines y opciones específicas desde el editor."
+      />
 
-            <h1>Nuevo contenido</h1>
+      <AdminCard>
+        <AdminCardHeader
+          kicker="Nuevo borrador"
+          title="Información básica"
+          description="Selecciona el tipo de contenido y configura los datos necesarios para crear el borrador."
+        />
 
-            <p className="admin-page-description">
-              Crea la ficha inicial del contenido. Después podrás completar
-              traducciones, medios, pines y opciones específicas desde el
-              editor.
-            </p>
-          </div>
-        </header>
-
-        <section className="admin-card admin-new-content-card">
-          <div className="admin-card-heading">
-            <div>
-              <p className="admin-card-kicker">Nuevo borrador</p>
-
-              <h2>Información básica</h2>
-
-              <p>
-                Selecciona el tipo de contenido y configura los datos necesarios
-                para crear el borrador.
-              </p>
-            </div>
-          </div>
-
-          <NewContentForm />
-        </section>
-      </div>
-    </main>
+        <NewContentForm />
+      </AdminCard>
+    </AdminPage>
   )
 }

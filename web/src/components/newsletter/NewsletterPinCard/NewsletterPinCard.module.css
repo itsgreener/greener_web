@@ -11,10 +11,17 @@
   color: #fff;
   will-change: transform;
 }
-.inner { position: relative; width: 100%; height: 100%; background: #000; }
+.inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
 .headline {
   position: absolute;
-  top: 4.9%; left: 7.4%; right: 3%;
+  top: 4.9%;
+  left: 7.4%;
+  right: 3%;
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 10.35cqw;
@@ -22,24 +29,54 @@
   letter-spacing: -0.07em;
   line-height: 0.94;
 }
-.form { position: absolute; inset: 0; }
-.honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
-.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.form {
+  position: absolute;
+  inset: 0;
+}
+.honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 .input {
   position: absolute;
-  left: 7.5%; top: 64.8%; width: 88.7%; height: 8.7%;
+  left: 7.5%;
+  top: 64.8%;
+  width: 88.7%;
+  height: 8.7%;
   box-sizing: border-box;
   padding: 0 1% 0.75%;
-  border: 0; border-bottom: 1px solid #9cb7ff; border-radius: 0;
-  outline: none; background: transparent !important; color: #fff;
+  border: 0;
+  border-bottom: 1px solid #9cb7ff;
+  border-radius: 0;
+  outline: none;
+  background: transparent !important;
+  color: #fff;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 6.9cqw; font-weight: 400; font-style: italic;
+  font-size: 6.9cqw;
+  font-weight: 400;
+  font-style: italic;
   letter-spacing: -0.045em;
   appearance: none;
   -webkit-appearance: none;
 }
-.input::placeholder { color: #fff; opacity: 1; }
-.input:focus-visible { border-bottom: 2px solid #9cb7ff; }
+.input::placeholder {
+  color: #fff;
+  opacity: 1;
+}
+.input:focus-visible {
+  border-bottom: 2px solid #9cb7ff;
+}
 /* Evita el rectángulo claro de autocompletado de Chrome/Safari. */
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
@@ -81,28 +118,64 @@
   accent-color: #2445f6;
   cursor: pointer;
 }
-.legal a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
-.legal a:hover { color: #c8d4ff; }
+.legal a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.legal a:hover {
+  color: #c8d4ff;
+}
 .submit {
   flex: 0 0 49%;
   height: 100%;
-  display: flex; align-items: center; justify-content: center;
-  padding: 0 2%; border: 0; border-radius: 5cqw;
-  color: #fff; background: #2445f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2%;
+  border: 0;
+  border-radius: 5cqw;
+  color: #fff;
+  background: #2445f6;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 6.3cqw; font-weight: 800; letter-spacing: -0.065em;
+  font-size: 6.3cqw;
+  font-weight: 800;
+  letter-spacing: -0.065em;
   cursor: pointer;
-  transition: opacity .18s ease, background-color .18s ease;
+  transition:
+    opacity 0.18s ease,
+    background-color 0.18s ease;
 }
-.submit:not(:disabled):hover { background: #3459ff; }
-.submit:focus-visible, .checkbox:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
-.submit:disabled { cursor: not-allowed; opacity: .4; }
+.submit:not(:disabled):hover {
+  background: #3459ff;
+}
+.submit:focus-visible,
+.checkbox:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
 .error {
-  position: absolute; top: 74%; left: 7.5%; right: 6%; margin: 0;
-  color: #ffc2c2; background: #000; font-size: 2.8cqw;
+  position: absolute;
+  top: 74%;
+  left: 7.5%;
+  right: 6%;
+  margin: 0;
+  color: #ffc2c2;
+  background: #000;
+  font-size: 2.8cqw;
 }
 .success {
-  display: flex; align-items: center; justify-content: center;
-  height: 100%; padding: 9%; box-sizing: border-box;
-  font-size: 5cqw; line-height: 1.25; text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 9%;
+  box-sizing: border-box;
+  font-size: 5cqw;
+  line-height: 1.25;
+  text-align: center;
 }

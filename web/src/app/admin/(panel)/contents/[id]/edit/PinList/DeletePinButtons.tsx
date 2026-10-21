@@ -4,6 +4,9 @@ import { useState } from 'react'
 
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import {
   deleteAllPinsAction,
   deletePinAction,
@@ -21,10 +24,12 @@ function DeleteButton({
   confirmMessage,
   idleLabel,
   action,
+  compact = false,
 }: {
   confirmMessage: string
   idleLabel: string
   action: () => Promise<PinDeleteResult>
+  compact?: boolean
 }) {
   const [error, setError] = useState<string | null>(null)
   const { run, pending, busy } = useEditorOperation({
@@ -44,11 +49,17 @@ function DeleteButton({
 
   return (
     <div>
-      <button type="button" onClick={handleClick} disabled={pending || busy}>
+      <AdminButton
+        type="button"
+        variant="danger"
+        compact={compact}
+        onClick={handleClick}
+        disabled={pending || busy}
+      >
         {pending ? 'Borrando...' : idleLabel}
-      </button>
+      </AdminButton>
 
-      {error && <p>{error}</p>}
+      {error && <AdminMessage kind="error">{error}</AdminMessage>}
     </div>
   )
 }
@@ -64,6 +75,7 @@ export function DeletePinButton({
     <DeleteButton
       confirmMessage={`¿Borrar el pin "${pin.label ?? pin.id}"? Esta acción no se puede deshacer.`}
       idleLabel="Borrar pin"
+      compact
       action={() => deletePinAction(pin.id, contentId)}
     />
   )

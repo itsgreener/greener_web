@@ -1,0 +1,6 @@
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--admin-space-12);
+}

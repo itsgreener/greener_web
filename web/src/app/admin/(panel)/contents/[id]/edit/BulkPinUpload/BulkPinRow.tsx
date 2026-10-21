@@ -1,3 +1,7 @@
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+
+import styles from './BulkPinRow.module.css'
 import { LANGUAGES, RATIOS, type Row } from './rows'
 
 export function BulkPinRow({
@@ -21,7 +25,9 @@ export function BulkPinRow({
         {derivedLabel ? (
           <span>Automático</span>
         ) : (
-          <input
+          <AdminInput
+            compact
+            aria-label={`Frase gancho de ${row.file.name}`}
             value={row.label}
             disabled={disabled}
             onChange={(event) => onChange({ label: event.target.value })}
@@ -30,7 +36,9 @@ export function BulkPinRow({
       </td>
 
       <td>
-        <select
+        <AdminSelect
+          compact
+          aria-label={`Ratio de ${row.file.name}`}
           value={row.ratio}
           disabled={disabled}
           onChange={(event) =>
@@ -42,12 +50,16 @@ export function BulkPinRow({
               {ratio}
             </option>
           ))}
-        </select>
-        {row.ratioSource === 'filename' && <small> detectado del nombre</small>}
+        </AdminSelect>
+        {row.ratioSource === 'filename' && (
+          <small className={styles.note}> detectado del nombre</small>
+        )}
       </td>
 
       <td>
-        <select
+        <AdminSelect
+          compact
+          aria-label={`Idioma de ${row.file.name}`}
           value={row.language}
           disabled={disabled}
           onChange={(event) => onChange({ language: event.target.value })}
@@ -57,11 +69,13 @@ export function BulkPinRow({
               {language}
             </option>
           ))}
-        </select>
+        </AdminSelect>
       </td>
 
       <td>
-        <input
+        <AdminInput
+          compact
+          aria-label={`Alt de ${row.file.name}`}
           value={row.alt}
           disabled={disabled}
           onChange={(event) => onChange({ alt: event.target.value })}
@@ -78,14 +92,15 @@ export function BulkPinRow({
 
       <td>
         {row.status !== 'ok' && row.status !== 'uploading' && (
-          <button
+          <AdminButton
             type="button"
+            compact
             disabled={disabled}
             aria-label={`Quitar ${row.file.name} del lote`}
             onClick={onRemove}
           >
             Quitar
-          </button>
+          </AdminButton>
         )}
       </td>
     </tr>

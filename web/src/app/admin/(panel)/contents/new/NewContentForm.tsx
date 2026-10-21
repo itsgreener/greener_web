@@ -6,10 +6,18 @@ import {
   createContentAction,
   type CreateContentActionState,
 } from '@/app/admin/(panel)/contents/actions'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField, AdminFieldError } from '@/components/admin/AdminField'
+import { AdminFormGrid } from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { cx } from '@/components/admin/cx'
 import {
   OTHER_DEFAULT_FREQUENCY,
   OTHER_MIN_FREQUENCY,
 } from '@/modules/content/domain/otherSchema'
+
+import styles from './NewContentForm.module.css'
 
 const initialState: CreateContentActionState = {}
 
@@ -68,6 +76,76 @@ const otherKinds = [
   },
 ] as const
 
+type TypeCardProps = {
+  name: string
+  value: string
+  symbol: string
+  label: string
+  description: string
+  selected: boolean
+  required?: boolean
+  onSelect: () => void
+}
+
+/** Tarjeta de un radio (tipo de contenido o subtipo de Other). */
+function TypeCard({
+  name,
+  value,
+  symbol,
+  label,
+  description,
+  selected,
+  required,
+  onSelect,
+}: TypeCardProps) {
+  return (
+    <label className={cx(styles.typeCard, selected && styles.selected)}>
+      <input
+        type="radio"
+        name={name}
+        value={value}
+        checked={selected}
+        onChange={onSelect}
+        required={required}
+      />
+
+      <span className={styles.symbol}>{symbol}</span>
+
+      <span className={styles.copy}>
+        <strong className={styles.copyTitle}>{label}</strong>
+
+        <small className={styles.copyText}>{description}</small>
+      </span>
+
+      <span className={styles.check} aria-hidden="true">
+        {selected ? '✓' : ''}
+      </span>
+    </label>
+  )
+}
+
+function SectionHeading({
+  step,
+  title,
+  children,
+}: {
+  step: number
+  title: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className={styles.sectionHeading}>
+      <span className={styles.step}>{step}</span>
+
+      <div>
+        <h3 className={styles.sectionTitle}>{title}</h3>
+
+        <p className={styles.sectionText}>{children}</p>
+      </div>
+    </div>
+  )
+}
+
 export default function NewContentForm() {
   const [state, formAction, pending] = useActionState(
     createContentAction,
@@ -87,127 +165,62 @@ export default function NewContentForm() {
   const isNewsletter = isOther && selectedKind === 'newsletter'
 
   return (
-    <form action={formAction} className="admin-form admin-new-content-form">
-      <div className="admin-new-section">
-        <div className="admin-new-section-heading">
-          <span className="admin-new-step">1</span>
+    <form action={formAction}>
+      <div className={styles.section}>
+        <SectionHeading step={1} title="Tipo de contenido">
+          Determina qué opciones estarán disponibles después en el editor.
+        </SectionHeading>
 
-          <div>
-            <h3>Tipo de contenido</h3>
-
-            <p>
-              Determina qué opciones estarán disponibles después en el editor.
-            </p>
-          </div>
+        <div className={styles.typeGrid}>
+          {contentTypes.map((type) => (
+            <TypeCard
+              key={type.value}
+              name="type"
+              value={type.value}
+              symbol={type.symbol}
+              label={type.label}
+              description={type.description}
+              selected={selectedType === type.value}
+              onSelect={() => setSelectedType(type.value)}
+            />
+          ))}
         </div>
 
-        <div className="admin-content-type-grid">
-          {contentTypes.map((type) => {
-            const selected = selectedType === type.value
-
-            return (
-              <label
-                key={type.value}
-                className={
-                  selected
-                    ? 'admin-content-type-card admin-content-type-card-selected'
-                    : 'admin-content-type-card'
-                }
-              >
-                <input
-                  type="radio"
-                  name="type"
-                  value={type.value}
-                  checked={selected}
-                  onChange={() => setSelectedType(type.value)}
-                />
-
-                <span className="admin-content-type-symbol">{type.symbol}</span>
-
-                <span className="admin-content-type-copy">
-                  <strong>{type.label}</strong>
-
-                  <small>{type.description}</small>
-                </span>
-
-                <span className="admin-content-type-check" aria-hidden="true">
-                  {selected ? '✓' : ''}
-                </span>
-              </label>
-            )
-          })}
-        </div>
-
-        {state.fieldErrors?.type?.[0] && (
-          <p className="admin-field-error">{state.fieldErrors.type[0]}</p>
-        )}
+        <AdminFieldError>{state.fieldErrors?.type?.[0]}</AdminFieldError>
       </div>
 
       {isOther && (
-        <div className="admin-new-section">
-          <div className="admin-new-section-heading">
-            <span className="admin-new-step">2</span>
+        <div className={styles.section}>
+          <SectionHeading step={2} title="Qué tipo de Other">
+            Se elige ahora y no se puede cambiar después. Determina el editor y
+            cómo aparece en el feed.
+          </SectionHeading>
 
-            <div>
-              <h3>Qué tipo de Other</h3>
-
-              <p>
-                Se elige ahora y no se puede cambiar después. Determina el
-                editor y cómo aparece en el feed.
-              </p>
-            </div>
+          <div className={styles.typeGrid}>
+            {otherKinds.map((kind) => (
+              <TypeCard
+                key={kind.value}
+                name="kind"
+                value={kind.value}
+                symbol={kind.symbol}
+                label={kind.label}
+                description={kind.description}
+                selected={selectedKind === kind.value}
+                required
+                onSelect={() => setSelectedKind(kind.value)}
+              />
+            ))}
           </div>
 
-          <div className="admin-content-type-grid">
-            {otherKinds.map((kind) => {
-              const selected = selectedKind === kind.value
+          <AdminFieldError>{state.fieldErrors?.kind?.[0]}</AdminFieldError>
 
-              return (
-                <label
-                  key={kind.value}
-                  className={
-                    selected
-                      ? 'admin-content-type-card admin-content-type-card-selected'
-                      : 'admin-content-type-card'
-                  }
-                >
-                  <input
-                    type="radio"
-                    name="kind"
-                    value={kind.value}
-                    checked={selected}
-                    onChange={() => setSelectedKind(kind.value)}
-                    required
-                  />
-
-                  <span className="admin-content-type-symbol">
-                    {kind.symbol}
-                  </span>
-
-                  <span className="admin-content-type-copy">
-                    <strong>{kind.label}</strong>
-
-                    <small>{kind.description}</small>
-                  </span>
-
-                  <span className="admin-content-type-check" aria-hidden="true">
-                    {selected ? '✓' : ''}
-                  </span>
-                </label>
-              )
-            })}
-          </div>
-
-          {state.fieldErrors?.kind?.[0] && (
-            <p className="admin-field-error">{state.fieldErrors.kind[0]}</p>
-          )}
-
-          <div className="admin-field">
-            <label htmlFor="frequency">
-              Frecuencia (una aparición cada N pines)
-            </label>
-
-            <input
+          <AdminField
+            label="Frecuencia (una aparición cada N pines)"
+            htmlFor="frequency"
+            help={`Mínimo ${OTHER_MIN_FREQUENCY}. Las primeras apariciones se reparten desde el pin 10 y se espacian 8-15 pines entre contenidos; después, cada N. Podrás cambiarla desde el editor.`}
+            error={state.fieldErrors?.frequency?.[0]}
+          >
+            <AdminInput
               id="frequency"
               name="frequency"
               type="number"
@@ -217,41 +230,24 @@ export default function NewContentForm() {
               defaultValue={OTHER_DEFAULT_FREQUENCY}
               required
             />
-
-            <p className="admin-field-help">
-              Mínimo {OTHER_MIN_FREQUENCY}. Las primeras apariciones se reparten
-              desde el pin 10 y se espacian 8-15 pines entre contenidos;
-              después, cada N. Podrás cambiarla desde el editor.
-            </p>
-
-            {state.fieldErrors?.frequency?.[0] && (
-              <p className="admin-field-error">
-                {state.fieldErrors.frequency[0]}
-              </p>
-            )}
-          </div>
+          </AdminField>
         </div>
       )}
 
       {!isNewsletter && (
-        <div className="admin-new-section">
-          <div className="admin-new-section-heading">
-            <span className="admin-new-step">{isOther ? 3 : 2}</span>
+        <div className={styles.section}>
+          <SectionHeading step={isOther ? 3 : 2} title="Datos básicos">
+            Define cómo se identificará el contenido dentro del panel y en la
+            web.
+          </SectionHeading>
 
-            <div>
-              <h3>Datos básicos</h3>
-
-              <p>
-                Define cómo se identificará el contenido dentro del panel y en
-                la web.
-              </p>
-            </div>
-          </div>
-
-          <div className="admin-field">
-            <label htmlFor="title">Título</label>
-
-            <input
+          <AdminField
+            label="Título"
+            htmlFor="title"
+            help="Podrás modificarlo después y añadir traducciones desde el editor."
+            error={state.fieldErrors?.title?.[0]}
+          >
+            <AdminInput
               id="title"
               name="title"
               type="text"
@@ -259,24 +255,19 @@ export default function NewContentForm() {
               required
               autoFocus
             />
+          </AdminField>
 
-            <p className="admin-field-help">
-              Podrás modificarlo después y añadir traducciones desde el editor.
-            </p>
+          <AdminFormGrid>
+            <AdminField
+              label="Slug"
+              htmlFor="slug"
+              help="Forma parte de la URL pública. Utiliza minúsculas y guiones."
+              error={state.fieldErrors?.slug?.[0]}
+            >
+              <div className={styles.slug}>
+                <span className={styles.slugPrefix}>/</span>
 
-            {state.fieldErrors?.title?.[0] && (
-              <p className="admin-field-error">{state.fieldErrors.title[0]}</p>
-            )}
-          </div>
-
-          <div className="admin-form-grid admin-form-grid-2">
-            <div className="admin-field">
-              <label htmlFor="slug">Slug</label>
-
-              <div className="admin-slug-input">
-                <span>/</span>
-
-                <input
+                <AdminInput
                   id="slug"
                   name="slug"
                   type="text"
@@ -284,48 +275,41 @@ export default function NewContentForm() {
                   required
                 />
               </div>
+            </AdminField>
 
-              <p className="admin-field-help">
-                Forma parte de la URL pública. Utiliza minúsculas y guiones.
-              </p>
-
-              {state.fieldErrors?.slug?.[0] && (
-                <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
-              )}
-            </div>
-
-            <div className="admin-field">
-              <label htmlFor="defaultLocale">Idioma principal</label>
-
-              <select id="defaultLocale" name="defaultLocale" defaultValue="es">
+            <AdminField
+              label="Idioma principal"
+              htmlFor="defaultLocale"
+              help="Será el idioma principal del contenido."
+              error={state.fieldErrors?.defaultLocale?.[0]}
+            >
+              <AdminSelect
+                id="defaultLocale"
+                name="defaultLocale"
+                defaultValue="es"
+              >
                 <option value="es">Español</option>
 
                 <option value="en">English</option>
 
                 <option value="ca">Català</option>
-              </select>
-
-              <p className="admin-field-help">
-                Será el idioma principal del contenido.
-              </p>
-
-              {state.fieldErrors?.defaultLocale?.[0] && (
-                <p className="admin-field-error">
-                  {state.fieldErrors.defaultLocale[0]}
-                </p>
-              )}
-            </div>
-          </div>
+              </AdminSelect>
+            </AdminField>
+          </AdminFormGrid>
         </div>
       )}
 
-      {state.formError && <p className="admin-form-error">{state.formError}</p>}
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
+      )}
 
-      <div className="admin-new-content-footer">
-        <div className="admin-new-content-note">
-          <span aria-hidden="true">i</span>
+      <div className={styles.footer}>
+        <div className={styles.note}>
+          <span className={styles.noteIcon} aria-hidden="true">
+            i
+          </span>
 
-          <p>
+          <p className={styles.noteText}>
             <strong>Se creará como borrador.</strong>{' '}
             {isNewsletter
               ? 'Después escribirás el titular y el texto en el editor antes de publicarla.'
@@ -333,13 +317,14 @@ export default function NewContentForm() {
           </p>
         </div>
 
-        <button
+        <AdminButton
           type="submit"
-          className="admin-button admin-button-primary admin-create-content-button"
+          variant="primary"
+          className={styles.submit}
           disabled={pending}
         >
           {pending ? 'Creando borrador...' : 'Crear borrador →'}
-        </button>
+        </AdminButton>
       </div>
     </form>
   )

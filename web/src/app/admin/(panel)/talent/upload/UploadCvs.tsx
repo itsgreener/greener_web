@@ -1,18 +1,26 @@
 'use client'
 
-import Link from 'next/link'
 import { useRef, useState } from 'react'
 
 import {
   processPendingCvsAction,
   uploadStaffCvAction,
 } from '@/app/admin/(panel)/talent/actions'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import { AdminFormActions, AdminFormBody } from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { AdminSubtext } from '@/components/admin/AdminTable'
+import { AdminTextLink } from '@/components/admin/AdminTextLink'
 
 import {
   ALLOWED_FILE_EXTENSIONS,
   TALENT_FILE_LIMITS,
   TALENT_STAFF_UPLOAD,
 } from '@/modules/talent/domain/talentConstants'
+
+import styles from './UploadCvs.module.css'
 
 type Row = {
   id: number
@@ -133,50 +141,51 @@ export default function UploadCvs() {
   const pendingRows = rows.filter((row) => row.state !== 'done')
 
   return (
-    <div className="admin-form">
+    <AdminFormBody>
       <div
-        className="admin-talent-drop"
+        className={styles.drop}
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault()
           addFiles(event.dataTransfer.files)
         }}
       >
-        <label htmlFor="talent-cv-files" className="admin-field-label">
-          Elige los CVs o arrástralos aquí
-        </label>
-
-        <input
-          ref={input}
-          id="talent-cv-files"
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
-          disabled={running}
-          onChange={(event) => addFiles(event.target.files)}
-        />
+        <AdminField
+          label="Elige los CVs o arrástralos aquí"
+          htmlFor="talent-cv-files"
+        >
+          <AdminInput
+            ref={input}
+            id="talent-cv-files"
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp"
+            disabled={running}
+            onChange={(event) => addFiles(event.target.files)}
+          />
+        </AdminField>
       </div>
 
-      {notice && <p className="admin-notice admin-notice-warning">{notice}</p>}
+      {notice && <AdminMessage kind="warning">{notice}</AdminMessage>}
 
       {rows.length > 0 && (
-        <ul className="admin-talent-list">
+        <ul className={styles.list}>
           {rows.map((row) => (
             <li key={row.id}>
               <span>{row.file.name}</span>
 
-              <span className="admin-content-slug">
+              <AdminSubtext>
                 {(row.file.size / 1_000_000).toFixed(1)} MB ·{' '}
                 {row.state === 'ready' && 'listo'}
                 {row.state === 'uploading' && 'subiendo y comprobando…'}
                 {row.state === 'done' && 'subido'}
                 {row.state === 'error' && `no se ha subido: ${row.error}`}
-              </span>
+              </AdminSubtext>
 
               {row.state !== 'uploading' && row.state !== 'done' && (
-                <button
+                <AdminButton
                   type="button"
-                  className="admin-link-button"
+                  compact
                   disabled={running}
                   onClick={() =>
                     setRows((previous) =>
@@ -185,45 +194,42 @@ export default function UploadCvs() {
                   }
                 >
                   Quitar
-                </button>
+                </AdminButton>
               )}
             </li>
           ))}
         </ul>
       )}
 
-      <div className="admin-form-actions">
-        <button
+      <AdminFormActions>
+        <AdminButton
           type="button"
-          className="admin-button admin-button-primary"
+          variant="primary"
           disabled={running || pendingRows.length === 0}
           onClick={start}
         >
           {running
             ? 'Subiendo…'
             : `Subir y procesar ${pendingRows.length || ''}`.trim()}
-        </button>
-      </div>
+        </AdminButton>
+      </AdminFormActions>
 
       {outcome && (
-        <div role="status">
-          <p className="admin-form-success">
+        <div role="status" className={styles.outcome}>
+          <AdminMessage kind="success">
             {outcome.uploaded} subidos
             {outcome.failed > 0 ? `, ${outcome.failed} con error` : ''}.
-          </p>
+          </AdminMessage>
 
-          {outcome.message && <p className="admin-notice">{outcome.message}</p>}
+          {outcome.message && <AdminMessage>{outcome.message}</AdminMessage>}
 
           <p>
-            <Link
-              href="/admin/talent?status=pending"
-              className="admin-text-link"
-            >
+            <AdminTextLink href="/admin/talent?status=pending">
               Ver los pendientes →
-            </Link>
+            </AdminTextLink>
           </p>
         </div>
       )}
-    </div>
+    </AdminFormBody>
   )
 }

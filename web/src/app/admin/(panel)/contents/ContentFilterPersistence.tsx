@@ -3,6 +3,8 @@
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 
+import { CONTENT_FILTERS_ID } from './contentFilters'
+
 const STORAGE_KEY = 'admin.contents.filters.v1'
 const FILTER_KEYS = ['q', 'type', 'status', 'page'] as const
 
@@ -37,7 +39,7 @@ export default function ContentFilterPersistence() {
 
   useEffect(() => {
     const form = document.querySelector<HTMLFormElement>(
-      '.admin-content-filters',
+      `#${CONTENT_FILTERS_ID}`,
     )
     if (!form) return
     const onSubmit = () => {

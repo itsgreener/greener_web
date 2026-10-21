@@ -1,5 +1,12 @@
 'use client'
 
+import { AdminSubheading } from '@/components/admin/AdminCard'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField, AdminHint } from '@/components/admin/AdminField'
+import { AdminFormBody } from '@/components/admin/AdminForm'
+import { AdminMediaGrid } from '@/components/admin/AdminMediaItem'
+import { AdminMessage } from '@/components/admin/AdminMessage'
 import { IMAGE_FILE_ACCEPT } from '@/modules/media/client/validateImageSelection'
 
 import { CarouselSlide } from './CarouselSlide'
@@ -27,84 +34,93 @@ export default function CaseCarouselManager(props: CaseCarouselManagerProps) {
   } = useCaseCarouselManager(props)
 
   return (
-    <div>
-      <h4>Carrusel de detalle ({sorted.length})</h4>
+    <AdminFormBody>
+      <AdminSubheading>Carrusel de detalle ({sorted.length})</AdminSubheading>
 
-      <div>
-        {sorted.map((item) => (
-          <CarouselSlide
-            key={item.mediaId}
-            item={item}
-            disabled={busy || uploading}
-            onRemove={() => handleRemove(item)}
-          />
-        ))}
-
-        {sorted.length === 0 && <p>Todavía no hay carrusel para este caso.</p>}
-      </div>
-
-      {sorted.length > 0 && (
-        <button
-          type="button"
-          disabled={removingAll || uploading || busy}
-          onClick={handleRemoveAll}
-        >
-          {removingAll
-            ? 'Quitando...'
-            : `Quitar todas las diapositivas (${sorted.length})`}
-        </button>
+      {sorted.length > 0 ? (
+        <AdminMediaGrid>
+          {sorted.map((item) => (
+            <CarouselSlide
+              key={item.mediaId}
+              item={item}
+              disabled={busy || uploading}
+              onRemove={() => handleRemove(item)}
+            />
+          ))}
+        </AdminMediaGrid>
+      ) : (
+        <AdminMessage>Todavía no hay carrusel para este caso.</AdminMessage>
       )}
 
-      <label htmlFor="carousel-alt">Alt (obligatorio)</label>
+      {sorted.length > 0 && (
+        <div>
+          <AdminButton
+            type="button"
+            variant="danger"
+            disabled={removingAll || uploading || busy}
+            onClick={handleRemoveAll}
+          >
+            {removingAll
+              ? 'Quitando...'
+              : `Quitar todas las diapositivas (${sorted.length})`}
+          </AdminButton>
+        </div>
+      )}
 
-      <input
-        id="carousel-alt"
-        type="text"
-        value={alt}
-        disabled={uploading}
-        onChange={(event) => setAlt(event.target.value)}
-      />
+      <AdminField label="Alt (obligatorio)" htmlFor="carousel-alt">
+        <AdminInput
+          id="carousel-alt"
+          type="text"
+          value={alt}
+          disabled={uploading}
+          onChange={(event) => setAlt(event.target.value)}
+        />
+      </AdminField>
 
-      <label htmlFor="carousel-kind">Tipo de archivo</label>
+      <AdminField label="Tipo de archivo" htmlFor="carousel-kind">
+        <AdminSelect
+          id="carousel-kind"
+          value={kind}
+          disabled={uploading}
+          onChange={(event) =>
+            selectKind(event.target.value as 'image' | 'video')
+          }
+        >
+          <option value="image">Imagen</option>
 
-      <select
-        id="carousel-kind"
-        value={kind}
-        disabled={uploading}
-        onChange={(event) =>
-          selectKind(event.target.value as 'image' | 'video')
-        }
-      >
-        <option value="image">Imagen</option>
+          <option value="video">Vídeo</option>
+        </AdminSelect>
+      </AdminField>
 
-        <option value="video">Vídeo</option>
-      </select>
-
-      <input
+      <AdminInput
         key={inputKey}
         type="file"
+        aria-label="Archivo de la diapositiva"
         accept={kind === 'video' ? 'video/*' : IMAGE_FILE_ACCEPT}
         disabled={uploading}
         onChange={(event) => selectFile(event.target.files?.[0] ?? null)}
       />
 
-      <p>
+      <AdminHint>
         {kind === 'video'
           ? 'Vídeo, máximo 100 MB / 180 s.'
           : 'JPG, PNG, WebP o AVIF. Máximo 5 MB. Sin animaciones.'}
-      </p>
+      </AdminHint>
 
-      <button
-        type="button"
-        disabled={uploading || !file}
-        onClick={handleUpload}
-      >
-        {uploading ? 'Subiendo...' : 'Añadir al carrusel'}
-      </button>
+      <div>
+        <AdminButton
+          type="button"
+          variant="primary"
+          disabled={uploading || !file}
+          onClick={handleUpload}
+        >
+          {uploading ? 'Subiendo...' : 'Añadir al carrusel'}
+        </AdminButton>
+      </div>
 
-      {error && <p>{error}</p>}
+      {error && <AdminMessage kind="error">{error}</AdminMessage>}
 
-      {warning && <p>{warning}</p>}
-    </div>
+      {warning && <AdminMessage kind="warning">{warning}</AdminMessage>}
+    </AdminFormBody>
   )
 }

@@ -1,7 +1,29 @@
 import Link from 'next/link'
 
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
-
+import { AdminBadge } from '@/components/admin/AdminBadge'
+import { AdminButton, AdminButtonLink } from '@/components/admin/AdminButton'
+import { AdminCard } from '@/components/admin/AdminCard'
+import { AdminSelect } from '@/components/admin/AdminControls'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import {
+  AdminFilterBar,
+  AdminFilterClear,
+  AdminFilterSearch,
+  AdminResultBar,
+} from '@/components/admin/AdminFilterBar'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { AdminPage, AdminPageHeader } from '@/components/admin/AdminPage'
+import { AdminPagination } from '@/components/admin/AdminPagination'
+import {
+  AdminRowAction,
+  AdminSubtext,
+  AdminTable,
+  AdminTableTitle,
+  AdminTd,
+} from '@/components/admin/AdminTable'
+import { AdminTextLink } from '@/components/admin/AdminTextLink'
+import { cx } from '@/components/admin/cx'
 import { talentAdminQueries } from '@/modules/talent/container'
 import {
   CANDIDATE_STATUS_FILTER_VALUES,
@@ -12,6 +34,7 @@ import {
   parseCandidateSearchQuery,
 } from '@/modules/talent/domain/talentSearchQuery'
 
+import styles from './page.module.css'
 import ProcessPendingPanel from './ProcessPendingPanel'
 import { CV_KIND_LABELS, profileLabel, statusLabel } from './talentLabels'
 
@@ -71,32 +94,27 @@ export default async function AdminTalentPage({ searchParams }: Props) {
   const pageCount = candidatePageCount(total, query.pageSize)
 
   return (
-    <main className="admin-contents-page">
-      <div className="admin-dashboard-shell">
-        <header className="admin-page-header">
-          <div>
-            <p className="admin-page-eyebrow">Talent</p>
-
-            <h1>Candidatos</h1>
-
-            <p className="admin-page-description">
-              CVs y perfiles que llegan por el formulario de la web o los que
-              sube el equipo. Cada vez que se abre un CV queda anotado en{' '}
-              <Link href="/admin/audit?entity=talent_candidate">Actividad</Link>
-              .
-            </p>
-          </div>
-
-          <Link
-            href="/admin/talent/upload"
-            className="admin-button admin-button-primary admin-link-button"
-          >
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Talent"
+        title="Candidatos"
+        description={
+          <>
+            CVs y perfiles que llegan por el formulario de la web o los que sube
+            el equipo. Cada vez que se abre un CV queda anotado en{' '}
+            <Link href="/admin/audit?entity=talent_candidate">Actividad</Link>.
+          </>
+        }
+        actions={
+          <AdminButtonLink href="/admin/talent/upload" variant="primary">
             Subir CVs
-          </Link>
-        </header>
+          </AdminButtonLink>
+        }
+      />
 
-        {params.deleted === '1' && (
-          <p className="admin-notice" role="status">
+      {params.deleted === '1' && (
+        <div className={styles.notice}>
+          <AdminMessage role="status">
             Candidato eliminado: sus datos, proyectos y ficheros del bucket ya
             no existen.
             {(params.drive === '1' || params.newsletter === '1') &&
@@ -106,244 +124,193 @@ export default async function AdminTalentPage({ searchParams }: Props) {
             {params.newsletter === '1' &&
               ' su suscripción en Mailchimp (audiencia de talent)'}
             {(params.drive === '1' || params.newsletter === '1') && '.'}
-          </p>
-        )}
+          </AdminMessage>
+        </div>
+      )}
 
-        {result === null ? (
-          <p className="admin-notice admin-notice-warning">
-            No se ha podido leer Supabase-talent. Comprueba las variables{' '}
-            <code>TALENT_*</code> del servidor y el log; la web pública sigue
-            funcionando.
-          </p>
-        ) : (
-          <section className="admin-contents-card">
-            <div className="admin-talent-status-row" aria-label="Por estado">
-              {CANDIDATE_STATUS_FILTER_VALUES.map((value) => (
-                <Link
-                  key={value}
-                  href={pageHref({ q, status: value, profile }, 1)}
-                  className={
-                    status === value
-                      ? 'admin-talent-chip admin-talent-chip-active'
-                      : 'admin-talent-chip'
-                  }
-                >
-                  {statusLabel(value)} <strong>{counts[value] ?? 0}</strong>
-                </Link>
-              ))}
-            </div>
+      {result === null ? (
+        <AdminMessage kind="warning">
+          No se ha podido leer Supabase-talent. Comprueba las variables{' '}
+          <code>TALENT_*</code> del servidor y el log; la web pública sigue
+          funcionando.
+        </AdminMessage>
+      ) : (
+        <AdminCard padded={false}>
+          <div className={styles.statusRow} aria-label="Por estado">
+            {CANDIDATE_STATUS_FILTER_VALUES.map((value) => (
+              <Link
+                key={value}
+                href={pageHref({ q, status: value, profile }, 1)}
+                className={cx(
+                  styles.chip,
+                  status === value && styles.chipActive,
+                )}
+              >
+                {statusLabel(value)} <strong>{counts[value] ?? 0}</strong>
+              </Link>
+            ))}
+          </div>
 
-            {((counts.pending ?? 0) > 0 || (counts.started ?? 0) > 0) && (
-              <ProcessPendingPanel
-                pending={counts.pending ?? 0}
-                started={counts.started ?? 0}
-              />
-            )}
+          {((counts.pending ?? 0) > 0 || (counts.started ?? 0) > 0) && (
+            <ProcessPendingPanel
+              pending={counts.pending ?? 0}
+              started={counts.started ?? 0}
+            />
+          )}
 
-            <form
-              key={`${q}|${status}|${profile}`}
-              method="get"
-              className="admin-content-filters"
+          <AdminFilterBar key={`${q}|${status}|${profile}`}>
+            <AdminFilterSearch
+              id="talent-search"
+              label="Buscar por nombre o email"
+              defaultValue={q}
+              placeholder="Buscar por nombre o email…"
+            />
+
+            <AdminSelect
+              compact
+              name="status"
+              defaultValue={status}
+              aria-label="Filtrar por estado"
             >
-              <div className="admin-content-search">
-                <label
-                  htmlFor="talent-search"
-                  className="admin-visually-hidden"
-                >
-                  Buscar por nombre o email
-                </label>
+              <option value="">Todos los estados</option>
 
-                <input
-                  id="talent-search"
-                  type="search"
-                  name="q"
-                  defaultValue={q}
-                  placeholder="Buscar por nombre o email…"
-                />
-              </div>
+              {CANDIDATE_STATUS_FILTER_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {statusLabel(value)}
+                </option>
+              ))}
+            </AdminSelect>
 
-              <select
-                name="status"
-                defaultValue={status}
-                aria-label="Filtrar por estado"
-              >
-                <option value="">Todos los estados</option>
+            <AdminSelect
+              compact
+              name="profile"
+              defaultValue={profile}
+              aria-label="Filtrar por perfil"
+            >
+              <option value="">Todos los perfiles</option>
 
-                {CANDIDATE_STATUS_FILTER_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {statusLabel(value)}
-                  </option>
+              {PROFILE_VALUES.map((value) => (
+                <option key={value} value={value}>
+                  {profileLabel(value)}
+                </option>
+              ))}
+            </AdminSelect>
+
+            <AdminButton type="submit">Filtrar</AdminButton>
+
+            {hasFilters && <AdminFilterClear href="/admin/talent" />}
+          </AdminFilterBar>
+
+          <AdminResultBar>
+            <span>
+              {total} {total === 1 ? 'candidato' : 'candidatos'}
+            </span>
+          </AdminResultBar>
+
+          {result.items.length === 0 ? (
+            <AdminEmptyState
+              large
+              title={hasFilters ? 'Sin resultados' : 'Aún no hay candidatos'}
+              description={
+                hasFilters
+                  ? 'Prueba con otra búsqueda o limpia los filtros.'
+                  : 'Los candidatos aparecerán aquí cuando alguien deje su email o se suba un CV.'
+              }
+            />
+          ) : (
+            <AdminTable flush>
+              <thead>
+                <tr>
+                  <th>Candidato</th>
+
+                  <th>Perfil</th>
+
+                  <th>Estado</th>
+
+                  <th>CV</th>
+
+                  <th>Alta</th>
+
+                  <th aria-label="Acciones" />
+                </tr>
+              </thead>
+
+              <tbody>
+                {result.items.map((item) => (
+                  <tr key={item.id}>
+                    <td>
+                      <AdminTableTitle href={`/admin/talent/${item.id}`}>
+                        {item.name || item.email || 'Sin procesar'}
+                      </AdminTableTitle>
+
+                      {item.name && item.email && (
+                        <AdminSubtext>{item.email}</AdminSubtext>
+                      )}
+
+                      {item.uploadedBy && (
+                        <AdminSubtext>
+                          Subido por {item.uploadedBy}
+                        </AdminSubtext>
+                      )}
+                    </td>
+
+                    <td>
+                      {item.profile.length > 0
+                        ? item.profile.map(profileLabel).join(', ')
+                        : '—'}
+                    </td>
+
+                    <td>
+                      <AdminBadge>{statusLabel(item.status)}</AdminBadge>
+                    </td>
+
+                    <td>
+                      {item.cvKind === 'none' ? (
+                        '—'
+                      ) : (
+                        <AdminTextLink
+                          href={`/api/admin/talent/cv?candidate=${item.id}`}
+                          external
+                        >
+                          {CV_KIND_LABELS[item.cvKind]} ↗
+                        </AdminTextLink>
+                      )}
+
+                      {item.filesCount > 0 && (
+                        <AdminSubtext>
+                          +{item.filesCount}{' '}
+                          {item.filesCount === 1 ? 'fichero' : 'ficheros'}
+                        </AdminSubtext>
+                      )}
+                    </td>
+
+                    <AdminTd variant="nowrap">
+                      {formatAdminDateTime(item.createdAt)}
+                    </AdminTd>
+
+                    <AdminTd variant="end">
+                      <AdminRowAction href={`/admin/talent/${item.id}`}>
+                        Ver
+                      </AdminRowAction>
+                    </AdminTd>
+                  </tr>
                 ))}
-              </select>
+              </tbody>
+            </AdminTable>
+          )}
 
-              <select
-                name="profile"
-                defaultValue={profile}
-                aria-label="Filtrar por perfil"
-              >
-                <option value="">Todos los perfiles</option>
-
-                {PROFILE_VALUES.map((value) => (
-                  <option key={value} value={value}>
-                    {profileLabel(value)}
-                  </option>
-                ))}
-              </select>
-
-              <button
-                type="submit"
-                className="admin-button admin-button-secondary"
-              >
-                Filtrar
-              </button>
-
-              {hasFilters && (
-                <Link href="/admin/talent" className="admin-filter-clear">
-                  Limpiar
-                </Link>
-              )}
-            </form>
-
-            <div className="admin-content-results">
-              <span>
-                {total} {total === 1 ? 'candidato' : 'candidatos'}
-              </span>
-            </div>
-
-            {result.items.length === 0 ? (
-              <div className="admin-empty-state admin-empty-state-large">
-                <strong>
-                  {hasFilters ? 'Sin resultados' : 'Aún no hay candidatos'}
-                </strong>
-
-                <p>
-                  {hasFilters
-                    ? 'Prueba con otra búsqueda o limpia los filtros.'
-                    : 'Los candidatos aparecerán aquí cuando alguien deje su email o se suba un CV.'}
-                </p>
-              </div>
-            ) : (
-              <div className="admin-content-table-wrapper">
-                <table className="admin-content-table">
-                  <thead>
-                    <tr>
-                      <th>Candidato</th>
-
-                      <th>Perfil</th>
-
-                      <th>Estado</th>
-
-                      <th>CV</th>
-
-                      <th>Alta</th>
-
-                      <th aria-label="Acciones" />
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {result.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <Link
-                            href={`/admin/talent/${item.id}`}
-                            className="admin-content-title"
-                          >
-                            {item.name || item.email || 'Sin procesar'}
-                          </Link>
-
-                          {item.name && item.email && (
-                            <span className="admin-content-slug">
-                              {item.email}
-                            </span>
-                          )}
-
-                          {item.uploadedBy && (
-                            <span className="admin-content-slug">
-                              Subido por {item.uploadedBy}
-                            </span>
-                          )}
-                        </td>
-
-                        <td>
-                          {item.profile.length > 0
-                            ? item.profile.map(profileLabel).join(', ')
-                            : '—'}
-                        </td>
-
-                        <td>
-                          <span className="admin-type-badge">
-                            {statusLabel(item.status)}
-                          </span>
-                        </td>
-
-                        <td>
-                          {item.cvKind === 'none' ? (
-                            '—'
-                          ) : (
-                            <a
-                              href={`/api/admin/talent/cv?candidate=${item.id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="admin-text-link"
-                            >
-                              {CV_KIND_LABELS[item.cvKind]} ↗
-                            </a>
-                          )}
-
-                          {item.filesCount > 0 && (
-                            <span className="admin-content-slug">
-                              +{item.filesCount}{' '}
-                              {item.filesCount === 1 ? 'fichero' : 'ficheros'}
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="admin-content-date">
-                          {formatAdminDateTime(item.createdAt)}
-                        </td>
-
-                        <td>
-                          <Link
-                            href={`/admin/talent/${item.id}`}
-                            className="admin-row-action"
-                          >
-                            Ver
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {pageCount > 1 && (
-              <nav className="admin-pagination" aria-label="Paginación">
-                {query.page > 1 ? (
-                  <Link href={pageHref(query, query.page - 1)} rel="prev">
-                    ← Anterior
-                  </Link>
-                ) : (
-                  <span aria-hidden="true">← Anterior</span>
-                )}
-
-                <span>
-                  Página {query.page} de {pageCount}
-                </span>
-
-                {query.page < pageCount ? (
-                  <Link href={pageHref(query, query.page + 1)} rel="next">
-                    Siguiente →
-                  </Link>
-                ) : (
-                  <span aria-hidden="true">Siguiente →</span>
-                )}
-              </nav>
-            )}
-          </section>
-        )}
-      </div>
-    </main>
+          <AdminPagination
+            page={query.page}
+            pageCount={pageCount}
+            previousHref={
+              query.page > 1 ? pageHref(query, query.page - 1) : null
+            }
+            nextHref={
+              query.page < pageCount ? pageHref(query, query.page + 1) : null
+            }
+          />
+        </AdminCard>
+      )}
+    </AdminPage>
   )
 }

@@ -3,6 +3,15 @@
 import { useActionState, useState } from 'react'
 
 import OtherOccupationNotice from '@/app/admin/(panel)/contents/OtherOccupationNotice'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput } from '@/components/admin/AdminControls'
+import { AdminField, AdminReadonlyField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
 
 import {
   OTHER_MIN_FREQUENCY,
@@ -40,23 +49,21 @@ export default function OtherDetailForm({ other, otherFrequencies }: Props) {
   ])
 
   return (
-    <form action={formAction} className="admin-form">
+    <AdminForm action={formAction}>
       <input type="hidden" name="contentId" value={other.contentId} />
 
-      <div className="admin-form-grid admin-form-grid-2">
-        <div className="admin-readonly-field">
-          <span className="admin-field-label">Tipo de Other</span>
-
+      <AdminFormGrid>
+        <AdminReadonlyField label="Tipo de Other">
           <strong>{otherKindLabel(other.kind)}</strong>
-        </div>
+        </AdminReadonlyField>
 
-        <div className="admin-field">
-          <label htmlFor="frequency">
-            Frecuencia (una aparición cada N pines; mínimo {OTHER_MIN_FREQUENCY}
-            )
-          </label>
-
-          <input
+        <AdminField
+          label={`Frecuencia (una aparición cada N pines; mínimo ${OTHER_MIN_FREQUENCY})`}
+          htmlFor="frequency"
+          help="Las primeras apariciones se reparten desde el pin 10 y se espacian 8-15 pines entre contenidos; después, cada N."
+          error={state.fieldErrors?.frequency?.[0]}
+        >
+          <AdminInput
             id="frequency"
             name="frequency"
             type="number"
@@ -67,40 +74,29 @@ export default function OtherDetailForm({ other, otherFrequencies }: Props) {
             onChange={(event) => setTyped(event.target.value)}
             required
           />
-
-          <p className="admin-field-help">
-            Las primeras apariciones se reparten desde el pin 10 y se espacian
-            8-15 pines entre contenidos; después, cada N.
-          </p>
-
-          {state.fieldErrors?.frequency?.[0] && (
-            <p className="admin-field-error">
-              {state.fieldErrors.frequency[0]}
-            </p>
-          )}
-        </div>
-      </div>
+        </AdminField>
+      </AdminFormGrid>
 
       <OtherOccupationNotice
         percent={occupation}
         scope="con este contenido publicado"
       />
 
-      {state.formError && <p className="admin-form-error">{state.formError}</p>}
-
-      {state.success && (
-        <p className="admin-form-success">Frecuencia guardada correctamente.</p>
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
       )}
 
-      <div className="admin-form-actions">
-        <button
-          className="admin-button admin-button-primary"
-          type="submit"
-          disabled={pending}
-        >
+      {state.success && (
+        <AdminMessage kind="success">
+          Frecuencia guardada correctamente.
+        </AdminMessage>
+      )}
+
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
           {pending ? 'Guardando...' : 'Guardar frecuencia'}
-        </button>
-      </div>
-    </form>
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

@@ -1,0 +1,113 @@
+.wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--admin-radius-md);
+}
+
+/* Dentro de una tarjeta sin relleno la tabla llega a los bordes. */
+.flush {
+  border: 0;
+  border-radius: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  padding: var(--admin-space-12) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  background: var(--admin-surface-subtle);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-caps);
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: var(--admin-space-12) var(--space-md);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--admin-fs-md);
+  vertical-align: middle;
+}
+
+.table tbody tr {
+  transition: background var(--admin-transition);
+}
+
+.table tbody tr:hover {
+  background: var(--admin-surface-subtle);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.table td form {
+  margin: 0;
+}
+
+.nowrap {
+  color: var(--admin-text-muted);
+  white-space: nowrap;
+}
+
+.end {
+  width: 100px;
+  text-align: right;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.title {
+  display: block;
+  width: fit-content;
+  color: var(--color-text);
+  font-size: var(--admin-fs-base);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.title:hover {
+  color: var(--color-cta);
+}
+
+.subtext {
+  display: block;
+  max-width: 350px;
+  margin-top: var(--space-xs);
+  overflow: hidden;
+  color: var(--admin-text-subtle);
+  font-family: var(--admin-font-mono);
+  font-size: var(--admin-fs-xs);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+a.subtext:hover {
+  color: var(--color-cta);
+}
+
+.rowAction {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rowAction:hover {
+  color: var(--color-cta);
+}

@@ -1,0 +1,23 @@
+.summary {
+  margin: 0 0 var(--space-md);
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-fs-md);
+}
+
+.deleteAll {
+  margin-top: var(--space-md);
+}
+
+.editor {
+  display: grid;
+  gap: var(--space-lg);
+  margin-top: var(--space-lg);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-surface-subtle);
+}
+
+.error {
+  margin-top: var(--space-sm);
+}

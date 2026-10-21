@@ -2,7 +2,11 @@
 
 import { useActionState } from 'react'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import { processPendingCvsAction, type TalentActionState } from './actions'
+import styles from './ProcessPendingPanel.module.css'
 
 const initialState: TalentActionState = {}
 
@@ -24,22 +28,18 @@ export default function ProcessPendingPanel({ pending, started }: Props) {
   )
 
   return (
-    <div className="admin-talent-process">
-      <p>
+    <div className={styles.panel}>
+      <p className={styles.text}>
         {pending} {pending === 1 ? 'CV pendiente' : 'CVs pendientes'} de
         procesar
         {started > 0 ? ` y ${started} en «Procesando».` : '.'}
       </p>
 
-      <div className="admin-talent-process-actions">
+      <div className={styles.actions}>
         <form action={action}>
-          <button
-            type="submit"
-            className="admin-button admin-button-secondary"
-            disabled={isPending || pending === 0}
-          >
+          <AdminButton type="submit" disabled={isPending || pending === 0}>
             {isPending ? 'Lanzando…' : 'Procesar pendientes'}
-          </button>
+          </AdminButton>
         </form>
 
         {state.canForce && (
@@ -57,20 +57,18 @@ export default function ProcessPendingPanel({ pending, started }: Props) {
           >
             <input type="hidden" name="force" value="true" />
 
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-              disabled={isPending}
-            >
+            <AdminButton type="submit" disabled={isPending}>
               Lanzar igualmente
-            </button>
+            </AdminButton>
           </form>
         )}
       </div>
 
-      {state.error && <p className="admin-form-error">{state.error}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
 
-      {state.message && <p className="admin-form-success">{state.message}</p>}
+      {state.message && (
+        <AdminMessage kind="success">{state.message}</AdminMessage>
+      )}
     </div>
   )
 }

@@ -1,0 +1,11 @@
+.warm {
+  display: grid;
+  justify-items: start;
+  gap: var(--space-sm);
+}
+
+.hint {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-md);
+}

@@ -107,7 +107,9 @@ export function PinCardMedia({
           ))}
         </video>
       )}
-      {hoverPreview && <HoverPreview key={media.cloudinaryPublicId} sources={sources} />}
+      {hoverPreview && (
+        <HoverPreview key={media.cloudinaryPublicId} sources={sources} />
+      )}
       {cta && <span className={styles.cta}>{cta}</span>}
     </div>
   )
@@ -115,7 +117,11 @@ export function PinCardMedia({
 
 /** A preview triggered by the pointer, entirely independent of the autoplay coordinator.
  * It mounts only for the hovered video and unmounts immediately on exit. */
-function HoverPreview({ sources }: { sources: { type: string; src: string }[] }) {
+function HoverPreview({
+  sources,
+}: {
+  sources: { type: string; src: string }[]
+}) {
   const ref = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
 

@@ -2,12 +2,17 @@
 
 import { useActionState } from 'react'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import {
   deleteCandidateAction,
   reprocessCandidateAction,
   resendFormLinkAction,
   type TalentActionState,
 } from '@/app/admin/(panel)/talent/actions'
+
+import styles from './CandidateActions.module.css'
 
 const initialState: TalentActionState = {}
 
@@ -46,21 +51,19 @@ function ActionForm({
     >
       <input type="hidden" name="candidateId" value={candidateId} />
 
-      <button
+      <AdminButton
         type="submit"
-        className={
-          danger
-            ? 'admin-button admin-button-danger'
-            : 'admin-button admin-button-secondary'
-        }
+        variant={danger ? 'danger' : 'secondary'}
         disabled={isPending}
       >
         {isPending ? pendingLabel : label}
-      </button>
+      </AdminButton>
 
-      {state.error && <p className="admin-form-error">{state.error}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
 
-      {state.message && <p className="admin-form-success">{state.message}</p>}
+      {state.message && (
+        <AdminMessage kind="success">{state.message}</AdminMessage>
+      )}
     </form>
   )
 }
@@ -71,7 +74,7 @@ export default function CandidateActions({
   canResend,
 }: Props) {
   return (
-    <div className="admin-talent-actions">
+    <div className={styles.actions}>
       {canReprocess && (
         <ActionForm
           action={reprocessCandidateAction}

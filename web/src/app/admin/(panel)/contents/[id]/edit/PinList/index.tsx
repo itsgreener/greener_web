@@ -6,10 +6,13 @@ import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
 import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
+import { AdminTable } from '@/components/admin/AdminTable'
+
 import PinMediaManager from '@/app/admin/(panel)/contents/[id]/edit/PinMediaManager'
 
 import { DeleteAllPinsButton } from './DeletePinButtons'
 import { EditPinForm } from './EditPinForm'
+import styles from './PinList.module.css'
 import { PinRow } from './PinRow'
 
 type Props = {
@@ -24,14 +27,14 @@ export default function PinList({ contentId, contentType, pins }: Props) {
 
   return (
     <div>
-      <p>
+      <p className={styles.summary}>
         {pins.length} / {MAX_PINS_PER_CONTENT} pines
         {pins.length >= MAX_PINS_PER_CONTENT
           ? ' — máximo alcanzado, no se pueden crear más.'
           : '.'}
       </p>
 
-      <table>
+      <AdminTable>
         <thead>
           <tr>
             <th>Rótulo</th>
@@ -61,16 +64,18 @@ export default function PinList({ contentId, contentType, pins }: Props) {
             </tr>
           )}
         </tbody>
-      </table>
+      </AdminTable>
 
       {pins.length > 0 && (
-        <DeleteAllPinsButton contentId={contentId} count={pins.length} />
+        <div className={styles.deleteAll}>
+          <DeleteAllPinsButton contentId={contentId} count={pins.length} />
+        </div>
       )}
 
       {pins
         .filter((pin) => pin.id === expandedId)
         .map((pin) => (
-          <div key={pin.id}>
+          <div key={pin.id} className={styles.editor}>
             <EditPinForm
               pin={pin}
               contentId={contentId}

@@ -6,6 +6,16 @@ import type { ContentTranslation } from '@/modules/content/domain/contentTransla
 
 import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminLocaleBadge } from '@/components/admin/AdminBadge'
+import { AdminInput, AdminTextarea } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
 import { CharCounter } from '@/components/admin/CharCounter'
 
 import { useCharCount } from '@/components/admin/useCharCount'
@@ -16,6 +26,9 @@ import {
 } from './translationActions'
 
 import type { Locale } from '@/modules/shared/domain/locale'
+
+import styles from './TranslationForm.module.css'
+
 type Props = {
   contentId: string
   locale: Locale
@@ -71,31 +84,30 @@ export default function TranslationForm({
   const body = useCharCount(translation?.body ?? '')
 
   return (
-    <form action={formAction} className="admin-form admin-translation-form">
+    <AdminForm action={formAction}>
       <input type="hidden" name="contentId" value={contentId} />
 
       <input type="hidden" name="locale" value={locale} />
 
-      <div className="admin-translation-heading">
+      <div className={styles.heading}>
         <div>
-          <h3>{getLocaleLabel(locale)}</h3>
+          <h3 className={styles.title}>{getLocaleLabel(locale)}</h3>
 
-          <p>Contenido y metadatos para esta versión lingüística.</p>
+          <p className={styles.text}>
+            Contenido y metadatos para esta versión lingüística.
+          </p>
         </div>
 
-        <span className="admin-locale-badge">{locale.toUpperCase()}</span>
+        <AdminLocaleBadge>{locale.toUpperCase()}</AdminLocaleBadge>
       </div>
 
-      <div className="admin-field">
-        <div className="admin-field-heading">
-          <label htmlFor={`title-${locale}`}>
-            {newsletter ? 'Titular' : 'Título'}
-          </label>
-
-          <CharCounter length={title.length} max={TEXT_LIMITS.title} />
-        </div>
-
-        <input
+      <AdminField
+        label={newsletter ? 'Titular' : 'Título'}
+        htmlFor={`title-${locale}`}
+        aside={<CharCounter length={title.length} max={TEXT_LIMITS.title} />}
+        error={state.fieldErrors?.title?.[0]}
+      >
+        <AdminInput
           id={`title-${locale}`}
           name="title"
           type="text"
@@ -103,134 +115,123 @@ export default function TranslationForm({
           onChange={title.onChange}
           required
         />
+      </AdminField>
 
-        {state.fieldErrors?.title?.[0] && (
-          <p className="admin-field-error">{state.fieldErrors.title[0]}</p>
-        )}
-      </div>
-
-      <div className="admin-form-grid admin-form-grid-2">
+      <AdminFormGrid>
         {showSeo && (
-          <div className="admin-field">
-            <div className="admin-field-heading">
-              <label htmlFor={`seoTitle-${locale}`}>SEO title</label>
-
+          <AdminField
+            label="SEO title"
+            htmlFor={`seoTitle-${locale}`}
+            aside={
               <CharCounter
                 length={seoTitle.length}
                 max={TEXT_LIMITS.seoTitle}
               />
-            </div>
-
-            <input
+            }
+          >
+            <AdminInput
               id={`seoTitle-${locale}`}
               name="seoTitle"
               type="text"
               defaultValue={translation?.seoTitle ?? ''}
               onChange={seoTitle.onChange}
             />
-          </div>
+          </AdminField>
         )}
 
         {showSummary && (
-          <div className="admin-field">
-            <div className="admin-field-heading">
-              <label htmlFor={`summary-${locale}`}>
-                {newsletter ? 'Texto de apoyo' : 'Summary'}
-              </label>
-
+          <AdminField
+            label={newsletter ? 'Texto de apoyo' : 'Summary'}
+            htmlFor={`summary-${locale}`}
+            aside={
               <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
-            </div>
-
-            <textarea
+            }
+          >
+            <AdminTextarea
               id={`summary-${locale}`}
               name="summary"
               rows={3}
               defaultValue={translation?.summary ?? ''}
               onChange={summary.onChange}
             />
-          </div>
+          </AdminField>
         )}
-      </div>
+      </AdminFormGrid>
 
       {showSeo && (
-        <div className="admin-field">
-          <div className="admin-field-heading">
-            <label htmlFor={`seoDescription-${locale}`}>SEO description</label>
-
+        <AdminField
+          label="SEO description"
+          htmlFor={`seoDescription-${locale}`}
+          aside={
             <CharCounter
               length={seoDescription.length}
               max={TEXT_LIMITS.seoDescription}
             />
-          </div>
-
-          <textarea
+          }
+        >
+          <AdminTextarea
             id={`seoDescription-${locale}`}
             name="seoDescription"
             rows={4}
             defaultValue={translation?.seoDescription ?? ''}
             onChange={seoDescription.onChange}
           />
-        </div>
+        </AdminField>
       )}
 
       {showHighlightAndBody && (
         <>
-          <div className="admin-field">
-            <div className="admin-field-heading">
-              <label htmlFor={`highlight-${locale}`}>Highlight</label>
-
+          <AdminField
+            label="Highlight"
+            htmlFor={`highlight-${locale}`}
+            aside={
               <CharCounter
                 length={highlight.length}
                 max={TEXT_LIMITS.highlight}
               />
-            </div>
-
-            <input
+            }
+            help="Subtítulo o cita destacada de la página."
+          >
+            <AdminInput
               id={`highlight-${locale}`}
               name="highlight"
               type="text"
               defaultValue={translation?.highlight ?? ''}
               onChange={highlight.onChange}
             />
+          </AdminField>
 
-            <p className="admin-field-help">
-              Subtítulo o cita destacada de la página.
-            </p>
-          </div>
-
-          <div className="admin-field">
-            <div className="admin-field-heading">
-              <label htmlFor={`body-${locale}`}>Body</label>
-
-              <CharCounter length={body.length} max={TEXT_LIMITS.body} />
-            </div>
-
-            <textarea
+          <AdminField
+            label="Body"
+            htmlFor={`body-${locale}`}
+            aside={<CharCounter length={body.length} max={TEXT_LIMITS.body} />}
+          >
+            <AdminTextarea
               id={`body-${locale}`}
               name="body"
               rows={10}
               defaultValue={translation?.body ?? ''}
               onChange={body.onChange}
             />
-          </div>
+          </AdminField>
         </>
       )}
 
-      {state.formError && <p className="admin-form-error">{state.formError}</p>}
-
-      {state.success && (
-        <p className="admin-form-success">Traducción guardada correctamente.</p>
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
       )}
 
-      <div className="admin-form-actions">
-        <button
-          type="submit"
-          className="admin-button admin-button-primary"
-          disabled={pending}
-        >
+      {state.success && (
+        <AdminMessage kind="success">
+          Traducción guardada correctamente.
+        </AdminMessage>
+      )}
+
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
           {pending ? 'Guardando...' : `Guardar ${getLocaleLabel(locale)}`}
-        </button>
-      </div>
-    </form>
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

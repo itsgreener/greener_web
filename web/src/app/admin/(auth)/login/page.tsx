@@ -3,7 +3,10 @@
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { AdminMessage } from '@/components/admin/AdminMessage'
 import { createClient } from '@/lib/supabase/client'
+
+import styles from './page.module.css'
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
@@ -34,21 +37,21 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="admin-login-page">
-      <section className="admin-login-card">
-        <div className="admin-login-brand">
-          <div className="admin-login-brand-name">Greener</div>
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <div className={styles.brand}>
+          <div className={styles.brandName}>Greener</div>
 
-          <div className="admin-login-brand-label">Admin</div>
+          <div className={styles.brandLabel}>Admin</div>
         </div>
 
-        <div className="admin-login-content">
-          <div className="admin-login-heading">
-            <p className="admin-page-eyebrow">Panel de administración</p>
+        <div className={styles.content}>
+          <div className={styles.heading}>
+            <p className={styles.eyebrow}>Panel de administración</p>
 
-            <h1>Bienvenido</h1>
+            <h1 className={styles.title}>Bienvenido</h1>
 
-            <p>
+            <p className={styles.lead}>
               Accede para gestionar contenidos, publicaciones, herramientas y
               recursos de Greener.
             </p>
@@ -56,11 +59,11 @@ export default function AdminLoginPage() {
 
           <button
             type="button"
-            className="admin-google-button"
+            className={styles.google}
             onClick={loginWithGoogle}
             disabled={loading}
           >
-            <span className="admin-google-icon" aria-hidden="true">
+            <span className={styles.googleIcon} aria-hidden="true">
               <svg
                 viewBox="0 0 24 24"
                 width="20"
@@ -92,24 +95,26 @@ export default function AdminLoginPage() {
           </button>
 
           {errorMessage && (
-            <div className="admin-login-error" role="alert">
+            <AdminMessage kind="error" role="alert" className={styles.error}>
               {errorMessage}
-            </div>
+            </AdminMessage>
           )}
 
-          <div className="admin-login-security">
-            <span aria-hidden="true">✓</span>
+          <div className={styles.security}>
+            <span className={styles.securityIcon} aria-hidden="true">
+              ✓
+            </span>
 
-            <p>
+            <p className={styles.securityText}>
               Utiliza una cuenta corporativa autorizada para acceder al panel.
             </p>
           </div>
         </div>
 
-        <footer className="admin-login-footer">
+        <footer className={styles.footer}>
           <Link href="/">← Volver a la web</Link>
 
-          <span>Greener Admin</span>
+          <span className={styles.footerBrand}>Greener Admin</span>
         </footer>
       </section>
     </main>

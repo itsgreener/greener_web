@@ -1,0 +1,19 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--admin-space-12);
+  padding: var(--space-md) var(--admin-space-20);
+  border-top: 1px solid var(--color-border);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-sm);
+}
+
+.pagination a {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.disabled {
+  color: var(--admin-text-subtle);
+}

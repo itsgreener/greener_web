@@ -1,0 +1,60 @@
+.panel {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.date {
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-md);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.schedule {
+  display: grid;
+  gap: var(--space-sm);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.scheduleControls {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.scheduleControls > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.preview {
+  display: grid;
+  gap: var(--space-xs);
+  padding: var(--admin-space-12);
+  border: 1px solid var(--color-border);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface-subtle);
+}
+
+.hint {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-sm);
+}
+
+@media (max-width: 640px) {
+  .scheduleControls {
+    flex-direction: column;
+  }
+}

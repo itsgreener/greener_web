@@ -1,0 +1,68 @@
+.control {
+  width: 100%;
+  min-height: var(--admin-control-height);
+  padding: var(--space-sm) var(--admin-space-12);
+  border: 1px solid var(--admin-border-control);
+  border-radius: var(--admin-radius-sm);
+  outline: none;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--admin-fs-base);
+  transition:
+    border-color var(--admin-transition),
+    box-shadow var(--admin-transition),
+    background var(--admin-transition);
+}
+
+.compact {
+  min-height: var(--admin-control-height-compact);
+  padding: 0 var(--space-sm);
+  font-size: var(--admin-fs-md);
+}
+
+.control:hover:not(:disabled) {
+  border-color: var(--admin-border-control-hover);
+}
+
+.control:focus {
+  border-color: var(--color-cta);
+  box-shadow: var(--admin-focus-ring);
+}
+
+.control:disabled {
+  background: var(--admin-surface-subtle);
+  color: var(--admin-text-muted);
+  cursor: not-allowed;
+}
+
+.textarea {
+  min-height: 96px;
+  padding: var(--admin-space-12);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+/* El selector de archivos lleva su propio botón dentro del campo. */
+.control[type='file'] {
+  padding: var(--space-sm) var(--admin-space-12);
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-fs-md);
+}
+
+.control[type='file']::file-selector-button {
+  margin-right: var(--admin-space-12);
+  padding: var(--space-xs) var(--admin-space-12);
+  border: 1px solid var(--admin-border-control);
+  border-radius: var(--admin-radius-sm);
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--admin-fs-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.control[type='file']:disabled::file-selector-button {
+  cursor: not-allowed;
+}

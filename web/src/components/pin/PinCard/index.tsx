@@ -99,10 +99,7 @@ export function PinCard({
     isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport'
   const hasSlot = useVideoSlot(videoId, cardRef, wantsGlobalSlot)
 
-  const isPlaying =
-    isAnimatable &&
-    feedAutoplayAllowed &&
-    hasSlot
+  const isPlaying = isAnimatable && feedAutoplayAllowed && hasSlot
 
   // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
   // MP4/H.264), a un solo ancho (contrato de medios §4.4-§4.5).
@@ -124,8 +121,7 @@ export function PinCard({
     // Prefetch compartido y limitado por coordinador: acelera el hover
     // sin descargar todos los vídeos de la página.
     prefetchEnabled:
-      isAnimatable && feedAutoplayAllowed &&
-      pin.autoplayMode === 'viewport',
+      isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport',
     wantsPlay: isPlaying,
   })
 
@@ -180,7 +176,13 @@ export function PinCard({
         video={video}
         videoRef={videoRef}
         sources={sources}
-        hoverPreview={isAnimatable && feedAutoplayAllowed && hovering && !hasSlot && (hoverEnabled || pin.autoplayMode === 'hover')}
+        hoverPreview={
+          isAnimatable &&
+          feedAutoplayAllowed &&
+          hovering &&
+          !hasSlot &&
+          (hoverEnabled || pin.autoplayMode === 'hover')
+        }
       />
       <PinCardLabel
         displayTitle={pin.displayTitle}

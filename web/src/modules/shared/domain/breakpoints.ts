@@ -1,5 +1,6 @@
 /**
- * Breakpoints: la única fuente de los anchos que usa la web pública.
+ * Breakpoints: la única fuente de los anchos de los `@media (max-width)`,
+ * en la web pública y en el ABM (que comparte los mismos puntos de corte).
  *
  * `tests/unit/shared/breakpoints.test.ts` recorre los `@media (max-width)`
  * de los CSS y falla si aparece un ancho que no está aquí, de modo que JS
@@ -13,10 +14,3 @@ export const BREAKPOINT_PX = {
   /** < 1200: 4 columnas; a partir de aquí, escritorio (6). */
   desktop: 1200,
 } as const
-
-/**
- * Anchos propios del ABM (`app/admin/admin.css`). El ABM no comparte rejilla
- * con la web pública, así que sus puntos de corte son otros; se listan aquí
- * por la misma razón: que el test los compare con el CSS.
- */
-export const ADMIN_BREAKPOINT_PX = [520, 640, 700, 760, 900, 1000] as const

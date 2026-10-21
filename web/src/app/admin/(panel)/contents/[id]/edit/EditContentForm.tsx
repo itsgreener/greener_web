@@ -2,6 +2,17 @@
 
 import { useActionState } from 'react'
 
+import { AdminStatusBadge } from '@/components/admin/AdminBadge'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField, AdminReadonlyField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { contentTypeLabel } from '@/components/admin/contentLabels'
 import type { ContentDetail } from '@/modules/content/domain/contentRepository'
 import {
   otherKindLabel,
@@ -20,25 +31,6 @@ type Props = {
   otherKind?: OtherKind | null
 }
 
-function getContentTypeLabel(type: ContentDetail['type']) {
-  switch (type) {
-    case 'case':
-      return 'Case'
-
-    case 'insight':
-      return 'Insight'
-
-    case 'tool':
-      return 'Tool'
-
-    case 'episode':
-      return 'Episode'
-
-    case 'other':
-      return 'Other'
-  }
-}
-
 export default function EditContentForm({ content, otherKind }: Props) {
   const [state, formAction, pending] = useActionState(
     updateContentAction,
@@ -46,53 +38,45 @@ export default function EditContentForm({ content, otherKind }: Props) {
   )
 
   return (
-    <form action={formAction} className="admin-form">
+    <AdminForm action={formAction}>
       <input type="hidden" name="id" value={content.id} />
 
-      <div className="admin-form-grid admin-form-grid-2">
-        <div className="admin-readonly-field">
-          <span className="admin-field-label">Tipo</span>
-
+      <AdminFormGrid>
+        <AdminReadonlyField label="Tipo">
           <strong>
-            {getContentTypeLabel(content.type)}
+            {contentTypeLabel(content.type)}
             {otherKind ? ` · ${otherKindLabel(otherKind)}` : ''}
           </strong>
-        </div>
+        </AdminReadonlyField>
 
-        <div className="admin-readonly-field">
-          <span className="admin-field-label">Estado</span>
+        <AdminReadonlyField label="Estado">
+          <AdminStatusBadge status={content.status} />
+        </AdminReadonlyField>
+      </AdminFormGrid>
 
-          <span className={`admin-status admin-status-${content.status}`}>
-            {content.status}
-          </span>
-        </div>
-      </div>
-
-      <div className="admin-form-grid admin-form-grid-2">
-        <div className="admin-field">
-          <label htmlFor="slug">Slug</label>
-
-          <input
+      <AdminFormGrid>
+        <AdminField
+          label="Slug"
+          htmlFor="slug"
+          help="Se utiliza para construir la URL pública."
+          error={state.fieldErrors?.slug?.[0]}
+        >
+          <AdminInput
             id="slug"
             name="slug"
             type="text"
             defaultValue={content.slug}
             required
           />
+        </AdminField>
 
-          <p className="admin-field-help">
-            Se utiliza para construir la URL pública.
-          </p>
-
-          {state.fieldErrors?.slug?.[0] && (
-            <p className="admin-field-error">{state.fieldErrors.slug[0]}</p>
-          )}
-        </div>
-
-        <div className="admin-field">
-          <label htmlFor="defaultLocale">Idioma principal</label>
-
-          <select
+        <AdminField
+          label="Idioma principal"
+          htmlFor="defaultLocale"
+          help="Será el idioma utilizado en la URL canónica del contenido."
+          error={state.fieldErrors?.defaultLocale?.[0]}
+        >
+          <AdminSelect
             id="defaultLocale"
             name="defaultLocale"
             defaultValue={content.defaultLocale}
@@ -102,31 +86,19 @@ export default function EditContentForm({ content, otherKind }: Props) {
             <option value="en">English</option>
 
             <option value="ca">Català</option>
-          </select>
+          </AdminSelect>
+        </AdminField>
+      </AdminFormGrid>
 
-          <p className="admin-field-help">
-            Será el idioma utilizado en la URL canónica del contenido.
-          </p>
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
+      )}
 
-          {state.fieldErrors?.defaultLocale?.[0] && (
-            <p className="admin-field-error">
-              {state.fieldErrors.defaultLocale[0]}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {state.formError && <p className="admin-form-error">{state.formError}</p>}
-
-      <div className="admin-form-actions">
-        <button
-          className="admin-button admin-button-primary"
-          type="submit"
-          disabled={pending}
-        >
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
           {pending ? 'Guardando...' : 'Guardar datos generales'}
-        </button>
-      </div>
-    </form>
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

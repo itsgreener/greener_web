@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 
+import { cx } from '@/components/admin/cx'
+
 import type { ContentTranslation } from '@/modules/content/domain/contentTranslationSchema'
 
 import TranslationForm from './TranslationForm'
@@ -9,6 +11,9 @@ import TranslationForm from './TranslationForm'
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
 import type { OtherKind } from '@/modules/content/domain/otherSchema'
+
+import styles from './ContentTranslations.module.css'
+
 type Props = {
   contentId: string
   contentType: ContentType
@@ -60,10 +65,10 @@ export default function ContentTranslations({
     contentType === 'case' || contentType === 'episode'
 
   return (
-    <div className="admin-translations">
+    <div>
       {locales.length > 1 && (
         <div
-          className="admin-language-tabs"
+          className={styles.tabs}
           role="tablist"
           aria-label="Idioma de la traducción"
         >
@@ -79,11 +84,7 @@ export default function ContentTranslations({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                className={
-                  isActive
-                    ? 'admin-language-tab admin-language-tab-active'
-                    : 'admin-language-tab'
-                }
+                className={cx(styles.tab, isActive && styles.active)}
                 onClick={() => setActiveLocale(locale)}
               >
                 <span>{getLocaleShortLabel(locale)}</span>
@@ -91,11 +92,10 @@ export default function ContentTranslations({
                 <small>{getLocaleLabel(locale)}</small>
 
                 <span
-                  className={
-                    translation
-                      ? 'admin-language-state admin-language-state-complete'
-                      : 'admin-language-state admin-language-state-empty'
-                  }
+                  className={cx(
+                    styles.state,
+                    translation ? styles.complete : styles.empty,
+                  )}
                   aria-hidden="true"
                 />
               </button>
@@ -104,7 +104,7 @@ export default function ContentTranslations({
         </div>
       )}
 
-      <div className="admin-language-panels">
+      <div>
         {locales.map((locale) => {
           const translation =
             translations.find((item) => item.locale === locale) ?? null
@@ -112,12 +112,7 @@ export default function ContentTranslations({
           const isActive = activeLocale === locale
 
           return (
-            <div
-              key={locale}
-              role="tabpanel"
-              hidden={!isActive}
-              className="admin-language-panel"
-            >
+            <div key={locale} role="tabpanel" hidden={!isActive}>
               <TranslationForm
                 contentId={contentId}
                 locale={locale}

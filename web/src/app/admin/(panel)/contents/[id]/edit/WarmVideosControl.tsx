@@ -2,6 +2,10 @@
 
 import { useActionState } from 'react'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
+import styles from './WarmVideosControl.module.css'
 import { warmContentAction, type WarmActionState } from './warmActions'
 
 type Props = {
@@ -20,33 +24,31 @@ export default function WarmVideosControl({ contentId, pending }: Props) {
 
   if (pending === 0 && !state.message && !state.error) {
     return (
-      <p className="admin-field-hint">
+      <p className={styles.hint}>
         Vídeos calentados: no hay ninguno pendiente.
       </p>
     )
   }
 
   return (
-    <form action={action} className="admin-warm-videos">
+    <form action={action} className={styles.warm}>
       <input type="hidden" name="id" value={contentId} />
 
-      <button
-        type="submit"
-        className="admin-button admin-button-secondary"
-        disabled={warming}
-      >
+      <AdminButton type="submit" disabled={warming}>
         {warming ? 'Calentando...' : 'Calentar vídeos'}
-      </button>
+      </AdminButton>
 
-      <small>
+      <small className={styles.hint}>
         {pending === null
           ? 'No se ha podido comprobar cuántos vídeos faltan por calentar.'
           : `${pending} vídeo(s) sin calentar. Se calientan solos al publicar o programar.`}
       </small>
 
-      {state.message && <p className="admin-field-hint">{state.message}</p>}
+      {state.message && (
+        <AdminMessage kind="success">{state.message}</AdminMessage>
+      )}
 
-      {state.error && <p className="admin-form-error">{state.error}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
     </form>
   )
 }

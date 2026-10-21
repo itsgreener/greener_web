@@ -3,6 +3,20 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { adminButtonClass } from '@/components/admin/AdminButton'
+import {
+  AdminCard,
+  AdminCardHeader,
+  AdminCardText,
+} from '@/components/admin/AdminCard'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import {
+  AdminBackLink,
+  AdminPage,
+  AdminPageHeader,
+} from '@/components/admin/AdminPage'
+import { AdminSubtext } from '@/components/admin/AdminTable'
+import { AdminTextLink } from '@/components/admin/AdminTextLink'
 
 import { talentAdminQueries } from '@/modules/talent/container'
 import {
@@ -21,6 +35,8 @@ import {
   WORK_TYPE_LABELS,
 } from '@/app/admin/(panel)/talent/talentLabels'
 
+import styles from './page.module.css'
+
 type Props = {
   params: Promise<{ id: string }>
 }
@@ -29,14 +45,9 @@ function SafeLink({ href, children }: { href: string; children: string }) {
   const safe = externalCvUrl(href)
 
   return safe ? (
-    <a
-      href={safe}
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="admin-text-link"
-    >
+    <AdminTextLink href={safe} rel="noopener noreferrer nofollow" external>
       {children}
-    </a>
+    </AdminTextLink>
   ) : (
     <span>{children}</span>
   )
@@ -75,17 +86,13 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
     console.error('Talent: no se pudo leer al candidato', error)
 
     return (
-      <main className="admin-contents-page">
-        <div className="admin-dashboard-shell">
-          <Link href="/admin/talent" className="admin-back-link">
-            ← Candidatos
-          </Link>
+      <AdminPage>
+        <AdminBackLink href="/admin/talent">← Candidatos</AdminBackLink>
 
-          <p className="admin-notice admin-notice-warning">
-            No se ha podido leer Supabase-talent. Inténtalo de nuevo en un rato.
-          </p>
-        </div>
-      </main>
+        <AdminMessage kind="warning">
+          No se ha podido leer Supabase-talent. Inténtalo de nuevo en un rato.
+        </AdminMessage>
+      </AdminPage>
     )
   }
 
@@ -104,73 +111,68 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
   const socials = Object.entries(detail.socials)
 
   return (
-    <main className="admin-contents-page">
-      <div className="admin-dashboard-shell">
-        <Link href="/admin/talent" className="admin-back-link">
-          ← Candidatos
-        </Link>
+    <AdminPage>
+      <AdminBackLink href="/admin/talent">← Candidatos</AdminBackLink>
 
-        <header className="admin-page-header">
-          <div>
-            <p className="admin-page-eyebrow">
-              {statusLabel(detail.status)}
-              {detail.blocked ? ' · Bloqueado' : ''}
-            </p>
+      <AdminPageHeader
+        eyebrow={`${statusLabel(detail.status)}${detail.blocked ? ' · Bloqueado' : ''}`}
+        title={detail.name || detail.email || 'Candidato sin procesar'}
+        description={
+          <>
+            {detail.name && detail.email ? `${detail.email} · ` : ''}
+            Alta: {formatAdminDateTime(detail.createdAt)} ·{' '}
+            <Link
+              href={`/admin/audit?entity=talent_candidate&entityId=${detail.id}`}
+            >
+              Ver actividad
+            </Link>
+          </>
+        }
+      />
 
-            <h1>{detail.name || detail.email || 'Candidato sin procesar'}</h1>
-
-            <p className="admin-page-description">
-              {detail.name && detail.email ? `${detail.email} · ` : ''}
-              Alta: {formatAdminDateTime(detail.createdAt)} ·{' '}
-              <Link
-                href={`/admin/audit?entity=talent_candidate&entityId=${detail.id}`}
-              >
-                Ver actividad
-              </Link>
-            </p>
-          </div>
-        </header>
-
-        <section className="admin-contents-card">
-          <div className="admin-talent-actions">
+      <div className={styles.stack}>
+        <AdminCard>
+          <div className={styles.toolbar}>
             {detail.cvKind !== 'none' && (
-              <a
-                href={`/api/admin/talent/cv?candidate=${detail.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="admin-button admin-button-primary admin-link-button"
-              >
-                Ver CV ({CV_KIND_LABELS[detail.cvKind]}) ↗
-              </a>
+              <div>
+                <a
+                  href={`/api/admin/talent/cv?candidate=${detail.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={adminButtonClass({ variant: 'primary' })}
+                >
+                  Ver CV ({CV_KIND_LABELS[detail.cvKind]}) ↗
+                </a>
+              </div>
+            )}
+
+            <CandidateActions
+              candidateId={detail.id}
+              canReprocess={canReprocess}
+              canResend={canResend}
+            />
+
+            {detail.status === 'error' && (
+              <AdminMessage kind="warning">
+                n8n marcó esta fila con error: email inválido o rechazado, fallo
+                al descargar el CV o al actualizar la fila. Revisa el correo de
+                error de n8n.
+              </AdminMessage>
+            )}
+
+            {detail.status === 'completed' && (
+              <AdminMessage>
+                El candidato ha enviado el formulario y n8n aún no ha terminado
+                de procesarlo. Si lleva tiempo así, el procesado se ha cortado.
+              </AdminMessage>
             )}
           </div>
+        </AdminCard>
 
-          <CandidateActions
-            candidateId={detail.id}
-            canReprocess={canReprocess}
-            canResend={canResend}
-          />
+        <AdminCard>
+          <AdminCardHeader title="Datos" />
 
-          {detail.status === 'error' && (
-            <p className="admin-notice admin-notice-warning">
-              n8n marcó esta fila con error: email inválido o rechazado, fallo
-              al descargar el CV o al actualizar la fila. Revisa el correo de
-              error de n8n.
-            </p>
-          )}
-
-          {detail.status === 'completed' && (
-            <p className="admin-notice">
-              El candidato ha enviado el formulario y n8n aún no ha terminado de
-              procesarlo. Si lleva tiempo así, el procesado se ha cortado.
-            </p>
-          )}
-        </section>
-
-        <section className="admin-contents-card">
-          <h2>Datos</h2>
-
-          <dl className="admin-talent-data">
+          <dl className={styles.data}>
             <Row label="Email">{detail.email || '—'}</Row>
 
             <Row label="Teléfono">{detail.phone || '—'}</Row>
@@ -235,15 +237,15 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
 
             <Row label="Nombre del CV">{detail.cvName || '—'}</Row>
           </dl>
-        </section>
+        </AdminCard>
 
-        <section className="admin-contents-card">
-          <h2>Proyectos</h2>
+        <AdminCard>
+          <AdminCardHeader title="Proyectos" />
 
           {detail.projects.length === 0 ? (
-            <p className="admin-field-help">Sin proyectos.</p>
+            <AdminCardText>Sin proyectos.</AdminCardText>
           ) : (
-            <ul className="admin-talent-list">
+            <ul className={styles.list}>
               {detail.projects.map((project, index) => (
                 <li key={`${project.link}-${index}`}>
                   <SafeLink href={project.link}>{project.link}</SafeLink>
@@ -253,43 +255,41 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
               ))}
             </ul>
           )}
-        </section>
+        </AdminCard>
 
-        <section className="admin-contents-card">
-          <h2>Ficheros</h2>
+        <AdminCard>
+          <AdminCardHeader title="Ficheros" />
 
           {detail.files.length === 0 ? (
-            <p className="admin-field-help">Sin ficheros sueltos.</p>
+            <AdminCardText>Sin ficheros sueltos.</AdminCardText>
           ) : (
-            <ul className="admin-talent-list">
+            <ul className={styles.list}>
               {detail.files.map((file) => (
                 <li key={file.id}>
                   {file.kind === 'none' ? (
                     <span>Sin enlace</span>
                   ) : (
-                    <a
+                    <AdminTextLink
                       href={`/api/admin/talent/cv?candidate=${detail.id}&file=${file.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="admin-text-link"
+                      external
                     >
                       {file.type || 'Fichero'} ↗
-                    </a>
+                    </AdminTextLink>
                   )}
 
-                  <span className="admin-content-slug">
+                  <AdminSubtext>
                     {CV_KIND_LABELS[file.kind]}
                     {file.status ? ` · ${file.status}` : ''}
                     {file.createdAt
                       ? ` · ${formatAdminDateTime(file.createdAt)}`
                       : ''}
-                  </span>
+                  </AdminSubtext>
                 </li>
               ))}
             </ul>
           )}
-        </section>
+        </AdminCard>
       </div>
-    </main>
+    </AdminPage>
   )
 }

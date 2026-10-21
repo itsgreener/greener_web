@@ -1,0 +1,24 @@
+.empty {
+  padding: var(--space-lg) 0;
+  text-align: center;
+}
+
+.large {
+  padding: 70px var(--space-lg);
+}
+
+.title {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: var(--admin-fs-lg);
+}
+
+.description {
+  margin: 0 0 var(--admin-space-20);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-md);
+}
+
+.empty > :last-child {
+  margin-bottom: 0;
+}

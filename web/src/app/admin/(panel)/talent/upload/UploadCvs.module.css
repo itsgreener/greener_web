@@ -1,0 +1,33 @@
+/* Zona de arrastre: el selector de archivos queda dentro de una caja punteada. */
+.drop {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-12);
+  padding: var(--space-lg);
+  border: 1px dashed var(--admin-border-control-hover);
+  border-radius: var(--admin-radius-md);
+  background: var(--admin-surface-subtle);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-12);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--admin-space-12);
+  font-size: var(--admin-fs-base);
+}
+
+.outcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

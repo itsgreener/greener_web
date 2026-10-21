@@ -229,16 +229,22 @@ export function usePinVideo({
     }
   }, [wantsPlay, mounted, load.attempt, resetKey, videoRef, startPlayback])
 
-  const onCanPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
-    if (wantsPlay) startPlayback(event.currentTarget)
-  }, [wantsPlay, startPlayback])
+  const onCanPlay = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
+      if (wantsPlay) startPlayback(event.currentTarget)
+    },
+    [wantsPlay, startPlayback],
+  )
 
-  const onLoadedData = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    // Algunos navegadores avisan loadeddata antes que canplay; no esperar
-    // permite que el hover reaccione en cuanto hay un fotograma disponible.
-    if (wantsPlay) startPlayback(event.currentTarget)
-  }, [wantsPlay, startPlayback])
+  const onLoadedData = useCallback(
+    (event: SyntheticEvent<HTMLVideoElement>) => {
+      // Algunos navegadores avisan loadeddata antes que canplay; no esperar
+      // permite que el hover reaccione en cuanto hay un fotograma disponible.
+      if (wantsPlay) startPlayback(event.currentTarget)
+    },
+    [wantsPlay, startPlayback],
+  )
 
   const onPlaying = useCallback(() => {
     dispatch('ready')
@@ -276,6 +282,13 @@ export function usePinVideo({
     visible: mounted && wantsPlay && playing,
     /** ¿Se está reproduciendo de verdad? */
     isActuallyPlaying: mounted && wantsPlay && playing,
-    handlers: { onCanPlay, onLoadedData, onPlaying, onPause, onVideoError, onSourceError },
+    handlers: {
+      onCanPlay,
+      onLoadedData,
+      onPlaying,
+      onPause,
+      onVideoError,
+      onSourceError,
+    },
   }
 }

@@ -1,21 +1,48 @@
-import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
-import Link from 'next/link'
 import { Suspense } from 'react'
-import ContentFilterPersistence from './ContentFilterPersistence'
 
-import OtherOccupationNotice from './OtherOccupationNotice'
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import {
+  AdminBadge,
+  AdminLocaleBadge,
+  AdminStatusBadge,
+} from '@/components/admin/AdminBadge'
+import { AdminButton, AdminButtonLink } from '@/components/admin/AdminButton'
+import { AdminCard } from '@/components/admin/AdminCard'
+import { AdminSelect } from '@/components/admin/AdminControls'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import {
+  AdminFilterBar,
+  AdminFilterClear,
+  AdminFilterSearch,
+  AdminResultBar,
+} from '@/components/admin/AdminFilterBar'
+import { AdminPage, AdminPageHeader } from '@/components/admin/AdminPage'
+import { AdminPagination } from '@/components/admin/AdminPagination'
+import {
+  AdminRowAction,
+  AdminSubtext,
+  AdminTable,
+  AdminTableTitle,
+  AdminTd,
+} from '@/components/admin/AdminTable'
+import { AdminVisuallyHidden } from '@/components/admin/AdminVisuallyHidden'
+import { contentTypeLabel, localeCode } from '@/components/admin/contentLabels'
 import {
   contents as contentRepository,
   others as otherRepository,
 } from '@/modules/content/container'
 import {
-  estimateOtherOccupation,
-  otherKindLabel,
-} from '@/modules/content/domain/otherSchema'
-import {
   contentPageCount,
   parseContentListQuery,
 } from '@/modules/content/domain/contentListQuery'
+import {
+  estimateOtherOccupation,
+  otherKindLabel,
+} from '@/modules/content/domain/otherSchema'
+
+import ContentFilterPersistence from './ContentFilterPersistence'
+import { CONTENT_FILTERS_ID } from './contentFilters'
+import OtherOccupationNotice from './OtherOccupationNotice'
 
 type Props = {
   searchParams: Promise<{
@@ -43,60 +70,6 @@ function pageHref(
   const query = params.toString()
 
   return query ? `/admin/contents?${query}` : '/admin/contents'
-}
-
-function getTypeLabel(type: string) {
-  switch (type) {
-    case 'case':
-      return 'Case'
-
-    case 'tool':
-      return 'Tool'
-
-    case 'insight':
-      return 'Insight'
-
-    case 'episode':
-      return 'Episode'
-
-    case 'other':
-      return 'Other'
-
-    default:
-      return type
-  }
-}
-
-function getStatusLabel(status: string) {
-  switch (status) {
-    case 'published':
-      return 'Publicado'
-
-    case 'scheduled':
-      return 'Programado'
-
-    case 'draft':
-      return 'Borrador'
-
-    default:
-      return status
-  }
-}
-
-function getLocaleLabel(locale: string) {
-  switch (locale) {
-    case 'es':
-      return 'ES'
-
-    case 'en':
-      return 'EN'
-
-    case 'ca':
-      return 'CA'
-
-    default:
-      return locale.toUpperCase()
-  }
 }
 
 export default async function ContentsPage({ searchParams }: Props) {
@@ -131,243 +104,183 @@ export default async function ContentsPage({ searchParams }: Props) {
   const hasFilters = Boolean(q || type || status)
 
   return (
-    <main className="admin-contents-page">
+    <AdminPage>
       <Suspense fallback={null}>
         <ContentFilterPersistence />
       </Suspense>
-      <div className="admin-dashboard-shell">
-        <header className="admin-page-header">
-          <div>
-            <p className="admin-page-eyebrow">Gestión de contenidos</p>
 
-            <h1>Contenidos</h1>
-
-            <p className="admin-page-description">
-              Gestiona todos los contenidos publicados, programados y en
-              borrador.
-            </p>
-          </div>
-
-          <Link
-            href="/admin/contents/new"
-            className="admin-button admin-button-primary admin-link-button"
-          >
+      <AdminPageHeader
+        eyebrow="Gestión de contenidos"
+        title="Contenidos"
+        description="Gestiona todos los contenidos publicados, programados y en borrador."
+        actions={
+          <AdminButtonLink href="/admin/contents/new" variant="primary">
             + Nuevo contenido
-          </Link>
-        </header>
+          </AdminButtonLink>
+        }
+      />
 
-        <section className="admin-contents-card">
-          <form
-            key={`${q}|${type}|${status}`}
-            method="get"
-            className="admin-content-filters"
+      <AdminCard padded={false}>
+        <AdminFilterBar key={`${q}|${type}|${status}`} id={CONTENT_FILTERS_ID}>
+          <AdminFilterSearch
+            id="content-search"
+            label="Buscar contenidos"
+            defaultValue={q}
+            placeholder="Buscar por título o slug…"
+          />
+
+          <AdminSelect
+            compact
+            name="type"
+            defaultValue={type}
+            aria-label="Filtrar por tipo"
           >
-            <div className="admin-content-search">
-              <label htmlFor="content-search" className="admin-visually-hidden">
-                Buscar contenidos
-              </label>
+            <option value="">Todos los tipos</option>
 
-              <input
-                id="content-search"
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Buscar por título o slug…"
-              />
-            </div>
+            <option value="case">Case</option>
 
-            <select
-              name="type"
-              defaultValue={type}
-              aria-label="Filtrar por tipo"
-            >
-              <option value="">Todos los tipos</option>
+            <option value="tool">Tool</option>
 
-              <option value="case">Case</option>
+            <option value="insight">Insight</option>
 
-              <option value="tool">Tool</option>
+            <option value="episode">Episode</option>
 
-              <option value="insight">Insight</option>
+            <option value="other">Other</option>
+          </AdminSelect>
 
-              <option value="episode">Episode</option>
+          <AdminSelect
+            compact
+            name="status"
+            defaultValue={status}
+            aria-label="Filtrar por estado"
+          >
+            <option value="">Todos los estados</option>
 
-              <option value="other">Other</option>
-            </select>
+            <option value="published">Publicado</option>
 
-            <select
-              name="status"
-              defaultValue={status}
-              aria-label="Filtrar por estado"
-            >
-              <option value="">Todos los estados</option>
+            <option value="draft">Borrador</option>
 
-              <option value="published">Publicado</option>
+            <option value="scheduled">Programado</option>
+          </AdminSelect>
 
-              <option value="draft">Borrador</option>
+          <AdminButton type="submit">Filtrar</AdminButton>
 
-              <option value="scheduled">Programado</option>
-            </select>
+          {hasFilters && <AdminFilterClear href="/admin/contents?clear=1" />}
+        </AdminFilterBar>
 
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-            >
-              Filtrar
-            </button>
+        {otherOccupation !== null && (
+          <OtherOccupationNotice
+            percent={otherOccupation}
+            scope="con los Other publicados"
+            inset
+          />
+        )}
 
-            {hasFilters && (
-              <Link
-                href="/admin/contents?clear=1"
-                className="admin-filter-clear"
-              >
-                Limpiar
-              </Link>
-            )}
-          </form>
+        <AdminResultBar>
+          <span>
+            {filteredTotal} {filteredTotal === 1 ? 'contenido' : 'contenidos'}
+          </span>
 
-          {otherOccupation !== null && (
-            <OtherOccupationNotice
-              percent={otherOccupation}
-              scope="con los Other publicados"
-            />
-          )}
+          {hasFilters && <small>de {totalContents} totales</small>}
+        </AdminResultBar>
 
-          <div className="admin-content-results">
-            <span>
-              {filteredTotal} {filteredTotal === 1 ? 'contenido' : 'contenidos'}
-            </span>
-
-            {hasFilters && <small>de {totalContents} totales</small>}
-          </div>
-
-          {filteredContents.length === 0 ? (
-            <div className="admin-empty-state admin-empty-state-large">
-              <strong>No se han encontrado contenidos</strong>
-
-              <p>Cambia los filtros o crea un nuevo contenido.</p>
-
-              {hasFilters ? (
-                <Link
-                  href="/admin/contents?clear=1"
-                  className="admin-button admin-button-secondary admin-link-button"
-                >
+        {filteredContents.length === 0 ? (
+          <AdminEmptyState
+            large
+            title="No se han encontrado contenidos"
+            description="Cambia los filtros o crea un nuevo contenido."
+            action={
+              hasFilters ? (
+                <AdminButtonLink href="/admin/contents?clear=1">
                   Quitar filtros
-                </Link>
+                </AdminButtonLink>
               ) : (
-                <Link
-                  href="/admin/contents/new"
-                  className="admin-button admin-button-primary admin-link-button"
-                >
+                <AdminButtonLink href="/admin/contents/new" variant="primary">
                   + Nuevo contenido
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="admin-content-table-wrapper">
-              <table className="admin-content-table">
-                <thead>
-                  <tr>
-                    <th>Contenido</th>
+                </AdminButtonLink>
+              )
+            }
+          />
+        ) : (
+          <AdminTable flush>
+            <thead>
+              <tr>
+                <th>Contenido</th>
 
-                    <th>Tipo</th>
+                <th>Tipo</th>
 
-                    <th>Estado</th>
+                <th>Estado</th>
 
-                    <th>Publicación</th>
+                <th>Publicación</th>
 
-                    <th>Idioma</th>
+                <th>Idioma</th>
 
-                    <th>
-                      <span className="admin-visually-hidden">Acciones</span>
-                    </th>
-                  </tr>
-                </thead>
+                <th>
+                  <AdminVisuallyHidden>Acciones</AdminVisuallyHidden>
+                </th>
+              </tr>
+            </thead>
 
-                <tbody>
-                  {filteredContents.map((content) => (
-                    <tr key={content.id}>
-                      <td>
-                        <Link
-                          href={`/admin/contents/${content.id}/edit`}
-                          className="admin-content-title"
-                        >
-                          {content.title || 'Sin título'}
-                        </Link>
+            <tbody>
+              {filteredContents.map((content) => (
+                <tr key={content.id}>
+                  <td>
+                    <AdminTableTitle
+                      href={`/admin/contents/${content.id}/edit`}
+                    >
+                      {content.title || 'Sin título'}
+                    </AdminTableTitle>
 
-                        <span className="admin-content-slug">
-                          /{content.slug}
-                        </span>
-                      </td>
+                    <AdminSubtext>/{content.slug}</AdminSubtext>
+                  </td>
 
-                      <td>
-                        <span className="admin-type-badge">
-                          {getTypeLabel(content.type)}
-                          {content.otherKind
-                            ? ` · ${otherKindLabel(content.otherKind)}`
-                            : ''}
-                        </span>
-                      </td>
+                  <td>
+                    <AdminBadge>
+                      {contentTypeLabel(content.type)}
+                      {content.otherKind
+                        ? ` · ${otherKindLabel(content.otherKind)}`
+                        : ''}
+                    </AdminBadge>
+                  </td>
 
-                      <td>
-                        <span
-                          className={`admin-status admin-status-${content.status}`}
-                        >
-                          {getStatusLabel(content.status)}
-                        </span>
-                      </td>
+                  <td>
+                    <AdminStatusBadge status={content.status} />
+                  </td>
 
-                      <td className="admin-content-date">
-                        {formatAdminDateTime(content.publishAt)}
-                      </td>
+                  <AdminTd variant="nowrap">
+                    {formatAdminDateTime(content.publishAt)}
+                  </AdminTd>
 
-                      <td>
-                        <span className="admin-locale-badge">
-                          {getLocaleLabel(content.defaultLocale)}
-                        </span>
-                      </td>
+                  <td>
+                    <AdminLocaleBadge>
+                      {localeCode(content.defaultLocale)}
+                    </AdminLocaleBadge>
+                  </td>
 
-                      <td className="admin-content-action-cell">
-                        <Link
-                          href={`/admin/contents/${content.id}/edit`}
-                          className="admin-row-action"
-                          aria-label={`Editar ${content.title || content.slug}`}
-                        >
-                          Editar
-                          <span>→</span>
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  <AdminTd variant="end">
+                    <AdminRowAction
+                      href={`/admin/contents/${content.id}/edit`}
+                      label={`Editar ${content.title || content.slug}`}
+                    >
+                      Editar
+                      <span>→</span>
+                    </AdminRowAction>
+                  </AdminTd>
+                </tr>
+              ))}
+            </tbody>
+          </AdminTable>
+        )}
 
-          {pageCount > 1 && (
-            <nav className="admin-pagination" aria-label="Paginación">
-              {query.page > 1 ? (
-                <Link href={pageHref(query, query.page - 1)} rel="prev">
-                  ← Anterior
-                </Link>
-              ) : (
-                <span aria-hidden="true">← Anterior</span>
-              )}
-
-              <span>
-                Página {query.page} de {pageCount}
-              </span>
-
-              {query.page < pageCount ? (
-                <Link href={pageHref(query, query.page + 1)} rel="next">
-                  Siguiente →
-                </Link>
-              ) : (
-                <span aria-hidden="true">Siguiente →</span>
-              )}
-            </nav>
-          )}
-        </section>
-      </div>
-    </main>
+        <AdminPagination
+          page={query.page}
+          pageCount={pageCount}
+          previousHref={query.page > 1 ? pageHref(query, query.page - 1) : null}
+          nextHref={
+            query.page < pageCount ? pageHref(query, query.page + 1) : null
+          }
+        />
+      </AdminCard>
+    </AdminPage>
   )
 }

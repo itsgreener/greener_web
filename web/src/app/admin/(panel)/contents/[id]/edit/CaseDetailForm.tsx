@@ -6,6 +6,15 @@ import type { CaseDetail } from '@/modules/content/domain/caseDetailSchema'
 
 import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
 import { CharCounter } from '@/components/admin/CharCounter'
 
 import { useCharCount } from '@/components/admin/useCharCount'
@@ -28,50 +37,65 @@ export default function CaseDetailForm({ contentId, caseDetail }: Props) {
   const client = useCharCount(caseDetail?.client ?? '')
 
   return (
-    <form action={formAction}>
+    <AdminForm action={formAction}>
       <input type="hidden" name="contentId" value={contentId} />
 
-      <div>
-        <label htmlFor="force">Force</label>
+      <AdminFormGrid>
+        <AdminField
+          label="Force"
+          htmlFor="force"
+          error={state.fieldErrors?.force?.[0]}
+        >
+          <AdminSelect
+            id="force"
+            name="force"
+            defaultValue={caseDetail?.force ?? 1}
+          >
+            <option value="1">1</option>
 
-        <select id="force" name="force" defaultValue={caseDetail?.force ?? 1}>
-          <option value="1">1</option>
+            <option value="2">2</option>
 
-          <option value="2">2</option>
+            <option value="3">3</option>
 
-          <option value="3">3</option>
+            <option value="4">4</option>
 
-          <option value="4">4</option>
+            <option value="5">5</option>
+          </AdminSelect>
+        </AdminField>
 
-          <option value="5">5</option>
-        </select>
+        <AdminField
+          label="Cliente"
+          htmlFor="client"
+          aside={
+            <CharCounter length={client.length} max={TEXT_LIMITS.client} />
+          }
+          error={state.fieldErrors?.client?.[0]}
+        >
+          <AdminInput
+            id="client"
+            name="client"
+            type="text"
+            defaultValue={caseDetail?.client ?? ''}
+            onChange={client.onChange}
+          />
+        </AdminField>
+      </AdminFormGrid>
 
-        {state.fieldErrors?.force?.[0] && <p>{state.fieldErrors.force[0]}</p>}
-      </div>
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
+      )}
 
-      <div>
-        <label htmlFor="client">Cliente</label>
+      {state.success && (
+        <AdminMessage kind="success">
+          Datos del Case guardados correctamente.
+        </AdminMessage>
+      )}
 
-        <input
-          id="client"
-          name="client"
-          type="text"
-          defaultValue={caseDetail?.client ?? ''}
-          onChange={client.onChange}
-        />
-
-        <CharCounter length={client.length} max={TEXT_LIMITS.client} />
-
-        {state.fieldErrors?.client?.[0] && <p>{state.fieldErrors.client[0]}</p>}
-      </div>
-
-      {state.formError && <p>{state.formError}</p>}
-
-      {state.success && <p>Datos del Case guardados correctamente.</p>}
-
-      <button type="submit" disabled={pending}>
-        {pending ? 'Guardando...' : 'Guardar datos del Case'}
-      </button>
-    </form>
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
+          {pending ? 'Guardando...' : 'Guardar datos del Case'}
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

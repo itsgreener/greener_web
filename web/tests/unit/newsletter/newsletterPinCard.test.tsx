@@ -19,6 +19,8 @@ vi.mock('@/modules/analytics/analytics', () => ({
 import { NewsletterPinCard } from '@/components/newsletter/NewsletterPinCard'
 import type { FeedNewsletterItem } from '@/modules/feed/domain/feedReadModels'
 
+// El diseño final lleva el titular fijo y no pinta `title` ni `text`: siguen
+// viajando en el item (los edita el ABM) pero la tarjeta no los usa.
 const ITEM: FeedNewsletterItem = {
   kind: 'newsletter',
   pinId: 'newsletter:n1:0',
@@ -44,12 +46,12 @@ function renderCard(
 }
 
 function submit(email = 'a@example.com') {
-  fireEvent.change(screen.getByLabelText('Email'), {
+  fireEvent.change(screen.getByLabelText('Your email'), {
     target: { value: email },
   })
   // jsdom no valida ni dispara el envío con el clic del botón de la misma
   // forma que un navegador: se envía el formulario directamente.
-  fireEvent.submit(screen.getByLabelText('Email').closest('form')!)
+  fireEvent.submit(screen.getByLabelText('Your email').closest('form')!)
 }
 
 beforeEach(() => {
@@ -57,35 +59,48 @@ beforeEach(() => {
 })
 
 describe('NewsletterPinCard — contenido', () => {
-  it('pinta titular, texto de apoyo, email y botón', () => {
+  it('pinta el titular fijo, el email y el botón', () => {
     renderCard()
 
     expect(
-      screen.getByRole('heading', { name: ITEM.title }),
+      screen.getByRole('heading', {
+        name: 'Like what you see? We’ll write you when there’s more',
+      }),
     ).toBeInTheDocument()
-    expect(screen.getByText(ITEM.text!)).toBeInTheDocument()
-    expect(screen.getByLabelText('Email')).toHaveAttribute('type', 'email')
+    expect(screen.getByLabelText('Your email')).toHaveAttribute('type', 'email')
     expect(
-      screen.getByRole('button', { name: 'Subscribe' }),
+      screen.getByRole('button', { name: 'Subscribe to newsletter' }),
     ).toBeInTheDocument()
   })
 
-  it('sin texto de apoyo, no pinta el párrafo', () => {
-    renderCard({ text: null })
+  it('no pinta el título ni el texto de apoyo del item', () => {
+    renderCard()
 
+    expect(screen.queryByText(ITEM.title)).not.toBeInTheDocument()
     expect(screen.queryByText(ITEM.text!)).not.toBeInTheDocument()
   })
 
-  it('lleva antes del botón el enlace a /privacy#newsletter', () => {
+  it('lleva el enlace a /privacy#newsletter junto a la casilla', () => {
     renderCard()
 
-    const link = screen.getByRole('link', { name: 'Privacy' })
+    const link = screen.getByRole('link', { name: 'Privacy Policy' })
     expect(link).toHaveAttribute('href', '/privacy#newsletter')
+    expect(link.closest('label')).toContainElement(screen.getByRole('checkbox'))
+  })
 
-    const button = screen.getByRole('button', { name: 'Subscribe' })
-    expect(
-      link.compareDocumentPosition(button) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy()
+  it('el botón queda desactivado hasta aceptar la política de privacidad', () => {
+    renderCard()
+
+    const button = screen.getByRole('button', {
+      name: 'Subscribe to newsletter',
+    })
+    expect(button).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(button).toBeEnabled()
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(button).toBeDisabled()
   })
 
   it('se coloca por transform en su sitio de la retícula y ocupa una columna', () => {
@@ -108,7 +123,7 @@ describe('NewsletterPinCard — contenido', () => {
   it('el campo se llama newsletterEmail, el que lee la acción', () => {
     renderCard()
 
-    expect(screen.getByLabelText('Email')).toHaveAttribute(
+    expect(screen.getByLabelText('Your email')).toHaveAttribute(
       'name',
       'newsletterEmail',
     )
@@ -130,7 +145,7 @@ describe('NewsletterPinCard — alta', () => {
       'Thanks! Check your inbox.',
     )
     // Con el alta hecha solo queda la confirmación.
-    expect(screen.queryByLabelText('Email')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Your email')).not.toBeInTheDocument()
     expect(screen.queryByRole('heading')).not.toBeInTheDocument()
 
     // La analítica y el aviso al feed salen de un efecto que corre después de
@@ -175,7 +190,7 @@ describe('NewsletterPinCard — alta', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Enter a valid email address.',
     )
-    expect(screen.getByLabelText('Email')).toBeInTheDocument()
+    expect(screen.getByLabelText('Your email')).toBeInTheDocument()
     expect(mocks.track).not.toHaveBeenCalled()
     expect(onSubscribed).not.toHaveBeenCalled()
   })

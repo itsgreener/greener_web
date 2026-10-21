@@ -1,0 +1,205 @@
+/* /admin/login vive en el grupo (auth): no lleva la barra lateral del panel. */
+.page {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: var(--admin-space-32) var(--admin-space-20);
+  background:
+    radial-gradient(circle at 50% 0%, rgb(25 65 245 / 8%), transparent 35%),
+    var(--admin-page-bg);
+  font-family: var(--font-body);
+}
+
+.card {
+  width: min(460px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--admin-radius-xl);
+  background: var(--color-bg);
+  box-shadow: var(--admin-shadow-modal);
+}
+
+.brand {
+  padding: var(--admin-space-32) var(--admin-space-32) var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.brandName {
+  font-size: var(--admin-fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-tight);
+}
+
+.brandLabel {
+  margin-top: var(--space-xs);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-caps);
+  text-transform: uppercase;
+}
+
+.content {
+  padding: 36px var(--admin-space-32);
+}
+
+.heading {
+  margin-bottom: var(--admin-space-32);
+}
+
+.eyebrow {
+  margin: 0 0 var(--space-sm);
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-caps);
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--admin-fs-title);
+  line-height: 1.05;
+  letter-spacing: var(--admin-tracking-tight);
+}
+
+.lead {
+  margin: var(--admin-space-12) 0 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-base);
+  line-height: 1.6;
+}
+
+.google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--admin-space-12);
+  width: 100%;
+  min-height: 52px;
+  padding: 0 var(--space-md);
+  border: 1px solid var(--admin-border-control);
+  border-radius: var(--admin-radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: var(--admin-fs-base);
+  font-weight: 700;
+  transition:
+    background var(--admin-transition),
+    border-color var(--admin-transition),
+    box-shadow var(--admin-transition),
+    transform 100ms ease;
+}
+
+.google:hover:not(:disabled) {
+  border-color: var(--admin-border-control-hover);
+  background: var(--color-surface-hover);
+}
+
+.google:focus-visible {
+  outline: 0;
+  border-color: var(--color-cta);
+  box-shadow: var(--admin-focus-ring);
+}
+
+.google:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.google:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.googleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.error {
+  margin-top: var(--space-md);
+}
+
+.security {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--admin-space-12);
+  margin-top: var(--space-md);
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-surface-subtle);
+}
+
+.securityIcon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--admin-success-bg);
+  color: var(--admin-success-text);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+}
+
+.securityText {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  line-height: 1.5;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  min-height: 62px;
+  padding: 0 var(--admin-space-32);
+  border-top: 1px solid var(--color-border);
+  background: var(--admin-surface-subtle);
+}
+
+.footer a {
+  color: var(--admin-text-secondary);
+  font-size: var(--admin-fs-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.footer a:hover {
+  color: var(--color-text);
+}
+
+.footerBrand {
+  color: var(--admin-text-subtle);
+  font-size: var(--admin-fs-xs);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--space-md);
+  }
+
+  .card {
+    border-radius: var(--admin-radius-lg);
+  }
+
+  .brand {
+    padding: var(--space-lg);
+  }
+
+  .content {
+    padding: var(--admin-space-32) var(--space-lg);
+  }
+
+  .footer {
+    padding: 0 var(--space-lg);
+  }
+}

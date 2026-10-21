@@ -1,0 +1,4 @@
+.note {
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+}

@@ -3,6 +3,12 @@
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
 
+import { AdminStatusBadge } from '@/components/admin/AdminBadge'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import { localDateTimeToIsoUtc } from './datetimeLocal'
 
 import {
@@ -19,6 +25,9 @@ import {
 } from './previewActions'
 
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
+
+import styles from './PublishControls.module.css'
+
 type Props = {
   contentId: string
   status: ContentStatus
@@ -30,19 +39,6 @@ type Props = {
 const publishInitialState: PublishActionState = {}
 const scheduleInitialState: ScheduleActionState = {}
 const previewInitialState: PreviewLinkActionState = {}
-
-function getStatusLabel(status: ContentStatus) {
-  switch (status) {
-    case 'draft':
-      return 'Borrador'
-
-    case 'scheduled':
-      return 'Programado'
-
-    case 'published':
-      return 'Publicado'
-  }
-}
 
 export default function PublishControls({
   contentId,
@@ -75,33 +71,31 @@ export default function PublishControls({
   const isoPublishAt = localDateTimeToIsoUtc(rawPublishAt)
 
   return (
-    <div className="admin-publish-panel">
-      <div className="admin-publish-status">
-        <span className={`admin-status admin-status-${status}`}>
-          {getStatusLabel(status)}
-        </span>
+    <div className={styles.panel}>
+      <div className={styles.status}>
+        <AdminStatusBadge status={status} />
 
         {status === 'scheduled' && publishAt && (
-          <small>Programado para {formatAdminDateTime(publishAt)}</small>
+          <small className={styles.date}>
+            Programado para {formatAdminDateTime(publishAt)}
+          </small>
         )}
 
         {status === 'published' && publishAt && (
-          <small>Publicado el {formatAdminDateTime(publishAt)}</small>
+          <small className={styles.date}>
+            Publicado el {formatAdminDateTime(publishAt)}
+          </small>
         )}
       </div>
 
-      <div className="admin-publish-actions">
+      <div className={styles.actions}>
         {status !== 'published' && previewAvailable && (
           <form action={previewAction}>
             <input type="hidden" name="id" value={contentId} />
 
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-              disabled={generatingPreview}
-            >
+            <AdminButton type="submit" disabled={generatingPreview}>
               {generatingPreview ? 'Generando...' : 'Preview'}
-            </button>
+            </AdminButton>
           </form>
         )}
 
@@ -109,13 +103,9 @@ export default function PublishControls({
           <form action={publishAction}>
             <input type="hidden" name="id" value={contentId} />
 
-            <button
-              type="submit"
-              className="admin-button admin-button-primary"
-              disabled={publishing}
-            >
+            <AdminButton type="submit" variant="primary" disabled={publishing}>
               {publishing ? 'Publicando...' : 'Publicar ahora'}
-            </button>
+            </AdminButton>
           </form>
         )}
 
@@ -123,87 +113,77 @@ export default function PublishControls({
           <form action={unpublishAction}>
             <input type="hidden" name="id" value={contentId} />
 
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-              disabled={unpublishing}
-            >
+            <AdminButton type="submit" disabled={unpublishing}>
               {unpublishing
                 ? 'Despublicando...'
                 : status === 'scheduled'
                   ? 'Cancelar programación'
                   : 'Despublicar'}
-            </button>
+            </AdminButton>
           </form>
         )}
       </div>
 
       {status !== 'published' && (
-        <form action={scheduleAction} className="admin-schedule-form">
+        <form action={scheduleAction} className={styles.schedule}>
           <input type="hidden" name="id" value={contentId} />
 
           <input type="hidden" name="publishAt" value={isoPublishAt ?? ''} />
 
-          <label htmlFor="publishAt-input">Programar publicación</label>
+          <AdminField
+            label="Programar publicación"
+            htmlFor="publishAt-input"
+            error={scheduleState.fieldErrors?.publishAt?.[0]}
+          >
+            <div className={styles.scheduleControls}>
+              <AdminInput
+                id="publishAt-input"
+                type="datetime-local"
+                required
+                value={rawPublishAt}
+                onChange={(event) => setRawPublishAt(event.target.value)}
+              />
 
-          <div className="admin-schedule-controls">
-            <input
-              id="publishAt-input"
-              type="datetime-local"
-              required
-              value={rawPublishAt}
-              onChange={(event) => setRawPublishAt(event.target.value)}
-            />
-
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-              disabled={scheduling || !isoPublishAt}
-            >
-              {scheduling ? 'Programando...' : 'Programar'}
-            </button>
-          </div>
-
-          {scheduleState.fieldErrors?.publishAt?.[0] && (
-            <p className="admin-field-error">
-              {scheduleState.fieldErrors.publishAt[0]}
-            </p>
-          )}
+              <AdminButton type="submit" disabled={scheduling || !isoPublishAt}>
+                {scheduling ? 'Programando...' : 'Programar'}
+              </AdminButton>
+            </div>
+          </AdminField>
 
           {scheduleState.formError && (
-            <p className="admin-form-error">{scheduleState.formError}</p>
+            <AdminMessage kind="error">{scheduleState.formError}</AdminMessage>
           )}
         </form>
       )}
 
       {previewState.url && (
-        <div className="admin-preview-result">
-          <label htmlFor="preview-url">Link de preview</label>
+        <div className={styles.preview}>
+          <AdminField label="Link de preview" htmlFor="preview-url">
+            <AdminInput
+              id="preview-url"
+              type="text"
+              readOnly
+              value={previewState.url}
+              onFocus={(event) => event.currentTarget.select()}
+            />
+          </AdminField>
 
-          <small>
+          <small className={styles.hint}>
             Caduca en 7 días. Haz clic en el campo para seleccionarlo.
           </small>
-
-          <input
-            id="preview-url"
-            type="text"
-            readOnly
-            value={previewState.url}
-            onFocus={(event) => event.currentTarget.select()}
-          />
         </div>
       )}
 
       {previewState.error && (
-        <p className="admin-form-error">{previewState.error}</p>
+        <AdminMessage kind="error">{previewState.error}</AdminMessage>
       )}
 
       {publishState.error && (
-        <p className="admin-form-error">{publishState.error}</p>
+        <AdminMessage kind="error">{publishState.error}</AdminMessage>
       )}
 
       {unpublishState.error && (
-        <p className="admin-form-error">{unpublishState.error}</p>
+        <AdminMessage kind="error">{unpublishState.error}</AdminMessage>
       )}
     </div>
   )

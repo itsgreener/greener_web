@@ -3,6 +3,13 @@
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
 
+import { AdminBadge } from '@/components/admin/AdminBadge'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import { AdminForm, AdminFormActions } from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { AdminCellActions, AdminTable } from '@/components/admin/AdminTable'
 import type { HtmlPackageVersionSummary } from '@/modules/packages/domain/htmlPackageRepository'
 
 import {
@@ -14,6 +21,7 @@ import {
   type PublishPackageActionState,
   type UploadPackageActionState,
 } from './packageActions'
+import styles from './PackageUpload.module.css'
 
 type Props = {
   contentId: string
@@ -43,11 +51,11 @@ function PublishVersionButton({
       <input type="hidden" name="contentId" value={contentId} />
       <input type="hidden" name="versionId" value={versionId} />
 
-      <button type="submit" disabled={pending}>
+      <AdminButton type="submit" compact disabled={pending}>
         {pending ? 'Publicando...' : label}
-      </button>
+      </AdminButton>
 
-      {state.error && <p>{state.error}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
     </form>
   )
 }
@@ -80,12 +88,15 @@ function DeleteVersionButton({
       <input type="hidden" name="contentId" value={contentId} />
       <input type="hidden" name="versionId" value={version.id} />
 
-      <button type="submit" disabled={pending}>
+      <AdminButton type="submit" variant="danger" compact disabled={pending}>
         {pending ? 'Borrando...' : 'Borrar versión'}
-      </button>
+      </AdminButton>
 
-      {state.error && <p>{state.error}</p>}
-      {state.warning && <p>{state.warning}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
+
+      {state.warning && (
+        <AdminMessage kind="warning">{state.warning}</AdminMessage>
+      )}
     </form>
   )
 }
@@ -117,12 +128,15 @@ function DeleteOldVersionsButton({
     >
       <input type="hidden" name="contentId" value={contentId} />
 
-      <button type="submit" disabled={pending}>
+      <AdminButton type="submit" variant="danger" disabled={pending}>
         {pending ? 'Borrando...' : `Borrar versiones anteriores (${count})`}
-      </button>
+      </AdminButton>
 
-      {state.error && <p>{state.error}</p>}
-      {state.warning && <p>{state.warning}</p>}
+      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
+
+      {state.warning && (
+        <AdminMessage kind="warning">{state.warning}</AdminMessage>
+      )}
     </form>
   )
 }
@@ -140,31 +154,27 @@ export default function PackageUpload({ contentId, versions }: Props) {
   ).length
 
   return (
-    <div>
-      <form action={uploadAction}>
+    <div className={styles.stack}>
+      <AdminForm action={uploadAction}>
         <input type="hidden" name="contentId" value={contentId} />
 
-        <label htmlFor="package-zip">Paquete (.zip)</label>
-
-        <input
-          id="package-zip"
-          name="file"
-          type="file"
-          accept=".zip"
-          required
-          onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-        />
-
-        <button type="submit" disabled={uploading || !file}>
-          {uploading ? 'Subiendo...' : 'Subir nueva versión'}
-        </button>
+        <AdminField label="Paquete (.zip)" htmlFor="package-zip">
+          <AdminInput
+            id="package-zip"
+            name="file"
+            type="file"
+            accept=".zip"
+            required
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </AdminField>
 
         {uploadState.error && (
-          <div>
-            <p>{uploadState.error}</p>
+          <div className={styles.issues}>
+            <AdminMessage kind="error">{uploadState.error}</AdminMessage>
 
             {uploadState.issues && uploadState.issues.length > 0 && (
-              <ul>
+              <ul className={styles.issueList}>
                 {uploadState.issues.map((issue) => (
                   <li key={issue}>{issue}</li>
                 ))}
@@ -173,8 +183,22 @@ export default function PackageUpload({ contentId, versions }: Props) {
           </div>
         )}
 
-        {uploadState.success && <p>Versión subida como borrador.</p>}
-      </form>
+        {uploadState.success && (
+          <AdminMessage kind="success">
+            Versión subida como borrador.
+          </AdminMessage>
+        )}
+
+        <AdminFormActions>
+          <AdminButton
+            type="submit"
+            variant="primary"
+            disabled={uploading || !file}
+          >
+            {uploading ? 'Subiendo...' : 'Subir nueva versión'}
+          </AdminButton>
+        </AdminFormActions>
+      </AdminForm>
 
       {oldVersionsCount > 0 && (
         <DeleteOldVersionsButton
@@ -183,7 +207,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
         />
       )}
 
-      <table>
+      <AdminTable>
         <thead>
           <tr>
             <th>Versión</th>
@@ -198,35 +222,43 @@ export default function PackageUpload({ contentId, versions }: Props) {
             <tr key={version.id}>
               <td>v{version.version}</td>
 
-              <td>{version.status}</td>
+              <td>
+                <AdminBadge
+                  tone={version.status === 'published' ? 'brand' : 'neutral'}
+                >
+                  {version.status}
+                </AdminBadge>
+              </td>
 
               <td>{formatAdminDateTime(version.createdAt)}</td>
 
               <td>
-                {version.status === 'draft' && (
-                  <PublishVersionButton
-                    contentId={contentId}
-                    versionId={version.id}
-                    label="Publicar esta versión"
-                  />
-                )}
+                <AdminCellActions>
+                  {version.status === 'draft' && (
+                    <PublishVersionButton
+                      contentId={contentId}
+                      versionId={version.id}
+                      label="Publicar esta versión"
+                    />
+                  )}
 
-                {version.status === 'rolled_back' && (
-                  <PublishVersionButton
-                    contentId={contentId}
-                    versionId={version.id}
-                    label="Volver a esta versión"
-                  />
-                )}
+                  {version.status === 'rolled_back' && (
+                    <PublishVersionButton
+                      contentId={contentId}
+                      versionId={version.id}
+                      label="Volver a esta versión"
+                    />
+                  )}
 
-                {version.status !== 'published' && (
-                  <DeleteVersionButton
-                    contentId={contentId}
-                    version={version}
-                  />
-                )}
+                  {version.status !== 'published' && (
+                    <DeleteVersionButton
+                      contentId={contentId}
+                      version={version}
+                    />
+                  )}
 
-                {version.status === 'published' && <span>Activa</span>}
+                  {version.status === 'published' && <span>Activa</span>}
+                </AdminCellActions>
               </td>
             </tr>
           ))}
@@ -237,7 +269,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
             </tr>
           )}
         </tbody>
-      </table>
+      </AdminTable>
     </div>
   )
 }

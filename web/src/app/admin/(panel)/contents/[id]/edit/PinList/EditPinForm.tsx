@@ -4,6 +4,16 @@ import { useActionState } from 'react'
 
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminField } from '@/components/admin/AdminField'
+import {
+  AdminForm,
+  AdminFormActions,
+  AdminFormGrid,
+} from '@/components/admin/AdminForm'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+
 import {
   updatePinAction,
   type PinFormState,
@@ -26,87 +36,95 @@ export function EditPinForm({
   )
 
   return (
-    <form action={formAction}>
-      <label htmlFor={`ratio-${pin.id}`}>Ratio</label>
-      <select
-        id={`ratio-${pin.id}`}
-        name="ratio"
-        defaultValue={pin.ratio}
-        required
-      >
-        <option value="1:1">1:1</option>
-        <option value="4:3">4:3</option>
-        <option value="4:5">4:5</option>
-        <option value="3:4">3:4</option>
-        <option value="2:3">2:3</option>
-        <option value="9:16">9:16</option>
-        <option value="16:9">16:9</option>
-      </select>
+    <AdminForm action={formAction}>
+      <AdminFormGrid>
+        <AdminField label="Ratio" htmlFor={`ratio-${pin.id}`}>
+          <AdminSelect
+            id={`ratio-${pin.id}`}
+            name="ratio"
+            defaultValue={pin.ratio}
+            required
+          >
+            <option value="1:1">1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="4:5">4:5</option>
+            <option value="3:4">3:4</option>
+            <option value="2:3">2:3</option>
+            <option value="9:16">9:16</option>
+            <option value="16:9">16:9</option>
+          </AdminSelect>
+        </AdminField>
+
+        <AdminField label="Idioma" htmlFor={`language-${pin.id}`}>
+          <AdminSelect
+            id={`language-${pin.id}`}
+            name="language"
+            defaultValue={pin.language}
+            required
+          >
+            <option value="es">Español</option>
+            <option value="en">English</option>
+            <option value="ca">Català</option>
+          </AdminSelect>
+        </AdminField>
+
+        {/* El autoplay solo existe para vídeos: en una imagen (o un pin aún
+            sin medio) no se ofrece, y al guardar queda sin modo (null). */}
+        {pin.media?.kind === 'video' && (
+          <AdminField label="Autoplay" htmlFor={`autoplay-${pin.id}`}>
+            <AdminSelect
+              id={`autoplay-${pin.id}`}
+              name="autoplayMode"
+              defaultValue={pin.autoplayMode ?? ''}
+            >
+              <option value="">Sin autoplay</option>
+              <option value="viewport">Al entrar en viewport</option>
+              <option value="hover">Al hacer hover</option>
+            </AdminSelect>
+          </AdminField>
+        )}
+
+        <AdminField label="Alt" htmlFor={`alt-${pin.id}`}>
+          <AdminInput
+            id={`alt-${pin.id}`}
+            name="alt"
+            type="text"
+            defaultValue={pin.alt}
+            required
+          />
+        </AdminField>
+      </AdminFormGrid>
 
       {derivedLabel ? (
         <>
           <input name="label" type="hidden" value="" />
-          <p>
+          <AdminMessage>
             Texto del feed automático: título + cliente (Case), tipo de episodio
             (Episode) o «Insights by Greener» (Insight).
-          </p>
+          </AdminMessage>
         </>
       ) : (
-        <>
-          <label htmlFor={`label-${pin.id}`}>Frase gancho</label>
-          <input
+        <AdminField label="Frase gancho" htmlFor={`label-${pin.id}`}>
+          <AdminInput
             id={`label-${pin.id}`}
             name="label"
             type="text"
             defaultValue={pin.label ?? ''}
           />
-        </>
+        </AdminField>
       )}
 
-      <label htmlFor={`language-${pin.id}`}>Idioma</label>
-      <select
-        id={`language-${pin.id}`}
-        name="language"
-        defaultValue={pin.language}
-        required
-      >
-        <option value="es">Español</option>
-        <option value="en">English</option>
-        <option value="ca">Català</option>
-      </select>
-
-      {/* El autoplay solo existe para vídeos: en una imagen (o un pin aún sin
-          medio) no se ofrece, y al guardar queda sin modo (null). */}
-      {pin.media?.kind === 'video' && (
-        <>
-          <label htmlFor={`autoplay-${pin.id}`}>Autoplay</label>
-          <select
-            id={`autoplay-${pin.id}`}
-            name="autoplayMode"
-            defaultValue={pin.autoplayMode ?? ''}
-          >
-            <option value="">Sin autoplay</option>
-            <option value="viewport">Al entrar en viewport</option>
-            <option value="hover">Al hacer hover</option>
-          </select>
-        </>
+      {state.formError && (
+        <AdminMessage kind="error">{state.formError}</AdminMessage>
       )}
 
-      <label htmlFor={`alt-${pin.id}`}>Alt</label>
-      <input
-        id={`alt-${pin.id}`}
-        name="alt"
-        type="text"
-        defaultValue={pin.alt}
-        required
-      />
+      {state.success && <AdminMessage kind="success">Guardado.</AdminMessage>}
 
-      {state.formError && <p>{state.formError}</p>}
-      {state.success && <p>Guardado.</p>}
-
-      <button type="submit" disabled={pending}>
-        {pending ? 'Guardando...' : 'Guardar cambios'}
-      </button>
-    </form>
+      <AdminFormActions>
+        <AdminButton type="submit" variant="primary" disabled={pending}>
+          {pending ? 'Guardando...' : 'Guardar cambios'}
+        </AdminButton>
+      </AdminFormActions>
+    </AdminForm>
   )
 }

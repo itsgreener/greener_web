@@ -1,0 +1,16 @@
+.link {
+  flex-shrink: 0;
+  color: var(--color-cta);
+  font-size: var(--admin-fs-md);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--color-cta);
+  outline-offset: 2px;
+}

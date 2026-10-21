@@ -1,12 +1,31 @@
-import Link from 'next/link'
-
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { AdminBadge } from '@/components/admin/AdminBadge'
+import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminCard } from '@/components/admin/AdminCard'
+import { AdminSelect } from '@/components/admin/AdminControls'
+import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
+import {
+  AdminFilterBar,
+  AdminFilterClear,
+  AdminFilterSearch,
+  AdminResultBar,
+} from '@/components/admin/AdminFilterBar'
+import { AdminMessage } from '@/components/admin/AdminMessage'
+import { AdminPage, AdminPageHeader } from '@/components/admin/AdminPage'
+import { AdminPagination } from '@/components/admin/AdminPagination'
+import {
+  AdminSubtext,
+  AdminTable,
+  AdminTd,
+} from '@/components/admin/AdminTable'
 import { listAuditLog } from '@/modules/audit/container'
 import {
   auditLogPageCount,
   parseAuditLogQuery,
 } from '@/modules/audit/domain/auditLogQuery'
 import type { AuditLogEntry } from '@/modules/audit/domain/auditLogRepository'
+
+import styles from './page.module.css'
 
 type Props = {
   searchParams: Promise<{
@@ -62,203 +81,145 @@ export default async function AuditLogPage({ searchParams }: Props) {
   const hasFilters = Boolean(q || entity || entityId)
 
   return (
-    <main className="admin-contents-page">
-      <div className="admin-dashboard-shell">
-        <header className="admin-page-header">
-          <div>
-            <p className="admin-page-eyebrow">Trazabilidad</p>
+    <AdminPage>
+      <AdminPageHeader
+        eyebrow="Trazabilidad"
+        title="Actividad"
+        description="Registro de lo que se ha hecho en el ABM y quién lo ha hecho. Es de solo lectura: no se puede editar ni borrar."
+      />
 
-            <h1>Actividad</h1>
+      <AdminCard padded={false}>
+        <AdminFilterBar key={`${q}|${entity}|${entityId}`}>
+          <AdminFilterSearch
+            id="audit-search"
+            label="Buscar por persona o acción"
+            defaultValue={q}
+            placeholder="Buscar por email o acción…"
+          />
 
-            <p className="admin-page-description">
-              Registro de lo que se ha hecho en el ABM y quién lo ha hecho. Es
-              de solo lectura: no se puede editar ni borrar.
-            </p>
-          </div>
-        </header>
-
-        <section className="admin-contents-card">
-          <form
-            key={`${q}|${entity}|${entityId}`}
-            method="get"
-            className="admin-content-filters"
+          <AdminSelect
+            compact
+            name="entity"
+            defaultValue={entity}
+            aria-label="Filtrar por entidad"
           >
-            <div className="admin-content-search">
-              <label htmlFor="audit-search" className="admin-visually-hidden">
-                Buscar por persona o acción
-              </label>
+            <option value="">Todas las entidades</option>
 
-              <input
-                id="audit-search"
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Buscar por email o acción…"
-              />
-            </div>
+            <option value="content">Contenido</option>
 
-            <select
-              name="entity"
-              defaultValue={entity}
-              aria-label="Filtrar por entidad"
-            >
-              <option value="">Todas las entidades</option>
+            <option value="pin">Pin</option>
 
-              <option value="content">Contenido</option>
+            <option value="media_asset">Medio</option>
 
-              <option value="pin">Pin</option>
+            <option value="html_package_version">Paquete HTML</option>
 
-              <option value="media_asset">Medio</option>
+            <option value="case_detail">Detalle de case</option>
 
-              <option value="html_package_version">Paquete HTML</option>
+            <option value="episode">Episode</option>
 
-              <option value="case_detail">Detalle de case</option>
+            <option value="other_detail">Other</option>
 
-              <option value="episode">Episode</option>
+            <option value="talent_candidate">Talent (candidato)</option>
+          </AdminSelect>
 
-              <option value="other_detail">Other</option>
+          {entityId && <input type="hidden" name="entityId" value={entityId} />}
 
-              <option value="talent_candidate">Talent (candidato)</option>
-            </select>
+          <AdminButton type="submit">Filtrar</AdminButton>
 
-            {entityId && (
-              <input type="hidden" name="entityId" value={entityId} />
-            )}
+          {hasFilters && <AdminFilterClear href="/admin/audit" />}
+        </AdminFilterBar>
 
-            <button
-              type="submit"
-              className="admin-button admin-button-secondary"
-            >
-              Filtrar
-            </button>
+        {entityId && (
+          <AdminMessage inset>
+            Mostrando solo el historial de <code>{entityId}</code>.
+          </AdminMessage>
+        )}
 
-            {hasFilters && (
-              <Link href="/admin/audit" className="admin-filter-clear">
-                Limpiar
-              </Link>
-            )}
-          </form>
+        <AdminResultBar>
+          <span>
+            {total} {total === 1 ? 'registro' : 'registros'}
+          </span>
+        </AdminResultBar>
 
-          {entityId && (
-            <p className="admin-notice">
-              Mostrando solo el historial de <code>{entityId}</code>.
-            </p>
-          )}
+        {items.length === 0 ? (
+          <AdminEmptyState
+            large
+            title={hasFilters ? 'Sin resultados' : 'Aún no hay actividad'}
+            description={
+              hasFilters
+                ? 'Prueba con otra búsqueda o limpia los filtros.'
+                : 'Cuando alguien cree, edite o publique algo aparecerá aquí.'
+            }
+          />
+        ) : (
+          <AdminTable flush>
+            <thead>
+              <tr>
+                <th>Cuándo</th>
 
-          <div className="admin-content-results">
-            <span>
-              {total} {total === 1 ? 'registro' : 'registros'}
-            </span>
-          </div>
+                <th>Quién</th>
 
-          {items.length === 0 ? (
-            <div className="admin-empty-state admin-empty-state-large">
-              <strong>
-                {hasFilters ? 'Sin resultados' : 'Aún no hay actividad'}
-              </strong>
+                <th>Acción</th>
 
-              <p>
-                {hasFilters
-                  ? 'Prueba con otra búsqueda o limpia los filtros.'
-                  : 'Cuando alguien cree, edite o publique algo aparecerá aquí.'}
-              </p>
-            </div>
-          ) : (
-            <div className="admin-content-table-wrapper">
-              <table className="admin-content-table">
-                <thead>
-                  <tr>
-                    <th>Cuándo</th>
+                <th>Entidad</th>
 
-                    <th>Quién</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
 
-                    <th>Acción</th>
+            <tbody>
+              {items.map((entry) => {
+                const href = entityHref(entry)
 
-                    <th>Entidad</th>
+                return (
+                  <tr key={entry.id}>
+                    <AdminTd variant="nowrap">
+                      {formatAdminDateTime(entry.createdAt)}
+                    </AdminTd>
 
-                    <th>Detalle</th>
+                    <td>{entry.actorEmail}</td>
+
+                    <td>
+                      <code>{entry.action}</code>
+                    </td>
+
+                    <td>
+                      <AdminBadge>{entry.entity}</AdminBadge>
+
+                      {entry.entityId && (
+                        <AdminSubtext href={href ?? undefined}>
+                          {entry.entityId.slice(0, 8)}…
+                        </AdminSubtext>
+                      )}
+                    </td>
+
+                    <td>
+                      {entry.payload === null ? (
+                        '—'
+                      ) : (
+                        <details className={styles.payload}>
+                          <summary>Ver</summary>
+
+                          <pre>{JSON.stringify(entry.payload, null, 2)}</pre>
+                        </details>
+                      )}
+                    </td>
                   </tr>
-                </thead>
+                )
+              })}
+            </tbody>
+          </AdminTable>
+        )}
 
-                <tbody>
-                  {items.map((entry) => {
-                    const href = entityHref(entry)
-
-                    return (
-                      <tr key={entry.id}>
-                        <td className="admin-content-date">
-                          {formatAdminDateTime(entry.createdAt)}
-                        </td>
-
-                        <td>{entry.actorEmail}</td>
-
-                        <td>
-                          <code>{entry.action}</code>
-                        </td>
-
-                        <td>
-                          <span className="admin-type-badge">
-                            {entry.entity}
-                          </span>
-
-                          {entry.entityId &&
-                            (href ? (
-                              <Link href={href} className="admin-content-slug">
-                                {entry.entityId.slice(0, 8)}…
-                              </Link>
-                            ) : (
-                              <span className="admin-content-slug">
-                                {entry.entityId.slice(0, 8)}…
-                              </span>
-                            ))}
-                        </td>
-
-                        <td>
-                          {entry.payload === null ? (
-                            '—'
-                          ) : (
-                            <details className="admin-audit-payload">
-                              <summary>Ver</summary>
-
-                              <pre>
-                                {JSON.stringify(entry.payload, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {pageCount > 1 && (
-            <nav className="admin-pagination" aria-label="Paginación">
-              {query.page > 1 ? (
-                <Link href={pageHref(query, query.page - 1)} rel="prev">
-                  ← Anterior
-                </Link>
-              ) : (
-                <span aria-hidden="true">← Anterior</span>
-              )}
-
-              <span>
-                Página {query.page} de {pageCount}
-              </span>
-
-              {query.page < pageCount ? (
-                <Link href={pageHref(query, query.page + 1)} rel="next">
-                  Siguiente →
-                </Link>
-              ) : (
-                <span aria-hidden="true">Siguiente →</span>
-              )}
-            </nav>
-          )}
-        </section>
-      </div>
-    </main>
+        <AdminPagination
+          page={query.page}
+          pageCount={pageCount}
+          previousHref={query.page > 1 ? pageHref(query, query.page - 1) : null}
+          nextHref={
+            query.page < pageCount ? pageHref(query, query.page + 1) : null
+          }
+        />
+      </AdminCard>
+    </AdminPage>
   )
 }
