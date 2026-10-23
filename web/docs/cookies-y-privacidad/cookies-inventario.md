@@ -1,6 +1,6 @@
 # Inventario técnico de cookies, almacenamiento y terceros
 
-Documento para el asesor legal de Greener, que redacta la política de **Privacy & Cookies** (la página `/privacy` lleva desde el 13 de octubre un texto **provisional**, ver `docs/cookies-y-privacidad/politica-cookies-cambios.md`). Recoge **hechos comprobados en el código** (28 de septiembre de 2026, actualizados el 13 de octubre con la ventana de cookies), y marca lo que aún hay que comprobar en un navegador. No es asesoramiento jurídico: los puntos que requieren criterio legal están en el §7.
+Documento para el asesor legal de Greener, que redacta la política de **Privacy & Cookies** (el texto definitivo del asesor está en `/privacy` desde el 19 de octubre, en `src/app/(public)/privacy/policyContent.ts`). Recoge **hechos comprobados en el código** (28 de septiembre de 2026, actualizados el 13 de octubre con la ventana de cookies y el 23 con el texto definitivo y la auditoría de octubre), y marca lo que aún hay que comprobar en un navegador. No es asesoramiento jurídico: los puntos que requieren criterio legal están en el §7, que remite a las consultas de `docs/cookies-y-privacidad/consultas-asesor-legal.md`.
 
 Marco consultado: Guía sobre el uso de las cookies de la AEPD (mayo de 2024) y su guía de herramientas de medición de audiencia (enero de 2024).
 
@@ -35,17 +35,17 @@ Si se añaden etiquetas de marketing, hay que revisar esta decisión: esas etiqu
 
 **Al cargar cualquier página:**
 
-1. **Cloudinary** (`res.cloudinary.com`): imágenes y vídeos. Recibe la IP y las cabeceras habituales de la petición. Cookies: no comprobado (ver §6).
+1. **Cloudinary** (`res.cloudinary.com`): imágenes y vídeos. Recibe la IP y las cabeceras habituales de la petición. Cookies: ninguna según la auditoría del 15-16 de octubre (así lo dice `/privacy`); se vuelve a comprobar en producción (§6).
 2. **Plausible** (`plausible.io/api/event`): eventos de uso y la URL de la página, sin cookies. Solo en producción, y con `/admin` y `/auth` excluidos.
 
 **Solo con consentimiento y tras el clic en play, en la página de un episodio:**
 
 3. **YouTube** (`youtube-nocookie.com`) y **Spotify** (`open.spotify.com/embed`). **Vimeo se retiró el 13 de octubre de 2026** (ver §2.63 de `docs/historial/historial-fase-5.md`): ya no está en la CSP ni en el ABM.
 
-Lo que se sabe de estos por la **auditoría del 22-23 de septiembre, sin repetir desde entonces**:
+Lo que dejan, según la **auditoría del 15-16 de octubre** (la tabla completa está en `/privacy`, «Video and podcast players»):
 
-1. YouTube escribe un identificador de dispositivo en el almacenamiento local al cargar, y planta una cookie al reproducir.
-2. Spotify planta varias cookies desde la carga (`sp_t`, `sp_ab`, `sp_landing`…) y no ofrece parámetro equivalente.
+1. YouTube (`youtube-nocookie.com`): `yt-player-caption-persistence`, `yt-icons-last-purged` y `ytidb::LAST_RESULT_ENTRY_KEY` en el almacenamiento local y `YtIdbMeta` en IndexedDB.
+2. Spotify: las cookies `sp_t` (1 año) y `sp_landing` (1 día) y `sentryReplaySession` en el almacenamiento de sesión; sus informes de error van a Sentry, en EE. UU.
 
 ## 4. Datos que trata el servidor (para la política de privacidad)
 
@@ -53,22 +53,22 @@ Lo que se sabe de estos por la **auditoría del 22-23 de septiembre, sin repetir
 
 1. Nombre, teléfono, email y mensaje **viajan por correo (SMTP) y no se guardan en la base de datos**. El servidor SMTP es el del servicio de correo de Dinahosting (nodemailer, `CONTACT_SMTP_*`; confirmado por Greener el 19 oct); el buzón de destino está en Google Workspace.
 2. Se guarda en `contact_submission` únicamente: un **hash con sal de la IP**, la fecha, el resultado del envío y, si falló, el **mensaje de error** del servidor de correo (puede incluir la dirección de email del visitante). Finalidad: límite anti-abuso de 5 envíos por hora por IP.
-3. **Conservación: 30 días**, con purga diaria por `pg_cron` (`purge-expired-contact-submissions`, migración `20261019140000`, §2.86; por aplicar en producción).
+3. **Conservación: 30 días**, con purga diaria por `pg_cron` (`purge-expired-contact-submissions`, migración `20261019140000`, §2.86; aplicada, según confirmó Greener el 21 de octubre).
 4. Aviso técnico: si el proxy de Dinahosting no reenvía la IP del visitante (se comprueba tras el primer despliegue), todos los visitantes compartirían el mismo hash.
 
 **Proveedores que intervienen en el tratamiento:** Dinahosting (hosting y proxy), Supabase (base de datos, autenticación y almacenamiento de paquetes), Cloudinary (medios), Plausible (analítica) y el servicio de correo de Dinahosting (SMTP). Cloudmersive (antivirus) y Google OAuth solo intervienen en el ABM, no con datos de visitantes.
 
 ## 5. Analítica (Plausible)
 
-Eventos actuales: `Pin Click` (con `destinationType`, `section`, `tag` y `pinType`) y, desde el 13 de octubre, `Cookie Choice` (`choice`: accept / reject / close, y `textVersion`). Desde el 15 de octubre, `Newsletter Signup` (`placement: 'feed'`, solo altas nuevas, sin email). Previstos: `Case Open`, `Tool Open`, `Tool Used`, `Insight Open`, `Episode Play` y `Feed Depth`.
+Eventos actuales: `Pin Click` (con `destinationType`, `section`, `tag` y `pinType`) y, desde el 13 de octubre, `Cookie Choice` (`choice`: accept / reject / close, y `textVersion`). Desde el 15 de octubre, `Newsletter Signup` (`placement: 'feed'`, solo altas nuevas, sin email). También se envían `Case Open` (`caseId`, `sourceSection`), `Tool Open` y `Tool Used` (`toolId`, `action`), `Insight Open` (`insightId`), `Episode Play` (`program`, `episodeId`, `provider`) y `Feed Depth` (`section`, `round`, `batch`). Ninguno lleva email ni identificador del visitante.
 
 La guía de la AEPD de enero de 2024 permite no pedir consentimiento para medición de audiencia si: la finalidad es solo medir, en nombre exclusivo del editor, con datos anónimos, sin cruzarlos con otros tratamientos, sin cederlos y sin seguir al usuario entre sitios. Su lista cerrada de mediciones incluye las acciones de usuario (clics) por página. Exige además: informar en la política de privacidad, un contrato con el proveedor del art. 28 del RGPD (sin reutilización de los datos, con las transferencias fuera de la UE conformes al RGPD), una evaluación documentada de la configuración, y una conservación de la información recogida de como máximo 25 meses.
 
-**Pendiente de comprobar**: el contrato (DPA) con Plausible, dónde se alojan y cuánto tiempo se conservan sus datos, y documentar la evaluación.
+**Pendiente**: el contrato (DPA) con Plausible, el plazo de conservación (el texto dice «mientras usemos el servicio» y la guía pide 25 meses como máximo; consulta 5) y documentar la evaluación. Que Plausible aloja los datos en Alemania lo afirma el texto del asesor y no se ha podido comprobar desde el código.
 
 ## 6. Comprobación en el navegador (unos 5 minutos)
 
-Con las herramientas de desarrollador (pestañas **Application** y **Network**), en un episodio de cada proveedor:
+La primera pasada se hizo el 15-16 de octubre y su resultado es la tabla de `/privacy`. Falta repetirla en producción, con Plausible medido y con una tool y un insight reales. Con las herramientas de desarrollador (pestañas **Application** y **Network**), en un episodio de cada proveedor:
 
 1. Antes de aceptar las cookies y pulsar play: no debe haber cookies ni entradas de almacenamiento de terceros, ni ninguna petición a YouTube ni a Spotify (solo `res.cloudinary.com` para la portada).
 2. Tras aceptar y pulsar play: anotar qué cookies y entradas de almacenamiento aparecen, de qué dominio y con qué duración. Ese es el contenido real de la tabla de cookies de terceros de la política.
@@ -77,12 +77,14 @@ Con las herramientas de desarrollador (pestañas **Application** y **Network**),
 
 ## 7. Puntos para el criterio del asesor legal
 
-1. Si `greener:feed` (estado de navegación en `sessionStorage`, sin datos personales) queda exento como funcionalidad solicitada por el usuario.
-2. Si Plausible cumple las condiciones de exención de la guía de analítica, y las garantías del §5.
-3. Si la ventana de cookies cumple (botones de aceptar y rechazar equivalentes, X que rechaza, ventana no bloqueante que se queda hasta decidir, revocación desde `/privacy` (a la que lleva «Privacy & Cookies» del menú), nueva petición al pulsar play cuando no se ha aceptado). Que **aceptar valga para todos los vídeos** y para 24 meses, y que revocar desmonte el reproductor pero **no borre** las cookies que el proveedor ya hubiera puesto (eso lo hace el navegador).
-4. Transferencias internacionales de YouTube/Google, Spotify, Cloudinary, Supabase y Plausible.
-5. Plazo de conservación y base legal del hash de IP del formulario de contacto.
-6. Idioma de la política: la interfaz es inglesa, y la guía pide que la información esté en castellano o en la lengua cooficial del sitio.
-7. Si se añaden etiquetas de marketing (LinkedIn, Meta, Google Ads) o se pasa a un banner global, hay que revisar esta decisión: esas etiquetas sí necesitan consentimiento previo.
-8. El contador anónimo «Cookie Choice» (qué se elige y con qué versión del texto) está informado en la política; confirmar que encaja en la exención de medición de audiencia.
-9. Enlaces a las políticas de privacidad de cada tercero, que la política puede usar para dar la información de sus cookies.
+El texto definitivo del 19 de octubre resolvió buena parte; lo que sigue abierto está en `docs/cookies-y-privacidad/consultas-asesor-legal.md` (entre paréntesis, la consulta).
+
+1. Si `greener:feed` (estado de navegación en `sessionStorage`, sin datos personales) queda exento como funcionalidad solicitada por el usuario. El texto lo declara exento; falta su confirmación expresa (28).
+2. Si Plausible cumple las condiciones de exención de la guía de analítica, y las garantías del §5, incluido el plazo de 25 meses (5).
+3. Si la ventana de cookies cumple (botones de aceptar y rechazar equivalentes, X que rechaza, ventana no bloqueante que se queda hasta decidir, revocación desde `/privacy` (a la que lleva «Privacy & Cookies» del menú), nueva petición al pulsar play cuando no se ha aceptado). Que **aceptar valga para todos los vídeos** y para 24 meses, y que revocar desmonte el reproductor pero **no borre** las cookies que el proveedor ya hubiera puesto (eso lo hace el navegador) (28).
+4. Transferencias internacionales de YouTube/Google, Spotify, Cloudinary, Supabase y Plausible: el texto las recoge; queda la vigencia del Marco UE-EE. UU. (9) y la mención a Sentry (8).
+5. Plazo de conservación y base legal del hash de IP del formulario de contacto: resuelto en el texto (interés legítimo y 30 días). Queda el campo del mensaje de error (2).
+6. Idioma de la política: la interfaz es inglesa, y la guía pide que la información esté en castellano o en la lengua cooficial del sitio (3).
+7. Si se añaden etiquetas de marketing (LinkedIn, Meta, Google Ads) o se pasa a un banner global, hay que revisar esta decisión: esas etiquetas sí necesitan consentimiento previo. Hoy no hay ninguna.
+8. El contador anónimo «Cookie Choice» (qué se elige y con qué versión del texto) está informado en la política; confirmar que encaja en la exención de medición de audiencia (5).
+9. Enlaces a las políticas de privacidad de cada tercero: hechos (tabla de terceros y enlaces a Google y Spotify en `/privacy`).

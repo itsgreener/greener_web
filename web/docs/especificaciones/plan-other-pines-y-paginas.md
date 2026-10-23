@@ -157,7 +157,7 @@ No hay valor «0 = desactivado»: para retirar un `other` del feed se despublica
 
 ### 8.2 Resto
 
-1. **Asesor legal.** La cookie se documenta también en `cookies-inventario.md` (§2) y en `politica-cookies-cambios.md`, con finalidad, duración y por qué se considera una preferencia pedida por el propio usuario. **El criterio final es del asesor.** Plan B si exige consentimiento previo: guardarla solo si el visitante aceptó cookies; quien las rechaza vería el pin más veces.
+1. **Asesor legal.** La cookie se documenta también en `cookies-inventario.md` (§2) y en la consulta 26 de `consultas-asesor-legal.md`, con finalidad, duración y por qué se considera una preferencia pedida por el propio usuario. **El criterio final es del asesor.** Plan B si exige consentimiento previo: guardarla solo si el visitante aceptó cookies; quien las rechaza vería el pin más veces.
 2. **Mailchimp en `/privacy`.** Sigue sin mencionarse (PROGRESO §2.54). La sección de §8.1 lo resuelve, y como el formulario de `/contact` ya no lleva newsletter, el pin es el único punto de alta. **Bloquea publicar un `other` de newsletter** hasta que el texto esté revisado, no su desarrollo.
 3. **Documentos que se actualizan:** `especificacion-final-formato-detalle.md` (§1, §3, §7, tabla de formatos), `contrato-zip-tools-insights.md`, `contrato-medios-fase-1.md` (filas de portada de `other`), `PROGRESO.md`, historial y auditoría.
 
