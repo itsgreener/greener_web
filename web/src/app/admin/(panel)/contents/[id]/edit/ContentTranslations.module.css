@@ -23,24 +23,24 @@
   transition:
     background var(--admin-transition),
     color var(--admin-transition);
-}
 
-.tab:hover {
-  color: var(--color-text);
-}
+  &:hover {
+    color: var(--color-text);
+  }
 
-.tab:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: -2px;
-}
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-inset);
+  }
 
-.tab > span:first-child {
-  font-size: var(--admin-fs-sm);
-  font-weight: 700;
-}
+  & > span:first-child {
+    font-size: var(--admin-fs-sm);
+    font-weight: 700;
+  }
 
-.tab small {
-  font-size: var(--admin-fs-sm);
+  & small {
+    font-size: var(--admin-fs-sm);
+  }
 }
 
 .active {

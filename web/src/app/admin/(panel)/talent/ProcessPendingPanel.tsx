@@ -28,7 +28,7 @@ export default function ProcessPendingPanel({ pending, started }: Props) {
   )
 
   return (
-    <div className={styles.panel}>
+    <AdminMessage as="div" kind="warning" inset className={styles.panel}>
       <p className={styles.text}>
         {pending} {pending === 1 ? 'CV pendiente' : 'CVs pendientes'} de
         procesar
@@ -69,6 +69,6 @@ export default function ProcessPendingPanel({ pending, started }: Props) {
       {state.message && (
         <AdminMessage kind="success">{state.message}</AdminMessage>
       )}
-    </div>
+    </AdminMessage>
   )
 }

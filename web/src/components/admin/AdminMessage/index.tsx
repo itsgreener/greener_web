@@ -8,6 +8,8 @@ type Props = {
   /** `notice` informa; `warning` avisa sin bloquear; `error` y `success` responden a una acción. */
   kind?: Kind
   role?: 'status' | 'alert'
+  /** `div` cuando el aviso lleva dentro botones, formularios u otros bloques. */
+  as?: 'p' | 'div'
   /** Con margen propio, para un aviso suelto en una tarjeta sin relleno. */
   inset?: boolean
   className?: string
@@ -28,12 +30,13 @@ const KIND_CLASS: Record<Kind, string | undefined> = {
 export function AdminMessage({
   kind = 'notice',
   role,
+  as: Tag = 'p',
   inset = false,
   className,
   children,
 }: Props) {
   return (
-    <p
+    <Tag
       className={cx(
         styles.message,
         KIND_CLASS[kind],
@@ -43,6 +46,6 @@ export function AdminMessage({
       role={role}
     >
       {children}
-    </p>
+    </Tag>
   )
 }

@@ -32,21 +32,6 @@
   text-decoration: none;
 }
 
-.brandName {
-  font-size: var(--admin-fs-xl);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-tight);
-}
-
-.brandLabel {
-  margin-top: 2px;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
-}
-
 .nav {
   display: flex;
   flex-direction: column;
@@ -57,7 +42,7 @@
   display: flex;
   align-items: center;
   gap: var(--admin-space-12);
-  min-height: 42px;
+  min-height: var(--admin-control-height);
   padding: 0 var(--admin-space-12);
   border-radius: var(--admin-radius-sm);
   color: var(--admin-text-secondary);
@@ -67,16 +52,16 @@
   transition:
     background var(--admin-transition),
     color var(--admin-transition);
-}
 
-.link:hover {
-  background: var(--color-surface-hover);
-  color: var(--color-text);
-}
+  &:hover {
+    background: var(--color-surface-hover);
+    color: var(--color-text);
+  }
 
-.link:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: -2px;
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-inset);
+  }
 }
 
 .icon {
@@ -85,7 +70,7 @@
   justify-content: center;
   width: 20px;
   color: var(--admin-text-muted);
-  font-size: var(--space-md);
+  font-size: var(--admin-fs-icon);
 }
 
 .bottom {

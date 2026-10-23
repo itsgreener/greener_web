@@ -17,7 +17,3 @@
   border-radius: var(--admin-radius-md);
   background: var(--admin-surface-subtle);
 }
-
-.error {
-  margin-top: var(--space-sm);
-}

@@ -1,6 +1,6 @@
 'use client'
 
-import Link from 'next/link'
+import { CtaLink } from '@/components/cta/Cta'
 import type {
   PublicContent,
   PublicPinCover,
@@ -107,9 +107,9 @@ export function ToolInsightDetail({
               <p className={styles.summary}>{content.summary}</p>
             )}
             {ctaLabel && appHref && (
-              <Link href={appHref} className={styles.cta}>
+              <CtaLink href={appHref} className={styles.cta}>
                 {ctaLabel}
-              </Link>
+              </CtaLink>
             )}
           </div>
         </div>

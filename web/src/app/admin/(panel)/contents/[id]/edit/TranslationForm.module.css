@@ -13,7 +13,6 @@
 }
 
 .text {
+  composes: hint from '../../../../../../components/admin/hint.module.css';
   margin: var(--space-xs) 0 0;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-md);
 }

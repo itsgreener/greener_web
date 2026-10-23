@@ -1,20 +1,22 @@
 /* Carga útil del registro: desplegable con el JSON en bruto. */
-.payload summary {
-  color: var(--color-cta);
-  font-weight: 700;
-  cursor: pointer;
-}
+.payload {
+  & summary {
+    color: var(--color-cta);
+    font-weight: 700;
+    cursor: pointer;
+  }
 
-.payload pre {
-  max-width: 420px;
-  max-height: 240px;
-  padding: var(--admin-space-12);
-  margin: var(--space-sm) 0 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--admin-radius-sm);
-  background: var(--admin-surface-subtle);
-  font-family: var(--admin-font-mono);
-  font-size: var(--admin-fs-xs);
-  overflow: auto;
-  white-space: pre-wrap;
+  & pre {
+    max-width: 420px;
+    max-height: 240px;
+    padding: var(--admin-space-12);
+    margin: var(--space-sm) 0 0;
+    border: 1px solid var(--color-border);
+    border-radius: var(--admin-radius-sm);
+    background: var(--admin-surface-subtle);
+    font-family: var(--admin-font-mono);
+    font-size: var(--admin-fs-xs);
+    overflow: auto;
+    white-space: pre-wrap;
+  }
 }

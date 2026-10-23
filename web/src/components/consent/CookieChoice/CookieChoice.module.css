@@ -5,14 +5,14 @@
   margin: var(--space-lg) 0;
   padding: var(--space-md);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-cta);
+  border-radius: var(--radius-media);
   /* Que la ventana fija de abajo no tape el bloque al saltar al ancla. */
   scroll-margin-block: var(--space-lg) 8rem;
 }
 
 .heading {
   margin: 0 0 var(--space-xs);
-  font-size: 1.15rem;
+  font-size: var(--fs-lg);
 }
 
 .status {
@@ -27,28 +27,14 @@
 }
 
 .button {
-  min-width: 6.5rem;
-  padding: 0.65rem 1.25rem;
-  border: 1px solid var(--color-cta);
-  border-radius: var(--radius-cta);
-  background: var(--color-bg);
-  color: var(--color-cta);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
+  composes: button from '../consentButton.module.css';
 }
 
-.button:hover {
-  background: var(--color-surface-hover);
-}
-
-.button[aria-pressed='true'] {
+/* Con :hover incluido: la decisión vigente no cambia de color al pasar el
+   puntero (la regla compartida de :hover tiene la misma especificidad que
+   [aria-pressed], así que no puede depender del orden de las hojas). */
+.button[aria-pressed='true'],
+.button[aria-pressed='true']:hover {
   background: var(--color-cta);
   color: var(--color-cta-text);
-}
-
-.button:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 3px;
 }

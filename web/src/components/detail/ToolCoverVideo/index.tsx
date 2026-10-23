@@ -1,5 +1,6 @@
 'use client'
 
+import { CtaButton } from '@/components/cta/Cta'
 import { useToolCoverVideo } from './useToolCoverVideo'
 import styles from './ToolCoverVideo.module.css'
 
@@ -82,7 +83,7 @@ export function ToolCoverVideo({
         className={`${styles.poster} ${posterHidden ? styles.posterHidden : ''}`}
       />
 
-      <button
+      <CtaButton
         type="button"
         className={styles.toggle}
         onClick={toggle}
@@ -97,7 +98,7 @@ export function ToolCoverVideo({
             <path d="M8 5v14l11-7z" />
           </svg>
         )}
-      </button>
+      </CtaButton>
     </div>
   )
 }

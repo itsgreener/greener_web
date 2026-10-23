@@ -56,13 +56,25 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--color-text);
   text-decoration: none;
 
   &:hover,
   &:focus-visible {
     background: var(--color-surface-hover);
+  }
+
+  &:hover .icon,
+  &:focus-visible .icon {
+    transform: scale(1.15);
+    color: var(--color-cta);
+  }
+
+  &:hover .tooltip,
+  &:focus-visible .tooltip {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
   }
 }
 
@@ -83,14 +95,8 @@
   -webkit-mask-position: center;
   -webkit-mask-size: contain;
   transition:
-    transform 0.15s ease,
-    color 0.15s ease;
-}
-
-.iconLink:hover .icon,
-.iconLink:focus-visible .icon {
-  transform: scale(1.15);
-  color: var(--color-cta);
+    transform var(--transition),
+    color var(--transition);
 }
 
 /* Pastilla con el nombre del icono (ej. "LinkedIn"), confirmado el 15
@@ -105,18 +111,12 @@
   border-radius: 999px;
   background: var(--color-text);
   color: var(--color-bg);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   opacity: 0;
   pointer-events: none;
   transition:
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.iconLink:hover .tooltip,
-.iconLink:focus-visible .tooltip {
-  opacity: 1;
-  transform: translateY(-50%) translateX(0);
+    opacity var(--transition),
+    transform var(--transition);
 }
 
 .content {

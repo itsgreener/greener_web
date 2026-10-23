@@ -16,41 +16,20 @@
   grid-template-columns: minmax(120px, 200px) 1fr;
   gap: var(--admin-space-12) var(--admin-space-20);
   margin: 0;
+
+  & dd {
+    margin: 0;
+    font-size: var(--admin-fs-base);
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+  }
 }
 
-.data dt {
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-sm);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
+.term {
+  composes: eyebrow from '../../../../../components/admin/eyebrow.module.css';
 }
 
-.data dd {
-  margin: 0;
-  font-size: var(--admin-fs-base);
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--admin-space-12);
-  padding: 0;
-  margin: 0;
-  list-style: none;
-}
-
-.list li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-xs) var(--admin-space-12);
-  font-size: var(--admin-fs-base);
-}
-
-.list p {
+.comment {
   flex-basis: 100%;
   margin: 0;
   color: var(--admin-text-secondary);

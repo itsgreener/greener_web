@@ -23,6 +23,25 @@ describe('tipografías — CSS global', () => {
     expect(body).toMatch(/font-synthesis:\s*none/)
   })
 
+  it('.text-body usa la fuente de cuerpo, sin ancho máximo, con el tamaño y la altura de línea del pin', () => {
+    const body = ruleBody(globalsCss, '.text-body')
+    const pinLabel = readFileSync(
+      join(ROOT, 'src/components/pin/PinCard/PinCard.module.css'),
+      'utf8',
+    )
+    const label = ruleBody(pinLabel, '.label')
+
+    expect(body).toContain('font-family: var(--font-body)')
+    expect(body).toMatch(/font-weight:\s*400/)
+    expect(body).not.toMatch(/max-width/)
+    // Mismo cuerpo que el texto bajo cada pin (.label).
+    expect(body).toMatch(/font-size:\s*var\(--fs-sm\)/)
+    expect(label).toMatch(/font-size:\s*var\(--fs-sm\)/)
+    expect(body.match(/line-height:\s*[\d.]+/)?.[0]).toBe(
+      label.match(/line-height:\s*[\d.]+/)?.[0],
+    )
+  })
+
   it('el body usa --font-body, que parte de Helvetica Neue', () => {
     expect(ruleBody(globalsCss, 'body')).toContain(
       'font-family: var(--font-body)',
@@ -56,6 +75,13 @@ describe('tipografías — CSS global', () => {
     for (const file of modules) {
       const css = readFileSync(join(ROOT, 'src', file), 'utf8')
       expect(css, file).not.toMatch(/font-family:\s*['"]?(Helvetica|Kinder)/)
+      // Tampoco una fuente genérica a mano (Arial, sans-serif…): solo
+      // var(--font-*), var(--admin-font-*) o `inherit`.
+      for (const [, value] of css.matchAll(/font-family:\s*([^;]+);/g)) {
+        expect(value.trim(), file).toMatch(
+          /^(var\(--(admin-)?font-[\w-]+\)|inherit)$/,
+        )
+      }
     }
   })
 })

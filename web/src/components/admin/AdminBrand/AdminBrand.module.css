@@ -1,0 +1,12 @@
+.name {
+  display: block;
+  font-size: var(--admin-fs-xl);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-tight);
+}
+
+.label {
+  composes: eyebrow from '../eyebrow.module.css';
+  display: block;
+  margin-top: var(--space-xs);
+}

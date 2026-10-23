@@ -8,6 +8,6 @@
 }
 
 .title {
-  font-size: 3rem;
+  font-size: var(--fs-3xl);
   line-height: 0.95;
 }

@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 import Link from 'next/link'
+import { CtaButton } from '@/components/cta/Cta'
 import { submitContactAction, type ContactActionState } from './contactActions'
 import styles from './ContactForm.module.css'
 
@@ -26,7 +27,7 @@ export function ContactForm() {
       {/* Honeypot: oculto por CSS, no display:none/type=hidden — algunos
           bots evitan justamente esos dos casos. tabIndex/autoComplete
           impiden que un visitante real llegue a él sin querer. */}
-      <div className={styles.honeypot} aria-hidden="true">
+      <div className="honeypot" aria-hidden="true">
         <label htmlFor="website">Website</label>
         <input
           id="website"
@@ -78,9 +79,9 @@ export function ContactForm() {
           </label>
         </div>
 
-        <button type="submit" disabled={pending} className={styles.submit}>
+        <CtaButton type="submit" pending={pending}>
           {pending ? 'Sending…' : 'Send'}
-        </button>
+        </CtaButton>
       </div>
 
       {state.formError && <p className={styles.formError}>{state.formError}</p>}

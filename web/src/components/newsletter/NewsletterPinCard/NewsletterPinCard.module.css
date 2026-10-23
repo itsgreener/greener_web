@@ -1,92 +1,97 @@
-/* Proporciones basadas en la referencia 4:5. Sin imagen de fondo. */
+/* Proporciones basadas en la referencia 4:5. Sin imagen de fondo. Los colores
+   salen de los tokens de globals.css; los dos tonos claros del diseño
+   (línea y enlace al pasar el ratón) y el del error se derivan de ellos. */
 .card {
+  --newsletter-tint: color-mix(in srgb, var(--color-cta) 55%, var(--color-bg));
+  --newsletter-tint-light: color-mix(
+    in srgb,
+    var(--color-cta) 25%,
+    var(--color-bg)
+  );
+  --newsletter-error: color-mix(
+    in srgb,
+    var(--color-error) 25%,
+    var(--color-bg)
+  );
+
   position: absolute;
   top: 0;
   left: 0;
   container-type: inline-size;
   aspect-ratio: 4 / 5;
   overflow: hidden;
-  border-radius: 12px;
-  background: #000;
-  color: #fff;
+  border-radius: var(--radius-media);
+  background: var(--color-media-backdrop);
+  color: var(--color-bg);
   will-change: transform;
 }
+
 .inner {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #000;
+  background: var(--color-media-backdrop);
 }
+
 .headline {
   position: absolute;
   top: 4.9%;
   left: 7.4%;
   right: 3%;
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   font-size: 10.35cqw;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.07em;
   line-height: 0.94;
 }
+
 .form {
   position: absolute;
   inset: 0;
 }
-.honeypot {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
+
 .input {
   position: absolute;
   left: 7.5%;
   top: 64.8%;
   width: 88.7%;
   height: 8.7%;
-  box-sizing: border-box;
   padding: 0 1% 0.75%;
   border: 0;
-  border-bottom: 1px solid #9cb7ff;
+  border-bottom: 1px solid var(--newsletter-tint);
   border-radius: 0;
-  outline: none;
-  background: transparent !important;
-  color: #fff;
-  font-family: Arial, Helvetica, sans-serif;
+  outline: var(--focus-width) solid transparent; /* visible en contraste forzado */
+  background: transparent;
+  color: var(--color-bg);
+  font-family: var(--font-body);
   font-size: 6.9cqw;
   font-weight: 400;
-  font-style: italic;
   letter-spacing: -0.045em;
   appearance: none;
   -webkit-appearance: none;
+
+  &::placeholder {
+    color: var(--color-bg);
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    border-bottom: 2px solid var(--newsletter-tint);
+  }
+
+  /* Evita el rectángulo claro de autocompletado de Chrome/Safari. */
+  &:-webkit-autofill,
+  &:-webkit-autofill:hover,
+  &:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--color-bg);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-media-backdrop) inset;
+    box-shadow: 0 0 0 1000px var(--color-media-backdrop) inset;
+    caret-color: var(--color-bg);
+    transition: background-color 9999s ease-out;
+  }
 }
-.input::placeholder {
-  color: #fff;
-  opacity: 1;
-}
-.input:focus-visible {
-  border-bottom: 2px solid #9cb7ff;
-}
-/* Evita el rectángulo claro de autocompletado de Chrome/Safari. */
-.input:-webkit-autofill,
-.input:-webkit-autofill:hover,
-.input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #fff;
-  -webkit-box-shadow: 0 0 0 1000px #000 inset;
-  box-shadow: 0 0 0 1000px #000 inset;
-  caret-color: #fff;
-  transition: background-color 9999s ease-out;
-}
+
 .bottomRow {
   position: absolute;
   bottom: 5%;
@@ -97,6 +102,7 @@
   align-items: center;
   gap: 3%;
 }
+
 .legal {
   display: flex;
   align-items: center;
@@ -104,28 +110,32 @@
   min-width: 0;
   gap: 5%;
   margin: 0;
-  color: #fff;
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--color-bg);
+  font-family: var(--font-body);
   font-size: 4.5cqw;
   line-height: 1.35;
   cursor: pointer;
+
+  & a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  & a:hover {
+    color: var(--newsletter-tint-light);
+  }
 }
+
 .checkbox {
   flex: 0 0 auto;
   width: 4.2cqw;
   height: 4.2cqw;
   margin: 0;
-  accent-color: #2445f6;
+  accent-color: var(--color-cta);
   cursor: pointer;
 }
-.legal a {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.legal a:hover {
-  color: #c8d4ff;
-}
+
 .submit {
   flex: 0 0 49%;
   height: 100%;
@@ -134,47 +144,49 @@
   justify-content: center;
   padding: 0 2%;
   border: 0;
-  border-radius: 5cqw;
-  color: #fff;
-  background: #2445f6;
-  font-family: Arial, Helvetica, sans-serif;
+  border-radius: var(--radius-cta);
+  color: var(--color-cta-text);
+  background: var(--color-cta);
+  font-family: var(--font-body);
   font-size: 6.3cqw;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.065em;
   cursor: pointer;
-  transition:
-    opacity 0.18s ease,
-    background-color 0.18s ease;
+  transition: opacity var(--transition);
+
+  &:not(:disabled):hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
 }
-.submit:not(:disabled):hover {
-  background: #3459ff;
-}
+
 .submit:focus-visible,
 .checkbox:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 2px;
+  outline: var(--focus-width) solid var(--color-bg);
+  outline-offset: var(--focus-offset-tight);
 }
-.submit:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
-}
+
 .error {
   position: absolute;
   top: 74%;
   left: 7.5%;
   right: 6%;
   margin: 0;
-  color: #ffc2c2;
-  background: #000;
+  color: var(--newsletter-error);
+  background: var(--color-media-backdrop);
   font-size: 2.8cqw;
 }
+
 .success {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
   padding: 9%;
-  box-sizing: border-box;
   font-size: 5cqw;
   line-height: 1.25;
   text-align: center;

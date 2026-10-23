@@ -13,42 +13,42 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-}
 
-.table th {
-  padding: var(--admin-space-12) var(--space-md);
-  border-bottom: 1px solid var(--color-border);
-  background: var(--admin-surface-subtle);
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-align: left;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
+  & th {
+    padding: var(--admin-space-12) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    background: var(--admin-surface-subtle);
+    color: var(--admin-text-muted);
+    font-size: var(--admin-fs-xs);
+    font-weight: 700;
+    letter-spacing: var(--admin-tracking-caps);
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 
-.table td {
-  padding: var(--admin-space-12) var(--space-md);
-  border-bottom: 1px solid var(--color-border);
-  font-size: var(--admin-fs-md);
-  vertical-align: middle;
-}
+  & td {
+    padding: var(--admin-space-12) var(--space-md);
+    border-bottom: 1px solid var(--color-border);
+    font-size: var(--admin-fs-md);
+    vertical-align: middle;
+  }
 
-.table tbody tr {
-  transition: background var(--admin-transition);
-}
+  & tbody tr {
+    transition: background var(--admin-transition);
+  }
 
-.table tbody tr:hover {
-  background: var(--admin-surface-subtle);
-}
+  & tbody tr:hover {
+    background: var(--admin-surface-subtle);
+  }
 
-.table tbody tr:last-child td {
-  border-bottom: 0;
-}
+  & tbody tr:last-child td {
+    border-bottom: 0;
+  }
 
-.table td form {
-  margin: 0;
+  & td form {
+    margin: 0;
+  }
 }
 
 .nowrap {
@@ -65,7 +65,7 @@
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
-  gap: var(--space-sm);
+  gap: var(--admin-space-12);
 }
 
 .title {
@@ -75,10 +75,10 @@
   font-size: var(--admin-fs-base);
   font-weight: 700;
   text-decoration: none;
-}
 
-.title:hover {
-  color: var(--color-cta);
+  &:hover {
+    color: var(--color-cta);
+  }
 }
 
 .subtext {
@@ -86,7 +86,7 @@
   max-width: 350px;
   margin-top: var(--space-xs);
   overflow: hidden;
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-family: var(--admin-font-mono);
   font-size: var(--admin-fs-xs);
   text-decoration: none;
@@ -106,8 +106,8 @@ a.subtext:hover {
   font-size: var(--admin-fs-sm);
   font-weight: 700;
   text-decoration: none;
-}
 
-.rowAction:hover {
-  color: var(--color-cta);
+  &:hover {
+    color: var(--color-cta);
+  }
 }

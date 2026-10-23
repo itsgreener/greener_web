@@ -241,9 +241,14 @@ describe('EpisodeDetail — grupos de texto y tipografía', () => {
     const title = rule(css(), '.title')
 
     // Respaldo para navegadores sin container query units…
-    expect(title).toMatch(/font-size:\s*2rem;[\s\S]*font-size:\s*clamp\(/)
-    // …y el mínimo del clamp no baja de 2rem, el máximo llega a 3,75rem.
-    expect(title).toMatch(/clamp\(2rem,\s*16cqw,\s*3\.75rem\)/)
+    expect(title).toMatch(
+      /font-size:\s*var\(--fs-2xl\);[\s\S]*font-size:\s*clamp\(/,
+    )
+    // …y el mínimo del clamp es --fs-2xl (2rem), el máximo llega a 3,75rem.
+    expect(title).toMatch(/clamp\(var\(--fs-2xl\),\s*16cqw,\s*3\.75rem\)/)
+    expect(
+      readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8'),
+    ).toMatch(/--fs-2xl:\s*2rem;/)
     expect(rule(css(), '.text')).toMatch(/container-type:\s*inline-size/)
   })
 

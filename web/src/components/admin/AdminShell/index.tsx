@@ -1,5 +1,7 @@
 import Link from 'next/link'
 
+import { AdminBrand } from '@/components/admin/AdminBrand'
+
 import styles from './AdminShell.module.css'
 
 const NAV_ITEMS = [
@@ -15,9 +17,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <Link href="/admin" className={styles.brand}>
-          <span className={styles.brandName}>Greener</span>
-
-          <span className={styles.brandLabel}>Admin</span>
+          <AdminBrand />
         </Link>
 
         <nav className={styles.nav} aria-label="Administración">

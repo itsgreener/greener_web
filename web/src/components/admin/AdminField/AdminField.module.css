@@ -22,17 +22,13 @@
 }
 
 .help {
+  composes: hint from '../hint.module.css';
   margin: var(--space-sm) 0 0;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-sm);
-  line-height: 1.45;
 }
 
 .hint {
+  composes: hint from '../hint.module.css';
   margin: 0;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-sm);
-  line-height: 1.45;
 }
 
 .error {
@@ -54,11 +50,7 @@
 }
 
 .readonlyLabel {
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
+  composes: eyebrow from '../eyebrow.module.css';
 }
 
 .fieldset {

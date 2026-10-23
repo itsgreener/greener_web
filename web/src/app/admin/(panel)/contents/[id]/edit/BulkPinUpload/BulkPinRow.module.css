@@ -1,4 +1,3 @@
 .note {
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
+  composes: hint from '../../../../../../../components/admin/hint.module.css';
 }

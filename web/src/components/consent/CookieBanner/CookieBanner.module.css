@@ -17,7 +17,7 @@
   padding-bottom: max(var(--space-md), env(safe-area-inset-bottom));
   border-top: 1px solid var(--color-border);
   background: var(--color-bg);
-  box-shadow: 0 -8px 24px rgb(0 0 0 / 8%);
+  box-shadow: var(--shadow-banner);
 }
 
 .text {
@@ -27,14 +27,14 @@
 
 .title {
   margin: 0 0 var(--space-xs);
-  font-size: 1rem;
+  font-size: var(--fs-base);
   font-weight: 700;
 }
 
 .body {
   margin: 0;
   max-width: 70ch;
-  font-size: 0.875rem;
+  font-size: var(--fs-md);
   line-height: 1.45;
 }
 
@@ -46,32 +46,18 @@
 }
 
 .button {
-  min-width: 6.5rem;
-  padding: 0.65rem 1.25rem;
-  border: 1px solid var(--color-cta);
-  border-radius: var(--radius-cta);
-  background: var(--color-bg);
-  color: var(--color-cta);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
+  composes: button from '../consentButton.module.css';
 }
 
-.button:hover {
-  background: var(--color-surface-hover);
-}
-
-.button:focus-visible,
 .close:focus-visible,
 .link:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 3px;
+  outline: var(--focus-width) solid var(--color-cta);
+  outline-offset: var(--focus-offset);
 }
 
 .link {
   color: inherit;
-  font-size: 0.875rem;
+  font-size: var(--fs-md);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
@@ -90,10 +76,10 @@
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-}
 
-.close:hover {
-  background: var(--color-surface-hover);
+  &:hover {
+    background: var(--color-surface-hover);
+  }
 }
 
 /* En móvil el menú lateral sigue ocupando su columna: la ventana respeta el

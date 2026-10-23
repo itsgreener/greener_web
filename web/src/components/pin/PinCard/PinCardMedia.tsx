@@ -6,6 +6,7 @@ import {
   buildVideoPosterSrcSet,
   buildVideoPosterUrl,
 } from '@/modules/media/client/cloudinaryUrl'
+import { CtaLabel } from '@/components/cta/Cta'
 import { pickFeedImageWidth } from '@/modules/media/domain/mediaDelivery'
 import { cssAspectRatio } from '@/modules/shared/domain/ratio'
 
@@ -104,7 +105,7 @@ export function PinCardMedia({
           ))}
         </video>
       )}
-      {cta && <span className={styles.cta}>{cta}</span>}
+      {cta && <CtaLabel className={styles.cta}>{cta}</CtaLabel>}
     </div>
   )
 }

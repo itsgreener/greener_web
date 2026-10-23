@@ -6,40 +6,33 @@
   margin-top: var(--space-lg);
 }
 
-/* Oculto visualmente, no display:none ni type="hidden" — algunos bots de
-   spam evitan justo esos dos casos porque son la forma más obvia de
-   ocultar un campo. Posicionado fuera de la pantalla en vez de con
-   opacidad/tamaño 0, que algunos verificadores de accesibilidad (y
-   algunos bots más cuidadosos) también saltan. */
-.honeypot {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
 .field {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
 
   & label {
-    font-size: 0.85rem;
-    font-weight: 600;
+    font-size: var(--fs-md);
+    font-weight: 700;
   }
 
   & input,
   & textarea {
     padding: var(--space-sm);
     border: 1px solid var(--color-border);
-    border-radius: 8px;
+    border-radius: var(--radius-control);
     font: inherit;
+  }
+
+  & input:focus-visible,
+  & textarea:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
   }
 
   & p {
     margin: 0;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     color: var(--color-error);
   }
 }
@@ -55,7 +48,7 @@
 }
 
 .consent {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
 
   & label {
     display: flex;
@@ -65,37 +58,16 @@
 
   & p {
     margin: var(--space-xs) 0 0;
-    font-size: 0.8rem;
+    font-size: var(--fs-sm);
     color: var(--color-error);
   }
 }
 
 .formError {
-  font-size: 0.85rem;
+  font-size: var(--fs-md);
   color: var(--color-error);
 }
 
-.submit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 4.625rem;
-  min-height: 2.625rem;
-  padding: 0.5rem 1.5rem;
-  border: none;
-  border-radius: var(--radius-cta);
-  background: var(--color-cta);
-  color: var(--color-cta-text);
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: default;
-  }
-}
-
 .success {
-  font-size: 1rem;
+  font-size: var(--fs-base);
 }

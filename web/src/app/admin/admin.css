@@ -20,7 +20,6 @@
   /* Texto: tres niveles por debajo de --color-text. */
   --admin-text-secondary: #575d6b;
   --admin-text-muted: #6b7180;
-  --admin-text-subtle: #80858f;
 
   /* Bordes: los estructurales (tarjetas, divisores, tablas) son
      --color-border; los de los controles de formulario, estos. */
@@ -30,7 +29,8 @@
   /* Marca. El azul es --color-cta. */
   --admin-cta-hover: #1236d5;
   --admin-cta-soft: #eef1ff;
-  --admin-focus-ring: 0 0 0 3px rgb(25 65 245 / 14%);
+  --admin-focus-ring: 0 0 0 3px
+    color-mix(in srgb, var(--color-cta) 14%, transparent);
 
   /* Estados. */
   --admin-success-text: #167039;
@@ -66,6 +66,12 @@
   --admin-fs-xl: 22px;
   --admin-fs-title: 32px;
   --admin-fs-display: clamp(32px, 4vw, 46px);
+  --admin-fs-icon: 16px; /* iconos de la barra lateral (glifos de texto) */
+  /* Interlineado: titulares (1 a 1.2), texto de apoyo y de formulario
+     (1.4 a 1.5) y texto corrido (1.55 a 1.6). */
+  --admin-lh-tight: 1.1;
+  --admin-lh-snug: 1.45;
+  --admin-lh-body: 1.55;
   --admin-tracking-tight: -0.03em;
   --admin-tracking-caps: 0.1em;
   --admin-font-mono:
@@ -75,6 +81,7 @@
   --admin-sidebar-width: 230px;
   --admin-width-wide: 1220px;
   --admin-width-narrow: 920px;
+  --admin-width-prose: 650px; /* cuerpo de texto y descripciones largas */
   --admin-control-height: 44px;
   --admin-control-height-compact: 36px;
   --admin-button-height: 40px;
@@ -85,5 +92,5 @@
     0 1px 2px rgb(0 0 0 / 2.5%), 0 4px 16px rgb(0 0 0 / 2.5%);
   --admin-shadow-raised: 0 3px 14px rgb(0 0 0 / 4%);
   --admin-shadow-modal: 0 1px 3px rgb(0 0 0 / 3%), 0 18px 60px rgb(0 0 0 / 8%);
-  --admin-transition: 150ms ease;
+  --admin-transition: var(--transition);
 }

@@ -21,19 +21,19 @@
   transition:
     background var(--admin-transition),
     border-color var(--admin-transition);
-}
 
-.chip:hover {
-  background: var(--color-surface-hover);
-}
+  &:hover {
+    background: var(--color-surface-hover);
+  }
 
-.chip:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 2px;
-}
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
+  }
 
-.chip strong {
-  font-variant-numeric: tabular-nums;
+  & strong {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 .chipActive,

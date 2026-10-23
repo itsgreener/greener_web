@@ -25,31 +25,27 @@
 }
 
 .eyebrow {
+  composes: eyebrow from '../eyebrow.module.css';
   margin: 0 0 var(--space-sm);
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
 }
 
 .title {
   margin: 0;
   font-size: var(--admin-fs-display);
-  line-height: 1.05;
+  line-height: var(--admin-lh-tight);
   letter-spacing: var(--admin-tracking-tight);
 }
 
 .description {
-  max-width: 650px;
+  max-width: var(--admin-width-prose);
   margin: var(--admin-space-12) 0 0;
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-base);
-  line-height: 1.55;
-}
+  line-height: var(--admin-lh-body);
 
-.description a {
-  color: var(--color-cta);
+  & a {
+    color: var(--color-cta);
+  }
 }
 
 .meta {
@@ -72,11 +68,11 @@
   transition:
     color var(--admin-transition),
     transform var(--admin-transition);
-}
 
-.back:hover {
-  color: var(--color-text);
-  transform: translateX(-2px);
+  &:hover {
+    color: var(--color-text);
+    transform: translateX(-2px);
+  }
 }
 
 @media (max-width: 900px) {

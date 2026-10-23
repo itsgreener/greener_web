@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useState } from 'react'
 
+import { AdminBrand } from '@/components/admin/AdminBrand'
+import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import { createClient } from '@/lib/supabase/client'
 
@@ -40,9 +42,7 @@ export default function AdminLoginPage() {
     <main className={styles.page}>
       <section className={styles.card}>
         <div className={styles.brand}>
-          <div className={styles.brandName}>Greener</div>
-
-          <div className={styles.brandLabel}>Admin</div>
+          <AdminBrand />
         </div>
 
         <div className={styles.content}>
@@ -57,13 +57,14 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <button
+          <AdminButton
             type="button"
             className={styles.google}
             onClick={loginWithGoogle}
             disabled={loading}
           >
             <span className={styles.googleIcon} aria-hidden="true">
+              {/* Los cuatro colores literales son los de la marca de Google: la única excepción a los tokens en todo el ABM. */}
               <svg
                 viewBox="0 0 24 24"
                 width="20"
@@ -92,12 +93,14 @@ export default function AdminLoginPage() {
             <span>
               {loading ? 'Conectando con Google...' : 'Continuar con Google'}
             </span>
-          </button>
+          </AdminButton>
 
           {errorMessage && (
-            <AdminMessage kind="error" role="alert" className={styles.error}>
-              {errorMessage}
-            </AdminMessage>
+            <div className={styles.error}>
+              <AdminMessage kind="error" role="alert">
+                {errorMessage}
+              </AdminMessage>
+            </div>
           )}
 
           <div className={styles.security}>

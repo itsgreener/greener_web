@@ -1,22 +1,18 @@
 /* Alta de contenido: pasos numerados, tarjetas de tipo y pie con la nota. */
-.form {
-  gap: 0;
-}
-
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
   padding: var(--admin-space-32) 0;
   border-bottom: 1px solid var(--color-border);
-}
 
-.section:first-child {
-  padding-top: 0;
-}
+  &:first-child {
+    padding-top: 0;
+  }
 
-.section:last-of-type {
-  border-bottom: 0;
+  &:last-of-type {
+    border-bottom: 0;
+  }
 }
 
 .sectionHeading {
@@ -28,15 +24,13 @@
 .sectionTitle {
   margin: 0;
   font-size: var(--admin-fs-lg);
-  line-height: 1.25;
-  letter-spacing: var(--admin-tracking-tight);
 }
 
 .sectionText {
   margin: var(--space-xs) 0 0;
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-md);
-  line-height: 1.45;
+  line-height: var(--admin-lh-snug);
 }
 
 .step {
@@ -76,16 +70,24 @@
     border-color var(--admin-transition),
     background var(--admin-transition),
     box-shadow var(--admin-transition);
-}
 
-.typeCard:hover {
-  border-color: var(--admin-border-control-hover);
-  background: var(--admin-surface-subtle);
-}
+  &:hover {
+    border-color: var(--admin-border-control-hover);
+    background: var(--admin-surface-subtle);
+  }
 
-.typeCard:has(input:focus-visible) {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 2px;
+  &:has(input:focus-visible) {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
+  }
+
+  & input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
 }
 
 .selected,
@@ -93,14 +95,6 @@
   border-color: var(--color-cta);
   background: var(--admin-cta-soft);
   box-shadow: var(--admin-focus-ring);
-}
-
-.typeCard input {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
 }
 
 .symbol {
@@ -135,7 +129,7 @@
   margin-top: var(--space-xs);
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-xs);
-  line-height: 1.4;
+  line-height: var(--admin-lh-snug);
 }
 
 .check {
@@ -161,6 +155,14 @@
 .slug {
   display: flex;
   align-items: stretch;
+
+  & input {
+    border-radius: 0 var(--admin-radius-sm) var(--admin-radius-sm) 0;
+  }
+
+  &:focus-within .slugPrefix {
+    border-color: var(--color-cta);
+  }
 }
 
 .slugPrefix {
@@ -172,17 +174,9 @@
   border-right: 0;
   border-radius: var(--admin-radius-sm) 0 0 var(--admin-radius-sm);
   background: var(--admin-surface-subtle);
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-family: var(--admin-font-mono);
   font-size: var(--admin-fs-md);
-}
-
-.slug input {
-  border-radius: 0 var(--admin-radius-sm) var(--admin-radius-sm) 0;
-}
-
-.slug:focus-within .slugPrefix {
-  border-color: var(--color-cta);
 }
 
 /* Pie */
@@ -219,11 +213,11 @@
   margin: var(--space-xs) 0 0;
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-sm);
-  line-height: 1.5;
-}
+  line-height: var(--admin-lh-snug);
 
-.noteText strong {
-  color: var(--admin-text-secondary);
+  & strong {
+    color: var(--admin-text-secondary);
+  }
 }
 
 .submit {

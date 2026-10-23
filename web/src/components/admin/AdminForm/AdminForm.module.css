@@ -14,7 +14,7 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: var(--space-sm);
+  gap: var(--admin-space-12);
 }
 
 @media (max-width: 640px) {

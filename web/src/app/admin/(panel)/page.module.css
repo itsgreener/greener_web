@@ -21,13 +21,13 @@
 .statValue {
   margin-top: auto;
   font-size: var(--admin-fs-title);
-  line-height: 1;
+  line-height: var(--admin-lh-tight);
   letter-spacing: var(--admin-tracking-tight);
 }
 
 .statCaption {
   margin-top: var(--space-sm);
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-size: var(--admin-fs-sm);
 }
 
@@ -53,23 +53,30 @@
   border-bottom: 1px solid var(--color-border);
   color: inherit;
   text-decoration: none;
-  transition:
-    padding var(--admin-transition),
-    background var(--admin-transition);
-}
+  transition: background var(--admin-transition);
 
-.recentItem:last-child {
-  border-bottom: 0;
-}
+  &:last-child {
+    border-bottom: 0;
+  }
 
-.recentItem:hover {
-  padding-right: var(--space-sm);
-  padding-left: var(--space-sm);
-  background: var(--admin-surface-subtle);
+  /* Al pasar el ratón el contenido se desplaza 4 px hacia dentro. Se anima
+     con transform (no con padding) para que no haya reflow ni saltos de línea. */
+  &:hover {
+    background: var(--admin-surface-subtle);
+  }
+
+  &:hover .recentMain {
+    transform: translateX(var(--space-xs));
+  }
+
+  &:hover .recentMeta {
+    transform: translateX(calc(-1 * var(--space-xs)));
+  }
 }
 
 .recentMain {
   min-width: 0;
+  transition: transform var(--admin-transition);
 }
 
 .recentTitle {
@@ -84,7 +91,7 @@
   display: block;
   overflow: hidden;
   margin-top: var(--space-xs);
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-size: var(--admin-fs-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -95,16 +102,17 @@
   align-items: center;
   flex-shrink: 0;
   gap: var(--space-sm);
+  transition: transform var(--admin-transition);
 }
 
 .recentDate {
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-size: var(--admin-fs-xs);
 }
 
 .arrow {
   margin-left: var(--space-xs);
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
 }
 
 /* Acceso rápido */
@@ -122,14 +130,14 @@
   border-bottom: 1px solid var(--color-border);
   color: inherit;
   text-decoration: none;
-}
 
-.quick:last-child {
-  border-bottom: 0;
-}
+  &:last-child {
+    border-bottom: 0;
+  }
 
-.quick:hover .quickTitle {
-  color: var(--color-cta);
+  &:hover .quickTitle {
+    color: var(--color-cta);
+  }
 }
 
 .quickIcon {
@@ -156,7 +164,7 @@
   margin-top: var(--space-xs);
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-xs);
-  line-height: 1.4;
+  line-height: var(--admin-lh-snug);
 }
 
 @media (max-width: 900px) {

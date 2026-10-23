@@ -5,7 +5,11 @@
   place-items: center;
   padding: var(--admin-space-32) var(--admin-space-20);
   background:
-    radial-gradient(circle at 50% 0%, rgb(25 65 245 / 8%), transparent 35%),
+    radial-gradient(
+      circle at 50% 0%,
+      color-mix(in srgb, var(--color-cta) 8%, transparent),
+      transparent 35%
+    ),
     var(--admin-page-bg);
   font-family: var(--font-body);
 }
@@ -24,23 +28,8 @@
   border-bottom: 1px solid var(--color-border);
 }
 
-.brandName {
-  font-size: var(--admin-fs-xl);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-tight);
-}
-
-.brandLabel {
-  margin-top: var(--space-xs);
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
-}
-
 .content {
-  padding: 36px var(--admin-space-32);
+  padding: var(--admin-space-32);
 }
 
 .heading {
@@ -48,18 +37,14 @@
 }
 
 .eyebrow {
+  composes: eyebrow from '../../../../components/admin/eyebrow.module.css';
   margin: 0 0 var(--space-sm);
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-xs);
-  font-weight: 700;
-  letter-spacing: var(--admin-tracking-caps);
-  text-transform: uppercase;
 }
 
 .title {
   margin: 0;
   font-size: var(--admin-fs-title);
-  line-height: 1.05;
+  line-height: var(--admin-lh-tight);
   letter-spacing: var(--admin-tracking-tight);
 }
 
@@ -67,50 +52,12 @@
   margin: var(--admin-space-12) 0 0;
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-base);
-  line-height: 1.6;
+  line-height: var(--admin-lh-body);
 }
 
+/* Botón de Google: un AdminButton secundario a todo el ancho. */
 .google {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--admin-space-12);
   width: 100%;
-  min-height: 52px;
-  padding: 0 var(--space-md);
-  border: 1px solid var(--admin-border-control);
-  border-radius: var(--admin-radius-md);
-  background: var(--color-bg);
-  color: var(--color-text);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--admin-fs-base);
-  font-weight: 700;
-  transition:
-    background var(--admin-transition),
-    border-color var(--admin-transition),
-    box-shadow var(--admin-transition),
-    transform 100ms ease;
-}
-
-.google:hover:not(:disabled) {
-  border-color: var(--admin-border-control-hover);
-  background: var(--color-surface-hover);
-}
-
-.google:focus-visible {
-  outline: 0;
-  border-color: var(--color-cta);
-  box-shadow: var(--admin-focus-ring);
-}
-
-.google:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.google:disabled {
-  cursor: wait;
-  opacity: 0.65;
 }
 
 .googleIcon {
@@ -152,7 +99,7 @@
   margin: 0;
   color: var(--admin-text-muted);
   font-size: var(--admin-fs-xs);
-  line-height: 1.5;
+  line-height: var(--admin-lh-snug);
 }
 
 .footer {
@@ -164,21 +111,21 @@
   padding: 0 var(--admin-space-32);
   border-top: 1px solid var(--color-border);
   background: var(--admin-surface-subtle);
-}
 
-.footer a {
-  color: var(--admin-text-secondary);
-  font-size: var(--admin-fs-sm);
-  font-weight: 700;
-  text-decoration: none;
-}
+  & a {
+    color: var(--admin-text-secondary);
+    font-size: var(--admin-fs-sm);
+    font-weight: 700;
+    text-decoration: none;
+  }
 
-.footer a:hover {
-  color: var(--color-text);
+  & a:hover {
+    color: var(--color-text);
+  }
 }
 
 .footerBrand {
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-size: var(--admin-fs-xs);
 }
 

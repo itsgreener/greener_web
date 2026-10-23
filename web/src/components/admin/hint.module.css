@@ -1,0 +1,9 @@
+/* Texto de ayuda del ABM: aviso bajo un campo, nota de un panel, dato
+   secundario de una fila. Se importa con `composes: hint from '…'` y cada
+   módulo añade solo su margen (aquí no hay ninguno para que el orden de las
+   hojas no pueda decidir quién gana). */
+.hint {
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-sm);
+  line-height: var(--admin-lh-snug);
+}

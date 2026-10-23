@@ -1,0 +1,21 @@
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--admin-space-12);
+  padding: 0;
+  margin: 0;
+  list-style: none;
+
+  & > li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-xs) var(--admin-space-12);
+    font-size: var(--admin-fs-base);
+  }
+
+  /* Elementos con un texto largo debajo: se alinean por la primera línea. */
+  &.baseline > li {
+    align-items: baseline;
+  }
+}

@@ -1,0 +1,15 @@
+/* Recorte a N líneas con puntos suspensivos. El número lo pone cada módulo
+   con `--lines`:
+
+     .title {
+       composes: lineClamp from '../../text/lineClamp.module.css';
+       --lines: 2;
+     }
+*/
+.lineClamp {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--lines);
+  line-clamp: var(--lines);
+}

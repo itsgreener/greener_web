@@ -18,7 +18,7 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-sm);
+  gap: var(--admin-space-12);
 }
 
 .schedule {
@@ -31,11 +31,11 @@
 .scheduleControls {
   display: flex;
   gap: var(--space-sm);
-}
 
-.scheduleControls > :first-child {
-  flex: 1;
-  min-width: 0;
+  & > :first-child {
+    flex: 1;
+    min-width: 0;
+  }
 }
 
 .preview {
@@ -48,9 +48,8 @@
 }
 
 .hint {
+  composes: hint from '../../../../../../components/admin/hint.module.css';
   margin: 0;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-sm);
 }
 
 @media (max-width: 640px) {

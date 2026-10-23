@@ -5,7 +5,6 @@
 }
 
 .hint {
+  composes: hint from '../../../../../../components/admin/hint.module.css';
   margin: 0;
-  color: var(--admin-text-muted);
-  font-size: var(--admin-fs-md);
 }

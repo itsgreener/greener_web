@@ -90,7 +90,7 @@ export function NewsletterPinCard({
               more
             </h2>
             <form action={formAction} className={styles.form}>
-              <div className={styles.honeypot} aria-hidden="true">
+              <div className="honeypot" aria-hidden="true">
                 <label htmlFor={`${emailId}-company`}>Company</label>
                 <input
                   id={`${emailId}-company`}
@@ -100,7 +100,7 @@ export function NewsletterPinCard({
                   autoComplete="off"
                 />
               </div>
-              <label htmlFor={emailId} className={styles.srOnly}>
+              <label htmlFor={emailId} className="visually-hidden">
                 Your email
               </label>
               <input

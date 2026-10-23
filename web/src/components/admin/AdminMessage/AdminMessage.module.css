@@ -6,13 +6,13 @@
   background: var(--admin-surface-subtle);
   color: var(--admin-text-secondary);
   font-size: var(--admin-fs-md);
-  line-height: 1.45;
+  line-height: var(--admin-lh-snug);
   overflow-wrap: anywhere;
-}
 
-.message code {
-  font-family: var(--admin-font-mono);
-  font-size: var(--admin-fs-sm);
+  & code {
+    font-family: var(--admin-font-mono);
+    font-size: var(--admin-fs-sm);
+  }
 }
 
 .error,

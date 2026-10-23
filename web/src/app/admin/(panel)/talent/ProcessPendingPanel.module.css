@@ -1,15 +1,9 @@
-/* Aviso con acciones: pide atención sin ser un error, de ahí el tono warning. */
+/* Aviso con acciones: es un AdminMessage `warning` (pide atención sin ser un
+   error); aquí solo se organiza su contenido en columna. */
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--admin-space-12);
-  padding: var(--space-md);
-  margin: var(--space-md);
-  border: 1px solid var(--admin-warning-border);
-  border-radius: var(--admin-radius-md);
-  background: var(--admin-warning-bg);
-  color: var(--admin-warning-text);
-  font-size: var(--admin-fs-md);
 }
 
 .text {

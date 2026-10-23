@@ -10,7 +10,7 @@
   font: inherit;
   font-size: var(--admin-fs-md);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--admin-lh-tight);
   text-decoration: none;
   cursor: pointer;
   transition:
@@ -18,7 +18,21 @@
     border-color var(--admin-transition),
     color var(--admin-transition),
     opacity var(--admin-transition),
-    transform 100ms ease;
+    transform var(--admin-transition);
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
 }
 
 .compact {
@@ -27,37 +41,23 @@
   font-size: var(--admin-fs-sm);
 }
 
-.button:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.button:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 2px;
-}
-
-.button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
 .primary {
   background: var(--color-cta);
   color: var(--color-cta-text);
-}
 
-.primary:hover:not(:disabled) {
-  background: var(--admin-cta-hover);
+  &:hover:not(:disabled) {
+    background: var(--admin-cta-hover);
+  }
 }
 
 .secondary {
   border-color: var(--admin-border-control);
   background: var(--color-bg);
   color: var(--color-text);
-}
 
-.secondary:hover:not(:disabled) {
-  background: var(--color-surface-hover);
+  &:hover:not(:disabled) {
+    background: var(--color-surface-hover);
+  }
 }
 
 /* Acción destructiva e irreversible (p. ej. eliminar un candidato). */
@@ -65,18 +65,18 @@
   border-color: var(--admin-danger-border);
   background: var(--color-bg);
   color: var(--color-error);
-}
 
-.danger:hover:not(:disabled) {
-  background: var(--admin-danger-bg);
+  &:hover:not(:disabled) {
+    background: var(--admin-danger-bg);
+  }
 }
 
 /* La misma, cuando es la acción principal de una zona peligrosa. */
 .dangerSolid {
   background: var(--color-error);
   color: var(--color-cta-text);
-}
 
-.dangerSolid:hover:not(:disabled) {
-  background: var(--admin-danger-hover);
+  &:hover:not(:disabled) {
+    background: var(--admin-danger-hover);
+  }
 }

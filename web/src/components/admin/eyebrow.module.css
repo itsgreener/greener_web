@@ -1,0 +1,14 @@
+/*
+ * Rótulo en mayúsculas con tracking (kicker, eyebrow, etiqueta de marca,
+ * etiqueta de solo lectura). Lo reutilizan con `composes` los módulos que
+ * lo necesitan; cada uno añade solo su margen. Las celdas de cabecera de
+ * AdminTable (`.table th`) repiten estas mismas cinco declaraciones porque
+ * `composes` no admite selectores descendientes.
+ */
+.eyebrow {
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-caps);
+  text-transform: uppercase;
+}

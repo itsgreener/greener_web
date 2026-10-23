@@ -93,6 +93,11 @@ function toCssLength(value: number | string): string {
 // autónomo, sin las rutas /_next/static del bundle del sitio), así que
 // se copian los valores, no las variables — no hay una única fuente de
 // verdad posible aquí sin cambiar cómo se sirve esta ruta.
+//
+// La referencia es el shell de la home (components/shell/Shell/
+// Shell.module.css): tests/unit/packages/shellStylesSync.test.ts compara
+// regla a regla y falla si alguna deja de coincidir (salvo las diferencias
+// documentadas ahí: la barra de aquí es `fixed`, la de la home `sticky`).
 const SHELL_STYLES = `
   html, body {
     margin: 0;
@@ -133,8 +138,8 @@ const SHELL_STYLES = `
   }
 
   .greener-logo img {
-    width: 20px;
-    height: auto;
+    width: auto;
+    height: 50px;
   }
 
   .greener-nav-group,
@@ -181,7 +186,7 @@ const SHELL_STYLES = `
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: center;
     -webkit-mask-size: contain;
-    transition: transform 0.15s ease, color 0.15s ease;
+    transition: transform 150ms ease, color 150ms ease;
   }
 
   .greener-icon-link:hover .greener-icon,
@@ -203,7 +208,7 @@ const SHELL_STYLES = `
     font-size: 0.75rem;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition: opacity 150ms ease, transform 150ms ease;
   }
 
   .greener-icon-link:hover .greener-tooltip,
@@ -216,6 +221,14 @@ const SHELL_STYLES = `
     grid-column: 2;
     min-width: 0;
     min-height: var(--greener-available-height);
+  }
+
+  /* Equivale a --transition de globals.css con movimiento reducido. */
+  @media (prefers-reduced-motion: reduce) {
+    .greener-icon,
+    .greener-tooltip {
+      transition: none;
+    }
   }
 `
 

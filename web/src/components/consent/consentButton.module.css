@@ -1,0 +1,25 @@
+/* Botón de contorno de las dos superficies de consentimiento (la ventana
+   de CookieBanner y el bloque de CookieChoice en /privacy): mismo tamaño,
+   color y peso para Aceptar y Rechazar. Se importa con
+   `composes: button from '../consentButton.module.css'`. */
+.button {
+  min-width: 6.5rem;
+  padding: 0.65rem 1.25rem;
+  border: 1px solid var(--color-cta);
+  border-radius: var(--radius-cta);
+  background: var(--color-bg);
+  color: var(--color-cta);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--color-surface-hover);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset);
+  }
+}

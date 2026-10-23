@@ -8,6 +8,7 @@ import {
 import { useState } from 'react'
 import Link from 'next/link'
 
+import { CtaAnchor, CtaButton } from '@/components/cta/Cta'
 import { RecommendationsGrid } from '@/components/detail/RecommendationsGrid'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
@@ -233,13 +234,9 @@ export function EpisodeDetail({
                     </Link>
                   </p>
                   <div className={styles.embedConsentActions}>
-                    <button
-                      type="button"
-                      className={styles.embedConsentButton}
-                      onClick={handleAcceptAndPlay}
-                    >
+                    <CtaButton type="button" onClick={handleAcceptAndPlay}>
                       Accept cookies and play
-                    </button>
+                    </CtaButton>
                     <button
                       type="button"
                       className={styles.embedConsentSecondary}
@@ -287,7 +284,7 @@ export function EpisodeDetail({
           {/* Segundo CTA (spec §1/§7, hasta hoy sin implementar): lleva al
               episodio en su plataforma. Enlace externo en pestaña nueva;
               no carga nada de terceros en esta página. */}
-          <a
+          <CtaAnchor
             href={episodeExternalUrl(episode.provider, episode.embedId)}
             target="_blank"
             rel="noopener noreferrer"
@@ -295,7 +292,7 @@ export function EpisodeDetail({
             aria-label={`${EPISODE_CTA_LABEL} on ${provider} (opens in a new tab)`}
           >
             {EPISODE_CTA_LABEL}
-          </a>
+          </CtaAnchor>
         </div>
       </div>
 

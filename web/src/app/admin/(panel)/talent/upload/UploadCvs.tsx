@@ -10,6 +10,7 @@ import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
 import { AdminFormActions, AdminFormBody } from '@/components/admin/AdminForm'
+import { AdminList } from '@/components/admin/AdminList'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import { AdminSubtext } from '@/components/admin/AdminTable'
 import { AdminTextLink } from '@/components/admin/AdminTextLink'
@@ -169,7 +170,7 @@ export default function UploadCvs() {
       {notice && <AdminMessage kind="warning">{notice}</AdminMessage>}
 
       {rows.length > 0 && (
-        <ul className={styles.list}>
+        <AdminList>
           {rows.map((row) => (
             <li key={row.id}>
               <span>{row.file.name}</span>
@@ -198,7 +199,7 @@ export default function UploadCvs() {
               )}
             </li>
           ))}
-        </ul>
+        </AdminList>
       )}
 
       <AdminFormActions>

@@ -1,0 +1,44 @@
+/* Botón de llamada a la acción (CTA) de la web pública. La referencia es el
+   «Watch more» del episodio (diseño: 74×42 px sobre base de 16 px). Lo usan
+   el envío de /contact, el «Use» de tool e insight, el «Watch more» y la
+   etiqueta de los pines; cada sitio solo añade su posición. */
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.625rem;
+  min-height: 2.625rem;
+  padding: 0.5rem 1.5rem;
+  border: 0;
+  border-radius: var(--radius-cta);
+  background: var(--color-cta);
+  color: var(--color-cta-text);
+  font: inherit;
+  font-size: var(--fs-md);
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+
+  /* Solo los elementos interactivos reaccionan (la etiqueta de un pin no). */
+  &:is(a, button):not(:disabled):hover {
+    opacity: 0.9;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset);
+  }
+
+  /* Procesando: un botón con `pending`/`disabled`, o un enlace mientras
+     Next navega (CtaLink pone ahí una marca con data-cta-pending). */
+  &:disabled,
+  &:has([data-cta-pending='true']) {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  /* Un enlace en curso no admite un segundo clic. */
+  &:has([data-cta-pending='true']) {
+    pointer-events: none;
+  }
+}

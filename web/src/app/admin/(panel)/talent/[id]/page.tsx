@@ -9,6 +9,7 @@ import {
   AdminCardHeader,
   AdminCardText,
 } from '@/components/admin/AdminCard'
+import { AdminList } from '@/components/admin/AdminList'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import {
   AdminBackLink,
@@ -62,7 +63,7 @@ function Row({
 }) {
   return (
     <>
-      <dt>{label}</dt>
+      <dt className={styles.term}>{label}</dt>
 
       <dd>{children}</dd>
     </>
@@ -245,15 +246,17 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
           {detail.projects.length === 0 ? (
             <AdminCardText>Sin proyectos.</AdminCardText>
           ) : (
-            <ul className={styles.list}>
+            <AdminList align="baseline">
               {detail.projects.map((project, index) => (
                 <li key={`${project.link}-${index}`}>
                   <SafeLink href={project.link}>{project.link}</SafeLink>
 
-                  {project.comment && <p>{project.comment}</p>}
+                  {project.comment && (
+                    <p className={styles.comment}>{project.comment}</p>
+                  )}
                 </li>
               ))}
-            </ul>
+            </AdminList>
           )}
         </AdminCard>
 
@@ -263,7 +266,7 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
           {detail.files.length === 0 ? (
             <AdminCardText>Sin ficheros sueltos.</AdminCardText>
           ) : (
-            <ul className={styles.list}>
+            <AdminList align="baseline">
               {detail.files.map((file) => (
                 <li key={file.id}>
                   {file.kind === 'none' ? (
@@ -286,7 +289,7 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
                   </AdminSubtext>
                 </li>
               ))}
-            </ul>
+            </AdminList>
           )}
         </AdminCard>
       </div>

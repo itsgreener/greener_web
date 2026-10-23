@@ -1,5 +1,5 @@
 .counter {
-  color: var(--admin-text-subtle);
+  color: var(--admin-text-muted);
   font-size: var(--admin-fs-sm);
 }
 

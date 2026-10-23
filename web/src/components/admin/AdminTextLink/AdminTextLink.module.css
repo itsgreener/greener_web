@@ -4,13 +4,13 @@
   font-size: var(--admin-fs-md);
   font-weight: 700;
   text-decoration: none;
-}
 
-.link:hover {
-  text-decoration: underline;
-}
+  &:hover {
+    text-decoration: underline;
+  }
 
-.link:focus-visible {
-  outline: 2px solid var(--color-cta);
-  outline-offset: 2px;
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
+  }
 }

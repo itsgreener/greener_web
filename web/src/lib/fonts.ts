@@ -15,9 +15,9 @@ import localFont from 'next/font/local'
 
 /**
  * Helvetica Neue — texto general del sitio. Solo Regular (400) y Bold
- * (700): el CSS público usa los pesos 400, 600 y 700, y el 600 se resuelve
- * solo al Bold (no hay semibold; el navegador elige el siguiente peso más
- * pesado). Sin cursivas: el proyecto no usa `font-style: italic`.
+ * (700): el CSS usa únicamente esos dos pesos (no hay semibold; hasta el 23
+ * de octubre de 2026 el CSS público escribía 600 y el navegador lo resolvía
+ * al Bold). Sin cursivas: el proyecto no usa `font-style: italic`.
  */
 export const helveticaNeue = localFont({
   src: [
