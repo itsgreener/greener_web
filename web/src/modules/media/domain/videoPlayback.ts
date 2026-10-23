@@ -45,7 +45,7 @@ export const READY_TIMEOUT_MS = 10_000
  * nada.
  * El foco de teclado no espera: es una intención explícita.
  */
-export const HOVER_INTENT_MS = 200
+export const HOVER_INTENT_MS = 250
 
 /**
  * Esperas antes de cada reintento ante un ERROR (por ejemplo, una versión

@@ -143,7 +143,7 @@ describe('PinCard — vídeo del feed (fase 1 del contrato de medios)', () => {
     expect(video.className).toContain('videoVisible')
   })
 
-  it('un canplay con readyState 2 ya arranca la reproducción: no se espera al estado «listo»', () => {
+  it('un canplay con readyState < 3 no cuenta como listo', () => {
     const { container } = render(<PinCard pin={pin()} style={STYLE} />)
     const video = q(container)!
 
@@ -152,7 +152,7 @@ describe('PinCard — vídeo del feed (fase 1 del contrato de medios)', () => {
       fireEvent(video, new Event('canplay'))
     })
 
-    expect(playSpy).toHaveBeenCalled()
+    expect(playSpy).not.toHaveBeenCalled()
   })
 
   it('si en 10 s no está listo, se aborta: se quita el <video> y queda el póster', () => {
@@ -378,12 +378,17 @@ describe('PinCard — vídeo del feed (fase 1 del contrato de medios)', () => {
       expect(q(container)).not.toBeInTheDocument()
     })
 
-    it('con el puntero encima monta el vídeo sin esperar (intención de 0 ms) y, al estar listo, lo reproduce', () => {
+    it('con el puntero quieto 200 ms monta el vídeo y, al estar listo, lo reproduce', () => {
       const { container, link } = renderHover()
 
       act(() => {
         fireEvent.mouseEnter(link)
-        vi.advanceTimersByTime(0)
+        vi.advanceTimersByTime(HOVER_INTENT_MS - 1)
+      })
+      expect(q(container)).not.toBeInTheDocument()
+
+      act(() => {
+        vi.advanceTimersByTime(1)
       })
       expect(q(container)).toBeInTheDocument()
 

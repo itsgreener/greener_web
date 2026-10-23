@@ -78,28 +78,37 @@ export function PinCard({
   const videoId = instanceId ?? pin.pinId
   const media = pin.media
 
-  // Sin espera artificial: el prefetch cercano reduce además el tiempo de carga.
-  const { active: hovering, handlers: hoverHandlers } = useHoverIntent(0)
+  const { active: hovering, handlers: hoverHandlers } = useHoverIntent()
   const cardRef = useRef<HTMLAnchorElement | null>(null)
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const { feedAutoplayAllowed } = useMotionPreferences()
 
   const current = media[0]
   const isVideoSlide = current?.kind === 'video'
-  // Se SUMA el hover sin reemplazar el autoplay de viewport existente.
-  // De esta forma siguen reproduciéndose dos vídeos automáticos en escritorio
-  // (uno en móvil), mientras el puntero puede activar otras tarjetas.
-  const hoverEnabled = pin.kind === 'tool' || pin.kind === 'channel'
-  // Las Tools y Podcasts con medio de vídeo admiten hover, sin límite
-  // de duración. Para otros tipos mantenemos la política original.
-  const isAnimatable =
-    isVideoSlide && (hoverEnabled || canAnimateInFeed(current?.durationSeconds))
 
+  // Un vídeo largo (> PIN_ANIMATION_LIMITS) sigue siendo un vídeo — se
+  // pinta con su poster —, pero NO se anima ni compite por un hueco: solo
+  // se reproduce en el detalle. Así el feed nunca descarga uno entero.
+  const isAnimatable =
+    isVideoSlide && canAnimateInFeed(current?.durationSeconds)
+
+  // Un pin de vídeo solo compite por un hueco global en modo 'viewport' —
+  // 'hover' no compite (arriba, en el docstring, se explica el porqué). Sin autoplay
+  // permitido en el feed (reduced-motion, save-data, conexión lenta) no
+  // compite por nada: póster fijo.
   const wantsGlobalSlot =
     isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport'
   const hasSlot = useVideoSlot(videoId, cardRef, wantsGlobalSlot)
 
-  const isPlaying = isAnimatable && feedAutoplayAllowed && hasSlot
+  const isPlaying =
+    isAnimatable &&
+    (pin.autoplayMode === 'viewport'
+      ? hasSlot
+      : pin.autoplayMode === 'hover'
+        ? // Sin autoplay permitido (reduced-motion, save-data, conexión
+          // lenta) el hover tampoco reproduce: póster fijo.
+          feedAutoplayAllowed && hovering
+        : false)
 
   // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
   // MP4/H.264), a un solo ancho (contrato de medios §4.4-§4.5).
@@ -118,8 +127,9 @@ export function PinCard({
     videoRef,
     resetKey: current?.cloudinaryPublicId ?? '',
     sourceCount: sources.length,
-    // Prefetch compartido y limitado por coordinador: acelera el hover
-    // sin descargar todos los vídeos de la página.
+    // Solo se hace prefetch de lo que se reproduce solo al entrar en
+    // pantalla (`viewport`). Un pin `hover` no precarga nada: el vídeo se pide
+    // cuando hay intención de hover (en Cloudinary Free cada MB cuenta).
     prefetchEnabled:
       isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport',
     wantsPlay: isPlaying,
@@ -176,13 +186,6 @@ export function PinCard({
         video={video}
         videoRef={videoRef}
         sources={sources}
-        hoverPreview={
-          isAnimatable &&
-          feedAutoplayAllowed &&
-          hovering &&
-          !hasSlot &&
-          (hoverEnabled || pin.autoplayMode === 'hover')
-        }
       />
       <PinCardLabel
         displayTitle={pin.displayTitle}

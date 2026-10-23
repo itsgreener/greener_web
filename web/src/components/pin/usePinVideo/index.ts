@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useRef,
   useEffect,
   useReducer,
   useState,
@@ -160,17 +159,6 @@ export function usePinVideo({
     })
   }, [wanted, resetKey])
 
-  // Un fallo de precarga no debe bloquear una interacción explícita:
-  // recuperar el vídeo al empezar a solicitar reproducción por hover.
-  const previousWantsPlay = useRef(wantsPlay)
-  useEffect(() => {
-    const risingEdge = wantsPlay && !previousWantsPlay.current
-    previousWantsPlay.current = wantsPlay
-    if (risingEdge && (load.phase === 'gaveup' || load.phase === 'retrying')) {
-      queueMicrotask(() => dispatch('reset'))
-    }
-  }, [wantsPlay, load.phase])
-
   // 3a. Tiempo máximo hasta estar listo.
   useEffect(() => {
     if (!mounted || load.phase !== 'loading') return
@@ -200,51 +188,39 @@ export function usePinVideo({
     return () => releaseVideoElement(el)
   }, [mounted, load.attempt, resetKey, videoRef])
 
-  // Reproduce tan pronto como haya datos, especialmente durante hover.
-  // No esperamos a que el reducer pase a `ready`: el evento onCanPlay
-  // puede llegar antes de la actualización de React y perderse ese arranque.
-  const startPlayback = useCallback((el: HTMLVideoElement) => {
-    el.muted = true
-    try {
-      const promise = el.play()
-      promise?.catch(() => {})
-    } catch {
-      // Navegadores que bloquean reproducción automática.
-    }
-  }, [])
-
+  // Arranca o para el vídeo. Solo se reproduce cuando está listo; al volver a
+  // reproducirse (otro hueco, otro hover) empieza desde el principio.
   useEffect(() => {
     const el = videoRef.current
     if (!el || !mounted) return
 
-    if (wantsPlay) {
-      if (el.readyState >= 2) startPlayback(el)
-      // Si aún no hay datos, onLoadedData / onCanPlay lo arrancará.
+    if (wantsPlay && load.phase === 'ready') {
+      // `muted` también como propiedad: el atributo que React serializa no
+      // basta para algunos navegadores y sin audio silenciado el autoplay se
+      // bloquea.
+      el.muted = true
+      try {
+        if (el.currentTime > 0) el.currentTime = 0
+        // Autoplay bloqueado por el navegador o sin soporte real de vídeo
+        // (jsdom en tests): se queda en el poster, no rompe nada — por eso
+        // el try/catch además del .catch, play() puede lanzar de forma
+        // síncrona en vez de devolver una promesa rechazada según el entorno.
+        el.play()?.catch(() => {})
+      } catch {
+        // ver comentario de arriba
+      }
     } else {
       try {
         el.pause()
       } catch {
-        // Entornos sin Media API.
+        // jsdom
       }
     }
-  }, [wantsPlay, mounted, load.attempt, resetKey, videoRef, startPlayback])
+  }, [wantsPlay, load.phase, load.attempt, mounted, resetKey, videoRef])
 
-  const onCanPlay = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
-      if (wantsPlay) startPlayback(event.currentTarget)
-    },
-    [wantsPlay, startPlayback],
-  )
-
-  const onLoadedData = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      // Algunos navegadores avisan loadeddata antes que canplay; no esperar
-      // permite que el hover reaccione en cuanto hay un fotograma disponible.
-      if (wantsPlay) startPlayback(event.currentTarget)
-    },
-    [wantsPlay, startPlayback],
-  )
+  const onCanPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
+    if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
+  }, [])
 
   const onPlaying = useCallback(() => {
     dispatch('ready')
@@ -279,16 +255,9 @@ export function usePinVideo({
     /** `key` del `<video>`: un reintento lo remonta y vuelve a pedir el vídeo. */
     attempt: load.attempt,
     /** ¿El vídeo ya sustituye al póster? Listo Y reproduciéndose. */
-    visible: mounted && wantsPlay && playing,
+    visible: mounted && load.phase === 'ready' && wantsPlay && playing,
     /** ¿Se está reproduciendo de verdad? */
     isActuallyPlaying: mounted && wantsPlay && playing,
-    handlers: {
-      onCanPlay,
-      onLoadedData,
-      onPlaying,
-      onPause,
-      onVideoError,
-      onSourceError,
-    },
+    handlers: { onCanPlay, onPlaying, onPause, onVideoError, onSourceError },
   }
 }

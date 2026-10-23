@@ -9,8 +9,6 @@ export interface PinMediaData {
 
 export interface PinCardData {
   pinId: string
-  // Tipo de contenido del feed; identifica Tools y podcasts para su hover.
-  kind?: 'case' | 'insight' | 'tool' | 'channel' | 'other'
   destination: string
   ratio: string
   // Tool/insight/other: gancho escrito por el admin.
