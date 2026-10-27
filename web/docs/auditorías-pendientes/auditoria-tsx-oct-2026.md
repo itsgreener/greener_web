@@ -72,6 +72,10 @@ Greener decidió sobre lo que quedaba abierto. Relato y verificación en `docs/h
 4. **Error 7.1.1 corregido:** el mensaje de éxito del contacto, en inglés.
 5. **Apartado 8:** hechos los puntos 1, 2, 3, 4 y 6 (cuatro tests de arquitectura y los READMEs de los kits).
 
+### Estado de aplicación, PUB-B6 lote 2 (27 oct 2026, sexta tanda)
+
+Greener probó a mano todo lo aplicado hasta el §2.107 y lo dio por bueno (los puntos 7.2 y las pruebas de cada tanda). Relato y verificación en `docs/historial/historial-fase-5.md` §2.108. PUB-B6, lote 2: `useFeed` y `useRecommendationMasonry` lanzan el primer lote desde el efecto con una cadena de promesas (`fetchBatch`), sin `queueMicrotask`, y su «cargando» de la primera carga se deriva con `attemptedSession`. Quedan tres `queueMicrotask`, todos del lote 3: `usePinVideo` (reinicio con `[wanted, resetKey]`), `useToolCoverVideo` (cambio de escalón) y `useRecommendationMasonry` (cambio de scope o de contenido).
+
 ## 2. Criterios aplicados
 
 1. Arquitectura V1.3 §24.1 y §24.2: un componente por carpeta con su módulo CSS, alias `@/*`, sin CSS inline (salvo la geometría del masonry, inline a propósito por decisión de Greener).
@@ -410,7 +414,7 @@ Los usos reales son dos: `FeedProvider` (con `try/catch`) y `ContentFilterPersis
 4. **Medios y vídeo (hecho el 26 oct salvo PUB-B6; probar una subida real y la reproducción):** ADM-C1 con ADM-B1; PUB-B1 y, si se decide, PUB-B6.
 5. **Rutas de paquetes (hecho el 26 oct; probar las tres a mano y `next build`):** PUB-C1.
 6. **Episodio y feed (hecho el 26 oct):** PUB-A2 con PUB-B2, PUB-E1, PUB-B3, PUB-B4, PUB-B5.
-7. **A decidir con Greener (decidido y hecho el 26 oct, salvo lo que se deja):** ADM-D4, ADM-E1, ADM-B2, ADM-B3; PUB-C2 (descartado el 27 oct) y PUB-B6 (por lotes: el 1 hecho el 27 oct, los lotes 2 y 3 tras las pruebas a mano).
+7. **A decidir con Greener (decidido y hecho el 26 oct, salvo lo que se deja):** ADM-D4, ADM-E1, ADM-B2, ADM-B3; PUB-C2 (descartado el 27 oct) y PUB-B6 (por lotes: el 1 y el 2 hechos el 27 oct, el lote 3 pendiente).
 
 Dependencias: TSX-X1 (`cx` compartido) antes de los componentes nuevos que lo usen; PUB-D1 (`FeedScope`) antes de tocar `useFeed`/`FeedProvider` en PUB-B4 y PUB-E1; ADM-C1 después de ADM-B1.
 
@@ -465,7 +469,7 @@ Pública
 5. **PUB-C1:** ¿las rutas de paquetes se unifican ya, o se espera a tocar las CSP? Si `variety` va a tener una política distinta, la fábrica debe aceptar cabeceras como parámetro. **Decidido el 26 oct: se unifican.** Aplicado con las cabeceras comunes y sin parámetro; si variety necesita otra política, se añade entonces.
 6. **PUB-D1:** ¿se acepta que `Feed` solo admita los cinco scopes conocidos? **Decidido el 26 oct: sí, con un único array** (`FEED_SCOPES`). Aplicado.
 7. **PUB-A2/PUB-B2:** ¿se saca el texto legal del panel de consentimiento del embed a `modules/consent/domain/copy`, junto al del banner? Hoy vive dentro del JSX de `EpisodeDetail`, sin versión de texto. **Decidido el 26 oct: sí, se extrae el flujo del texto legal del componente.** Aplicado en la fase 6 (§2.106).
-8. **PUB-B6:** ¿se prefiere seguir con `queueMicrotask` documentado o derivar estado en cada hook? **Decidido el 26 oct: se revisan todos los hooks uno a uno. 27 oct: se hace por lotes según el riesgo; el lote 1 (`useVideoSlot` y el billete de `usePinVideo`) está hecho (§2.107); los lotes 2 y 3, tras las pruebas a mano.**
+8. **PUB-B6:** ¿se prefiere seguir con `queueMicrotask` documentado o derivar estado en cada hook? **Decidido el 26 oct: se revisan todos los hooks uno a uno. 27 oct: se hace por lotes según el riesgo; los lotes 1 (`useVideoSlot` y el billete de `usePinVideo`, §2.107) y 2 (el primer lote de `useFeed` y de las recomendaciones, §2.108) están hechos; el lote 3, pendiente.**
 
 Transversal
 

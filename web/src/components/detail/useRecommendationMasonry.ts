@@ -95,7 +95,11 @@ export function useRecommendationMasonry(
   // (auditoría 8 oct, P0-4: el panel pedía siempre la ronda 0).
   const cursorRef = useRef<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
-  const [isLoading, setIsLoading] = useState(false)
+  // «Cargando» de los lotes que pide el scroll (el centinela). El de la
+  // primera carga no es estado: se deriva (ver `isLoading` más abajo).
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Sesión cuyo primer intento de carga ya terminó (bien, vacío o con error).
+  const [attemptedSession, setAttemptedSession] = useState<string | null>(null)
   const [error, setError] = useState(false)
   const loadingRef = useRef(false)
 
@@ -132,35 +136,65 @@ export function useRecommendationMasonry(
     }
   }, [excludeContentId, scope])
 
-  const loadMore = useCallback(async () => {
-    if (!sessionId || loadingRef.current || !hasMore) return
+  const canLoad = !!sessionId && hasMore
+
+  // Pide y añade un lote. Es una cadena de promesas, no una función `async`:
+  // el estado de React solo se toca dentro de sus callbacks, nunca de forma
+  // síncrona, así que puede lanzarse desde un efecto (PUB-B6: sin
+  // `queueMicrotask`).
+  const fetchBatch = useCallback((): Promise<void> => {
+    if (!sessionId || loadingRef.current || !hasMore) return Promise.resolve()
+
     loadingRef.current = true
-    setIsLoading(true)
-    try {
-      const batch = await fetchFeedBatch(sessionId, cursorRef.current)
-      // Límite de peticiones superado: temporal, no toca ni cursor ni hasMore.
-      if (batch.rateLimited) return
-      // Las recomendaciones nunca llevan interludios (sesión con exclusión),
-      // pero el tipo del lote sí lo admite.
-      setItems((prev) => [...prev, ...batch.items.filter(isPinItem)])
-      cursorRef.current = batch.cursor
-      // Una ronda vacía es definitiva: se deja de pedir (ver `nextHasMore`).
-      setHasMore(nextHasMore(batch))
-    } catch (err) {
-      console.error(err)
-      setError(true)
-    } finally {
-      loadingRef.current = false
-      setIsLoading(false)
-    }
+
+    return fetchFeedBatch(sessionId, cursorRef.current)
+      .then((batch) => {
+        // Límite de peticiones superado: temporal, no toca ni cursor ni hasMore.
+        if (batch.rateLimited) return
+        // Las recomendaciones nunca llevan interludios (sesión con exclusión),
+        // pero el tipo del lote sí lo admite.
+        setItems((prev) => [...prev, ...batch.items.filter(isPinItem)])
+        cursorRef.current = batch.cursor
+        // Una ronda vacía es definitiva: se deja de pedir (ver `nextHasMore`).
+        setHasMore(nextHasMore(batch))
+      })
+      .catch((err) => {
+        console.error(err)
+        setError(true)
+      })
+      .finally(() => {
+        loadingRef.current = false
+        setIsLoadingMore(false)
+        setAttemptedSession(sessionId)
+      })
   }, [sessionId, hasMore])
 
+  // Lote que pide el scroll (el centinela): aquí sí se anuncia «cargando».
+  const loadMore = useCallback(async () => {
+    if (!canLoad || loadingRef.current) return
+
+    setIsLoadingMore(true)
+    await fetchBatch()
+  }, [canLoad, fetchBatch])
+
+  // Primer lote en cuanto hay sesión.
   useEffect(() => {
     if (sessionId && items.length === 0) {
-      queueMicrotask(() => loadMore())
+      void fetchBatch()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId])
+
+  // La primera carga se deriva: hay sesión, nada que enseñar, queda catálogo y
+  // aún no ha terminado el primer intento. Un lote vacío por límite de
+  // peticiones cuenta como intento terminado (no se reintenta solo).
+  const isLoading =
+    isLoadingMore ||
+    (!!sessionId &&
+      items.length === 0 &&
+      hasMore &&
+      !error &&
+      attemptedSession !== sessionId)
 
   const totalColumns = columnsForViewport(containerWidth || 1200)
   const { contentColumns, recommendationColumns } = options?.fullWidthContent

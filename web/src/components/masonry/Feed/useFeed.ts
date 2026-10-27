@@ -38,7 +38,11 @@ export function useFeed(scope: FeedScope) {
   const state = getState(scope)
 
   const loadingRef = useRef(false)
-  const [isLoading, setIsLoading] = useState(false)
+  // «Cargando» de los lotes que pide el scroll (el centinela). El de la
+  // primera carga no es estado: se deriva (ver `isLoading` más abajo).
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Sesión cuyo primer intento de carga ya terminó (bien, vacío o con error).
+  const [attemptedSession, setAttemptedSession] = useState<string | null>(null)
 
   // Reintento tras un lote vacío por límite de peticiones: tras la espera se
   // incrementa `recheck`, que recrea el observer del sentinel (ver
@@ -67,57 +71,90 @@ export function useFeed(scope: FeedScope) {
     // Solo al montar / cuando todavía no hay sesión para este scope.
   }, [scope, state.sessionId, setSessionId])
 
-  const loadMore = useCallback(async () => {
+  // Estado del scope si ahora se puede pedir un lote; si no, `null`.
+  const loadable = useCallback(() => {
     const current = getState(scope)
-    if (!current.sessionId || loadingRef.current || !current.hasMore) return
+    if (!current.sessionId || loadingRef.current || !current.hasMore)
+      return null
+
+    return current
+  }, [scope, getState])
+
+  // Pide y añade un lote. Es una cadena de promesas, no una función `async`:
+  // el estado de React solo se toca dentro de sus callbacks, nunca de forma
+  // síncrona, así que puede lanzarse desde un efecto (PUB-B6: sin
+  // `queueMicrotask`).
+  const fetchBatch = useCallback((): Promise<void> => {
+    const current = loadable()
+    if (!current?.sessionId) return Promise.resolve()
+
     loadingRef.current = true
-    setIsLoading(true)
-    try {
-      const batch = await fetchFeedBatch(current.sessionId, current.cursor)
 
-      appendBatch(scope, batch)
+    return fetchFeedBatch(current.sessionId, current.cursor)
+      .then((batch) => {
+        appendBatch(scope, batch)
 
-      // `appendBatch` ignora el lote vacío por límite de peticiones y no
-      // cambia el estado, así que nada volvería a disparar la carga: el
-      // visitante se quedaba en el final hasta subir y volver a bajar.
-      if (batch.rateLimited) {
-        if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
-        retryTimerRef.current = setTimeout(() => {
-          retryTimerRef.current = null
-          setRecheck((n) => n + 1)
-        }, RATE_LIMIT_RETRY_MS)
-      }
+        // `appendBatch` ignora el lote vacío por límite de peticiones y no
+        // cambia el estado, así que nada volvería a disparar la carga: el
+        // visitante se quedaba en el final hasta subir y volver a bajar.
+        if (batch.rateLimited) {
+          if (retryTimerRef.current) clearTimeout(retryTimerRef.current)
+          retryTimerRef.current = setTimeout(() => {
+            retryTimerRef.current = null
+            setRecheck((n) => n + 1)
+          }, RATE_LIMIT_RETRY_MS)
+        }
 
-      // Un batch vacío (fin de catálogo real, o límite de peticiones
-      // superado — feedRateLimit.ts) no cuenta como profundidad real
-      // alcanzada: nada que el visitante haya visto de más.
-      if (batch.items.length > 0) {
-        trackAnalyticsEvent(
-          'Feed Depth',
-          {
-            section: scope,
-            round: batch.round,
-            // Tramo dentro de la ronda (una ronda se sirve en varios lotes).
-            batch: batch.batch,
-          },
-          { interactive: false },
-        )
-      }
-    } catch {
-      setError(true)
-    } finally {
-      loadingRef.current = false
-      setIsLoading(false)
-    }
-  }, [scope, getState, appendBatch])
+        // Un batch vacío (fin de catálogo real, o límite de peticiones
+        // superado — feedRateLimit.ts) no cuenta como profundidad real
+        // alcanzada: nada que el visitante haya visto de más.
+        if (batch.items.length > 0) {
+          trackAnalyticsEvent(
+            'Feed Depth',
+            {
+              section: scope,
+              round: batch.round,
+              // Tramo dentro de la ronda (una ronda se sirve en varios lotes).
+              batch: batch.batch,
+            },
+            { interactive: false },
+          )
+        }
+      })
+      .catch(() => setError(true))
+      .finally(() => {
+        loadingRef.current = false
+        setIsLoadingMore(false)
+        setAttemptedSession(current.sessionId)
+      })
+  }, [scope, loadable, appendBatch])
+
+  // Lote que pide el scroll (el centinela): aquí sí se anuncia «cargando».
+  const loadMore = useCallback(async () => {
+    if (!loadable()) return
+
+    setIsLoadingMore(true)
+    await fetchBatch()
+  }, [loadable, fetchBatch])
 
   // Primer lote en cuanto hay sesión abierta para este scope.
   useEffect(() => {
     if (state.sessionId && state.items.length === 0) {
-      queueMicrotask(() => loadMore())
+      void fetchBatch()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scope, state.sessionId])
+
+  // La primera carga se deriva: hay sesión, nada que enseñar, queda catálogo y
+  // aún no ha terminado el primer intento. Un lote vacío por límite de
+  // peticiones cuenta como intento terminado: durante la espera no se anuncia.
+  const isLoading =
+    isLoadingMore ||
+    (Boolean(state.sessionId) &&
+      state.items.length === 0 &&
+      state.hasMore &&
+      !error &&
+      attemptedSession !== state.sessionId)
 
   // Prefetch del siguiente lote al entrar en el último tramo del scroll
   // (arquitectura §10.3).
