@@ -34,7 +34,7 @@ describe('createFeedSession', () => {
     expect(createRow).toHaveBeenCalledWith({ scope: 'home', filterHash: null })
   })
 
-  it.each(['work', 'insights', 'tools', 'channel'])(
+  it.each(['work', 'insights', 'tools', 'channel'] as const)(
     "acepta el scope de subhome '%s' (arquitectura §8.2, ya no solo 'home')",
     async (scope) => {
       const createRow = vi.fn().mockResolvedValue(fakeRow({ scope }))

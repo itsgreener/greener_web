@@ -4,6 +4,7 @@ import { cache } from 'react'
 
 import { env } from '@/lib/env'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
+import type { ContentType } from '@/modules/shared/domain/contentType'
 import {
   mediaAssets,
   mediaCleanup,
@@ -27,7 +28,10 @@ import {
   makeRemoveAllCaseCarouselMedia,
   makeRemoveCaseCarouselMedia,
 } from './application/removeCaseCarouselMedia'
-import { makeResolvePreviewContext } from './application/resolvePreviewContext'
+import {
+  makeResolvePreviewContext,
+  previewOfType,
+} from './application/resolvePreviewContext'
 import { resolveDetailCover } from './application/resolveDetailCover'
 import { makeUnpublishContent } from './application/unpublishContent'
 import { makeUpdateContent } from './application/updateContent'
@@ -147,6 +151,18 @@ export const resolvePreviewContext = cache(
     decodePreviewToken,
   }),
 )
+
+/**
+ * `resolvePreviewContext` para una ruta que solo sirve ciertos tipos de
+ * contenido: `null` si el slug no existe o es de otro tipo.
+ */
+export async function resolvePreviewOfType(
+  slug: string,
+  previewToken: string | undefined,
+  types: readonly ContentType[],
+) {
+  return previewOfType(await resolvePreviewContext(slug, previewToken), types)
+}
 
 /**
  * Portada de la ficha de una tool o un insight: el pin de `?pin=` o, si no, el

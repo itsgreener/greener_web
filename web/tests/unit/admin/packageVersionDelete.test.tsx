@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { dbError } from '@tests/helpers/dbError'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { dbError } from '@tests/helpers/dbError'
 import '@testing-library/jest-dom/vitest'
 
 vi.mock('next/cache', () => ({

@@ -1,11 +1,16 @@
 import type { Metadata } from 'next'
+
+import { BrokenHeadline } from '@/components/text/BrokenHeadline'
 import { ContactForm } from './ContactForm'
 import styles from './page.module.css'
 
+const CONTACT_HEADLINE = ['We', 'should have', 'a brand', 'together']
+
 /**
  * Formulario de contacto real (brief §5.6, arquitectura §14.1):
- * nombre, teléfono, email y mensaje, con honeypot, límite por IP y
- * consentimiento de privacidad — envío por SMTP (nodemailer) a una
+ * nombre, teléfono, email y mensaje, con honeypot, límite por IP y un aviso
+ * informativo de privacidad (la casilla no es un consentimiento desde el 19
+ * oct 2026, ver `ContactForm`) — envío por SMTP (nodemailer) a una
  * dirección de Greener. La newsletter ya no se pide aquí: el alta se hace
  * solo desde su pin en el feed.
  *
@@ -19,9 +24,11 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   return (
     <div className={styles.page}>
-      <h1 className={`${styles.title} text-display`}>
-        We <br /> should have <br /> a brand <br /> together
-      </h1>
+      <BrokenHeadline
+        as="h1"
+        lines={CONTACT_HEADLINE}
+        className={`${styles.title} text-display`}
+      />
       <p className="text-body">
         {`
   Whether you're thinking about a new website, need a new brand, are about

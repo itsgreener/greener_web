@@ -16,19 +16,12 @@ import {
 import { contentTypeLabel } from '@/components/admin/contentLabels'
 
 import {
-  caseCarousels,
-  caseDetails,
-  contents,
-  contentTranslations,
-  episodes,
-  others,
-} from '@/modules/content/container'
-
-import { htmlPackages } from '@/modules/packages/container'
-
-import { pins as pinRepository } from '@/modules/pin/container'
-
+  MAX_PINS_PER_CONTENT,
+  remainingPinSlots,
+} from '@/modules/pin/domain/pinLimits'
+import { otherKindLabel } from '@/modules/content/domain/otherSchema'
 import EditContentForm from './EditContentForm'
+import { loadEditorData } from './loadEditorData'
 
 import ContentTranslations from './ContentTranslations'
 
@@ -44,11 +37,6 @@ import PackageUpload from './PackageUpload'
 
 import PinList from './PinList'
 
-import {
-  MAX_PINS_PER_CONTENT,
-  remainingPinSlots,
-} from '@/modules/pin/domain/pinLimits'
-
 import BulkPinUpload from './BulkPinUpload'
 
 import DeleteContentButton from './DeleteContentButton'
@@ -56,8 +44,6 @@ import DeleteContentButton from './DeleteContentButton'
 import PublishControls from './PublishControls'
 import WarmVideosControl from './WarmVideosControl'
 import styles from './page.module.css'
-import { contentWarming } from '@/modules/media/container'
-import { otherKindLabel } from '@/modules/content/domain/otherSchema'
 
 type Props = {
   params: Promise<{
@@ -68,76 +54,26 @@ type Props = {
 export default async function EditContentPage({ params }: Props) {
   const { id } = await params
 
-  const content = await contents.getById(id)
+  const data = await loadEditorData(id)
 
-  if (!content) {
+  if (!data) {
     notFound()
   }
 
-  // Un `other` lleva su subtipo (plan de other, §7): una newsletter no tiene
-  // pines, paquete ni página; una página satélite tiene paquete HTML y pines.
-  const otherDetail =
-    content.type === 'other' ? await others.getByContentId(content.id) : null
-
-  const otherKind = otherDetail?.kind ?? null
-
-  // Frecuencias de los demás Other publicados, para el aviso de ocupación.
-  const otherFrequencies = otherDetail
-    ? await others
-        .listPublishedFrequencies(content.id)
-        .catch((error: unknown) => {
-          console.error(error)
-
-          return []
-        })
-    : []
-
-  const isNewsletter = otherKind === 'newsletter'
-
-  // Tipo A (tool/insight) y página satélite: paquete HTML, sin portada.
-  const supportsPackage =
-    content.type === 'tool' ||
-    content.type === 'insight' ||
-    otherKind === 'page'
-
-  const [
+  const {
+    content,
+    otherDetail,
+    otherKind,
+    otherFrequencies,
+    capabilities,
     translations,
     caseDetail,
     caseCarousel,
     episode,
     packageVersions,
     pins,
-  ] = await Promise.all([
-    contentTranslations.listByContentId(content.id),
-
-    content.type === 'case'
-      ? caseDetails.getByContentId(content.id)
-      : Promise.resolve(null),
-
-    content.type === 'case'
-      ? caseCarousels.listByContentId(content.id)
-      : Promise.resolve([]),
-
-    content.type === 'episode'
-      ? episodes.getByContentId(content.id)
-      : Promise.resolve(null),
-
-    supportsPackage
-      ? htmlPackages.listVersions(content.id)
-      : Promise.resolve([]),
-
-    isNewsletter
-      ? Promise.resolve([])
-      : pinRepository.listByContentId(content.id),
-  ])
-
-  let pendingWarming: number | null = null
-
-  try {
-    pendingWarming = await contentWarming.countPendingWarming(content.id)
-  } catch (error) {
-    console.error(error)
-  }
+    pendingWarming,
+  } = data
 
   const typeLabel = `${contentTypeLabel(content.type)}${
     otherKind ? ` · ${otherKindLabel(otherKind)}` : ''
@@ -165,12 +101,10 @@ export default async function EditContentPage({ params }: Props) {
               contentId={content.id}
               status={content.status}
               publishAt={content.publishAt}
-              previewAvailable={
-                content.type === 'case' || content.type === 'episode'
-              }
+              previewAvailable={capabilities.hasPreview}
             />
 
-            {!isNewsletter && (
+            {capabilities.hasPins && (
               <WarmVideosControl
                 contentId={content.id}
                 pending={pendingWarming}
@@ -265,7 +199,7 @@ export default async function EditContentPage({ params }: Props) {
           </AdminCard>
         )}
 
-        {supportsPackage && (
+        {capabilities.hasPackage && (
           <AdminCard>
             <AdminCardHeader
               kicker="Runtime"
@@ -277,7 +211,7 @@ export default async function EditContentPage({ params }: Props) {
           </AdminCard>
         )}
 
-        {!isNewsletter && (
+        {capabilities.hasPins && (
           <AdminCard>
             <AdminCardHeader
               kicker="Feed"

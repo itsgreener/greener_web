@@ -14,7 +14,7 @@ import {
   type BatchBounds,
   type MountedRange,
 } from '@/modules/masonry/domain/virtualization'
-import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
+import { masonryKey, toLayoutItem } from '@/modules/masonry/domain/layoutItem'
 import type { PinCardData } from '@/components/pin/PinCard'
 import type { FeedNewsletterItem } from '@/modules/feed/domain/feedReadModels'
 import { useContainerWidth } from './useContainerWidth'
@@ -44,13 +44,7 @@ function isNewsletterEntry(entry: MasonryEntry): entry is FeedNewsletterItem {
 }
 
 export interface PositionedPin<T extends MasonryEntry = MasonryEntry> {
-  /**
-   * Identidad de ESTA tarjeta en la lista, única aunque el mismo pin salga
-   * varias veces (el feed es infinito y recicla pines: ver PROGRESO). La
-   * lista solo crece por el final y un ítem nunca cambia de posición, así
-   * que el índice global es una clave estable; el pinId se añade solo para
-   * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
-   */
+  /** Identidad de ESTA tarjeta en la lista (ver `masonryKey`). */
   key: string
   item: T
   x: number
@@ -107,11 +101,7 @@ export function useMasonryPositions<T extends MasonryEntry>(
             ratio: NEWSLETTER_CARD_RATIO,
             labelHeight: 0,
           }
-        : {
-            id: item.pinId,
-            ratio: item.ratio as PinRatio,
-            labelHeight: estimateLabelHeight(item, columnWidth),
-          },
+        : toLayoutItem(item, columnWidth),
     )
   }, [items, containerWidth, columnCount])
 
@@ -197,7 +187,7 @@ export function useMasonryPositions<T extends MasonryEntry>(
     return layout.positions.map((pos, index) => {
       const batchIndex = batchOfItem[index]
       return {
-        key: `${index}:${items[index].pinId}`,
+        key: masonryKey(index, items[index].pinId),
         item: items[index],
         x: pos.x,
         y: pos.y,

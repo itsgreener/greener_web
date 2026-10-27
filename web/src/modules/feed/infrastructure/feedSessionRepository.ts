@@ -6,6 +6,7 @@ import type {
   FeedSessionRepository,
   NewFeedSession,
 } from '@/modules/feed/domain/feedPorts'
+import { parseFeedScope } from '@/modules/feed/domain/feedScope'
 
 /**
  * Persistencia de feed_session/feed_round (arquitectura §8.5). Usa
@@ -42,7 +43,7 @@ async function createFeedSessionRow(
   return {
     id: data.id,
     seed: data.seed,
-    scope: data.scope,
+    scope: parseFeedScope(data.scope),
     expiresAt: data.expires_at,
     excludeContentId: data.exclude_content_id,
   }
@@ -66,7 +67,7 @@ async function getFeedSessionRow(
   return {
     id: data.id,
     seed: data.seed,
-    scope: data.scope,
+    scope: parseFeedScope(data.scope),
     expiresAt: data.expires_at,
     excludeContentId: data.exclude_content_id,
   }

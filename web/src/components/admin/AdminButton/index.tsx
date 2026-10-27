@@ -1,6 +1,6 @@
 import Link from 'next/link'
 
-import { cx } from '@/components/admin/cx'
+import { cx } from '@/lib/cx'
 
 import styles from './AdminButton.module.css'
 

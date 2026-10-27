@@ -6,19 +6,14 @@ import type { CaseDetail } from '@/modules/content/domain/caseDetailSchema'
 
 import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
 
-import { AdminButton } from '@/components/admin/AdminButton'
-import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
+import { AdminCountedField } from '@/components/admin/AdminCountedField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
-import { AdminMessage } from '@/components/admin/AdminMessage'
-import { CharCounter } from '@/components/admin/CharCounter'
-
-import { useCharCount } from '@/components/admin/useCharCount'
-
 import { saveCaseDetailAction, type CaseDetailActionState } from './caseActions'
 
 type Props = {
@@ -33,8 +28,6 @@ export default function CaseDetailForm({ contentId, caseDetail }: Props) {
     saveCaseDetailAction,
     initialState,
   )
-
-  const client = useCharCount(caseDetail?.client ?? '')
 
   return (
     <AdminForm action={formAction}>
@@ -63,39 +56,22 @@ export default function CaseDetailForm({ contentId, caseDetail }: Props) {
           </AdminSelect>
         </AdminField>
 
-        <AdminField
+        <AdminCountedField
+          id="client"
+          name="client"
           label="Cliente"
-          htmlFor="client"
-          aside={
-            <CharCounter length={client.length} max={TEXT_LIMITS.client} />
-          }
+          max={TEXT_LIMITS.client}
+          defaultValue={caseDetail?.client ?? ''}
           error={state.fieldErrors?.client?.[0]}
-        >
-          <AdminInput
-            id="client"
-            name="client"
-            type="text"
-            defaultValue={caseDetail?.client ?? ''}
-            onChange={client.onChange}
-          />
-        </AdminField>
+        />
       </AdminFormGrid>
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      {state.success && (
-        <AdminMessage kind="success">
-          Datos del Case guardados correctamente.
-        </AdminMessage>
-      )}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar datos del Case'}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label="Guardar datos del Case"
+        successMessage="Datos del Case guardados correctamente."
+      />
     </AdminForm>
   )
 }

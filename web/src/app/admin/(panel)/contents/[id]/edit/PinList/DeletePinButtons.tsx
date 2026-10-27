@@ -56,7 +56,7 @@ function DeleteButton({
         onClick={handleClick}
         disabled={pending || busy}
       >
-        {pending ? 'Borrando...' : idleLabel}
+        {pending ? 'Borrando…' : idleLabel}
       </AdminButton>
 
       {error && <AdminMessage kind="error">{error}</AdminMessage>}

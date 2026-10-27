@@ -1,9 +1,8 @@
 'use server'
 
-import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
-
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 
 import { adminErrorMessage } from '@/app/admin/_lib/adminErrorMessage'
 

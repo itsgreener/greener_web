@@ -1,0 +1,48 @@
+.note {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.paragraph {
+  margin: 0 0 var(--space-sm);
+  line-height: 1.55;
+}
+
+.list {
+  margin: 0 0 var(--space-sm);
+  padding-left: 1.25rem;
+  line-height: 1.55;
+}
+
+/* La tabla de almacenamiento es ancha: se desplaza dentro de su caja en
+   pantallas estrechas en vez de desbordar la página. */
+.tableWrap {
+  margin: 0 0 var(--space-sm);
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-md);
+  line-height: 1.45;
+
+  & th,
+  & td {
+    padding: var(--space-sm) var(--space-sm) var(--space-sm) 0;
+    border-bottom: 1px solid var(--color-border);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  & thead th {
+    font-weight: 700;
+  }
+
+  & tbody th {
+    font-weight: 400;
+    white-space: nowrap;
+  }
+}

@@ -22,9 +22,6 @@ export type Row = {
   note?: string
 }
 
-export const RATIOS = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
-export const LANGUAGES = ['es', 'en', 'ca']
-
 // MP4, WebM y MOV. Se mira el tipo MIME y, como
 // respaldo, la extensión: algunos sistemas no informan del MIME de un .mov.
 const VIDEO_EXTENSION = /\.(mp4|webm|mov|m4v)$/i

@@ -1,3 +1,4 @@
+import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
 
 import type { PublicContent } from '@/modules/content/domain/publicContent'
@@ -61,4 +62,18 @@ export function makeResolvePreviewContext({
 
     return { content, reader: publicReader, isPreview: false }
   }
+}
+
+/**
+ * Filtra una resolución por tipo de contenido: las rutas de detalle solo
+ * sirven los tipos que les corresponden (/work, casos y episodios; /tools,
+ * tools). Un slug de otro tipo se trata como inexistente (`null`).
+ */
+export function previewOfType(
+  resolution: PreviewResolution,
+  types: readonly ContentType[],
+): (PreviewResolution & { content: PublicContent }) | null {
+  const { content } = resolution
+  if (!content || !types.includes(content.type)) return null
+  return { ...resolution, content }
 }

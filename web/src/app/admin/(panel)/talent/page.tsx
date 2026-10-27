@@ -1,6 +1,8 @@
 import Link from 'next/link'
 
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { buildListHref } from '@/app/admin/_lib/listHref'
+import { pluralize } from '@/app/admin/_lib/pluralize'
 import { AdminBadge } from '@/components/admin/AdminBadge'
 import { AdminButton, AdminButtonLink } from '@/components/admin/AdminButton'
 import { AdminCard } from '@/components/admin/AdminCard'
@@ -23,7 +25,7 @@ import {
   AdminTd,
 } from '@/components/admin/AdminTable'
 import { AdminTextLink } from '@/components/admin/AdminTextLink'
-import { cx } from '@/components/admin/cx'
+import { cx } from '@/lib/cx'
 import { talentAdminQueries } from '@/modules/talent/container'
 import {
   CANDIDATE_STATUS_FILTER_VALUES,
@@ -55,19 +57,9 @@ function pageHref(
   filters: { q: string; status: string; profile: string },
   page: number,
 ) {
-  const params = new URLSearchParams()
+  const { q, status, profile } = filters
 
-  if (filters.q) params.set('q', filters.q)
-
-  if (filters.status) params.set('status', filters.status)
-
-  if (filters.profile) params.set('profile', filters.profile)
-
-  if (page > 1) params.set('page', String(page))
-
-  const query = params.toString()
-
-  return query ? `/admin/talent?${query}` : '/admin/talent'
+  return buildListHref('/admin/talent', { q, status, profile }, page)
 }
 
 export default async function AdminTalentPage({ searchParams }: Props) {
@@ -203,7 +195,7 @@ export default async function AdminTalentPage({ searchParams }: Props) {
 
           <AdminResultBar>
             <span>
-              {total} {total === 1 ? 'candidato' : 'candidatos'}
+              {total} {pluralize(total, 'candidato', 'candidatos')}
             </span>
           </AdminResultBar>
 
@@ -279,7 +271,7 @@ export default async function AdminTalentPage({ searchParams }: Props) {
                       {item.filesCount > 0 && (
                         <AdminSubtext>
                           +{item.filesCount}{' '}
-                          {item.filesCount === 1 ? 'fichero' : 'ficheros'}
+                          {pluralize(item.filesCount, 'fichero', 'ficheros')}
                         </AdminSubtext>
                       )}
                     </td>

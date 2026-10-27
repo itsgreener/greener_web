@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { localeSchema } from '@/modules/shared/domain/locale'
 import { idSchema } from '@/lib/validation/idSchema'
+
 export const contentTranslationSchema = z.object({
   contentId: idSchema('content'),
 

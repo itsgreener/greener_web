@@ -1,4 +1,6 @@
 import { AdminButton } from '@/components/admin/AdminButton'
+import { CloudinaryImage } from '@/components/media/CloudinaryImage'
+import { ADMIN_THUMBNAIL_WIDTH } from '@/modules/media/domain/mediaDelivery'
 
 import styles from './AdminMediaItem.module.css'
 
@@ -9,7 +11,7 @@ export function AdminMediaGrid({ children }: { children: React.ReactNode }) {
 
 type Props = {
   /** Miniatura de una imagen; sin ella se enseña el identificador del vídeo. */
-  image?: { src: string; alt: string }
+  image?: { publicId: string; alt: string }
   /** Identificador del medio, cuando es un vídeo y no hay miniatura. */
   videoId?: string
   /** Texto bajo la miniatura (el alt del medio). */
@@ -29,10 +31,13 @@ export function AdminMediaItem({
   return (
     <div className={styles.item}>
       {image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <CloudinaryImage
           className={styles.thumb}
-          src={image.src}
+          publicId={image.publicId}
+          kind="image"
+          profile="feed"
+          srcWidth={ADMIN_THUMBNAIL_WIDTH}
+          responsive={false}
           alt={image.alt}
           width={100}
           height={100}

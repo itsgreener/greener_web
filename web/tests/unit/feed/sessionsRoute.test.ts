@@ -166,3 +166,23 @@ describe('validación de entrada (auditoría 8 oct)', () => {
     expect(createFeedSession).not.toHaveBeenCalled()
   })
 })
+
+describe('POST /api/feed/sessions — scope', () => {
+  it.each(['nope', 'work ', 'related-cases', 'toString'])(
+    "rechaza el scope '%s' con 400 sin llegar al caso de uso",
+    async (scope) => {
+      const { POST } = await import('@/app/api/feed/sessions/route')
+
+      const response = await POST(
+        new NextRequest('http://localhost/api/feed/sessions', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ scope }),
+        }),
+      )
+
+      expect(response.status).toBe(400)
+      expect(createFeedSession).not.toHaveBeenCalled()
+    },
+  )
+})

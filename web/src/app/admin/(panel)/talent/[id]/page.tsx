@@ -26,7 +26,6 @@ import {
 } from '@/modules/talent/domain/talentConstants'
 import { externalCvUrl } from '@/modules/talent/domain/talentCvLocation'
 
-import CandidateActions from './CandidateActions'
 import {
   CV_KIND_LABELS,
   EXPERIENCE_LABELS,
@@ -35,6 +34,7 @@ import {
   statusLabel,
   WORK_TYPE_LABELS,
 } from '@/app/admin/(panel)/talent/talentLabels'
+import CandidateActions from './CandidateActions'
 
 import styles from './page.module.css'
 

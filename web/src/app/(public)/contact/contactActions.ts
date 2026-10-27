@@ -1,7 +1,8 @@
 'use server'
 
 import { submitContactForm } from '@/modules/contact/container'
-import type { FormActionState } from '@/lib/forms/formActionState'
+import { toFormState, type FormActionState } from '@/lib/forms/formActionState'
+import { readHoneypot } from '@/lib/forms/honeypot'
 
 export type ContactActionState = FormActionState
 
@@ -16,7 +17,7 @@ export async function submitContactAction(
   _previousState: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
-  const honeypot = (formData.get('website') as string | null) ?? ''
+  const honeypot = readHoneypot(formData, 'website')
 
   const result = await submitContactForm(
     {
@@ -28,12 +29,7 @@ export async function submitContactAction(
     honeypot,
   )
 
-  if (!result.ok) {
-    if ('fieldErrors' in result) {
-      return { fieldErrors: result.fieldErrors }
-    }
-    return { formError: result.formError }
-  }
+  if (!result.ok) return toFormState(result)
 
   return { success: true }
 }

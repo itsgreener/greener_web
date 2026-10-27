@@ -1,6 +1,4 @@
 import { AdminMediaItem } from '@/components/admin/AdminMediaItem'
-import { buildImageUrl } from '@/modules/media/client/cloudinaryUrl'
-import { ADMIN_THUMBNAIL_WIDTH } from '@/modules/media/domain/mediaDelivery'
 
 import type { PinMedia } from './types'
 
@@ -16,11 +14,7 @@ export function MediaThumb({
       image={
         item.kind === 'image'
           ? {
-              src: buildImageUrl(
-                item.cloudinaryPublicId,
-                'feed',
-                ADMIN_THUMBNAIL_WIDTH,
-              ),
+              publicId: item.cloudinaryPublicId,
               alt: '',
             }
           : undefined

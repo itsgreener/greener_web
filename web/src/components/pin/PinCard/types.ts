@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 export interface PinMediaData {
   kind: 'image' | 'video'
   cloudinaryPublicId: string
@@ -31,6 +33,20 @@ export interface PinCardStyle {
   y: number
   width: number
   height: number
+}
+
+/**
+ * Estilo en línea con el que el feed coloca una tarjeta: por `transform`, no
+ * por flujo del documento. Es el único sitio que conoce la técnica, así que
+ * cambiarla (otro `transform`, `top/left`…) se hace aquí. La altura la fija
+ * el contenido de la tarjeta; el espaciador del feed la añade por su cuenta.
+ */
+export function cardPositionStyle({
+  x,
+  y,
+  width,
+}: Pick<PinCardStyle, 'x' | 'y' | 'width'>): CSSProperties {
+  return { transform: `translate(${x}px, ${y}px)`, width }
 }
 
 /**

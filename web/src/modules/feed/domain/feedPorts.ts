@@ -3,12 +3,13 @@ import type {
   FeedInterlude,
   PinDirectoryEntry,
 } from './feedReadModels'
+import type { FeedScope } from './feedScope'
 import type { FeedConfig } from './types'
 
 export interface FeedSession {
   id: string
   seed: string
-  scope: string
+  scope: FeedScope
   expiresAt: string
   /**
    * Contenido a excluir del universo de esta sesión (panel de
@@ -19,7 +20,7 @@ export interface FeedSession {
 }
 
 export interface NewFeedSession {
-  scope: string
+  scope: FeedScope
   filterHash: string | null
   excludeContentId?: string | null
 }
@@ -43,7 +44,10 @@ export interface FeedSessionRepository {
 /** Lo publicado, visto desde el feed. */
 export interface FeedCatalog {
   /** Universo completo del scope, para generar una ronda nueva. */
-  dataset(scope: string, excludeContentId?: string | null): Promise<FeedDataset>
+  dataset(
+    scope: FeedScope,
+    excludeContentId?: string | null,
+  ): Promise<FeedDataset>
 
   /** Fichas de unas unidades ya decididas, sin releer el catálogo entero. */
   directoryByIds(unitIds: string[]): Promise<Record<string, PinDirectoryEntry>>
@@ -83,7 +87,7 @@ export interface FeedRequestLimits {
 
   canFetchBatch(visitorId: string): boolean
 
-  rememberSession(visitorId: string, sessionId: string, scope: string): void
+  rememberSession(visitorId: string, sessionId: string, scope: FeedScope): void
 
-  getLastSession(visitorId: string, scope: string): string | null
+  getLastSession(visitorId: string, scope: FeedScope): string | null
 }

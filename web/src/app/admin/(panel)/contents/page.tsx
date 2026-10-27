@@ -1,6 +1,6 @@
-import { Suspense } from 'react'
-
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { buildListHref, buildListQuery } from '@/app/admin/_lib/listHref'
+import { pluralize } from '@/app/admin/_lib/pluralize'
 import {
   AdminBadge,
   AdminLocaleBadge,
@@ -11,11 +11,14 @@ import { AdminCard } from '@/components/admin/AdminCard'
 import { AdminSelect } from '@/components/admin/AdminControls'
 import { AdminEmptyState } from '@/components/admin/AdminEmptyState'
 import {
-  AdminFilterBar,
   AdminFilterClear,
   AdminFilterSearch,
   AdminResultBar,
 } from '@/components/admin/AdminFilterBar'
+import {
+  ContentStatusOptions,
+  ContentTypeOptions,
+} from '@/components/admin/AdminOptions'
 import { AdminPage, AdminPageHeader } from '@/components/admin/AdminPage'
 import { AdminPagination } from '@/components/admin/AdminPagination'
 import {
@@ -26,7 +29,8 @@ import {
   AdminTd,
 } from '@/components/admin/AdminTable'
 import { AdminVisuallyHidden } from '@/components/admin/AdminVisuallyHidden'
-import { contentTypeLabel, localeCode } from '@/components/admin/contentLabels'
+import { contentTypeLabel } from '@/components/admin/contentLabels'
+import { localeCode } from '@/modules/shared/domain/locale'
 import {
   contents as contentRepository,
   others as otherRepository,
@@ -40,8 +44,7 @@ import {
   otherKindLabel,
 } from '@/modules/content/domain/otherSchema'
 
-import ContentFilterPersistence from './ContentFilterPersistence'
-import { CONTENT_FILTERS_ID } from './contentFilters'
+import ContentFilterBar from './ContentFilterBar'
 import OtherOccupationNotice from './OtherOccupationNotice'
 
 type Props = {
@@ -50,6 +53,8 @@ type Props = {
     type?: string
     status?: string
     page?: string
+    // `?clear=1` (botón «Limpiar»): olvida los filtros guardados.
+    clear?: string
   }>
 }
 
@@ -57,23 +62,14 @@ function pageHref(
   filters: { q: string; type?: string; status?: string },
   page: number,
 ) {
-  const params = new URLSearchParams()
+  const { q, type, status } = filters
 
-  if (filters.q) params.set('q', filters.q)
-
-  if (filters.type) params.set('type', filters.type)
-
-  if (filters.status) params.set('status', filters.status)
-
-  if (page > 1) params.set('page', String(page))
-
-  const query = params.toString()
-
-  return query ? `/admin/contents?${query}` : '/admin/contents'
+  return buildListHref('/admin/contents', { q, type, status }, page)
 }
 
 export default async function ContentsPage({ searchParams }: Props) {
-  const query = parseContentListQuery(await searchParams)
+  const rawParams = await searchParams
+  const query = parseContentListQuery(rawParams)
 
   const { q, type = '', status = '' } = query
 
@@ -105,10 +101,6 @@ export default async function ContentsPage({ searchParams }: Props) {
 
   return (
     <AdminPage>
-      <Suspense fallback={null}>
-        <ContentFilterPersistence />
-      </Suspense>
-
       <AdminPageHeader
         eyebrow="Gestión de contenidos"
         title="Contenidos"
@@ -121,7 +113,11 @@ export default async function ContentsPage({ searchParams }: Props) {
       />
 
       <AdminCard padded={false}>
-        <AdminFilterBar key={`${q}|${type}|${status}`} id={CONTENT_FILTERS_ID}>
+        <ContentFilterBar
+          key={`${q}|${type}|${status}`}
+          search={buildListQuery({ q, type, status }, query.page)}
+          clear={rawParams.clear === '1'}
+        >
           <AdminFilterSearch
             id="content-search"
             label="Buscar contenidos"
@@ -137,15 +133,7 @@ export default async function ContentsPage({ searchParams }: Props) {
           >
             <option value="">Todos los tipos</option>
 
-            <option value="case">Case</option>
-
-            <option value="tool">Tool</option>
-
-            <option value="insight">Insight</option>
-
-            <option value="episode">Episode</option>
-
-            <option value="other">Other</option>
+            <ContentTypeOptions />
           </AdminSelect>
 
           <AdminSelect
@@ -156,17 +144,13 @@ export default async function ContentsPage({ searchParams }: Props) {
           >
             <option value="">Todos los estados</option>
 
-            <option value="published">Publicado</option>
-
-            <option value="draft">Borrador</option>
-
-            <option value="scheduled">Programado</option>
+            <ContentStatusOptions />
           </AdminSelect>
 
           <AdminButton type="submit">Filtrar</AdminButton>
 
           {hasFilters && <AdminFilterClear href="/admin/contents?clear=1" />}
-        </AdminFilterBar>
+        </ContentFilterBar>
 
         {otherOccupation !== null && (
           <OtherOccupationNotice
@@ -178,7 +162,8 @@ export default async function ContentsPage({ searchParams }: Props) {
 
         <AdminResultBar>
           <span>
-            {filteredTotal} {filteredTotal === 1 ? 'contenido' : 'contenidos'}
+            {filteredTotal}{' '}
+            {pluralize(filteredTotal, 'contenido', 'contenidos')}
           </span>
 
           {hasFilters && <small>de {totalContents} totales</small>}

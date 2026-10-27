@@ -1,11 +1,10 @@
 'use server'
 
-import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
-
 import { randomBytes } from 'node:crypto'
 
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 
 import { isDomainError } from '@/modules/shared/domain/domainError'
 

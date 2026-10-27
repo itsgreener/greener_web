@@ -2,11 +2,9 @@
 
 import Link from 'next/link'
 
-import {
-  CONSENT_COPY,
-  DEFAULT_CONSENT_LOCALE,
-} from '@/modules/consent/domain/copy'
+import { ConsentButtons } from '@/components/consent/ConsentButtons'
 import { useConsent } from '@/modules/consent/client/ConsentProvider'
+import { useConsentCopy } from '@/modules/consent/client/useConsentCopy'
 import styles from './CookieBanner.module.css'
 
 /**
@@ -20,8 +18,8 @@ import styles from './CookieBanner.module.css'
  * `/privacy`, a la que lleva «Cookies» en el menú lateral.
  */
 export function CookieBanner() {
-  const { panelOpen, accept, reject, dismiss } = useConsent()
-  const copy = CONSENT_COPY[DEFAULT_CONSENT_LOCALE]
+  const { panelOpen, dismiss } = useConsent()
+  const copy = useConsentCopy()
 
   if (!panelOpen) return null
 
@@ -43,12 +41,7 @@ export function CookieBanner() {
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.button} onClick={accept}>
-          {copy.accept}
-        </button>
-        <button type="button" className={styles.button} onClick={reject}>
-          {copy.reject}
-        </button>
+        <ConsentButtons className={styles.button} />
         <Link href="/privacy#cookies" className={styles.link}>
           {copy.policyLink}
         </Link>

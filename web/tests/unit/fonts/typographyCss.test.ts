@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest'
 import { readFileSync, existsSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
+import { describe, it, expect } from 'vitest'
 
 const ROOT = process.cwd()
 const globalsCss = readFileSync(join(ROOT, 'src/app/globals.css'), 'utf8')

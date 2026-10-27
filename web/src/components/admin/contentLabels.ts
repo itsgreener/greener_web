@@ -1,8 +1,11 @@
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 import type { ContentType } from '@/modules/shared/domain/contentType'
-import type { Locale } from '@/modules/shared/domain/locale'
 
-/** Etiquetas del ABM para los tipos, estados e idiomas de un contenido. */
+/**
+ * Etiquetas del ABM para los tipos y estados de un contenido. Las de idioma
+ * (`localeLabel`, `localeCode`) viven en `modules/shared/domain/locale`, junto
+ * al esquema, porque también las usa la web pública.
+ */
 const TYPE_LABELS: Record<ContentType, string> = {
   case: 'Case',
   insight: 'Insight',
@@ -23,9 +26,4 @@ export function contentTypeLabel(type: ContentType): string {
 
 export function contentStatusLabel(status: ContentStatus): string {
   return STATUS_LABELS[status]
-}
-
-/** Código corto del idioma: ES, EN, CA. */
-export function localeCode(locale: Locale): string {
-  return locale.toUpperCase()
 }

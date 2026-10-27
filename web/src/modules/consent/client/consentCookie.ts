@@ -1,5 +1,6 @@
 'use client'
 
+import { readBrowserCookie } from '@/lib/clientCookie'
 import {
   CONSENT_COOKIE_NAME,
   CONSENT_MAX_AGE_SECONDS,
@@ -16,19 +17,7 @@ import {
  */
 
 export function readConsentRecord(): ConsentRecord | null {
-  if (typeof document === 'undefined') return null
-
-  try {
-    const prefix = `${CONSENT_COOKIE_NAME}=`
-    const entry = document.cookie
-      .split(';')
-      .map((part) => part.trim())
-      .find((part) => part.startsWith(prefix))
-
-    return parseConsent(entry ? entry.slice(prefix.length) : null)
-  } catch {
-    return null
-  }
+  return parseConsent(readBrowserCookie(CONSENT_COOKIE_NAME))
 }
 
 export function writeConsentRecord(record: ConsentRecord): void {

@@ -1,3 +1,6 @@
+import type { ContentType } from '@/modules/shared/domain/contentType'
+import { fnv1a32 } from '@/modules/shared/domain/hash'
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 import { caseVideoRatio, toolInsightDetailRatio } from './detailVideoRatio'
 import {
   DETAIL_VIDEO_RUNGS,
@@ -6,10 +9,6 @@ import {
   type VideoProfile,
 } from './mediaDelivery'
 import { canAnimateInFeed } from './mediaLimits'
-
-import type { ContentType } from '@/modules/shared/domain/contentType'
-import { fnv1a32 } from '@/modules/shared/domain/hash'
-import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 
 /**
  * Plan de calentamiento de un vídeo (fase 2 del contrato de medios,

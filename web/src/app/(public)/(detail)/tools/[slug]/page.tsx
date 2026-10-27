@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import {
   resolveDetailCover,
-  resolvePreviewContext,
+  resolvePreviewOfType,
 } from '@/modules/content/container'
 import { buildContentMetadata } from '@/lib/contentMetadata'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
@@ -22,13 +22,8 @@ type Props = {
  * `?preview=<token>` (arquitectura §15.3): ver comentario equivalente en
  * /work/[slug]/page.tsx.
  */
-async function getToolPreview(slug: string, previewToken: string | undefined) {
-  const { content, reader, isPreview } = await resolvePreviewContext(
-    slug,
-    previewToken,
-  )
-  if (!content || content.type !== 'tool') return null
-  return { content, reader, isPreview }
+function getToolPreview(slug: string, previewToken: string | undefined) {
+  return resolvePreviewOfType(slug, previewToken, ['tool'])
 }
 
 export async function generateMetadata({
@@ -69,13 +64,11 @@ export default async function ToolPage({ params, searchParams }: Props) {
   )
 
   return (
-    <>
-      <ToolInsightDetail
-        content={resolved.content}
-        ctaLabel="Use"
-        appHref={`/tools/${slug}/app`}
-        cover={cover}
-      />
-    </>
+    <ToolInsightDetail
+      content={resolved.content}
+      ctaLabel="Use"
+      appHref={`/tools/${slug}/app`}
+      cover={cover}
+    />
   )
 }

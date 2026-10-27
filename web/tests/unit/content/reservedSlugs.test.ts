@@ -16,10 +16,13 @@ import {
 
 const ROOT = path.resolve(__dirname, '../../..')
 
+/** Basura que el sistema operativo deja en las carpetas; no es una ruta. */
+const OS_JUNK_FILES = new Set(['.DS_Store', 'Thumbs.db', 'desktop.ini'])
+
 function entries(dir: string): string[] {
-  return readdirSync(path.join(ROOT, dir), { withFileTypes: true }).map(
-    (entry) => entry.name,
-  )
+  return readdirSync(path.join(ROOT, dir), { withFileTypes: true })
+    .map((entry) => entry.name)
+    .filter((name) => !OS_JUNK_FILES.has(name))
 }
 
 /** Nombre de URL de una entrada de `src/app`, o null si no es una ruta. */

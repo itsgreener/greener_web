@@ -12,6 +12,22 @@ import { contents as contentRepository } from '@/modules/content/container'
 
 import styles from './page.module.css'
 
+/** Tareas más frecuentes del panel, en «Acceso rápido». */
+const QUICK_LINKS = [
+  {
+    href: '/admin/contents/new',
+    icon: '+',
+    title: 'Crear contenido',
+    text: 'Añade un Case, Tool, Insight o Episode.',
+  },
+  {
+    href: '/admin/contents',
+    icon: '▤',
+    title: 'Gestionar contenidos',
+    text: 'Edita, publica o revisa contenido existente.',
+  },
+] as const
+
 export default async function AdminPanelPage() {
   const [counts, recent] = await Promise.all([
     contentRepository.counts(),
@@ -137,35 +153,19 @@ export default async function AdminPanelPage() {
           />
 
           <div className={styles.quickList}>
-            <Link href="/admin/contents/new" className={styles.quick}>
-              <span className={styles.quickIcon}>+</span>
+            {QUICK_LINKS.map((link) => (
+              <Link key={link.href} href={link.href} className={styles.quick}>
+                <span className={styles.quickIcon}>{link.icon}</span>
 
-              <div>
-                <strong className={styles.quickTitle}>Crear contenido</strong>
+                <div>
+                  <strong className={styles.quickTitle}>{link.title}</strong>
 
-                <span className={styles.quickText}>
-                  Añade un Case, Tool, Insight o Episode.
-                </span>
-              </div>
+                  <span className={styles.quickText}>{link.text}</span>
+                </div>
 
-              <span className={styles.arrow}>→</span>
-            </Link>
-
-            <Link href="/admin/contents" className={styles.quick}>
-              <span className={styles.quickIcon}>▤</span>
-
-              <div>
-                <strong className={styles.quickTitle}>
-                  Gestionar contenidos
-                </strong>
-
-                <span className={styles.quickText}>
-                  Edita, publica o revisa contenido existente.
-                </span>
-              </div>
-
-              <span className={styles.arrow}>→</span>
-            </Link>
+                <span className={styles.arrow}>→</span>
+              </Link>
+            ))}
           </div>
         </AdminCard>
       </section>

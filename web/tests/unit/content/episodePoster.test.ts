@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   getEpisodePoster,
   pickEpisodePoster,
   type PosterCandidatePin,
 } from '@/modules/content/infrastructure/episodePoster'
-import type { SupabaseClient } from '@supabase/supabase-js'
 
 const image = (id: string) => ({
   kind: 'image' as const,

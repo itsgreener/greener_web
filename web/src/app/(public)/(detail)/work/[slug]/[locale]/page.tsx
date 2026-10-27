@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound, redirect } from 'next/navigation'
 import { publicContent } from '@/modules/content/container'
+import { workLocalePath } from '@/modules/content/domain/contentPath'
 import { CaseDetail } from '@/components/detail/CaseDetail'
 import {
   getWorkContent,
@@ -8,6 +9,7 @@ import {
 } from '@/app/(public)/(detail)/work/[slug]/workContent'
 
 import { localeSchema } from '@/modules/shared/domain/locale'
+
 type Props = {
   params: Promise<{ slug: string; locale: string }>
 }
@@ -48,7 +50,8 @@ export default async function WorkLocalePage({ params }: Props) {
   }
 
   if (content.locale === content.defaultLocale) {
-    redirect(`/work/${slug}`)
+    // El idioma pedido es el de por defecto: la ruta canónica, sin segmento.
+    redirect(workLocalePath(slug, content.locale, content.defaultLocale))
   }
 
   const [caseDetail, carousel] = await Promise.all([
@@ -57,12 +60,6 @@ export default async function WorkLocalePage({ params }: Props) {
   ])
 
   return (
-    <>
-      <CaseDetail
-        content={content}
-        caseDetail={caseDetail}
-        carousel={carousel}
-      />
-    </>
+    <CaseDetail content={content} caseDetail={caseDetail} carousel={carousel} />
   )
 }

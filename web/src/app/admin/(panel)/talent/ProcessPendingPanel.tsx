@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react'
 
+import { confirmSubmit } from '@/components/admin/AdminActionForm'
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 
@@ -45,15 +46,9 @@ export default function ProcessPendingPanel({ pending, started }: Props) {
         {state.canForce && (
           <form
             action={action}
-            onSubmit={(event) => {
-              if (
-                !window.confirm(
-                  '¿Lanzar igualmente? Si n8n sigue procesando de verdad, los CVs pendientes se procesarán dos veces (coste de OpenAI y ficheros duplicados en Drive). Hazlo solo si las filas de «Procesando» llevan tiempo atascadas.',
-                )
-              ) {
-                event.preventDefault()
-              }
-            }}
+            onSubmit={confirmSubmit(
+              '¿Lanzar igualmente? Si n8n sigue procesando de verdad, los CVs pendientes se procesarán dos veces (coste de OpenAI y ficheros duplicados en Drive). Hazlo solo si las filas de «Procesando» llevan tiempo atascadas.',
+            )}
           >
             <input type="hidden" name="force" value="true" />
 

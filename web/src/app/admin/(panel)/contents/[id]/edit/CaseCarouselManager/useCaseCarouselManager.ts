@@ -2,13 +2,7 @@
 
 import { useState } from 'react'
 
-import { validateImageSelection } from '@/modules/media/client/validateImageSelection'
-
-import {
-  assertLocalVideoWithinLimits,
-  assertUploadedVideoWithinLimits,
-  contentVideoRules,
-} from '@/modules/media/client/videoUploadChecks'
+import { contentVideoRules } from '@/modules/media/client/videoUploadChecks'
 
 import {
   addCaseCarouselImageAction,
@@ -17,11 +11,7 @@ import {
   removeCaseCarouselMediaAction,
 } from '@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions'
 
-import { useCloudinaryUpload } from '@/app/admin/(panel)/contents/[id]/edit/useCloudinaryUpload'
-import {
-  useEditorOperation,
-  useEditorRefresh,
-} from '@/app/admin/(panel)/contents/[id]/edit/useEditorOperation'
+import { useMediaUpload } from '@/app/admin/(panel)/contents/[id]/edit/useMediaUpload'
 
 import type { CarouselItem, CaseCarouselManagerProps } from './types'
 
@@ -33,37 +23,56 @@ export function useCaseCarouselManager({
   contentId,
   items,
 }: CaseCarouselManagerProps) {
-  const upload = useCloudinaryUpload()
-  const operation = useEditorOperation(upload)
-  const refresh = useEditorRefresh()
-
   const [removingAll, setRemovingAll] = useState(false)
-  const [file, setFile] = useState<File | null>(null)
-  const [kind, setKind] = useState<'image' | 'video'>('image')
   const [alt, setAlt] = useState('')
-  // Vacía el <input type="file"> al terminar una subida (la página ya no recarga).
-  const [inputKey, setInputKey] = useState(0)
 
   const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
 
   const nextSortOrder = sorted.length
 
-  function selectKind(next: 'image' | 'video') {
-    setKind(next)
-    setFile(null)
-    upload.setError(null)
-  }
-
-  function selectFile(selected: File | null) {
-    setFile(selected)
-    upload.setError(null)
-  }
-
-  function finishUpload() {
-    setFile(null)
-    setAlt('')
-    setInputKey((key) => key + 1)
-  }
+  const {
+    upload,
+    operation,
+    file,
+    kind,
+    inputKey,
+    selectKind,
+    selectFile,
+    handleUpload,
+  } = useMediaUpload({
+    videoRules: VIDEO_RULES,
+    // Cada diapositiva lleva su alt: sin él no se sube nada.
+    precheck: (mediaKind) =>
+      alt.trim()
+        ? null
+        : `El alt es obligatorio antes de subir ${
+            mediaKind === 'image' ? 'la imagen' : 'el vídeo'
+          }.`,
+    registerImage: (image) =>
+      addCaseCarouselImageAction({
+        contentId,
+        cloudinaryPublicId: image.public_id,
+        format: image.format,
+        width: image.width,
+        height: image.height,
+        bytes: image.bytes,
+        sortOrder: nextSortOrder,
+        alt: alt.trim(),
+      }),
+    registerVideo: (video) =>
+      addCaseCarouselVideoAction({
+        contentId,
+        cloudinaryPublicId: video.public_id,
+        format: video.format,
+        width: video.width,
+        height: video.height,
+        durationSeconds: video.duration,
+        bytes: video.bytes,
+        sortOrder: nextSortOrder,
+        alt: alt.trim(),
+      }),
+    onFinish: () => setAlt(''),
+  })
 
   function handleRemove(item: CarouselItem) {
     return operation.run(
@@ -102,86 +111,6 @@ export function useCaseCarouselManager({
     setRemovingAll(false)
   }
 
-  async function handleImageUpload() {
-    if (!file) {
-      upload.setError('Selecciona una imagen.')
-
-      return
-    }
-
-    if (!alt.trim()) {
-      upload.setError('El alt es obligatorio antes de subir la imagen.')
-
-      return
-    }
-
-    const validationError = await validateImageSelection(file)
-
-    if (validationError) {
-      upload.setError(validationError)
-
-      return
-    }
-
-    const uploaded = await upload.uploadImage(file, {
-      register: (image) =>
-        addCaseCarouselImageAction({
-          contentId,
-          cloudinaryPublicId: image.public_id,
-          format: image.format,
-          width: image.width,
-          height: image.height,
-          bytes: image.bytes,
-          sortOrder: nextSortOrder,
-          alt: alt.trim(),
-        }),
-    })
-
-    if (!uploaded) return
-
-    finishUpload()
-    refresh()
-  }
-
-  async function handleVideoUpload() {
-    if (!file) {
-      upload.setError('Selecciona un vídeo.')
-
-      return
-    }
-
-    if (!alt.trim()) {
-      upload.setError('El alt es obligatorio antes de subir el vídeo.')
-
-      return
-    }
-
-    const uploaded = await upload.uploadVideo(file, {
-      beforeUpload: () => assertLocalVideoWithinLimits(file, VIDEO_RULES),
-      // Validación real, con la duración que ha calculado Cloudinary — no
-      // la del navegador.
-      afterUpload: (video) =>
-        assertUploadedVideoWithinLimits(video, VIDEO_RULES),
-      register: (video) =>
-        addCaseCarouselVideoAction({
-          contentId,
-          cloudinaryPublicId: video.public_id,
-          format: video.format,
-          width: video.width,
-          height: video.height,
-          durationSeconds: video.duration,
-          bytes: video.bytes,
-          sortOrder: nextSortOrder,
-          alt: alt.trim(),
-        }),
-    })
-
-    if (!uploaded) return
-
-    finishUpload()
-    refresh()
-  }
-
   return {
     sorted,
     kind,
@@ -198,6 +127,6 @@ export function useCaseCarouselManager({
     selectFile,
     handleRemove,
     handleRemoveAll,
-    handleUpload: kind === 'video' ? handleVideoUpload : handleImageUpload,
+    handleUpload,
   }
 }

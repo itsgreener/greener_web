@@ -1,6 +1,7 @@
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 
 import type { FeedRequestLimits } from '@/modules/feed/domain/feedPorts'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 
 /**
  * Límites del feed público (POST /api/feed/sessions, GET
@@ -42,7 +43,7 @@ const lastSessionByVisitorAndScope = new Map<
 >()
 let callsSinceSweep = 0
 
-function memoryKey(visitorId: string, scope: string): string {
+function memoryKey(visitorId: string, scope: FeedScope): string {
   return `${visitorId}::${scope}`
 }
 
@@ -57,7 +58,7 @@ function sweepExpiredSessions(now: number): void {
 export function rememberSession(
   visitorId: string,
   sessionId: string,
-  scope: string,
+  scope: FeedScope,
 ): void {
   const now = Date.now()
 
@@ -75,7 +76,7 @@ export function rememberSession(
 
 export function getLastSession(
   visitorId: string,
-  scope: string,
+  scope: FeedScope,
 ): string | null {
   const key = memoryKey(visitorId, scope)
   const entry = lastSessionByVisitorAndScope.get(key)

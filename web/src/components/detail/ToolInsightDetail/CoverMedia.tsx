@@ -1,10 +1,10 @@
-import {
-  buildImageUrl,
-  buildImageSrcSet,
-} from '@/modules/media/client/cloudinaryUrl'
 import type { PublicContentMedia } from '@/modules/content/domain/publicContent'
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 import { ToolCoverVideo } from '@/components/detail/ToolCoverVideo'
+import {
+  CloudinaryImage,
+  DETAIL_IMAGE_SIZES,
+} from '@/components/media/CloudinaryImage'
 import styles from './ToolInsightDetail.module.css'
 
 /**
@@ -29,12 +29,11 @@ export function CoverMedia({
 }) {
   if (media.kind === 'image') {
     return (
-      // URL ya transformada por modules/media/client/cloudinaryUrl.ts
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={buildImageUrl(media.cloudinaryPublicId, 'detail')}
-        srcSet={buildImageSrcSet(media.cloudinaryPublicId, 'detail')}
-        sizes="83vw"
+      <CloudinaryImage
+        publicId={media.cloudinaryPublicId}
+        kind="image"
+        profile="detail"
+        sizes={DETAIL_IMAGE_SIZES}
         alt={title}
         loading="eager"
         className={styles.coverImage}

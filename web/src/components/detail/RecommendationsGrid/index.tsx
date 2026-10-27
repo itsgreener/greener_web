@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react'
 import { PinCard } from '@/components/pin/PinCard'
 import { recommendationsCopy } from '@/components/detail/copy'
+import { FeedStatus } from '@/components/masonry/FeedStatus'
 import type { RecommendationsState } from '@/components/detail/useRecommendationMasonry'
 import styles from './RecommendationsGrid.module.css'
 
@@ -60,13 +61,14 @@ export function RecommendationsGrid({
 
       <div ref={sentinelRef} className={styles.sentinel} />
 
-      {error && <p className={styles.status}>{error}</p>}
-      {isLoading && itemCount === 0 && (
-        <p className={styles.status}>{recommendationsCopy.loading}</p>
-      )}
-      {!isLoading && itemCount === 0 && !hasMore && (
-        <p className={styles.status}>{recommendationsCopy.empty}</p>
-      )}
+      <FeedStatus
+        error={error}
+        isLoading={isLoading}
+        itemCount={itemCount}
+        hasMore={hasMore}
+        copy={recommendationsCopy}
+        className={styles.status}
+      />
     </>
   )
 }

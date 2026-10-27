@@ -1,7 +1,6 @@
-import { publicContentPath } from './contentPath'
-
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
+import { publicContentPath, workLocalePath } from './contentPath'
 /**
  * Sitemap (arquitectura §18.1: "Sitemap automático de contenidos
  * publicados y hreflang en casos traducidos"). Dominio puro — recibe las
@@ -81,14 +80,15 @@ export function buildSitemapEntries(
       [row.defaultLocale]: canonicalUrl,
     }
     for (const locale of extraLocales) {
-      languages[locale] = `${canonicalUrl}/${locale}`
+      languages[locale] =
+        `${base}${workLocalePath(row.slug, locale, row.defaultLocale)}`
     }
 
     entries.push({ url: canonicalUrl, lastModified, alternates: { languages } })
 
     for (const locale of extraLocales) {
       entries.push({
-        url: `${canonicalUrl}/${locale}`,
+        url: `${base}${workLocalePath(row.slug, locale, row.defaultLocale)}`,
         lastModified,
         alternates: { languages },
       })

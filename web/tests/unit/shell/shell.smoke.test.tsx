@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
+import { describe, it, expect } from 'vitest'
 import { render as rtlRender, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
-import { Shell } from '@/components/shell/Shell'
 import type { ReactElement } from 'react'
+import { Shell } from '@/components/shell/Shell'
 import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
 // Shell y EpisodeDetail leen el consentimiento de cookies: se montan, como en
 // la web real, dentro de su proveedor.

@@ -1,7 +1,7 @@
 'use client'
 
-import { EPISODE_PROGRAM_LABEL } from '@/modules/content/domain/episodeLabels'
 import { useActionState } from 'react'
+import { EPISODE_PROGRAM_LABEL } from '@/modules/content/domain/episodeLabels'
 
 import {
   episodeProgramSchema,
@@ -10,15 +10,13 @@ import {
   type Episode,
 } from '@/modules/content/domain/episodeSchema'
 
-import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
-import { AdminMessage } from '@/components/admin/AdminMessage'
 
 import { saveEpisodeAction, type EpisodeActionState } from './episodeActions'
 
@@ -114,21 +112,12 @@ export default function EpisodeDetailForm({ contentId, episode }: Props) {
         </AdminField>
       </AdminFormGrid>
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      {state.success && (
-        <AdminMessage kind="success">
-          Datos del episodio guardados correctamente.
-        </AdminMessage>
-      )}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar datos del episodio'}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label="Guardar datos del episodio"
+        successMessage="Datos del episodio guardados correctamente."
+      />
     </AdminForm>
   )
 }

@@ -1,17 +1,13 @@
 import type { CSSProperties, RefObject } from 'react'
 
-import {
-  buildImageSrcSet,
-  buildImageUrl,
-  buildVideoPosterSrcSet,
-  buildVideoPosterUrl,
-} from '@/modules/media/client/cloudinaryUrl'
 import { CtaLabel } from '@/components/cta/Cta'
+import { CloudinaryImage } from '@/components/media/CloudinaryImage'
+import { cx } from '@/lib/cx'
 import { pickFeedImageWidth } from '@/modules/media/domain/mediaDelivery'
 import { cssAspectRatio } from '@/modules/shared/domain/ratio'
 
-import type { PinMediaData } from './types'
 import type { usePinVideo } from '@/components/pin/usePinVideo'
+import type { PinMediaData } from './types'
 import styles from './PinCard.module.css'
 
 type VideoState = ReturnType<typeof usePinVideo>
@@ -45,34 +41,22 @@ export function PinCardMedia({
   videoRef: RefObject<HTMLVideoElement | null>
   sources: { type: string; src: string }[]
 }) {
-  const isVideo = media.kind === 'video'
-
-  // `src` de reserva = un escalón de la escalera del feed (320/480/640), NO
-  // el ancho exacto de la tarjeta: un ancho suelto (`w_189`) crearía una
-  // versión única en Cloudinary por cada ancho de columna. El navegador
-  // elige del `srcset`.
+  // `srcWidth` de reserva = un escalón de la escalera del feed (320/480/640),
+  // NO el ancho exacto de la tarjeta: un ancho suelto (`w_189`) crearía una
+  // versión única en Cloudinary por cada ancho de columna. El navegador elige
+  // del `srcset`.
   const fallbackWidth = pickFeedImageWidth(width)
-  const imageUrl = isVideo
-    ? buildVideoPosterUrl(
-        media.cloudinaryPublicId,
-        { width: fallbackWidth },
-        'feed',
-      )
-    : buildImageUrl(media.cloudinaryPublicId, 'feed', fallbackWidth)
 
   return (
     <div
       className={styles.media}
       style={{ '--ratio': cssAspectRatio(ratio) } as CSSProperties}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={imageUrl}
-        srcSet={
-          isVideo
-            ? buildVideoPosterSrcSet(media.cloudinaryPublicId)
-            : buildImageSrcSet(media.cloudinaryPublicId, 'feed')
-        }
+      <CloudinaryImage
+        publicId={media.cloudinaryPublicId}
+        kind={media.kind}
+        profile="feed"
+        srcWidth={fallbackWidth}
         sizes={`${Math.round(width)}px`}
         alt={alt}
         loading="lazy"
@@ -83,7 +67,7 @@ export function PinCardMedia({
         <video
           key={`${pinId}-${video.attempt}`}
           ref={videoRef}
-          className={`${styles.video} ${video.visible ? styles.videoVisible : ''}`}
+          className={cx(styles.video, video.visible && styles.videoVisible)}
           muted
           loop
           playsInline

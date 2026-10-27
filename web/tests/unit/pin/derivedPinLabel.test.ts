@@ -1,7 +1,7 @@
-import { createRepositoryError } from '@/lib/supabase/repositoryError'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
+import { createRepositoryError } from '@/lib/supabase/repositoryError'
 import {
   DERIVED_PIN_LABEL_TYPES,
   hasDerivedPinLabel,

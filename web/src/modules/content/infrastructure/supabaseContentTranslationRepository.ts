@@ -9,6 +9,7 @@ import type {
 
 import type { Locale } from '@/modules/shared/domain/locale'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
+
 type SupabaseTranslationRow = {
   content_id: string
   locale: Locale

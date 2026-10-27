@@ -1,8 +1,9 @@
 'use client'
 
-import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 
+import { AdminActionForm } from '@/components/admin/AdminActionForm'
 import { AdminBadge } from '@/components/admin/AdminBadge'
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput } from '@/components/admin/AdminControls'
@@ -17,8 +18,6 @@ import {
   deleteOldHtmlPackageVersionsAction,
   publishHtmlPackageVersionAction,
   uploadHtmlPackageAction,
-  type DeletePackageActionState,
-  type PublishPackageActionState,
   type UploadPackageActionState,
 } from './packageActions'
 import styles from './PackageUpload.module.css'
@@ -29,117 +28,6 @@ type Props = {
 }
 
 const uploadInitialState: UploadPackageActionState = {}
-const publishInitialState: PublishPackageActionState = {}
-const deleteInitialState: DeletePackageActionState = {}
-
-function PublishVersionButton({
-  contentId,
-  versionId,
-  label,
-}: {
-  contentId: string
-  versionId: string
-  label: string
-}) {
-  const [state, action, pending] = useActionState(
-    publishHtmlPackageVersionAction,
-    publishInitialState,
-  )
-
-  return (
-    <form action={action}>
-      <input type="hidden" name="contentId" value={contentId} />
-      <input type="hidden" name="versionId" value={versionId} />
-
-      <AdminButton type="submit" compact disabled={pending}>
-        {pending ? 'Publicando...' : label}
-      </AdminButton>
-
-      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
-    </form>
-  )
-}
-
-function DeleteVersionButton({
-  contentId,
-  version,
-}: {
-  contentId: string
-  version: HtmlPackageVersionSummary
-}) {
-  const [state, action, pending] = useActionState(
-    deleteHtmlPackageVersionAction,
-    deleteInitialState,
-  )
-
-  return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (
-          !window.confirm(
-            `¿Borrar la versión v${version.version}? Se borrarán también sus ficheros. Esta acción no se puede deshacer.`,
-          )
-        ) {
-          event.preventDefault()
-        }
-      }}
-    >
-      <input type="hidden" name="contentId" value={contentId} />
-      <input type="hidden" name="versionId" value={version.id} />
-
-      <AdminButton type="submit" variant="danger" compact disabled={pending}>
-        {pending ? 'Borrando...' : 'Borrar versión'}
-      </AdminButton>
-
-      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
-
-      {state.warning && (
-        <AdminMessage kind="warning">{state.warning}</AdminMessage>
-      )}
-    </form>
-  )
-}
-
-function DeleteOldVersionsButton({
-  contentId,
-  count,
-}: {
-  contentId: string
-  count: number
-}) {
-  const [state, action, pending] = useActionState(
-    deleteOldHtmlPackageVersionsAction,
-    deleteInitialState,
-  )
-
-  return (
-    <form
-      action={action}
-      onSubmit={(event) => {
-        if (
-          !window.confirm(
-            `¿Borrar las ${count} versiones anteriores? La versión activa y los borradores no se tocan; se borrarán también los ficheros de las anteriores. Esta acción no se puede deshacer.`,
-          )
-        ) {
-          event.preventDefault()
-        }
-      }}
-    >
-      <input type="hidden" name="contentId" value={contentId} />
-
-      <AdminButton type="submit" variant="danger" disabled={pending}>
-        {pending ? 'Borrando...' : `Borrar versiones anteriores (${count})`}
-      </AdminButton>
-
-      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
-
-      {state.warning && (
-        <AdminMessage kind="warning">{state.warning}</AdminMessage>
-      )}
-    </form>
-  )
-}
 
 export default function PackageUpload({ contentId, versions }: Props) {
   const [uploadState, uploadAction, uploading] = useActionState(
@@ -195,15 +83,19 @@ export default function PackageUpload({ contentId, versions }: Props) {
             variant="primary"
             disabled={uploading || !file}
           >
-            {uploading ? 'Subiendo...' : 'Subir nueva versión'}
+            {uploading ? 'Subiendo…' : 'Subir nueva versión'}
           </AdminButton>
         </AdminFormActions>
       </AdminForm>
 
       {oldVersionsCount > 0 && (
-        <DeleteOldVersionsButton
-          contentId={contentId}
-          count={oldVersionsCount}
+        <AdminActionForm
+          action={deleteOldHtmlPackageVersionsAction}
+          hidden={{ contentId }}
+          variant="danger"
+          label={`Borrar versiones anteriores (${oldVersionsCount})`}
+          pendingLabel="Borrando…"
+          confirmText={`¿Borrar las ${oldVersionsCount} versiones anteriores? La versión activa y los borradores no se tocan; se borrarán también los ficheros de las anteriores. Esta acción no se puede deshacer.`}
         />
       )}
 
@@ -235,25 +127,34 @@ export default function PackageUpload({ contentId, versions }: Props) {
               <td>
                 <AdminCellActions>
                   {version.status === 'draft' && (
-                    <PublishVersionButton
-                      contentId={contentId}
-                      versionId={version.id}
+                    <AdminActionForm
+                      action={publishHtmlPackageVersionAction}
+                      hidden={{ contentId, versionId: version.id }}
+                      compact
                       label="Publicar esta versión"
+                      pendingLabel="Publicando…"
                     />
                   )}
 
                   {version.status === 'rolled_back' && (
-                    <PublishVersionButton
-                      contentId={contentId}
-                      versionId={version.id}
+                    <AdminActionForm
+                      action={publishHtmlPackageVersionAction}
+                      hidden={{ contentId, versionId: version.id }}
+                      compact
                       label="Volver a esta versión"
+                      pendingLabel="Publicando…"
                     />
                   )}
 
                   {version.status !== 'published' && (
-                    <DeleteVersionButton
-                      contentId={contentId}
-                      version={version}
+                    <AdminActionForm
+                      action={deleteHtmlPackageVersionAction}
+                      hidden={{ contentId, versionId: version.id }}
+                      variant="danger"
+                      compact
+                      label="Borrar versión"
+                      pendingLabel="Borrando…"
+                      confirmText={`¿Borrar la versión v${version.version}? Se borrarán también sus ficheros. Esta acción no se puede deshacer.`}
                     />
                   )}
 

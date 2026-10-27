@@ -4,6 +4,7 @@ import { FEED_CACHE_TAG } from '@/lib/cache/feedCache'
 
 import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
 import { excludeContent } from '@/modules/feed/domain/excludeContent'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 import {
   getFeedConfig,
   getFeedDataset,
@@ -22,7 +23,7 @@ import {
 const FEED_DATASET_TTL_SECONDS = 60
 
 const cachedDataset = unstable_cache(
-  (scope: string) => getFeedDataset(scope),
+  (scope: FeedScope) => getFeedDataset(scope),
   ['feed-dataset'],
   { tags: [FEED_CACHE_TAG], revalidate: FEED_DATASET_TTL_SECONDS },
 )

@@ -1,4 +1,4 @@
-import { cx } from '@/components/admin/cx'
+import { cx } from '@/lib/cx'
 import { contentStatusLabel } from '@/components/admin/contentLabels'
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 

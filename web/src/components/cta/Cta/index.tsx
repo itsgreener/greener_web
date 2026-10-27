@@ -3,6 +3,7 @@
 import Link, { useLinkStatus } from 'next/link'
 import type { ComponentProps } from 'react'
 
+import { cx } from '@/lib/cx'
 import styles from './Cta.module.css'
 
 /**
@@ -17,7 +18,7 @@ import styles from './Cta.module.css'
  * La posición (márgenes, absolute…) la pone cada sitio con `className`.
  */
 function join(className?: string) {
-  return className ? `${styles.cta} ${className}` : styles.cta
+  return cx(styles.cta, className)
 }
 
 /**

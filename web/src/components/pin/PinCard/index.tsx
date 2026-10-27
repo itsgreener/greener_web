@@ -12,14 +12,16 @@ import { useHoverIntent } from '@/components/pin/useHoverIntent'
 import { CardLink } from './CardLink'
 import { PinCardLabel } from './PinCardLabel'
 import { PinCardMedia } from './PinCardMedia'
-import type {
-  PinAnalyticsContext,
-  PinCardData,
-  PinCardStyle,
-  PinMediaData,
+import {
+  cardPositionStyle,
+  type PinAnalyticsContext,
+  type PinCardData,
+  type PinCardStyle,
+  type PinMediaData,
 } from './types'
 import styles from './PinCard.module.css'
 
+export { cardPositionStyle } from './types'
 export type {
   PinAnalyticsContext,
   PinCardData,
@@ -166,10 +168,7 @@ export function PinCard({
       cardRef={cardRef}
       href={destination}
       className={styles.card}
-      style={{
-        transform: `translate(${style.x}px, ${style.y}px)`,
-        width: style.width,
-      }}
+      style={cardPositionStyle(style)}
       onMouseEnter={hoverHandlers.onMouseEnter}
       onMouseLeave={hoverHandlers.onMouseLeave}
       onFocus={hoverHandlers.onFocus}

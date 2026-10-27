@@ -6,26 +6,22 @@ import type { ContentTranslation } from '@/modules/content/domain/contentTransla
 
 import { TEXT_LIMITS } from '@/modules/content/domain/textLimits'
 
-import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminLocaleBadge } from '@/components/admin/AdminBadge'
-import { AdminInput, AdminTextarea } from '@/components/admin/AdminControls'
-import { AdminField } from '@/components/admin/AdminField'
+import { AdminCountedField } from '@/components/admin/AdminCountedField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
-import { AdminMessage } from '@/components/admin/AdminMessage'
-import { CharCounter } from '@/components/admin/CharCounter'
-
-import { useCharCount } from '@/components/admin/useCharCount'
-
+import {
+  localeCode,
+  localeLabel,
+  type Locale,
+} from '@/modules/shared/domain/locale'
 import {
   saveTranslationAction,
   type TranslationActionState,
 } from './translationActions'
-
-import type { Locale } from '@/modules/shared/domain/locale'
 
 import styles from './TranslationForm.module.css'
 
@@ -44,19 +40,6 @@ type Props = {
 
 const initialState: TranslationActionState = {}
 
-function getLocaleLabel(locale: Locale) {
-  switch (locale) {
-    case 'es':
-      return 'Español'
-
-    case 'en':
-      return 'English'
-
-    case 'ca':
-      return 'Català'
-  }
-}
-
 export default function TranslationForm({
   contentId,
   locale,
@@ -71,18 +54,6 @@ export default function TranslationForm({
     initialState,
   )
 
-  const title = useCharCount(translation?.title ?? '')
-
-  const seoTitle = useCharCount(translation?.seoTitle ?? '')
-
-  const seoDescription = useCharCount(translation?.seoDescription ?? '')
-
-  const summary = useCharCount(translation?.summary ?? '')
-
-  const highlight = useCharCount(translation?.highlight ?? '')
-
-  const body = useCharCount(translation?.body ?? '')
-
   return (
     <AdminForm action={formAction}>
       <input type="hidden" name="contentId" value={contentId} />
@@ -91,147 +62,91 @@ export default function TranslationForm({
 
       <div className={styles.heading}>
         <div>
-          <h3 className={styles.title}>{getLocaleLabel(locale)}</h3>
+          <h3 className={styles.title}>{localeLabel(locale)}</h3>
 
           <p className={styles.text}>
             Contenido y metadatos para esta versión lingüística.
           </p>
         </div>
 
-        <AdminLocaleBadge>{locale.toUpperCase()}</AdminLocaleBadge>
+        <AdminLocaleBadge>{localeCode(locale)}</AdminLocaleBadge>
       </div>
 
-      <AdminField
+      <AdminCountedField
+        id={`title-${locale}`}
+        name="title"
         label={newsletter ? 'Titular' : 'Título'}
-        htmlFor={`title-${locale}`}
-        aside={<CharCounter length={title.length} max={TEXT_LIMITS.title} />}
+        max={TEXT_LIMITS.title}
+        defaultValue={translation?.title ?? ''}
         error={state.fieldErrors?.title?.[0]}
-      >
-        <AdminInput
-          id={`title-${locale}`}
-          name="title"
-          type="text"
-          defaultValue={translation?.title ?? ''}
-          onChange={title.onChange}
-          required
-        />
-      </AdminField>
+        required
+      />
 
       <AdminFormGrid>
         {showSeo && (
-          <AdminField
+          <AdminCountedField
+            id={`seoTitle-${locale}`}
+            name="seoTitle"
             label="SEO title"
-            htmlFor={`seoTitle-${locale}`}
-            aside={
-              <CharCounter
-                length={seoTitle.length}
-                max={TEXT_LIMITS.seoTitle}
-              />
-            }
-          >
-            <AdminInput
-              id={`seoTitle-${locale}`}
-              name="seoTitle"
-              type="text"
-              defaultValue={translation?.seoTitle ?? ''}
-              onChange={seoTitle.onChange}
-            />
-          </AdminField>
+            max={TEXT_LIMITS.seoTitle}
+            defaultValue={translation?.seoTitle ?? ''}
+          />
         )}
 
         {showSummary && (
-          <AdminField
+          <AdminCountedField
+            id={`summary-${locale}`}
+            name="summary"
             label={newsletter ? 'Texto de apoyo' : 'Summary'}
-            htmlFor={`summary-${locale}`}
-            aside={
-              <CharCounter length={summary.length} max={TEXT_LIMITS.summary} />
-            }
-          >
-            <AdminTextarea
-              id={`summary-${locale}`}
-              name="summary"
-              rows={3}
-              defaultValue={translation?.summary ?? ''}
-              onChange={summary.onChange}
-            />
-          </AdminField>
+            max={TEXT_LIMITS.summary}
+            kind="textarea"
+            rows={3}
+            defaultValue={translation?.summary ?? ''}
+          />
         )}
       </AdminFormGrid>
 
       {showSeo && (
-        <AdminField
+        <AdminCountedField
+          id={`seoDescription-${locale}`}
+          name="seoDescription"
           label="SEO description"
-          htmlFor={`seoDescription-${locale}`}
-          aside={
-            <CharCounter
-              length={seoDescription.length}
-              max={TEXT_LIMITS.seoDescription}
-            />
-          }
-        >
-          <AdminTextarea
-            id={`seoDescription-${locale}`}
-            name="seoDescription"
-            rows={4}
-            defaultValue={translation?.seoDescription ?? ''}
-            onChange={seoDescription.onChange}
-          />
-        </AdminField>
+          max={TEXT_LIMITS.seoDescription}
+          kind="textarea"
+          rows={4}
+          defaultValue={translation?.seoDescription ?? ''}
+        />
       )}
 
       {showHighlightAndBody && (
         <>
-          <AdminField
+          <AdminCountedField
+            id={`highlight-${locale}`}
+            name="highlight"
             label="Highlight"
-            htmlFor={`highlight-${locale}`}
-            aside={
-              <CharCounter
-                length={highlight.length}
-                max={TEXT_LIMITS.highlight}
-              />
-            }
+            max={TEXT_LIMITS.highlight}
+            defaultValue={translation?.highlight ?? ''}
             help="Subtítulo o cita destacada de la página."
-          >
-            <AdminInput
-              id={`highlight-${locale}`}
-              name="highlight"
-              type="text"
-              defaultValue={translation?.highlight ?? ''}
-              onChange={highlight.onChange}
-            />
-          </AdminField>
+          />
 
-          <AdminField
+          <AdminCountedField
+            id={`body-${locale}`}
+            name="body"
             label="Body"
-            htmlFor={`body-${locale}`}
-            aside={<CharCounter length={body.length} max={TEXT_LIMITS.body} />}
-          >
-            <AdminTextarea
-              id={`body-${locale}`}
-              name="body"
-              rows={10}
-              defaultValue={translation?.body ?? ''}
-              onChange={body.onChange}
-            />
-          </AdminField>
+            max={TEXT_LIMITS.body}
+            kind="textarea"
+            rows={10}
+            defaultValue={translation?.body ?? ''}
+          />
         </>
       )}
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      {state.success && (
-        <AdminMessage kind="success">
-          Traducción guardada correctamente.
-        </AdminMessage>
-      )}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : `Guardar ${getLocaleLabel(locale)}`}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label={`Guardar ${localeLabel(locale)}`}
+        successMessage="Traducción guardada correctamente."
+      />
     </AdminForm>
   )
 }

@@ -22,14 +22,7 @@ export function useVideoSlot(
   const [active, setActive] = useState(false)
 
   useEffect(() => {
-    if (!enabled) {
-      // Diferido: llamar a setState de forma síncrona en el cuerpo del
-      // efecto dispara el aviso react-hooks/set-state-in-effect — un
-      // queueMicrotask rompe esa cadena síncrona sin cambiar el
-      // comportamiento real (mismo patrón ya usado en useFeed.ts).
-      queueMicrotask(() => setActive(false))
-      return
-    }
+    if (!enabled) return
 
     const el = ref.current
     if (!el) return
@@ -55,8 +48,14 @@ export function useVideoSlot(
     return () => {
       observer.disconnect()
       unregister()
+      // Al soltar el hueco (o desmontar) se olvida el estado: `unregister` no
+      // avisa a quien se va, y sin esto un «activo» antiguo reaparecería al
+      // volver a habilitarse, antes de la primera medición.
+      setActive(false)
     }
   }, [id, enabled, ref])
 
-  return active
+  // Deshabilitado nunca hay hueco, aunque `active` tarde un render en
+  // limpiarse (PUB-B6: derivado, sin `queueMicrotask`).
+  return enabled && active
 }

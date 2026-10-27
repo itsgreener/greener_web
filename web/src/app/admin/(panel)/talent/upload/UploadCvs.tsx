@@ -15,6 +15,8 @@ import { AdminMessage } from '@/components/admin/AdminMessage'
 import { AdminSubtext } from '@/components/admin/AdminTable'
 import { AdminTextLink } from '@/components/admin/AdminTextLink'
 
+import { useUploadQueue, type QueueRow } from '@/app/admin/_lib/useUploadQueue'
+
 import {
   ALLOWED_FILE_EXTENSIONS,
   TALENT_FILE_LIMITS,
@@ -23,11 +25,13 @@ import {
 
 import styles from './UploadCvs.module.css'
 
-type Row = {
+type Row = QueueRow & {
   id: number
   file: File
-  state: 'ready' | 'uploading' | 'done' | 'error'
-  error?: string
+}
+
+function rowKey(row: Row) {
+  return row.id
 }
 
 type Outcome = { uploaded: number; failed: number; message: string } | null
@@ -41,9 +45,8 @@ function hasAllowedExtension(name: string) {
 const MAX_MB = TALENT_FILE_LIMITS.maxFileBytes / 1_000_000
 
 export default function UploadCvs() {
-  const [rows, setRows] = useState<Row[]>([])
+  const { rows, setRows, running, run } = useUploadQueue<Row>(rowKey)
   const [notice, setNotice] = useState('')
-  const [running, setRunning] = useState(false)
   const [outcome, setOutcome] = useState<Outcome>(null)
   const nextId = useRef(0)
   const input = useRef<HTMLInputElement>(null)
@@ -62,7 +65,7 @@ export default function UploadCvs() {
       } else if (file.size === 0) {
         problems.push(`${file.name}: está vacío.`)
       } else {
-        accepted.push({ id: nextId.current++, file, state: 'ready' })
+        accepted.push({ id: nextId.current++, file, status: 'pending' })
       }
     }
 
@@ -84,62 +87,44 @@ export default function UploadCvs() {
     if (input.current) input.current.value = ''
   }
 
-  function patch(id: number, change: Partial<Row>) {
-    setRows((previous) =>
-      previous.map((row) => (row.id === id ? { ...row, ...change } : row)),
-    )
-  }
-
   async function start() {
     if (running) return
 
-    setRunning(true)
     setOutcome(null)
 
-    let uploaded = 0
-    let failed = 0
-
     // Un fichero por llamada: así no viajan 100 MB en una sola petición.
-    for (const row of rows.filter((item) => item.state !== 'done')) {
-      patch(row.id, { state: 'uploading', error: undefined })
+    await run(
+      async (row) => {
+        const formData = new FormData()
+        formData.set('file', row.file)
 
-      const formData = new FormData()
-      formData.set('file', row.file)
+        let result: Awaited<ReturnType<typeof uploadStaffCvAction>>
 
-      try {
-        const result = await uploadStaffCvAction(formData)
-
-        if (result.ok) {
-          uploaded += 1
-          patch(row.id, { state: 'done' })
-        } else {
-          failed += 1
-          patch(row.id, { state: 'error', error: result.error })
+        try {
+          result = await uploadStaffCvAction(formData)
+        } catch {
+          throw new Error('se ha cortado la conexión. Inténtalo de nuevo.')
         }
-      } catch {
-        failed += 1
-        patch(row.id, {
-          state: 'error',
-          error: 'se ha cortado la conexión. Inténtalo de nuevo.',
-        })
-      }
-    }
 
-    // El procesado se lanza UNA vez, al final: el workflow procesa todas las
-    // filas pendientes y dos llamadas seguidas las procesarían dos veces.
-    let message = 'No se ha subido ningún CV.'
+        if (!result.ok) throw new Error(result.error)
+      },
+      // El procesado se lanza UNA vez, al final: el workflow procesa todas las
+      // filas pendientes y dos llamadas seguidas las procesarían dos veces.
+      async ({ ok, failed }) => {
+        let message = 'No se ha subido ningún CV.'
 
-    if (uploaded > 0) {
-      const processing = await processPendingCvsAction({}, new FormData())
+        if (ok > 0) {
+          const processing = await processPendingCvsAction({}, new FormData())
 
-      message = processing.error ?? processing.message ?? ''
-    }
+          message = processing.error ?? processing.message ?? ''
+        }
 
-    setOutcome({ uploaded, failed, message })
-    setRunning(false)
+        setOutcome({ uploaded: ok, failed, message })
+      },
+    )
   }
 
-  const pendingRows = rows.filter((row) => row.state !== 'done')
+  const pendingRows = rows.filter((row) => row.status !== 'ok')
 
   return (
     <AdminFormBody>
@@ -177,13 +162,13 @@ export default function UploadCvs() {
 
               <AdminSubtext>
                 {(row.file.size / 1_000_000).toFixed(1)} MB ·{' '}
-                {row.state === 'ready' && 'listo'}
-                {row.state === 'uploading' && 'subiendo y comprobando…'}
-                {row.state === 'done' && 'subido'}
-                {row.state === 'error' && `no se ha subido: ${row.error}`}
+                {row.status === 'pending' && 'listo'}
+                {row.status === 'uploading' && 'subiendo y comprobando…'}
+                {row.status === 'ok' && 'subido'}
+                {row.status === 'error' && `no se ha subido: ${row.error}`}
               </AdminSubtext>
 
-              {row.state !== 'uploading' && row.state !== 'done' && (
+              {row.status !== 'uploading' && row.status !== 'ok' && (
                 <AdminButton
                   type="button"
                   compact

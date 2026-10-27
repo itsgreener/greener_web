@@ -3,15 +3,14 @@
 import { useActionState } from 'react'
 
 import { AdminStatusBadge } from '@/components/admin/AdminBadge'
-import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField, AdminReadonlyField } from '@/components/admin/AdminField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
-import { AdminMessage } from '@/components/admin/AdminMessage'
+import { LocaleOptions } from '@/components/admin/AdminOptions'
 import { contentTypeLabel } from '@/components/admin/contentLabels'
 import type { ContentDetail } from '@/modules/content/domain/contentRepository'
 import {
@@ -81,24 +80,16 @@ export default function EditContentForm({ content, otherKind }: Props) {
             name="defaultLocale"
             defaultValue={content.defaultLocale}
           >
-            <option value="es">Español</option>
-
-            <option value="en">English</option>
-
-            <option value="ca">Català</option>
+            <LocaleOptions />
           </AdminSelect>
         </AdminField>
       </AdminFormGrid>
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar datos generales'}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label="Guardar datos generales"
+      />
     </AdminForm>
   )
 }

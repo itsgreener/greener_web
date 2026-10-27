@@ -1,10 +1,11 @@
 'use client'
 
 import { CtaButton } from '@/components/cta/Cta'
+import { cx } from '@/lib/cx'
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 import { useToolCoverVideo } from './useToolCoverVideo'
 import styles from './ToolCoverVideo.module.css'
 
-import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Vídeo de demostración que ocupa el hueco de la portada en la ficha de una
  * tool (`/tools/{slug}?pin=...`), con la misma caja que tendría la imagen.
@@ -80,7 +81,7 @@ export function ToolCoverVideo({
         src={poster}
         alt=""
         aria-hidden="true"
-        className={`${styles.poster} ${posterHidden ? styles.posterHidden : ''}`}
+        className={cx(styles.poster, posterHidden && styles.posterHidden)}
       />
 
       <CtaButton

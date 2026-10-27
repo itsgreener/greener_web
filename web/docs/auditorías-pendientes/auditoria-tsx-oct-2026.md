@@ -6,10 +6,10 @@ Informe único que sustituye a los dos informes por zonas (`auditoria-tsx-admin-
 
 | Zona | Alcance | Hallazgos | M | B | Aplicados |
 |------|---------|-----------|---|---|-----------|
-| Admin | `src/app/admin/**` y `src/components/admin/**`: 89 ficheros, unas 9.600 líneas | 22 (A1–A5, B1–B3, C1–C3, D1–D4, E1–E3, F1–F4) | 9 | 13 | 0 |
-| Pública | `src/components/**` (salvo admin), `src/app/(public)/**`, ficheros raíz de `src/app`, hooks y proveedores de cliente de `consent`, `analytics` y `newsletter`: 79 ficheros, unas 6.500 líneas | 30 (A1–A8, B1–B6, C1–C3, D1–D8, E1–E2, F1–F3) | 5 | 25 | 0 |
-| Transversales | Lo que se repite entre zonas | 6 (X1–X6) | 0 | 6 | 0 |
-| **Total** | | **58** | **14** | **44** | **0** |
+| Admin | `src/app/admin/**` y `src/components/admin/**`: 89 ficheros, unas 9.600 líneas | 22 (A1–A5, B1–B3, C1–C3, D1–D4, E1–E3, F1–F4) | 9 | 13 | 20 (A1, A2, A3, A4, B1, B2, B3, C1, C2, C3, D1, D2, D3, D4, E1, E2, E3, F1, F2, F4) |
+| Pública | `src/components/**` (salvo admin), `src/app/(public)/**`, ficheros raíz de `src/app`, hooks y proveedores de cliente de `consent`, `analytics` y `newsletter`: 79 ficheros, unas 6.500 líneas | 30 (A1–A8, B1–B6, C1–C3, D1–D8, E1–E2, F1–F3) | 5 | 25 | 28 (A1, A2, A3, A4, A5, A6, A7, A8, B1, B2, B3, B4, B5, C1, C3, D1, D2, D3, D4, D5, D6, D7, D8, E1, E2, F1, F2, F3) |
+| Transversales | Lo que se repite entre zonas | 6 (X1–X6) | 0 | 6 | 6 (X1, X2, X3, X4, X5, X6) |
+| **Total** | | **58** | **14** | **44** | **54** |
 
 Lo que más rinde, por este orden:
 
@@ -20,6 +20,57 @@ Lo que más rinde, por este orden:
 5. **Listas cerradas escritas a mano (ADM-D1 a D3 y PUB-D1):** idiomas, ratios, tipos y scopes que el dominio ya define.
 
 El admin repite más (formularios, medios, listas); el público ya tiene la lógica delicada en hooks con tests, y lo que repite es sobre todo plomería: rutas, imágenes, cookies, textos.
+
+### Estado de aplicación (26 oct 2026)
+
+Aplicados los cinco puntos de la lista anterior: ADM-A1, ADM-B1 con ADM-C1, ADM-D1 a D3, PUB-B1, PUB-C1 y PUB-D1 (9 hallazgos). El relato completo, las decisiones y la verificación están en `docs/historial/historial-fase-5.md` §2.103. Lo que conviene saber al leer el resto de este informe:
+
+1. **ADM-A1:** `AdminActionForm` en `components/admin` sustituye al `ActionForm` local de `CandidateActions` y al patrón de otros cinco ficheros. No se unificó el texto de pendiente (decisión 2 del 7.4, abierta). `DeletePinButtons` y el «quitar todos» del carrusel mantienen su `window.confirm` propio.
+2. **ADM-B1 y ADM-C1:** `useMediaUpload` y `MediaUploader` compartidos; los dos gestores conservan su lógica propia.
+3. **ADM-D1 a D3:** `AdminOptions` (idiomas, ratios, tipos y estados) construido sobre los esquemas Zod, más `localeLabel` y `localeCode` en `modules/shared/domain/locale.ts`.
+4. **PUB-B1:** `useVideoLoadLifecycle` y `safePlayback` en `modules/media/client`.
+5. **PUB-C1:** fábrica en `app/(public)/(detail)/_lib/packageRoutes.ts` (no en `lib/http`, como proponía el informe), con cabeceras comunes a las tres secciones.
+6. **PUB-D1:** `FeedScope` tipado de extremo a extremo; `typesForScope` lanza ante un scope desconocido y la API responde 400.
+
+Los apartados 3 a 6 describen el código tal como estaba el 23 de octubre.
+
+### Estado de aplicación, fase 1 (26 oct 2026, segunda tanda)
+
+Aplicada la fase 1 del orden de ataque (apartado 6) con las decisiones de Greener del 7.4. Relato y verificación en `docs/historial/historial-fase-5.md` §2.104. Con esto son 27 los hallazgos aplicados:
+
+1. **Admin (5 más):** ADM-C2 (ya cubierto por `localeLabel`/`localeCode`), ADM-C3 (`buildListHref` en `app/admin/_lib/listHref.ts`), ADM-F1, ADM-F2 y ADM-F4 (orden de imports con `import/order` y comentarios en español). **ADM-F3 no se aplica** (apartado 5.1, punto 4).
+2. **Pública (10 más):** PUB-A5 (`ERROR_COPY` y `ErrorBoundaryProps`), PUB-D2 (`readBrowserCookie`), PUB-D3 (`workLocalePath`), PUB-D5 (`SECTION_LABELS`), PUB-D6 (cerrado con TSX-X1), PUB-D8 (`toFormState`), PUB-E2 (`PolicyBlock`), PUB-F1, PUB-F2 (`useFeed` con un booleano y mensajes de `feedApi` en español; PUB-A8, hecho después en la fase 2) y PUB-F3.
+3. **Transversales (3):** TSX-X1 (`lib/cx.ts`), TSX-X3 y TSX-X4 (regla `import/order` y `import/newline-after-import` en `eslint.config.mjs`, aplicada con `--fix` a 53 ficheros).
+4. **Comentarios del 7.3:** corregidos los cinco.
+5. **Decisión 2 aplicada:** los textos de pendiente del ABM llevan `…`, con un test que lo vigila.
+
+### Estado de aplicación, fase 2 (26 oct 2026, tercera tanda)
+
+Aplicada la fase 2 del orden de ataque (apartado 6): extracciones de presentación. Relato y verificación en `docs/historial/historial-fase-5.md` §2.105. Con esto son 40 los hallazgos aplicados:
+
+1. **Admin (4 más):** ADM-A2 (`AdminFormFooter` en `components/admin/AdminForm`), ADM-A3 (`AdminCountedField`), ADM-A4 (constante `QUICK_LINKS` del panel) y ADM-E3 (`TypeCard` y `newContentOptions.ts`, con un test que ata sus valores a los esquemas del dominio).
+2. **Pública (8 más):** PUB-A1 (`CloudinaryImage`, con el único `eslint-disable no-img-element` de Cloudinary), PUB-A3 (`Honeypot` y `readHoneypot`), PUB-A4 (`ConsentButtons` y `useConsentCopy`), PUB-A6 (`PublicField` en `components/form/`, con `role="alert"` y `aria-describedby` en los errores), PUB-A7 (`BrokenHeadline`), PUB-A8 (`FeedStatus`; el error es un booleano y el texto, siempre el del copy), PUB-C3 (`cardPositionStyle`) y PUB-D4 (`isPreviewRequest`, `resolvePreviewOfType`). PUB-D6 ya estaba cerrado con TSX-X1.
+3. **Transversales (1 más):** TSX-X2, con PUB-A1; la miniatura del admin (`AdminMediaItem`) usa también `CloudinaryImage`, con `srcWidth` y sin `srcset`. Se queda sin tocar el póster superpuesto de `ToolCoverVideo` y el SVG del Shell.
+4. **Pendiente de esta fase:** TSX-X5, que Greener dejó para una ronda posterior; PUB-A2 con PUB-B2 van en la fase 6 por decisión suya.
+
+### Estado de aplicación, fases 6 y 7 (26 oct 2026, cuarta tanda)
+
+Aplicado el resto del orden de ataque: la fase 6 (episodio y feed) y la fase 7 (lo que había que decidir con Greener, ya decidido). Relato y verificación en `docs/historial/historial-fase-5.md` §2.106. Con esto son 53 los hallazgos aplicados:
+
+1. **Pública (7 más):** PUB-A2 con PUB-B2 (`EmbedConsentPrompt`, `useEmbedPlayback` y `episodeEmbed`, con el texto legal idéntico), PUB-B3 (`layoutItem` y `nextHasMore`), PUB-B4 (`useFeedScroll`), PUB-B5 (`useViewportHeight`), PUB-E1 (`feedStorage`) y PUB-D7 (`sessionStorage` con guarda, cerrado con ADM-B3).
+2. **Admin (5 más):** ADM-D4 (`contentCapabilities`, solo en el admin), ADM-E1 (solo helpers: `parsePage`, `pageCount`, `pluralize`, `buildListQuery`), ADM-E2 (`loadEditorData`), ADM-B3 (`safeSessionStorage`, `usePersistedFilters` y `ContentFilterBar`) y ADM-B2 (`useUploadQueue`, el núcleo común sin unificar las dos colas).
+3. **Transversales (1 más):** TSX-X6, cerrado con ADM-B3.
+4. **Quedan 5, a propósito:** PUB-B6 y TSX-X5 (Greener los dejó para una ronda posterior), PUB-C2 y ADM-A5 (este informe ya recomendaba no tocarlos) y ADM-F3 (descartado en la fase 1).
+
+### Estado de aplicación, cierre de la ronda (27 oct 2026, quinta tanda)
+
+Greener decidió sobre lo que quedaba abierto. Relato y verificación en `docs/historial/historial-fase-5.md` §2.107. Son 54 los hallazgos aplicados, tres descartados y uno en curso:
+
+1. **TSX-X5, aplicado:** se cierra con `lib/forms/README.md` (la lógica común, sin textos, en `lib/forms`; la presentación y su idioma, en cada kit). Sin cambios de código.
+2. **PUB-B6, en curso:** lote 1 hecho (`useVideoSlot` y el billete de prefetch de `usePinVideo`, derivados y con el reinicio en la limpieza del efecto). Quedan cinco llamadas: lote 2 (`loadMore` de `useFeed` y `useRecommendationMasonry`) y lote 3 (reinicios al cambiar de prop de `usePinVideo`, `useToolCoverVideo` y `useRecommendationMasonry`), tras las pruebas a mano de Greener.
+3. **Descartados por decisión de Greener:** PUB-C2 (solo hay dos detalles de tipo B y no se prevén más), ADM-A5 (tres auxiliares de una sola página) y ADM-F3 (la regla de ESLint prohíbe los imports con `../`, el alias es obligatorio).
+4. **Error 7.1.1 corregido:** el mensaje de éxito del contacto, en inglés.
+5. **Apartado 8:** hechos los puntos 1, 2, 3, 4 y 6 (cuatro tests de arquitectura y los READMEs de los kits).
 
 ## 2. Criterios aplicados
 
@@ -338,7 +389,8 @@ Los usos reales son dos: `FeedProvider` (con `try/catch`) y `ContentFilterPersis
 
 1. **Fusionar `useBulkPinUpload` con `UploadCvs`** (ADM-B2): el núcleo de cola se parece, pero pines (ratio e idioma) y CVs (límite de 10, antivirus) divergen. Se extrae `useUploadQueue` solo si se toca alguno.
 2. **Subir `SafeLink`, `Row` y `rate` de la ficha de candidato al kit** (ADM-A5): `Row` es un par `<dt>/<dd>`, no un `AdminReadonlyField`; se hace si aparece un segundo uso.
-3. **`AdminListLayout` genérico** (ADM-E1): las columnas y filtros divergen demasiado; solo se proponen los helpers.
+3. **`AdminListLayout` genérico** (ADM-E1): las columnas y filtros divergen demasiado; solo se proponen los helpers. Confirmado por Greener el 26 oct.
+4. **ADM-F3, importar por ruta relativa `../pinActions`:** no se aplica. La regla de ESLint del proyecto (`NO_PARENT_IMPORTS`) prohíbe los imports a carpeta padre y exige el alias `@/…`; solo se permite `./` para la misma carpeta. El hallazgo partía de una convención que el proyecto ya había descartado a propósito.
 
 ### 5.2 Pública
 
@@ -352,13 +404,13 @@ Los usos reales son dos: `FeedProvider` (con `try/catch`) y `ContentFilterPersis
 
 ## 6. Orden de ataque propuesto
 
-1. **Sin riesgo, tipos, constantes y helpers:** ADM-C2, ADM-D1, ADM-D2, ADM-D3, ADM-C3, ADM-F1 a F4; PUB-D1, PUB-D2, PUB-D3, PUB-D5, PUB-D8, PUB-A5, PUB-E2, PUB-F1 a F3; TSX-X1, TSX-X3, TSX-X4. Todo con test unitario donde haya lógica.
-2. **Extracciones de presentación:** ADM-A2, ADM-A3, ADM-A4, ADM-E3; PUB-A1, PUB-A3, PUB-A4, PUB-A6, PUB-A7, PUB-A8, PUB-C3, PUB-D4, PUB-D6; TSX-X2, TSX-X5.
-3. **Formularios y flujos destructivos (probar a mano cada confirmación):** ADM-A1.
-4. **Medios y vídeo (probar una subida real y la reproducción):** ADM-C1 con ADM-B1; PUB-B1 y, si se decide, PUB-B6.
-5. **Rutas de paquetes (probar las tres a mano y `next build`):** PUB-C1.
-6. **Episodio y feed:** PUB-A2 con PUB-B2, PUB-E1, PUB-B3, PUB-B4, PUB-B5.
-7. **A decidir con Greener:** ADM-D4, ADM-E1, ADM-B2, ADM-B3; PUB-C2, PUB-B6.
+1. **Sin riesgo, tipos, constantes y helpers (hecho el 26 oct, salvo ADM-F3, descartado):** ADM-C2, ADM-D1, ADM-D2, ADM-D3, ADM-C3, ADM-F1 a F4; PUB-D1, PUB-D2, PUB-D3, PUB-D5, PUB-D8, PUB-A5, PUB-E2, PUB-F1 a F3; TSX-X1, TSX-X3, TSX-X4. Todo con test unitario donde haya lógica.
+2. **Extracciones de presentación (hecho el 26 oct, salvo TSX-X5):** ADM-A2, ADM-A3, ADM-A4, ADM-E3; PUB-A1, PUB-A3, PUB-A4, PUB-A6, PUB-A7, PUB-A8, PUB-C3, PUB-D4, PUB-D6; TSX-X2, TSX-X5.
+3. **Formularios y flujos destructivos (hecho el 26 oct; probar a mano cada confirmación):** ADM-A1.
+4. **Medios y vídeo (hecho el 26 oct salvo PUB-B6; probar una subida real y la reproducción):** ADM-C1 con ADM-B1; PUB-B1 y, si se decide, PUB-B6.
+5. **Rutas de paquetes (hecho el 26 oct; probar las tres a mano y `next build`):** PUB-C1.
+6. **Episodio y feed (hecho el 26 oct):** PUB-A2 con PUB-B2, PUB-E1, PUB-B3, PUB-B4, PUB-B5.
+7. **A decidir con Greener (decidido y hecho el 26 oct, salvo lo que se deja):** ADM-D4, ADM-E1, ADM-B2, ADM-B3; PUB-C2 (descartado el 27 oct) y PUB-B6 (por lotes: el 1 hecho el 27 oct, los lotes 2 y 3 tras las pruebas a mano).
 
 Dependencias: TSX-X1 (`cx` compartido) antes de los componentes nuevos que lo usen; PUB-D1 (`FeedScope`) antes de tocar `useFeed`/`FeedProvider` en PUB-B4 y PUB-E1; ADM-C1 después de ADM-B1.
 
@@ -366,21 +418,23 @@ Dependencias: TSX-X1 (`cx` compartido) antes de los componentes nuevos que lo us
 
 ### 7.1 Errores reales abiertos
 
-No son refactorizaciones: son comportamientos que conviene corregir. Ninguno se ha tocado.
+No son refactorizaciones: son comportamientos que conviene corregir. Los tres están ya cerrados.
 
-1. **Mensaje de éxito del contacto en español en una interfaz en inglés.** `ContactForm.tsx` muestra «Gracias por escribirnos — te responderemos lo antes posible.» mientras todo el resto del formulario y de los mensajes del servidor está en inglés (arquitectura §2.4: interfaz global en inglés). Ningún test lo comprueba.
-2. **`ContentFilterPersistence` sin guarda de `sessionStorage`** (ADM-B3, TSX-X6): puede lanzar una excepción en navegación privada estricta o con el almacenamiento lleno y romper el listado de contenidos.
-3. **Un scope desconocido cae en `home` sin avisar** (PUB-D1): `typesForScope` devuelve `home` ante cualquier cadena no reconocida, de modo que un error tipográfico en una página del feed no falla: muestra el feed equivocado.
+1. **Corregido el 27 oct (§2.107): mensaje de éxito del contacto en español en una interfaz en inglés.** `ContactForm.tsx` muestra «Gracias por escribirnos — te responderemos lo antes posible.» mientras todo el resto del formulario y de los mensajes del servidor está en inglés (arquitectura §2.4: interfaz global en inglés). Ningún test lo comprueba.
+2. **`ContentFilterPersistence` sin guarda de `sessionStorage`** (ADM-B3, TSX-X6): puede lanzar una excepción en navegación privada estricta o con el almacenamiento lleno y romper el listado de contenidos. **Cerrado el 26 oct (§2.106):** `safeSessionStorage` y `usePersistedFilters`.
+3. **Corregido el 26 oct (PUB-D1).** **Un scope desconocido caía en `home` sin avisar**: `typesForScope` devuelve `home` ante cualquier cadena no reconocida, de modo que un error tipográfico en una página del feed no falla: muestra el feed equivocado.
 
 ### 7.2 Afirmaciones que no se han comprobado en ejecución
 
-1. No se ha ejecutado la suite ni la aplicación para esta auditoría. La línea base conocida es 2643 tests pasados y 12 ficheros (7 tests) fallando por causas de entorno (faltan `supabase/migrations` y `public/`). Cuando se cite un test como cobertura de un cambio, hay que comprobar que no es uno de esos.
-2. Que una fábrica de rutas de paquetes cumpla la exigencia de Next de que `GET` sea un export estático (PUB-C1) se da por hecho y debe confirmarse con `next build`.
+1. No se ejecutó la suite ni la aplicación para esta auditoría. La línea base que se citó entonces (2643 tests pasados y 12 ficheros fallando por entorno) no era la del repositorio completo: el 26 oct, con `supabase/migrations` y `public/` presentes, la suite daba 226 ficheros y 2760 tests en verde, sin fallos de entorno; tras las cinco mejoras, 232 y 2838.
+2. Que una fábrica de rutas de paquetes cumpla la exigencia de Next de que `GET` sea un export estático (PUB-C1): confirmado el 26 oct con `next build`. Falta probar a mano las tres secciones.
 3. Que `workLocalePath` coincida con lo que construyen hoy el sitemap, el hreflang y la redirección (PUB-D3) se ha comprobado leyendo el código, no ejecutándolo.
 4. Los textos de confirmación y de pendiente (ADM-A1, ADM-A2) deben conservarse literalmente; no se ha hecho un inventario completo de todos los textos.
 5. Las líneas ahorradas son estimaciones (apartado 2).
 
 ### 7.3 Imprecisiones de los propios informes y del código
+
+Los cinco comentarios del código de la primera lista se corrigieron el 26 oct (§2.104).
 
 **Comentarios del código que ya no describen lo que hace**
 
@@ -401,27 +455,27 @@ No son refactorizaciones: son comportamientos que conviene corregir. Ninguno se 
 
 Admin
 
-1. **ADM-D4:** ¿`contentCapabilities` en el dominio (la web pública lo reutilizaría) o solo en el admin?
-2. **ADM-A1:** ¿un único estilo para los textos de pendiente (`Guardando…`, con el carácter de puntos suspensivos)?
-3. **ADM-E1:** ¿`AdminListLayout` (menos código, más abstracción) o solo helpers?
-4. **ADM-B2:** ¿se prevé un tercer uso de cola de subida (más ficheros en Talent)? Si no, se deja como está.
+1. **ADM-D4:** ¿`contentCapabilities` en el dominio (la web pública lo reutilizaría) o solo en el admin? **Decidido el 26 oct: solo en el admin** (en `_lib/` de `/admin`). Aplicado en la fase 7 (§2.106).
+2. **ADM-A1:** ¿un único estilo para los textos de pendiente (`Guardando…`, con el carácter de puntos suspensivos)? **Decidido el 26 oct: se unifican con `…`** y aplicado (§2.104).
+3. **ADM-E1:** ¿`AdminListLayout` (menos código, más abstracción) o solo helpers? **Decidido el 26 oct: solo helpers.** Aplicado en la fase 7 (§2.106).
+4. **ADM-B2:** ¿se prevé un tercer uso de cola de subida (más ficheros en Talent)? Si no, se deja como está. **Decidido el 26 oct: no se prevén cambios en Talent; se extraen los elementos comunes sin unificar las dos colas.** Aplicado en la fase 7 (§2.106, `useUploadQueue`).
 
 Pública
 
-5. **PUB-C1:** ¿las rutas de paquetes se unifican ya, o se espera a tocar las CSP? Si `variety` va a tener una política distinta, la fábrica debe aceptar cabeceras como parámetro.
-6. **PUB-D1:** ¿se acepta que `Feed` solo admita los cinco scopes conocidos?
-7. **PUB-A2/PUB-B2:** ¿se saca el texto legal del panel de consentimiento del embed a `modules/consent/domain/copy`, junto al del banner? Hoy vive dentro del JSX de `EpisodeDetail`, sin versión de texto.
-8. **PUB-B6:** ¿se prefiere seguir con `queueMicrotask` documentado o derivar estado en cada hook?
+5. **PUB-C1:** ¿las rutas de paquetes se unifican ya, o se espera a tocar las CSP? Si `variety` va a tener una política distinta, la fábrica debe aceptar cabeceras como parámetro. **Decidido el 26 oct: se unifican.** Aplicado con las cabeceras comunes y sin parámetro; si variety necesita otra política, se añade entonces.
+6. **PUB-D1:** ¿se acepta que `Feed` solo admita los cinco scopes conocidos? **Decidido el 26 oct: sí, con un único array** (`FEED_SCOPES`). Aplicado.
+7. **PUB-A2/PUB-B2:** ¿se saca el texto legal del panel de consentimiento del embed a `modules/consent/domain/copy`, junto al del banner? Hoy vive dentro del JSX de `EpisodeDetail`, sin versión de texto. **Decidido el 26 oct: sí, se extrae el flujo del texto legal del componente.** Aplicado en la fase 6 (§2.106).
+8. **PUB-B6:** ¿se prefiere seguir con `queueMicrotask` documentado o derivar estado en cada hook? **Decidido el 26 oct: se revisan todos los hooks uno a uno. 27 oct: se hace por lotes según el riesgo; el lote 1 (`useVideoSlot` y el billete de `usePinVideo`) está hecho (§2.107); los lotes 2 y 3, tras las pruebas a mano.**
 
 Transversal
 
-9. **TSX-X5:** ¿qué vive en `lib/forms` y qué en cada kit?
+9. **TSX-X5:** ¿qué vive en `lib/forms` y qué en cada kit? **26 oct: Greener necesita más información. 27 oct: se cierra con un README en `lib/forms` (la lógica común en `lib/forms`, la presentación y su idioma en cada kit).**
 
 ## 8. Para que no vuelva a pasar
 
-1. Test de arquitectura que prohíba listas cerradas escritas a mano en la UI: `<option value="es">`, los siete ratios y los cinco tipos de contenido dentro de `src/app/admin/**`, `src/components/**` y `src/app/(public)/**` (tras ADM-D1 a D3 y PUB-D1).
-2. Test que prohíba más de un `<img` con `eslint-disable no-img-element` fuera de `CloudinaryImage` (tras PUB-A1).
-3. Test que compare las tres rutas `app/route.ts` y las tres de assets con la fábrica (tras PUB-C1) o, mientras tanto, que falle si dejan de ser idénticas salvo por el tipo.
-4. Test o regla ESLint que limite `window.confirm` a `AdminActionForm` (tras ADM-A1).
-5. `import/order` en ESLint (TSX-X4).
-6. Dejar documentados los kits (`components/admin`, `Cta`, `StatusPage`) en un README corto en cada carpeta, porque hoy solo se descubren leyendo el directorio.
+1. Test de arquitectura que prohíba listas cerradas escritas a mano en la UI: `<option value="es">`, los siete ratios y los cinco tipos de contenido dentro de `src/app/admin/**`, `src/components/**` y `src/app/(public)/**` (tras ADM-D1 a D3 y PUB-D1). **Hecho el 27 oct (§2.107):** `tests/unit/architecture/noHandWrittenClosedLists.test.ts`.
+2. Test que prohíba más de un `<img` con `eslint-disable no-img-element` fuera de `CloudinaryImage` (tras PUB-A1; PUB-A1 se aplicó el 26 oct, **hecho el 27 oct (§2.107):** `singleCloudinaryImg.test.ts`, con `ToolCoverVideo` y el Shell como excepciones nombradas).
+3. Test que compare las tres rutas `app/route.ts` y las tres de assets con la fábrica (tras PUB-C1) o, mientras tanto, que falle si dejan de ser idénticas salvo por el tipo. Cubierto por `tests/unit/packages/packageRoutes.test.ts` (26 oct) y, desde el 27 oct (§2.107), por `packageRoutesUseFactory.test.ts`, que descubre las rutas nuevas.
+4. Test o regla ESLint que limite `window.confirm` a `AdminActionForm` (tras ADM-A1). **Hecho el 27 oct (§2.107):** `confirmOnlyInKnownPlaces.test.ts`; `DeletePinButtons` y `useCaseCarouselManager` quedan como excepciones nombradas (son clics, no envíos de formulario).
+5. `import/order` en ESLint (TSX-X4). Hecho el 26 oct (§2.104).
+6. Dejar documentados los kits (`components/admin`, `Cta`, `StatusPage`) en un README corto en cada carpeta, porque hoy solo se descubren leyendo el directorio. **Hecho el 27 oct (§2.107), con `lib/forms`.**

@@ -10,18 +10,21 @@ import {
   columnsForViewport,
   GAP,
   type LayoutInputItem,
-  type PinRatio,
 } from '@/modules/masonry/domain/layout'
 import {
   columnReservationForRatio,
   computeContentBlockGeometry,
 } from '@/modules/masonry/domain/detailLayout'
-import { estimateLabelHeight } from '@/modules/masonry/domain/labelHeight'
+import { masonryKey, toLayoutItem } from '@/modules/masonry/domain/layoutItem'
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
-import { fetchFeedBatch, openFeedSession } from '@/components/masonry/feedApi'
+import {
+  fetchFeedBatch,
+  nextHasMore,
+  openFeedSession,
+} from '@/components/masonry/feedApi'
 import { useContainerWidth } from '@/components/masonry/useContainerWidth'
 import { useSentinel } from '@/components/masonry/useSentinel'
-import { recommendationsCopy } from './copy'
+import { useViewportHeight } from '@/components/masonry/useViewportHeight'
 
 /**
  * Panel de recomendaciones de una página de detalle
@@ -51,13 +54,7 @@ import { recommendationsCopy } from './copy'
 const RECOMMENDATIONS_SCOPE = 'home'
 
 export interface PositionedRecommendation {
-  /**
-   * Identidad de ESTA tarjeta en la lista, única aunque el mismo pin salga
-   * varias veces (el feed es infinito y recicla pines: ver PROGRESO). La
-   * lista solo crece por el final y un ítem nunca cambia de posición, así
-   * que el índice global es una clave estable; el pinId se añade solo para
-   * poder leerla en las DevTools. NUNCA usar `item.pinId` como key.
-   */
+  /** Identidad de ESTA tarjeta en la lista (ver `masonryKey`). */
   key: string
   item: FeedPinItem
   x: number
@@ -90,7 +87,7 @@ export function useRecommendationMasonry(
   const scope = RECOMMENDATIONS_SCOPE
 
   const { containerRef, containerWidth } = useContainerWidth()
-  const [viewportHeight, setViewportHeight] = useState(0)
+  const viewportHeight = useViewportHeight()
 
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [items, setItems] = useState<FeedPinItem[]>([])
@@ -99,17 +96,8 @@ export function useRecommendationMasonry(
   const cursorRef = useRef<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(false)
   const loadingRef = useRef(false)
-
-  // Alto de viewport para el 66,7vh del bloque de contenido (§2) — se
-  // relee al redimensionar, igual que haría dvh en CSS.
-  useEffect(() => {
-    const update = () => setViewportHeight(window.innerHeight)
-    update()
-    window.addEventListener('resize', update)
-    return () => window.removeEventListener('resize', update)
-  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -118,7 +106,7 @@ export function useRecommendationMasonry(
     // sobrevivir pines ni cursor de la sección anterior. Diferido con
     // queueMicrotask para no llamar a setState de forma síncrona en el
     // cuerpo del efecto (react-hooks/set-state-in-effect; mismo patrón que
-    // useFeed.ts y useVideoSlot.ts). Corre antes de que vuelva el fetch de
+    // useFeed.ts). Corre antes de que vuelva el fetch de
     // abajo, así que nunca pisa la sesión nueva.
     queueMicrotask(() => {
       if (cancelled) return
@@ -126,7 +114,7 @@ export function useRecommendationMasonry(
       setItems([])
       cursorRef.current = null
       setHasMore(true)
-      setError(null)
+      setError(false)
     })
 
     openFeedSession(scope, excludeContentId)
@@ -136,7 +124,7 @@ export function useRecommendationMasonry(
       .catch((err) => {
         if (!cancelled) {
           console.error(err)
-          setError(recommendationsCopy.loadError)
+          setError(true)
         }
       })
     return () => {
@@ -156,12 +144,11 @@ export function useRecommendationMasonry(
       // pero el tipo del lote sí lo admite.
       setItems((prev) => [...prev, ...batch.items.filter(isPinItem)])
       cursorRef.current = batch.cursor
-      // Mismo criterio que FeedProvider.appendBatch: una ronda vacía es
-      // definitiva (generateRound es determinista), así que se deja de pedir.
-      setHasMore(batch.items.length > 0 ? batch.hasMore : false)
+      // Una ronda vacía es definitiva: se deja de pedir (ver `nextHasMore`).
+      setHasMore(nextHasMore(batch))
     } catch (err) {
       console.error(err)
-      setError(recommendationsCopy.loadError)
+      setError(true)
     } finally {
       loadingRef.current = false
       setIsLoading(false)
@@ -213,11 +200,9 @@ export function useRecommendationMasonry(
     const columnWidth =
       (containerWidth - GAP * (totalColumns - 1)) / totalColumns
 
-    const layoutItems: LayoutInputItem[] = items.map((item) => ({
-      id: item.pinId,
-      ratio: item.ratio as PinRatio,
-      labelHeight: estimateLabelHeight(item, columnWidth),
-    }))
+    const layoutItems: LayoutInputItem[] = items.map((item) =>
+      toLayoutItem(item, columnWidth),
+    )
     // Límite conocido de TIPO A (tool/insight/other): la siembra usa la
     // altura de la IMAGEN (contentBlockImageDimensions, §2), no la altura
     // real medida del bloque completo (imagen + texto) — si el texto es
@@ -249,7 +234,7 @@ export function useRecommendationMasonry(
   const positioned: PositionedRecommendation[] = useMemo(() => {
     if (!layout) return []
     return layout.positions.map((pos, index) => ({
-      key: `${index}:${items[index].pinId}`,
+      key: masonryKey(index, items[index].pinId),
       item: items[index],
       x: pos.x,
       y: pos.y,

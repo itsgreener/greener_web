@@ -4,15 +4,15 @@ import { useActionState } from 'react'
 
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
 
-import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
 import { AdminMessage } from '@/components/admin/AdminMessage'
+import { LocaleOptions, RatioOptions } from '@/components/admin/AdminOptions'
 
 import {
   updatePinAction,
@@ -45,13 +45,7 @@ export function EditPinForm({
             defaultValue={pin.ratio}
             required
           >
-            <option value="1:1">1:1</option>
-            <option value="4:3">4:3</option>
-            <option value="4:5">4:5</option>
-            <option value="3:4">3:4</option>
-            <option value="2:3">2:3</option>
-            <option value="9:16">9:16</option>
-            <option value="16:9">16:9</option>
+            <RatioOptions />
           </AdminSelect>
         </AdminField>
 
@@ -62,9 +56,7 @@ export function EditPinForm({
             defaultValue={pin.language}
             required
           >
-            <option value="es">Español</option>
-            <option value="en">English</option>
-            <option value="ca">Català</option>
+            <LocaleOptions />
           </AdminSelect>
         </AdminField>
 
@@ -114,17 +106,12 @@ export function EditPinForm({
         </AdminField>
       )}
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      {state.success && <AdminMessage kind="success">Guardado.</AdminMessage>}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar cambios'}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label="Guardar cambios"
+        successMessage="Guardado."
+      />
     </AdminForm>
   )
 }

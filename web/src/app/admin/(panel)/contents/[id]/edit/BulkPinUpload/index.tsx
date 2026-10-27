@@ -7,10 +7,10 @@ import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField, AdminFieldset } from '@/components/admin/AdminField'
 import { AdminFormBody } from '@/components/admin/AdminForm'
 import { AdminMessage } from '@/components/admin/AdminMessage'
+import { LocaleOptions, RatioOptions } from '@/components/admin/AdminOptions'
 import { AdminTable } from '@/components/admin/AdminTable'
 
 import { BulkPinRow } from './BulkPinRow'
-import { LANGUAGES, RATIOS } from './rows'
 import { useBulkPinUpload } from './useBulkPinUpload'
 
 type Props = {
@@ -100,11 +100,7 @@ export default function BulkPinUpload(props: Props) {
             value={defaultRatio}
             onChange={(event) => changeDefaultRatio(event.target.value)}
           >
-            {RATIOS.map((ratio) => (
-              <option key={ratio} value={ratio}>
-                {ratio}
-              </option>
-            ))}
+            <RatioOptions />
           </AdminSelect>
         </AdminField>
 
@@ -114,11 +110,7 @@ export default function BulkPinUpload(props: Props) {
             value={defaultLanguage}
             onChange={(event) => changeDefaultLanguage(event.target.value)}
           >
-            {LANGUAGES.map((language) => (
-              <option key={language} value={language}>
-                {language}
-              </option>
-            ))}
+            <LocaleOptions display="value" />
           </AdminSelect>
         </AdminField>
 
@@ -181,7 +173,7 @@ export default function BulkPinUpload(props: Props) {
             disabled={uploading}
             onClick={handleUploadAll}
           >
-            {uploading ? 'Subiendo lote...' : `Subir ${rows.length} pines`}
+            {uploading ? 'Subiendo lote…' : `Subir ${rows.length} pines`}
           </AdminButton>
         </div>
       )}

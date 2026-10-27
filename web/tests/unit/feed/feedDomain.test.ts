@@ -1,11 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
+import { UnsupportedScopeError } from '@/modules/feed/domain/feedErrors'
 import { toFeedBatchItem } from '@/modules/feed/domain/feedItemPresentation'
 import type { PinDirectoryEntry } from '@/modules/feed/domain/feedReadModels'
 import {
   CONTENT_TYPE_TO_KIND,
+  FEED_SCOPES,
   isFeedScope,
+  parseFeedScope,
   typesForScope,
+  type FeedScope,
 } from '@/modules/feed/domain/feedScope'
 
 describe('feedScope', () => {
@@ -24,10 +28,32 @@ describe('feedScope', () => {
     expect(typesForScope('home')).not.toContain('other')
   })
 
-  it('un scope desconocido cae en home y no se reconoce como scope', () => {
+  it('un scope desconocido no se reconoce como scope', () => {
     expect(isFeedScope('nope')).toBe(false)
     expect(isFeedScope('toString')).toBe(false)
-    expect(typesForScope('nope')).toEqual(typesForScope('home'))
+    expect(isFeedScope('related-cases')).toBe(false)
+  })
+
+  it('un scope con un espacio de más tampoco vale (no cae en home)', () => {
+    expect(isFeedScope('work ')).toBe(false)
+  })
+
+  it('los cinco scopes conocidos son exactamente FEED_SCOPES', () => {
+    expect([...FEED_SCOPES].sort()).toEqual(
+      ['channel', 'home', 'insights', 'tools', 'work'].sort(),
+    )
+
+    for (const scope of FEED_SCOPES) {
+      expect(isFeedScope(scope)).toBe(true)
+      expect(parseFeedScope(scope)).toBe(scope)
+    }
+  })
+
+  it('typesForScope y parseFeedScope fallan con un scope desconocido en vez de caer en home', () => {
+    expect(() => typesForScope('nope' as FeedScope)).toThrow(
+      UnsupportedScopeError,
+    )
+    expect(() => parseFeedScope('nope')).toThrow(UnsupportedScopeError)
   })
 
   it('cada tipo tiene su cola en el snapshot', () => {

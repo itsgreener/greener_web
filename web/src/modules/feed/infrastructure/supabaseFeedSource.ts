@@ -13,6 +13,7 @@ import type {
 import {
   CONTENT_TYPE_TO_KIND,
   typesForScope,
+  type FeedScope,
 } from '@/modules/feed/domain/feedScope'
 import type {
   CaseInput,
@@ -153,11 +154,11 @@ function toFeedItemMedia(m: {
  * diferencia de feed_session/feed_round (ver serviceClient.ts).
  *
  * `scope` filtra qué tipos de contenido entran en el universo (ver
- * typesForScope). Un scope desconocido cae en 'home'; createFeedSession.ts
- * ya lo valida antes, así que eso es solo defensivo.
+ * typesForScope). El scope llega ya validado como `FeedScope`
+ * (createFeedSession.ts y la lectura de feed_session lo comprueban).
  */
 export async function getFeedDataset(
-  scope: string,
+  scope: FeedScope,
   excludeContentId?: string | null,
   client: AppSupabaseClient = createPublicReadClient(),
 ): Promise<FeedDataset> {

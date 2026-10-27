@@ -1,11 +1,9 @@
 'use client'
 
+import { ConsentButtons } from '@/components/consent/ConsentButtons'
 import { useConsent } from '@/modules/consent/client/ConsentProvider'
-import {
-  CONSENT_COPY,
-  COOKIE_CHOICE_ANCHOR,
-  DEFAULT_CONSENT_LOCALE,
-} from '@/modules/consent/domain/copy'
+import { useConsentCopy } from '@/modules/consent/client/useConsentCopy'
+import { COOKIE_CHOICE_ANCHOR } from '@/modules/consent/domain/copy'
 import styles from './CookieChoice.module.css'
 
 /**
@@ -15,8 +13,8 @@ import styles from './CookieChoice.module.css'
  * (`unknown`) no se afirma nada sobre la decisión actual.
  */
 export function CookieChoice() {
-  const { status, accept, reject } = useConsent()
-  const copy = CONSENT_COPY[DEFAULT_CONSENT_LOCALE]
+  const { status } = useConsent()
+  const copy = useConsentCopy()
 
   return (
     <section
@@ -31,22 +29,7 @@ export function CookieChoice() {
         {status === 'unknown' ? '\u00a0' : copy.choiceStatus(status)}
       </p>
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.button}
-          aria-pressed={status === 'accepted'}
-          onClick={accept}
-        >
-          {copy.accept}
-        </button>
-        <button
-          type="button"
-          className={styles.button}
-          aria-pressed={status === 'rejected'}
-          onClick={reject}
-        >
-          {copy.reject}
-        </button>
+        <ConsentButtons className={styles.button} showCurrentChoice />
       </div>
     </section>
   )

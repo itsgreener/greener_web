@@ -1,3 +1,5 @@
+import { SECTION_LABELS } from '@/components/nav/sectionLabels'
+
 /**
  * Entradas del menú lateral, en tres bloques (logo / navegación / redes).
  * No existe entrada "Casos" en el bloque de navegación: es deliberado, los
@@ -5,7 +7,9 @@
  * icono "works" apunta a la home por el mismo motivo.
  *
  * Labels en inglés (arquitectura §2.4: "interfaz global en inglés"), los
- * mismos que el menú auxiliar de la home (components/nav/AuxNav).
+ * mismos que el menú auxiliar de la home (components/nav/AuxNav): los dos los
+ * toman de `SECTION_LABELS`, así que un cambio de nombre se hace en un solo
+ * sitio.
  *
  * "shop" viene en el set de iconos porque así será el diseño final, pero
  * Shop está fuera de alcance de V1 (arquitectura §2.2, §2.3: "el menú V1
@@ -13,10 +17,20 @@
  * cuando haya funcionalidad real detrás, activarlo es una sola línea.
  */
 const NAV_ITEMS = [
-  { href: '/', label: 'We did it', icon: 'works', visible: true },
-  { href: '/channel', label: 'Podcasts', icon: 'episodes', visible: true },
-  { href: '/insights', label: 'Insights', icon: 'insights', visible: true },
-  { href: '/tools', label: 'Tools', icon: 'tools', visible: true },
+  { href: '/', label: SECTION_LABELS.work, icon: 'works', visible: true },
+  {
+    href: '/channel',
+    label: SECTION_LABELS.channel,
+    icon: 'episodes',
+    visible: true,
+  },
+  {
+    href: '/insights',
+    label: SECTION_LABELS.insights,
+    icon: 'insights',
+    visible: true,
+  },
+  { href: '/tools', label: SECTION_LABELS.tools, icon: 'tools', visible: true },
   { href: '/shop', label: 'Shop', icon: 'shop', visible: false },
 ] as const
 

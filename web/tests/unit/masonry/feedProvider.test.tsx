@@ -5,6 +5,7 @@ import '@testing-library/jest-dom/vitest'
 
 import { FeedProvider, useFeedContext } from '@/components/masonry/FeedProvider'
 import type { FeedPinItem } from '@/modules/feed/domain/feedReadModels'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 
 /**
  * appendBatch (FeedProvider.tsx) es donde vivía el bug real corregido el
@@ -32,7 +33,7 @@ const PIN = (id: string): FeedPinItem =>
     media: [{ kind: 'image', cloudinaryPublicId: 'sample' }],
   }) as FeedPinItem
 
-function TestConsumer({ scope }: { scope: string }) {
+function TestConsumer({ scope }: { scope: FeedScope }) {
   const { getState, appendBatch } = useFeedContext()
   const state = getState(scope)
 
@@ -74,7 +75,7 @@ function TestConsumer({ scope }: { scope: string }) {
   )
 }
 
-function renderWithProvider(scope = 'home') {
+function renderWithProvider(scope: FeedScope = 'home') {
   render(
     <FeedProvider>
       <TestConsumer scope={scope} />

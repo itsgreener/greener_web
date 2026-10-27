@@ -104,7 +104,7 @@ Probado: **tras cambiar el enlace, el proceso sigue sirviendo la release vieja h
 
 ## 5. Node con nvm y el cron (verificado)
 
-Next 16 exige como mínimo Node 20.9. El `engines` de este proyecto pide 24.15, pero solo lo comprueba `npm` al instalar; con la carpeta standalone no se ejecuta `npm` en el servidor. Toda la verificación de esta sesión se hizo con Node 22. Con nvm se puede fijar la 24 (`nvm install 24` da la última 24.x, que cumple `>=24.15 <25`), y es lo coherente con el `.nvmrc`. Se indica por ruta absoluta en `interpreter` (§3).
+Next 16 exige como mínimo Node 20.9. El `engines` de este proyecto pide 24.22.1 (la versión que corrige las vulnerabilidades graves de octubre), pero solo lo comprueba `npm` al instalar; con la carpeta standalone no se ejecuta `npm` en el servidor. Toda la verificación de esta sesión se hizo con Node 22. Con nvm se puede fijar la 24 (`nvm install 24` da la última 24.x, que cumple `>=24.22.1 <25`), y es lo coherente con el `.nvmrc`. Se indica por ruta absoluta en `interpreter` (§3).
 
 **La trampa del cron.** Un cron arranca con un entorno mínimo: **no carga nvm ni el `PATH` de vuestra sesión**. El comando `pm2` empieza por `#!/usr/bin/env node`, así que sin Node en el `PATH` falla (probado: `env: 'node': No such file or directory`). El vigilante tiene que fijar el `PATH` a la carpeta del Node elegido.
 

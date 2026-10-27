@@ -1,4 +1,4 @@
-import { cx } from '@/components/admin/cx'
+import { cx } from '@/lib/cx'
 
 import styles from './AdminControls.module.css'
 

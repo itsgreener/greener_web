@@ -1,5 +1,6 @@
 import { PHONE_BATCH_SIZE } from '@/modules/feed/domain/batchSize'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
 
 /**
@@ -9,7 +10,7 @@ import { BREAKPOINT_PX } from '@/modules/shared/domain/breakpoints'
  */
 
 export async function openFeedSession(
-  scope: string,
+  scope: FeedScope,
   // Solo el panel de recomendaciones lo manda: el contenido que se está
   // viendo no se recomienda a sí mismo.
   excludeContentId?: string,
@@ -22,7 +23,7 @@ export async function openFeedSession(
     ),
   })
   if (!res.ok) {
-    throw new Error(`Could not open the feed session: ${res.status}`)
+    throw new Error(`No se pudo abrir la sesión del feed: ${res.status}`)
   }
   const data = (await res.json()) as { sessionId: string }
   return data.sessionId
@@ -34,6 +35,22 @@ export async function openFeedSession(
  */
 export function requestedBatchSize(viewportWidth: number): number | null {
   return viewportWidth < BREAKPOINT_PX.mobile ? PHONE_BATCH_SIZE : null
+}
+
+/**
+ * ¿Hay más lotes que pedir tras este? El servidor devuelve `hasMore = true`
+ * siempre (arquitectura §8.5, «el feed no termina»), pero una ronda vacía es
+ * una señal real y definitiva: `generateRound` es determinista, así que si el
+ * universo de ese scope tiene 0 elementos todas las rondas futuras también
+ * vendrán vacías. Sin este corte, el sentinel de prefetch pediría ronda tras
+ * ronda sin parar nunca. (El lote vacío por límite de peticiones lo descarta
+ * antes quien llama: no llega aquí.)
+ */
+export function nextHasMore(batch: {
+  items: readonly unknown[]
+  hasMore: boolean
+}): boolean {
+  return batch.items.length > 0 ? batch.hasMore : false
 }
 
 export async function fetchFeedBatch(
@@ -51,7 +68,7 @@ export async function fetchFeedBatch(
     query ? `/api/feed/${sessionId}?${query}` : `/api/feed/${sessionId}`,
   )
   if (!res.ok) {
-    throw new Error(`Could not fetch the feed batch: ${res.status}`)
+    throw new Error(`No se pudo cargar el lote del feed: ${res.status}`)
   }
   return (await res.json()) as FeedBatchResult
 }

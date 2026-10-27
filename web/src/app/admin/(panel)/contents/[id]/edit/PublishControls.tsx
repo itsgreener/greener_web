@@ -1,14 +1,16 @@
 'use client'
 
-import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 import { useActionState, useState } from 'react'
+import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
 
+import { AdminActionFormView } from '@/components/admin/AdminActionForm'
 import { AdminStatusBadge } from '@/components/admin/AdminBadge'
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 
+import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 import { localDateTimeToIsoUtc } from './datetimeLocal'
 
 import {
@@ -23,8 +25,6 @@ import {
   generatePreviewLinkAction,
   type PreviewLinkActionState,
 } from './previewActions'
-
-import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
 
 import styles from './PublishControls.module.css'
 
@@ -90,37 +90,42 @@ export default function PublishControls({
 
       <div className={styles.actions}>
         {status !== 'published' && previewAvailable && (
-          <form action={previewAction}>
-            <input type="hidden" name="id" value={contentId} />
-
-            <AdminButton type="submit" disabled={generatingPreview}>
-              {generatingPreview ? 'Generando...' : 'Preview'}
-            </AdminButton>
-          </form>
+          <AdminActionFormView
+            action={previewAction}
+            pending={generatingPreview}
+            state={previewState}
+            showMessages={false}
+            hidden={{ id: contentId }}
+            label="Preview"
+            pendingLabel="Generando…"
+          />
         )}
 
         {status !== 'published' && (
-          <form action={publishAction}>
-            <input type="hidden" name="id" value={contentId} />
-
-            <AdminButton type="submit" variant="primary" disabled={publishing}>
-              {publishing ? 'Publicando...' : 'Publicar ahora'}
-            </AdminButton>
-          </form>
+          <AdminActionFormView
+            action={publishAction}
+            pending={publishing}
+            state={publishState}
+            showMessages={false}
+            hidden={{ id: contentId }}
+            variant="primary"
+            label="Publicar ahora"
+            pendingLabel="Publicando…"
+          />
         )}
 
         {status !== 'draft' && (
-          <form action={unpublishAction}>
-            <input type="hidden" name="id" value={contentId} />
-
-            <AdminButton type="submit" disabled={unpublishing}>
-              {unpublishing
-                ? 'Despublicando...'
-                : status === 'scheduled'
-                  ? 'Cancelar programación'
-                  : 'Despublicar'}
-            </AdminButton>
-          </form>
+          <AdminActionFormView
+            action={unpublishAction}
+            pending={unpublishing}
+            state={unpublishState}
+            showMessages={false}
+            hidden={{ id: contentId }}
+            label={
+              status === 'scheduled' ? 'Cancelar programación' : 'Despublicar'
+            }
+            pendingLabel="Despublicando…"
+          />
         )}
       </div>
 
@@ -145,7 +150,7 @@ export default function PublishControls({
               />
 
               <AdminButton type="submit" disabled={scheduling || !isoPublishAt}>
-                {scheduling ? 'Programando...' : 'Programar'}
+                {scheduling ? 'Programando…' : 'Programar'}
               </AdminButton>
             </div>
           </AdminField>

@@ -1,74 +1,57 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
 import {
   fetchFeedBatch,
-  requestedBatchSize,
+  nextHasMore,
+  openFeedSession,
 } from '@/components/masonry/feedApi'
 
 afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('requestedBatchSize', () => {
-  it('en móvil (< 640 px) pide lotes de 20; en el resto no pide nada', () => {
-    expect(requestedBatchSize(390)).toBe(20)
-    expect(requestedBatchSize(639)).toBe(20)
-    expect(requestedBatchSize(640)).toBeNull()
-    expect(requestedBatchSize(1440)).toBeNull()
+function stubFetch(status: number) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({
+      ok: status >= 200 && status < 300,
+      status,
+      json: async () => ({ sessionId: 's1' }),
+    }),
+  )
+}
+
+describe('feedApi — errores', () => {
+  it('abrir la sesión con un 500 lanza un mensaje en español con el estado', async () => {
+    stubFetch(500)
+
+    await expect(openFeedSession('home')).rejects.toThrow(
+      'No se pudo abrir la sesión del feed: 500',
+    )
+  })
+
+  it('pedir un lote con un 429 lanza un mensaje en español con el estado', async () => {
+    stubFetch(429)
+
+    await expect(fetchFeedBatch('s1', null)).rejects.toThrow(
+      'No se pudo cargar el lote del feed: 429',
+    )
+  })
+
+  it('con respuesta correcta devuelve el id de la sesión', async () => {
+    stubFetch(200)
+
+    await expect(openFeedSession('work')).resolves.toBe('s1')
   })
 })
 
-describe('fetchFeedBatch — URL', () => {
-  function stubWindowAndFetch(innerWidth: number) {
-    const fetchMock = vi.fn(async () => ({
-      ok: true,
-      json: async () => ({ items: [] }),
-    }))
-    vi.stubGlobal('window', { innerWidth })
-    vi.stubGlobal('fetch', fetchMock)
-    return fetchMock
-  }
-
-  it('en escritorio no añade size', async () => {
-    const fetchMock = stubWindowAndFetch(1440)
-    await fetchFeedBatch('s1', null)
-    expect(fetchMock).toHaveBeenCalledWith('/api/feed/s1')
+describe('nextHasMore', () => {
+  it('con pines en el lote, manda lo que diga el servidor', () => {
+    expect(nextHasMore({ items: [{}], hasMore: true })).toBe(true)
+    expect(nextHasMore({ items: [{}], hasMore: false })).toBe(false)
   })
 
-  it('en móvil añade size=20 y conserva el cursor codificado', async () => {
-    const fetchMock = stubWindowAndFetch(390)
-    await fetchFeedBatch('s1', 'a.b/c')
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/feed/s1?cursor=a.b%2Fc&size=20',
-    )
-  })
-})
-
-describe('fetchFeedBatch — newsletter', () => {
-  it('entrega el lote tal cual, con las apariciones de newsletter incluidas', async () => {
-    vi.stubGlobal('window', { innerWidth: 1440 })
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => ({
-        ok: true,
-        json: async () => ({
-          items: [
-            { pinId: 'p1', kind: 'case' },
-            { pinId: 'newsletter:n1:0', kind: 'newsletter' },
-            { pinId: 'p2', kind: 'other' },
-          ],
-          cursor: 'c',
-          hasMore: true,
-        }),
-      })),
-    )
-
-    const batch = await fetchFeedBatch('s1', null)
-
-    expect(batch.items.map((item) => item.pinId)).toEqual([
-      'p1',
-      'newsletter:n1:0',
-      'p2',
-    ])
-    expect(batch.cursor).toBe('c')
+  it('una ronda vacía es definitiva aunque el servidor diga que hay más', () => {
+    expect(nextHasMore({ items: [], hasMore: true })).toBe(false)
   })
 })

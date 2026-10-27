@@ -27,12 +27,22 @@ const resolvePreviewContext = vi.fn()
 
 // El container real arrastra Supabase: se sustituye por el lector falso, pero
 // `resolveDetailCover` es la función real (es la que se quiere probar).
-vi.mock('@/modules/content/container', async () => ({
-  resolvePreviewContext: (...args: unknown[]) => resolvePreviewContext(...args),
-  resolveDetailCover: (
-    await import('@/modules/content/application/resolveDetailCover')
-  ).resolveDetailCover,
-}))
+vi.mock('@/modules/content/container', async () => {
+  const { previewOfType } =
+    await import('@/modules/content/application/resolvePreviewContext')
+  return {
+    resolvePreviewContext: (...args: unknown[]) =>
+      resolvePreviewContext(...args),
+    resolvePreviewOfType: async (
+      slug: string,
+      token: string | undefined,
+      types: Parameters<typeof previewOfType>[1],
+    ) => previewOfType(await resolvePreviewContext(slug, token), types),
+    resolveDetailCover: (
+      await import('@/modules/content/application/resolveDetailCover')
+    ).resolveDetailCover,
+  }
+})
 vi.mock('@/components/detail/ToolInsightDetail', () => ({
   ToolInsightDetail: () => null,
 }))
@@ -64,8 +74,8 @@ function content(type: 'tool'): PublicContent {
 }
 
 type DetailProps = { cover: PublicPinCover | null }
-type Rendered = { props: { children: { props: DetailProps } } }
-const detailProps = (el: unknown) => (el as Rendered).props.children.props
+type Rendered = { props: DetailProps }
+const detailProps = (el: unknown) => (el as Rendered).props
 
 beforeEach(() => {
   vi.clearAllMocks()

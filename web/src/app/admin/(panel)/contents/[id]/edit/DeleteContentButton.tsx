@@ -1,29 +1,17 @@
 'use client'
 
-import { useActionState } from 'react'
-
-import { AdminButton } from '@/components/admin/AdminButton'
+import { AdminActionForm } from '@/components/admin/AdminActionForm'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 
-import {
-  deleteContentAction,
-  type DeleteContentActionState,
-} from './deleteActions'
-
 import type { ContentStatus } from '@/modules/shared/domain/contentStatus'
+import { deleteContentAction } from './deleteActions'
+
 type Props = {
   id: string
   status: ContentStatus
 }
 
-const initialState: DeleteContentActionState = {}
-
 export default function DeleteContentButton({ id, status }: Props) {
-  const [state, formAction, pending] = useActionState(
-    deleteContentAction,
-    initialState,
-  )
-
   if (status !== 'draft') {
     return (
       <AdminMessage>
@@ -33,25 +21,14 @@ export default function DeleteContentButton({ id, status }: Props) {
   }
 
   return (
-    <form
-      action={formAction}
-      onSubmit={(event) => {
-        const confirmed = window.confirm(
-          '¿Seguro que quieres eliminar este contenido? Esta acción no se puede deshacer.',
-        )
-
-        if (!confirmed) {
-          event.preventDefault()
-        }
-      }}
-    >
-      <input type="hidden" name="id" value={id} />
-
-      {state.error && <AdminMessage kind="error">{state.error}</AdminMessage>}
-
-      <AdminButton type="submit" variant="danger-solid" disabled={pending}>
-        {pending ? 'Eliminando...' : 'Eliminar contenido'}
-      </AdminButton>
-    </form>
+    <AdminActionForm
+      action={deleteContentAction}
+      hidden={{ id }}
+      variant="danger-solid"
+      label="Eliminar contenido"
+      pendingLabel="Eliminando…"
+      confirmText="¿Seguro que quieres eliminar este contenido? Esta acción no se puede deshacer."
+      messagesFirst
+    />
   )
 }

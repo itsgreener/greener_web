@@ -19,6 +19,7 @@ import type {
 import type { Locale } from '@/modules/shared/domain/locale'
 import type { OtherKind } from '@/modules/content/domain/otherSchema'
 import { createRepositoryError } from '@/lib/supabase/repositoryError'
+
 type SupabaseContentRow = {
   id: string
   type: ContentListItem['type']

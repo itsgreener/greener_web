@@ -1,3 +1,4 @@
+import { pageCount, parsePage } from '@/modules/shared/domain/pagination'
 import {
   CANDIDATE_STATUS_FILTER_VALUES,
   PROFILE_VALUES,
@@ -31,7 +32,6 @@ export function parseCandidateSearchQuery(params: {
   profile?: string
   page?: string
 }): CandidateSearchQuery {
-  const page = Number.parseInt(params.page ?? '', 10)
   const status = (params.status ?? '').trim()
   const profile = (params.profile ?? '').trim()
 
@@ -49,11 +49,11 @@ export function parseCandidateSearchQuery(params: {
     profile: (PROFILE_VALUES as readonly string[]).includes(profile)
       ? profile
       : '',
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: parsePage(params.page),
     pageSize: TALENT_ADMIN_PAGE_SIZE,
   }
 }
 
 export function candidatePageCount(total: number, pageSize: number): number {
-  return Math.max(1, Math.ceil(total / pageSize))
+  return pageCount(total, pageSize)
 }

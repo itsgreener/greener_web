@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { pageCount, parsePage } from '@/modules/shared/domain/pagination'
 
 /** Filas por página del visor del registro de actividad. */
 export const AUDIT_LOG_PAGE_SIZE = 50
@@ -32,7 +33,6 @@ export function parseAuditLogQuery(params: {
   entityId?: string
   page?: string
 }): AuditLogQuery {
-  const page = Number.parseInt(params.page ?? '', 10)
   const entityId = uuidSchema.safeParse(params.entityId?.trim())
   const entity = (params.entity ?? '').trim().toLowerCase()
 
@@ -44,11 +44,11 @@ export function parseAuditLogQuery(params: {
       .slice(0, MAX_QUERY_LENGTH),
     entity: /^[a-z_]{1,50}$/.test(entity) ? entity : '',
     entityId: entityId.success ? entityId.data : '',
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: parsePage(params.page),
     pageSize: AUDIT_LOG_PAGE_SIZE,
   }
 }
 
 export function auditLogPageCount(total: number, pageSize: number): number {
-  return Math.max(1, Math.ceil(total / pageSize))
+  return pageCount(total, pageSize)
 }

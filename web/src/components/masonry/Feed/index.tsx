@@ -1,9 +1,11 @@
 'use client'
 
-import { PinCard } from '@/components/pin/PinCard'
+import { PinCard, cardPositionStyle } from '@/components/pin/PinCard'
 import { NewsletterPinCard } from '@/components/newsletter/NewsletterPinCard'
 import { isNewsletterItem } from '@/modules/feed/domain/feedReadModels'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 import { feedCopy } from '@/components/masonry/copy'
+import { FeedStatus } from '@/components/masonry/FeedStatus'
 import { useFeed } from './useFeed'
 import styles from './Feed.module.css'
 
@@ -12,7 +14,7 @@ import styles from './Feed.module.css'
  * la home (scope="home") y cada subhome (scope="work"/"insights"/
  * "tools"/"channel"). Habla con /api/feed/sessions + /api/feed/[sessionId].
  */
-export function Feed({ scope }: { scope: string }) {
+export function Feed({ scope }: { scope: FeedScope }) {
   const {
     containerRef,
     positioned,
@@ -25,9 +27,18 @@ export function Feed({ scope }: { scope: string }) {
     retireNewsletterCards,
   } = useFeed(scope)
 
-  if (error) {
-    return <p className={styles.status}>{feedCopy.loadError}</p>
-  }
+  const status = (
+    <FeedStatus
+      error={error}
+      isLoading={isLoading}
+      itemCount={itemCount}
+      hasMore={hasMore}
+      copy={feedCopy}
+      className={styles.status}
+    />
+  )
+
+  if (error) return status
 
   return (
     <div className={styles.wrapper}>
@@ -63,22 +74,13 @@ export function Feed({ scope }: { scope: string }) {
             <div
               key={p.key}
               className={styles.spacer}
-              style={{
-                transform: `translate(${p.x}px, ${p.y}px)`,
-                width: p.width,
-                height: p.height,
-              }}
+              style={{ ...cardPositionStyle(p), height: p.height }}
             />
           ),
         )}
       </div>
       <div ref={sentinelRef} className={styles.sentinel} />
-      {isLoading && itemCount === 0 && (
-        <p className={styles.status}>{feedCopy.loading}</p>
-      )}
-      {!isLoading && itemCount === 0 && !hasMore && (
-        <p className={styles.status}>{feedCopy.empty}</p>
-      )}
+      {status}
     </div>
   )
 }

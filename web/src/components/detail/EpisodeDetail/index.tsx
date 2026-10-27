@@ -1,28 +1,32 @@
 'use client'
 
+import {
+  CloudinaryImage,
+  DETAIL_IMAGE_SIZES,
+} from '@/components/media/CloudinaryImage'
+import {
+  embedProviderLabel,
+  episodeEmbedKey,
+  episodeEmbedUrl,
+} from '@/modules/content/domain/episodeEmbed'
 import { episodeKindLabel } from '@/modules/content/domain/episodeLabels'
 import {
   EPISODE_CTA_LABEL,
   episodeExternalUrl,
 } from '@/modules/content/domain/episodeLinks'
-import { useState } from 'react'
-import Link from 'next/link'
 
-import { CtaAnchor, CtaButton } from '@/components/cta/Cta'
+import { CtaAnchor } from '@/components/cta/Cta'
+import { EmbedConsentPrompt } from '@/components/detail/EmbedConsentPrompt'
 import { RecommendationsGrid } from '@/components/detail/RecommendationsGrid'
+import { useEmbedPlayback } from '@/components/detail/useEmbedPlayback'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
-import { useConsent } from '@/modules/consent/client/ConsentProvider'
+import { isPreviewRequest } from '@/modules/analytics/previewRequest'
 import type {
   PublicContent,
   PublicContentMedia,
   PublicEpisode,
 } from '@/modules/content/domain/publicContent'
-import {
-  buildImageSrcSet,
-  buildImageUrl,
-  buildVideoPosterUrl,
-} from '@/modules/media/client/cloudinaryUrl'
 import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import styles from './EpisodeDetail.module.css'
 
@@ -40,50 +44,6 @@ import styles from './EpisodeDetail.module.css'
 const EPISODE_RATIO = '16:9' as const
 
 /**
- * https://www.youtube.com/embed vs youtube-nocookie: arquitectura §17.2
- * ("YouTube usa youtube-nocookie cuando sea viable"). Spotify no tiene una
- * variante sin cookies equivalente. Vimeo se retiró el 13 oct 2026.
- *
- * `autoplay=1` en YouTube: con el consentimiento por delante
- * (nada se monta sin un «sí» y un clic previo), pulsar play en la portada
- * ya ES la intención explícita de reproducir — sin autoplay el visitante
- * tendría que pulsar play una segunda vez dentro del propio iframe.
- * Spotify no admite ese parámetro en su embed.
- */
-function embedUrl(episode: PublicEpisode): string {
-  switch (episode.provider) {
-    case 'youtube':
-      return `https://www.youtube-nocookie.com/embed/${episode.embedId}?autoplay=1`
-    case 'spotify':
-      // Mejor suposición: episode_kind hoy solo vale 'podcast', así que se
-      // asume un episodio de Spotify, no un show completo — a confirmar
-      // si algún día se sube contenido que no encaje aquí.
-      return `https://open.spotify.com/embed/episode/${episode.embedId}`
-  }
-}
-
-function providerLabel(provider: PublicEpisode['provider']): string {
-  switch (provider) {
-    case 'youtube':
-      return 'YouTube'
-    case 'spotify':
-      return 'Spotify'
-  }
-}
-
-// NINGÚN embed de tercero se monta hasta que hay un «sí» a las cookies Y el
-// visitante pulsa play. Cargar el iframe ya es instalar las cookies del
-// proveedor (YouTube escribe un identificador en el almacenamiento local al
-// cargar; Spotify planta cookies desde la carga), así que antes de eso solo
-// hay una portada de Greener (la imagen 16:9 del episodio, en Cloudinary) y un
-// botón de play. Quien ya aceptó carga el reproductor con ese clic, sin
-// volver a preguntar; quien rechazó, o aún no ha decidido, ve la petición en
-// ese momento y, si acepta, queda aceptado para toda la web (se puede
-// revocar desde «Privacy & Cookies» en el menú lateral). Revocar desmonta el
-// reproductor al instante. La guía de la AEPD (mayo de 2024, §3.2.3 d)
-// reconoce pedir el consentimiento justo antes de descargar un vídeo.
-
-/**
  * Portada previa al reproductor: la primera imagen 16:9 de los pines del
  * episodio o, sin ella, el primer pin (`episodePoster`), servida por
  * Cloudinary con las mismas cadenas del contrato de medios que usa la ficha
@@ -93,26 +53,14 @@ function providerLabel(provider: PublicEpisode['provider']): string {
 function EpisodePoster({ media }: { media: PublicContentMedia | null }) {
   if (!media) return null
 
-  const src =
-    media.kind === 'image'
-      ? buildImageUrl(media.cloudinaryPublicId, 'detail')
-      : buildVideoPosterUrl(
-          media.cloudinaryPublicId,
-          detailVideoRungM(EPISODE_RATIO),
-          'detail',
-        )
-
   return (
-    // URL ya transformada por modules/media/client/cloudinaryUrl.ts
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={src}
-      srcSet={
-        media.kind === 'image'
-          ? buildImageSrcSet(media.cloudinaryPublicId, 'detail')
-          : undefined
-      }
-      sizes="83vw"
+    <CloudinaryImage
+      publicId={media.cloudinaryPublicId}
+      kind={media.kind}
+      profile="detail"
+      posterSize={detailVideoRungM(EPISODE_RATIO)}
+      responsive={media.kind === 'image'}
+      sizes={DETAIL_IMAGE_SIZES}
       alt=""
       className={styles.poster}
     />
@@ -134,14 +82,7 @@ export function EpisodeDetail({
   // Imagen 16:9 del episodio (o el primer pin): portada previa al reproductor.
   poster?: PublicContentMedia | null
 }) {
-  const { status, accept } = useConsent()
-  const [approvedEmbedKey, setApprovedEmbedKey] = useState<string | null>(null)
-  const [askingConsent, setAskingConsent] = useState(false)
-  const embedKey = `${episode.provider}:${episode.embedId}`
-  // Aceptar es condición para que haya reproductor, no solo para montarlo:
-  // si el visitante revoca el consentimiento, el iframe se desmonta.
-  const canRenderEmbed = approvedEmbedKey === embedKey && status === 'accepted'
-  const provider = providerLabel(episode.provider)
+  const provider = embedProviderLabel(episode.provider)
 
   const recommendations = useRecommendationMasonry(content.id, EPISODE_RATIO, {
     fullWidthContent: true,
@@ -150,44 +91,31 @@ export function EpisodeDetail({
 
   /**
    * Registra "Episode Play" (arquitectura §18.2) en el clic que monta el
-   * reproductor — es la acción explícita de reproducir, uniforme entre los
-   * tres proveedores. Un preview firmado no debe contaminar las métricas
-   * públicas (mismo criterio que ContentOpenTracker, pero aquí no hay
-   * montaje propio que lo dispare: el evento nace del clic, no de abrir la
-   * página).
+   * reproductor: es la acción explícita de reproducir, uniforme entre los dos
+   * proveedores (YouTube y Spotify; Vimeo se retiró el 13 oct 2026). Una vista
+   * previa firmada no debe contaminar las métricas públicas (mismo criterio
+   * que ContentOpenTracker, pero aquí no hay montaje propio que lo dispare:
+   * el evento nace del clic, no de abrir la página).
    */
-  function startPlayback() {
-    const isPreview = new URLSearchParams(window.location.search).has('preview')
+  function trackPlay() {
+    if (isPreviewRequest()) return
 
-    if (!isPreview) {
-      trackAnalyticsEvent(
-        'Episode Play',
-        {
-          program: episode.program,
-          episodeId: content.id,
-          provider: episode.provider,
-        },
-        { interactive: true },
-      )
-    }
-
-    setAskingConsent(false)
-    setApprovedEmbedKey(embedKey)
+    trackAnalyticsEvent(
+      'Episode Play',
+      {
+        program: episode.program,
+        episodeId: content.id,
+        provider: episode.provider,
+      },
+      { interactive: true },
+    )
   }
 
-  function handlePlayClick() {
-    if (status === 'accepted') {
-      startPlayback()
-      return
-    }
-
-    setAskingConsent(true)
-  }
-
-  function handleAcceptAndPlay() {
-    accept()
-    startPlayback()
-  }
+  const { canRenderEmbed, askingConsent, play, acceptAndPlay, cancel } =
+    useEmbedPlayback({
+      embedKey: episodeEmbedKey(episode.provider, episode.embedId),
+      onPlay: trackPlay,
+    })
 
   return (
     <article className={styles.article}>
@@ -201,7 +129,7 @@ export function EpisodeDetail({
         >
           {canRenderEmbed ? (
             <iframe
-              src={embedUrl(episode)}
+              src={episodeEmbedUrl(episode.provider, episode.embedId)}
               title={content.title}
               className={styles.embed}
               allow="autoplay; encrypted-media; picture-in-picture"
@@ -212,45 +140,16 @@ export function EpisodeDetail({
             <>
               <EpisodePoster media={poster} />
               {askingConsent ? (
-                <div className={styles.embedConsent}>
-                  <p className={styles.embedConsentTitle}>{provider} content</p>
-                  <p className={styles.embedConsentText}>
-                    This content is served by {provider}. Nothing is loaded from{' '}
-                    {provider} until you accept cookies. If you accept, your
-                    browser connects to {provider}, which receives your IP
-                    address and uses cookies and similar technologies of its own
-                    to deliver the player and for its own purposes, as described
-                    in its privacy policy.
-                  </p>
-                  <p className={styles.embedConsentText}>
-                    Your choice is remembered, and you can change it at any time
-                    on the Privacy &amp; Cookies page.{' '}
-                    <Link
-                      href="/privacy#cookies"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      Privacy &amp; Cookies
-                    </Link>
-                  </p>
-                  <div className={styles.embedConsentActions}>
-                    <CtaButton type="button" onClick={handleAcceptAndPlay}>
-                      Accept cookies and play
-                    </CtaButton>
-                    <button
-                      type="button"
-                      className={styles.embedConsentSecondary}
-                      onClick={() => setAskingConsent(false)}
-                    >
-                      Not now
-                    </button>
-                  </div>
-                </div>
+                <EmbedConsentPrompt
+                  provider={provider}
+                  onAccept={acceptAndPlay}
+                  onCancel={cancel}
+                />
               ) : (
                 <button
                   type="button"
                   className={styles.playButton}
-                  onClick={handlePlayClick}
+                  onClick={play}
                   aria-label={`Play on ${provider}`}
                 >
                   <span className={styles.playIcon} aria-hidden="true" />

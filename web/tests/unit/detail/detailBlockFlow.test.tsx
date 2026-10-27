@@ -9,13 +9,13 @@ vi.mock('@/modules/analytics/analytics', () => ({
   trackAnalyticsEvent: vi.fn(),
 }))
 
+import type { ReactElement } from 'react'
 import { CaseDetail } from '@/components/detail/CaseDetail'
 import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
 import { ToolInsightDetail } from '@/components/detail/ToolInsightDetail'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { PublicEpisode } from '@/modules/content/domain/publicContent'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
-import type { ReactElement } from 'react'
 import { ConsentProvider } from '@/modules/consent/client/ConsentProvider'
 // Shell y EpisodeDetail leen el consentimiento de cookies: se montan, como en
 // la web real, dentro de su proveedor.

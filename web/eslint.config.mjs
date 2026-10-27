@@ -143,11 +143,45 @@ const layerRules = [
   },
 ]
 
+// Orden de imports (auditoría TSX, ADM-F1/F2, PUB-F1, TSX-X4): primero lo que
+// no es nuestro (`react`, `next/*`, paquetes), luego el alias `@/…` y por
+// último lo de la misma carpeta (`./…`). Una línea en blanco tras el último
+// import. Los imports de efectos (`import './globals.css'`) no se ordenan.
+const importOrderRules = [
+  {
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
+    rules: {
+      'import/order': [
+        'error',
+        {
+          groups: [
+            'builtin',
+            'external',
+            'internal',
+            'parent',
+            'sibling',
+            'index',
+          ],
+          pathGroups: [
+            { pattern: '@/**', group: 'internal' },
+            { pattern: '@tests/**', group: 'internal' },
+            { pattern: '@root/**', group: 'internal' },
+          ],
+          pathGroupsExcludedImportTypes: ['builtin'],
+          'newlines-between': 'ignore',
+        },
+      ],
+      'import/newline-after-import': 'error',
+    },
+  },
+]
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   eslintConfigPrettier,
   ...layerRules,
+  ...importOrderRules,
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

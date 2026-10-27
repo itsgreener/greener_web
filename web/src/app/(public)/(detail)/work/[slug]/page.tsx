@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { resolvePreviewContext } from '@/modules/content/container'
+import { resolvePreviewOfType } from '@/modules/content/container'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { CaseDetail } from '@/components/detail/CaseDetail'
 import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
@@ -22,15 +22,8 @@ type Props = {
  * en draft/scheduled sin sesión de admin — resolvePreviewContext valida
  * el token contra este mismo slug antes de saltarse la RLS pública.
  */
-async function getWorkPreview(slug: string, previewToken: string | undefined) {
-  const { content, reader, isPreview } = await resolvePreviewContext(
-    slug,
-    previewToken,
-  )
-  if (!content || (content.type !== 'case' && content.type !== 'episode')) {
-    return null
-  }
-  return { content, reader, isPreview }
+function getWorkPreview(slug: string, previewToken: string | undefined) {
+  return resolvePreviewOfType(slug, previewToken, ['case', 'episode'])
 }
 
 export async function generateMetadata({
@@ -93,9 +86,5 @@ export default async function WorkPage({ params, searchParams }: Props) {
     notFound()
   }
 
-  return (
-    <>
-      <EpisodeDetail content={content} episode={episode} poster={poster} />
-    </>
-  )
+  return <EpisodeDetail content={content} episode={episode} poster={poster} />
 }

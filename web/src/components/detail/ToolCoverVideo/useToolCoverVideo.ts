@@ -3,28 +3,20 @@
 import {
   useCallback,
   useEffect,
-  useReducer,
   useRef,
   useState,
   useSyncExternalStore,
-  type SyntheticEvent,
 } from 'react'
 import {
   detailVideoRungM,
   pickDetailVideoRung,
 } from '@/modules/media/domain/mediaDelivery'
 import {
-  INITIAL_VIDEO_LOAD_STATE,
-  READY_TIMEOUT_MS,
-  isVideoReady,
-  nextRetryDelay,
-  videoLoadReducer,
-} from '@/modules/media/domain/videoPlayback'
-import {
   buildVideoPosterUrl,
   buildVideoSources,
 } from '@/modules/media/client/cloudinaryUrl'
-import { releaseVideoElement } from '@/modules/media/client/releaseVideoElement'
+import { safePause, safePlay } from '@/modules/media/client/safePlayback'
+import { useVideoLoadLifecycle } from '@/modules/media/client/useVideoLoadLifecycle'
 import { useMotionPreferences } from '@/lib/useMotionPreferences'
 
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
@@ -58,7 +50,8 @@ const getServerDevicePixelRatio = () => 1
  *   fuentes explícitas (WebM/VP9 y MP4/H.264), sin audio.
  * - El póster tapa el vídeo hasta que éste está reproduciendo (`playing`).
  * - Si en ~10 s no está listo se abandona la descarga y queda el póster con
- *   el botón de reproducir; ante un error se reintenta (3 s y 8 s).
+ *   el botón de reproducir; ante un error se reintenta (3 s y 8 s). Ese ciclo
+ *   de carga lo comparte con los pines del feed (`useVideoLoadLifecycle`).
  */
 export function useToolCoverVideo({
   publicId,
@@ -81,10 +74,6 @@ export function useToolCoverVideo({
   const [intent, setIntent] = useState<Intent>('auto')
   const [inView, setInView] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [load, dispatch] = useReducer(
-    videoLoadReducer,
-    INITIAL_VIDEO_LOAD_STATE,
-  )
   // Se incrementa al volver a pedir el vídeo tras abandonarlo: remonta el
   // `<video>` aunque el resto de la clave no cambie.
   const [generation, setGeneration] = useState(0)
@@ -127,8 +116,24 @@ export function useToolCoverVideo({
     'detail',
   )
 
-  const showSources =
-    sources.length > 0 && load.phase !== 'retrying' && load.phase !== 'gaveup'
+  // Solo cuenta el tiempo máximo cuando se ha pedido el vídeo: con
+  // reduced-motion/save-data (`preload="none"`) no se descarga nada hasta que
+  // el visitante pulsa «Play».
+  const wantsLoad = autoplayAllowed || intent === 'play'
+
+  const {
+    load,
+    dispatch,
+    mounted: showSources,
+    handlers: loadHandlers,
+  } = useVideoLoadLifecycle({
+    wanted: sources.length > 0,
+    loadRequested: wantsLoad,
+    resetKey: `${rungId}-${generation}`,
+    sourceCount: sources.length,
+    videoRef,
+  })
+
   // Un `<source>` añadido a un `<video>` ya cargado no recarga nada: cada
   // escalón, reintento o nueva petición necesita un elemento nuevo.
   const videoKey = `${rungId}-${load.attempt}-${generation}`
@@ -152,37 +157,7 @@ export function useToolCoverVideo({
       dispatch('reset')
       setIsPlaying(false)
     })
-  }, [rungId])
-
-  // Tiempo máximo hasta estar listo. Solo cuenta cuando se ha pedido el
-  // vídeo: con reduced-motion/save-data (`preload="none"`) no se descarga
-  // nada hasta que el visitante pulsa «Play».
-  const wantsLoad = autoplayAllowed || intent === 'play'
-  useEffect(() => {
-    if (!showSources || !wantsLoad || load.phase !== 'loading') return
-
-    const timer = setTimeout(() => dispatch('timeout'), READY_TIMEOUT_MS)
-
-    return () => clearTimeout(timer)
-  }, [showSources, wantsLoad, load.phase, videoKey])
-
-  // Espera y reintento tras un error.
-  useEffect(() => {
-    const delay = nextRetryDelay(load)
-    if (delay === null) return
-
-    const timer = setTimeout(() => dispatch('retry'), delay)
-
-    return () => clearTimeout(timer)
-  }, [load])
-
-  // Suelta el elemento al sustituirlo (otro escalón, reintento, abandono).
-  useEffect(() => {
-    const el = videoRef.current
-    if (!el || !showSources) return
-
-    return () => releaseVideoElement(el)
-  }, [videoKey, showSources])
+  }, [rungId, dispatch])
 
   // Solo se reproduce mientras se ve (al hacer scroll hacia las
   // recomendaciones el vídeo se pausa solo y no gasta CPU ni batería).
@@ -205,25 +180,10 @@ export function useToolCoverVideo({
     const el = videoRef.current
     if (!el || !showSources) return
 
-    if (shouldPlay) {
-      // `muted` también como propiedad: el atributo que React serializa en
-      // el HTML del servidor no basta para algunos navegadores y sin audio
-      // silenciado el autoplay se bloquea.
-      el.muted = true
-      try {
-        // Autoplay bloqueado (o sin soporte de vídeo, jsdom): se queda en
-        // el poster con el botón «Play», no rompe nada.
-        el.play()?.catch(() => {})
-      } catch {
-        // ver comentario de arriba
-      }
-    } else {
-      try {
-        el.pause()
-      } catch {
-        // jsdom
-      }
-    }
+    // Autoplay bloqueado (o sin soporte de vídeo, jsdom): se queda en el
+    // póster con el botón «Play», no rompe nada.
+    if (shouldPlay) safePlay(el)
+    else safePause(el)
   }, [shouldPlay, showSources, videoKey])
 
   const toggle = useCallback(() => {
@@ -231,11 +191,7 @@ export function useToolCoverVideo({
 
     if (isPlaying) {
       setIntent('pause')
-      try {
-        el?.pause()
-      } catch {
-        // jsdom
-      }
+      safePause(el)
       return
     }
 
@@ -251,45 +207,16 @@ export function useToolCoverVideo({
 
     // Dentro del gesto del usuario, para que el navegador lo permita
     // aunque el autoplay estuviera bloqueado.
-    try {
-      if (el) el.muted = true
-      el?.play()?.catch(() => {})
-    } catch {
-      // jsdom
-    }
-  }, [isPlaying, load.phase])
+    safePlay(el)
+  }, [isPlaying, load.phase, dispatch])
 
   const onPlay = useCallback(() => setIsPlaying(true), [])
   const onPause = useCallback(() => setIsPlaying(false), [])
 
-  const onCanPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
-  }, [])
-
   const onPlaying = useCallback(() => {
     dispatch('ready')
     setStartedKey(videoKey)
-  }, [videoKey])
-
-  // React hace burbujear en su árbol el `error` de un `<source>` hasta el
-  // `onError` del `<video>`: solo cuenta el error del PROPIO vídeo (p. ej.
-  // fallo de decodificación). El de una fuente suelta lo resuelve el
-  // navegador probando la siguiente (ver onSourceError).
-  const onVideoError = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      if (event.target === event.currentTarget) dispatch('error')
-    },
-    [],
-  )
-
-  // Con varios `<source>` el error llega a cada `<source>`, no al `<video>`;
-  // solo el del último significa que ya no queda alternativa.
-  const onSourceError = useCallback(
-    (index: number) => {
-      if (index === sources.length - 1) dispatch('error')
-    },
-    [sources.length],
-  )
+  }, [videoKey, dispatch])
 
   return {
     videoRef,
@@ -304,6 +231,6 @@ export function useToolCoverVideo({
     toggle,
     onPlay,
     onPause,
-    handlers: { onCanPlay, onPlaying, onVideoError, onSourceError },
+    handlers: { ...loadHandlers, onPlaying },
   }
 }

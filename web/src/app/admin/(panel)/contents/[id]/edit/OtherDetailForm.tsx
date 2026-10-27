@@ -3,15 +3,13 @@
 import { useActionState, useState } from 'react'
 
 import OtherOccupationNotice from '@/app/admin/(panel)/contents/OtherOccupationNotice'
-import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput } from '@/components/admin/AdminControls'
 import { AdminField, AdminReadonlyField } from '@/components/admin/AdminField'
 import {
   AdminForm,
-  AdminFormActions,
+  AdminFormFooter,
   AdminFormGrid,
 } from '@/components/admin/AdminForm'
-import { AdminMessage } from '@/components/admin/AdminMessage'
 
 import {
   OTHER_MIN_FREQUENCY,
@@ -82,21 +80,12 @@ export default function OtherDetailForm({ other, otherFrequencies }: Props) {
         scope="con este contenido publicado"
       />
 
-      {state.formError && (
-        <AdminMessage kind="error">{state.formError}</AdminMessage>
-      )}
-
-      {state.success && (
-        <AdminMessage kind="success">
-          Frecuencia guardada correctamente.
-        </AdminMessage>
-      )}
-
-      <AdminFormActions>
-        <AdminButton type="submit" variant="primary" disabled={pending}>
-          {pending ? 'Guardando...' : 'Guardar frecuencia'}
-        </AdminButton>
-      </AdminFormActions>
+      <AdminFormFooter
+        state={state}
+        pending={pending}
+        label="Guardar frecuencia"
+        successMessage="Frecuencia guardada correctamente."
+      />
     </AdminForm>
   )
 }

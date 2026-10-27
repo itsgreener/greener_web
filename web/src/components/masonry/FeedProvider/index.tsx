@@ -10,12 +10,18 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
+import { nextHasMore } from '@/components/masonry/feedApi'
 import {
-  isNewsletterItem,
-  type FeedBatchItem,
-} from '@/modules/feed/domain/feedReadModels'
-import { hasNewsletterCookie } from '@/modules/newsletter/client/newsletterCookie'
-import { pageLoadId } from '@/components/masonry/pageLoadId'
+  EMPTY_SCOPE_STATE,
+  readFromSessionStorage,
+  withoutNewsletter,
+  withScroll,
+  writeToSessionStorage,
+  type FeedBatchInput,
+  type FeedProviderState,
+  type ScopeFeedState,
+} from './feedStorage'
 
 /**
  * Arquitectura §6.2: "La opción principal es mantener el estado del feed
@@ -39,113 +45,11 @@ import { pageLoadId } from '@/components/masonry/pageLoadId'
  * cambiar sesión/lotes y al ocultar la página (`pagehide`/`visibilitychange`).
  */
 
-interface ScopeFeedState {
-  sessionId: string | null
-  items: FeedBatchItem[]
-  batchSizes: number[]
-  cursor: string | null
-  hasMore: boolean
-  scrollY: number
-}
-
-const EMPTY_SCOPE_STATE: ScopeFeedState = {
-  sessionId: null,
-  items: [],
-  batchSizes: [],
-  cursor: null,
-  hasMore: true,
-  scrollY: 0,
-}
-
-type FeedProviderState = Record<string, ScopeFeedState>
-
-const STORAGE_KEY = 'greener:feed'
-
-/**
- * Quita de un scope las tarjetas de newsletter (salvo `keepPinId`, la que
- * acaba de usarse y muestra su mensaje de éxito) y corrige el tamaño de cada
- * lote para que la virtualización siga agrupando bien.
- */
-function withoutNewsletter(
-  state: ScopeFeedState,
-  keepPinId?: string,
-): ScopeFeedState {
-  const items: FeedBatchItem[] = []
-  const batchSizes: number[] = []
-  let index = 0
-
-  for (const size of state.batchSizes) {
-    let kept = 0
-    for (const item of state.items.slice(index, index + size)) {
-      if (isNewsletterItem(item) && item.pinId !== keepPinId) continue
-      items.push(item)
-      kept += 1
-    }
-    batchSizes.push(kept)
-    index += size
-  }
-
-  return items.length === state.items.length
-    ? state
-    : { ...state, items, batchSizes }
-}
-
-function readFromSessionStorage(): FeedProviderState {
-  if (typeof window === 'undefined') return {}
-  try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY)
-    if (!raw) return {}
-    const parsed = JSON.parse(raw) as {
-      pageLoadId: string
-      scopes: FeedProviderState
-    }
-    // El id no coincide: es una carga de documento distinta (recarga
-    // real) — el estado guardado no vale, arquitectura §6.1.
-    if (parsed.pageLoadId !== pageLoadId) return {}
-    const scopes = parsed.scopes ?? {}
-
-    // Un dispositivo ya suscrito (cookie `greener_newsletter`) no vuelve a ver
-    // el pin de newsletter, tampoco en el estado restaurado.
-    if (!hasNewsletterCookie()) return scopes
-
-    return Object.fromEntries(
-      Object.entries(scopes).map(([scope, state]) => [
-        scope,
-        withoutNewsletter(state),
-      ]),
-    )
-  } catch {
-    return {}
-  }
-}
-
-function writeToSessionStorage(scopes: FeedProviderState) {
-  if (typeof window === 'undefined') return
-  try {
-    window.sessionStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ pageLoadId, scopes }),
-    )
-  } catch {
-    // sessionStorage lleno o inaccesible (navegación privada estricta,
-    // por ejemplo): es solo el respaldo, el estado en memoria sigue
-    // funcionando igual durante esta misma carga del documento.
-  }
-}
-
 interface FeedContextValue {
-  getState: (scope: string) => ScopeFeedState
-  setSessionId: (scope: string, sessionId: string) => void
-  appendBatch: (
-    scope: string,
-    batch: {
-      items: FeedBatchItem[]
-      cursor: string
-      hasMore: boolean
-      rateLimited?: boolean
-    },
-  ) => void
-  setScrollY: (scope: string, y: number) => void
+  getState: (scope: FeedScope) => ScopeFeedState
+  setSessionId: (scope: FeedScope, sessionId: string) => void
+  appendBatch: (scope: FeedScope, batch: FeedBatchInput) => void
+  setScrollY: (scope: FeedScope, y: number) => void
   /**
    * Tras suscribirse: retira de todos los scopes las tarjetas de newsletter
    * ya cargadas, salvo la usada (`keepPinId`), que enseña su confirmación.
@@ -154,17 +58,6 @@ interface FeedContextValue {
 }
 
 const FeedContext = createContext<FeedContextValue | null>(null)
-
-function withScroll(
-  scopes: FeedProviderState,
-  scrollByScope: Record<string, number>,
-): FeedProviderState {
-  const result: FeedProviderState = {}
-  for (const [scope, state] of Object.entries(scopes)) {
-    result[scope] = { ...state, scrollY: scrollByScope[scope] ?? state.scrollY }
-  }
-  return result
-}
 
 export function FeedProvider({ children }: { children: ReactNode }) {
   const [scopes, setScopes] = useState<FeedProviderState>(
@@ -217,7 +110,7 @@ export function FeedProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const getState = useCallback(
-    (scope: string): ScopeFeedState => {
+    (scope: FeedScope): ScopeFeedState => {
       const state = scopes[scope] ?? EMPTY_SCOPE_STATE
       const scrollY = scrollByScopeRef.current?.[scope]
       return scrollY === undefined ? state : { ...state, scrollY }
@@ -225,59 +118,48 @@ export function FeedProvider({ children }: { children: ReactNode }) {
     [scopes],
   )
 
-  const setSessionId = useCallback((scope: string, sessionId: string) => {
+  const setSessionId = useCallback((scope: FeedScope, sessionId: string) => {
     setScopes((prev) => ({
       ...prev,
       [scope]: { ...(prev[scope] ?? EMPTY_SCOPE_STATE), sessionId },
     }))
   }, [])
 
-  const appendBatch = useCallback(
-    (
-      scope: string,
-      batch: {
-        items: FeedBatchItem[]
-        cursor: string
-        hasMore: boolean
-        rateLimited?: boolean
-      },
-    ) => {
-      // Un lote vacío por haberse superado el límite de peticiones
-      // (api/feed/[sessionId]/route.ts) es temporal, no «esta sección no
-      // tiene contenido»: no debe tocar `hasMore` (PROGRESO §2.19). Tampoco
-      // se actualiza nada más del estado: no hay ronda real que registrar.
-      if (batch.rateLimited) {
-        return
-      }
+  const appendBatch = useCallback((scope: FeedScope, batch: FeedBatchInput) => {
+    // Un lote vacío por haberse superado el límite de peticiones
+    // (api/feed/[sessionId]/route.ts) es temporal, no «esta sección no
+    // tiene contenido»: no debe tocar `hasMore` (PROGRESO §2.19). Tampoco
+    // se actualiza nada más del estado: no hay ronda real que registrar.
+    if (batch.rateLimited) {
+      return
+    }
 
-      setScopes((prev) => {
-        const current = prev[scope] ?? EMPTY_SCOPE_STATE
-        return {
-          ...prev,
-          [scope]: {
-            ...current,
-            items: [...current.items, ...batch.items],
-            batchSizes: [...current.batchSizes, batch.items.length],
-            cursor: batch.cursor,
-            // El servidor devuelve hasMore=true siempre (arquitectura
-            // §8.5, "el feed no termina") — pero una ronda vacía Y no
-            // debida a un límite de peticiones es una señal real y
-            // definitiva de que este scope no tiene contenido publicado
-            // (generateRound es determinista: si el pool de ese tipo
-            // tiene 0 elementos, todas las rondas futuras también
-            // vendrán vacías). Sin este corte, el sentinel de prefetch
-            // pide ronda tras ronda sin parar nunca en una subhome sin
-            // contenido todavía (insights/tools).
-            hasMore: batch.items.length > 0 ? batch.hasMore : false,
-          },
-        }
-      })
-    },
-    [],
-  )
+    setScopes((prev) => {
+      const current = prev[scope] ?? EMPTY_SCOPE_STATE
+      return {
+        ...prev,
+        [scope]: {
+          ...current,
+          items: [...current.items, ...batch.items],
+          batchSizes: [...current.batchSizes, batch.items.length],
+          cursor: batch.cursor,
+          // El servidor devuelve hasMore=true siempre (arquitectura
+          // §8.5, "el feed no termina") — pero una ronda vacía Y no
+          // debida a un límite de peticiones es una señal real y
+          // definitiva de que este scope no tiene contenido publicado
+          // (generateRound es determinista: si el pool de ese tipo
+          // tiene 0 elementos, todas las rondas futuras también
+          // vendrán vacías). Sin este corte, el sentinel de prefetch
+          // pide ronda tras ronda sin parar nunca en una subhome sin
+          // contenido todavía (insights/tools).
+          hasMore: nextHasMore(batch),
+        },
+      }
+    })
+  }, [])
 
   // Sin setState: no re-renderiza ni escribe nada en cada frame de scroll.
-  const setScrollY = useCallback((scope: string, y: number) => {
+  const setScrollY = useCallback((scope: FeedScope, y: number) => {
     if (scrollByScopeRef.current) scrollByScopeRef.current[scope] = y
   }, [])
 

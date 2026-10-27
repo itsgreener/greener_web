@@ -1,23 +1,12 @@
 'use client'
 
+import { useCallback, useEffect, useState, type RefObject } from 'react'
 import {
-  useCallback,
-  useEffect,
-  useReducer,
-  useState,
-  type RefObject,
-  type SyntheticEvent,
-} from 'react'
-import {
-  INITIAL_VIDEO_LOAD_STATE,
   PREFETCH_ACQUIRE_SCREENS,
   PREFETCH_RELEASE_SCREENS,
-  READY_TIMEOUT_MS,
-  isVideoReady,
-  nextRetryDelay,
-  videoLoadReducer,
 } from '@/modules/media/domain/videoPlayback'
-import { releaseVideoElement } from '@/modules/media/client/releaseVideoElement'
+import { safePause, safePlay } from '@/modules/media/client/safePlayback'
+import { useVideoLoadLifecycle } from '@/modules/media/client/useVideoLoadLifecycle'
 import { videoPlaybackCoordinator } from '@/components/pin/videoPlaybackCoordinator'
 
 function isNear(entry: IntersectionObserverEntry): boolean {
@@ -38,9 +27,11 @@ function isNear(entry: IntersectionObserverEntry): boolean {
  *    quita el `<video>`) y se queda el póster; ante un ERROR (p. ej. una
  *    versión aún generándose) se reintenta hasta 2 veces, a 3 s y a 8 s.
  *
- * Toda la política vive en `modules/media/domain/videoPlayback.ts`; aquí
- * solo se conecta con el DOM. `wantsPlay` lo decide quien llama (hueco de
- * reproducción o hover).
+ * Toda la política vive en `modules/media/domain/videoPlayback.ts` y el ciclo
+ * de carga (tiempo máximo, reintentos, soltar el elemento) en
+ * `useVideoLoadLifecycle`, que comparte con la portada de las tools; aquí
+ * queda lo propio del pin: el billete de prefetch y qué es «reproduciendo».
+ * `wantsPlay` lo decide quien llama (hueco de reproducción o hover).
  */
 export function usePinVideo({
   id,
@@ -64,22 +55,13 @@ export function usePinVideo({
   wantsPlay: boolean
 }) {
   const [hasTicket, setHasTicket] = useState(false)
-  const [load, dispatch] = useReducer(
-    videoLoadReducer,
-    INITIAL_VIDEO_LOAD_STATE,
-  )
   const [playing, setPlaying] = useState(false)
 
   // 1. Billete de prefetch según la cercanía al viewport, con histéresis:
   // se adquiere a menos de PREFETCH_ACQUIRE_SCREENS y se conserva hasta
   // PREFETCH_RELEASE_SCREENS.
   useEffect(() => {
-    if (!prefetchEnabled) {
-      // Diferido: setState síncrono en el cuerpo del efecto dispara
-      // react-hooks/set-state-in-effect (mismo patrón que useVideoSlot).
-      queueMicrotask(() => setHasTicket(false))
-      return
-    }
+    if (!prefetchEnabled) return
 
     const el = cardRef.current
     if (!el || typeof IntersectionObserver === 'undefined') return
@@ -140,14 +122,23 @@ export function usePinVideo({
       acquireObserver.disconnect()
       releaseObserver.disconnect()
       unregister()
+      // Al soltar el prefetch (o desmontar) se pierde el billete: `unregister`
+      // no avisa a quien se va (PUB-B6: sin `queueMicrotask`).
+      setHasTicket(false)
     }
   }, [id, prefetchEnabled, cardRef])
 
   // `hasTicket` solo cuenta mientras el prefetch esté habilitado: al pasar de
-  // un slide de vídeo a uno de imagen el billete anterior se suelta en un
-  // microtask, y hasta entonces no debe mantener el `<video>` montado.
+  // un slide de vídeo a uno de imagen el billete anterior se suelta al limpiar
+  // el efecto, y hasta ese render no debe mantener el `<video>` montado.
   const wanted = (prefetchEnabled && hasTicket) || wantsPlay
-  const mounted = wanted && load.phase !== 'gaveup' && load.phase !== 'retrying'
+
+  const { load, dispatch, mounted, handlers } = useVideoLoadLifecycle({
+    wanted,
+    resetKey,
+    sourceCount,
+    videoRef,
+  })
 
   // Se pierde el billete (o cambia el vídeo): se olvida lo aprendido, para
   // que al volver a tenerlo empiece de cero. Un «se rindió» NO se reinicia
@@ -157,36 +148,7 @@ export function usePinVideo({
       dispatch('reset')
       setPlaying(false)
     })
-  }, [wanted, resetKey])
-
-  // 3a. Tiempo máximo hasta estar listo.
-  useEffect(() => {
-    if (!mounted || load.phase !== 'loading') return
-
-    const timer = setTimeout(() => dispatch('timeout'), READY_TIMEOUT_MS)
-
-    return () => clearTimeout(timer)
-  }, [mounted, load.phase, load.attempt, resetKey])
-
-  // 3b. Espera y reintento tras un error.
-  useEffect(() => {
-    const delay = nextRetryDelay(load)
-    if (delay === null) return
-
-    const timer = setTimeout(() => dispatch('retry'), delay)
-
-    return () => clearTimeout(timer)
-  }, [load])
-
-  // Suelta el elemento al quitarlo (billete perdido, rendición, reintento,
-  // otro slide o desmontaje).
-  useEffect(() => {
-    if (!mounted) return
-    const el = videoRef.current
-    if (!el) return
-
-    return () => releaseVideoElement(el)
-  }, [mounted, load.attempt, resetKey, videoRef])
+  }, [wanted, resetKey, dispatch])
 
   // Arranca o para el vídeo. Solo se reproduce cuando está listo; al volver a
   // reproducirse (otro hueco, otro hover) empieza desde el principio.
@@ -195,59 +157,18 @@ export function usePinVideo({
     if (!el || !mounted) return
 
     if (wantsPlay && load.phase === 'ready') {
-      // `muted` también como propiedad: el atributo que React serializa no
-      // basta para algunos navegadores y sin audio silenciado el autoplay se
-      // bloquea.
-      el.muted = true
-      try {
-        if (el.currentTime > 0) el.currentTime = 0
-        // Autoplay bloqueado por el navegador o sin soporte real de vídeo
-        // (jsdom en tests): se queda en el poster, no rompe nada — por eso
-        // el try/catch además del .catch, play() puede lanzar de forma
-        // síncrona en vez de devolver una promesa rechazada según el entorno.
-        el.play()?.catch(() => {})
-      } catch {
-        // ver comentario de arriba
-      }
+      safePlay(el, { restart: true })
     } else {
-      try {
-        el.pause()
-      } catch {
-        // jsdom
-      }
+      safePause(el)
     }
   }, [wantsPlay, load.phase, load.attempt, mounted, resetKey, videoRef])
-
-  const onCanPlay = useCallback((event: SyntheticEvent<HTMLVideoElement>) => {
-    if (isVideoReady(event.currentTarget.readyState)) dispatch('ready')
-  }, [])
 
   const onPlaying = useCallback(() => {
     dispatch('ready')
     setPlaying(true)
-  }, [])
+  }, [dispatch])
 
   const onPause = useCallback(() => setPlaying(false), [])
-
-  // React hace burbujear en su árbol el `error` de un `<source>` hasta el
-  // `onError` del `<video>`: solo cuenta el error del PROPIO vídeo (p. ej.
-  // fallo de decodificación). El de una fuente suelta lo resuelve el
-  // navegador probando la siguiente (ver onSourceError).
-  const onVideoError = useCallback(
-    (event: SyntheticEvent<HTMLVideoElement>) => {
-      if (event.target === event.currentTarget) dispatch('error')
-    },
-    [],
-  )
-
-  // Con varios `<source>`, el error no llega al `<video>`: llega a cada
-  // `<source>`. Solo el del ÚLTIMO significa que ya no queda alternativa.
-  const onSourceError = useCallback(
-    (index: number) => {
-      if (index === sourceCount - 1) dispatch('error')
-    },
-    [sourceCount],
-  )
 
   return {
     /** ¿Hay que pintar el `<video>` (oculto o visible)? */
@@ -258,6 +179,6 @@ export function usePinVideo({
     visible: mounted && load.phase === 'ready' && wantsPlay && playing,
     /** ¿Se está reproduciendo de verdad? */
     isActuallyPlaying: mounted && wantsPlay && playing,
-    handlers: { onCanPlay, onPlaying, onPause, onVideoError, onSourceError },
+    handlers: { ...handlers, onPlaying, onPause },
   }
 }

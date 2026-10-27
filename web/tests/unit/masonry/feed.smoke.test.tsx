@@ -7,6 +7,7 @@ import { Feed } from '@/components/masonry/Feed'
 import { FeedProvider } from '@/components/masonry/FeedProvider'
 import { feedCopy } from '@/components/masonry/copy'
 import type { FeedBatchResult } from '@/modules/feed/domain/feedReadModels'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 
 const SESSION_IDS: Record<string, string> = {
   home: 'session-home',
@@ -39,7 +40,7 @@ function fakeBatch(
   }
 }
 
-function renderFeed(scope: string) {
+function renderFeed(scope: FeedScope) {
   return render(
     <FeedProvider>
       <Feed scope={scope} />
@@ -52,7 +53,7 @@ function renderFeed(scope: string) {
  * justo lo que hace Next.js con (public)/layout.tsx (arquitectura §6.2):
  * solo se desmonta page.tsx (aquí, Feed), el Provider persiste.
  */
-function Wrapper({ scope }: { scope: string }) {
+function Wrapper({ scope }: { scope: FeedScope }) {
   const [show, setShow] = useState(true)
   return (
     <FeedProvider>

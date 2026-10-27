@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { publicContent } from '@/modules/content/container'
+import { workLocalePath } from '@/modules/content/domain/contentPath'
 import type { PublicContentReader } from '@/modules/content/domain/publicContentReader'
 import { buildImageUrl } from '@/modules/media/client/cloudinaryUrl'
 import type { Locale } from '@/modules/shared/domain/locale'
@@ -46,10 +47,7 @@ export async function buildWorkMetadata(
   // locale y esto no aporta nada, pero tampoco estorba.
   const languages: Record<string, string> = {}
   for (const loc of content.availableLocales) {
-    languages[loc] =
-      loc === content.defaultLocale
-        ? `/work/${content.slug}`
-        : `/work/${content.slug}/${loc}`
+    languages[loc] = workLocalePath(content.slug, loc, content.defaultLocale)
   }
 
   return {

@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 
 import { trackAnalyticsEvent } from './analytics'
 import { consumeNavigationSource } from './navigationAttribution'
+import { isPreviewRequest } from './previewRequest'
 
 type Props =
   { type: 'case'; contentId: string } | { type: 'tool'; contentId: string }
@@ -34,7 +35,7 @@ export function ContentOpenTracker(props: Props) {
       return
     }
 
-    if (new URLSearchParams(window.location.search).has('preview')) {
+    if (isPreviewRequest()) {
       return
     }
 

@@ -1,8 +1,9 @@
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
+import { LocaleOptions, RatioOptions } from '@/components/admin/AdminOptions'
 
 import styles from './BulkPinRow.module.css'
-import { LANGUAGES, RATIOS, type Row } from './rows'
+import type { Row } from './rows'
 
 export function BulkPinRow({
   row,
@@ -45,11 +46,7 @@ export function BulkPinRow({
             onChange({ ratio: event.target.value, ratioSource: 'manual' })
           }
         >
-          {RATIOS.map((ratio) => (
-            <option key={ratio} value={ratio}>
-              {ratio}
-            </option>
-          ))}
+          <RatioOptions />
         </AdminSelect>
         {row.ratioSource === 'filename' && (
           <small className={styles.note}> detectado del nombre</small>
@@ -64,11 +61,7 @@ export function BulkPinRow({
           disabled={disabled}
           onChange={(event) => onChange({ language: event.target.value })}
         >
-          {LANGUAGES.map((language) => (
-            <option key={language} value={language}>
-              {language}
-            </option>
-          ))}
+          <LocaleOptions display="value" />
         </AdminSelect>
       </td>
 
@@ -84,7 +77,7 @@ export function BulkPinRow({
 
       <td>
         {row.status === 'pending' && 'Pendiente'}
-        {row.status === 'uploading' && 'Subiendo...'}
+        {row.status === 'uploading' && 'Subiendo…'}
         {row.status === 'ok' &&
           (row.note ? `Hecho. Aviso: ${row.note}` : 'Hecho')}
         {row.status === 'error' && `Error: ${row.error}`}

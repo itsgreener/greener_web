@@ -25,7 +25,13 @@ import {
   uploadVideoFlow,
 } from '@/app/admin/(panel)/contents/[id]/edit/useCloudinaryUpload'
 
+import { useUploadQueue } from '@/app/admin/_lib/useUploadQueue'
+
 import { regenerateRows, type Row } from './rows'
+
+function rowKey(row: Row) {
+  return row.key
+}
 
 type Defaults = { ratio: string; language: string }
 
@@ -43,7 +49,13 @@ export function useBulkPinUpload({
 
   const [files, setFiles] = useState<File[]>([])
   const [csvRows, setCsvRows] = useState<PinCsvRow[]>([])
-  const [rows, setRows] = useState<Row[]>([])
+  const {
+    rows,
+    setRows,
+    updateRow,
+    running: uploading,
+    run,
+  } = useUploadQueue<Row>(rowKey)
   const [defaultRatio, setDefaultRatio] = useState('1:1')
   const [defaultLanguage, setDefaultLanguage] = useState('es')
   // Cómo se reproducen en el feed los pines de vídeo del lote (los de
@@ -52,7 +64,6 @@ export function useBulkPinUpload({
   const [videoAutoplay, setVideoAutoplay] = useState<'viewport' | 'hover'>(
     'viewport',
   )
-  const [uploading, setUploading] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
 
   function rebuildRows(
@@ -126,12 +137,6 @@ export function useBulkPinUpload({
     setFiles((current) => current.filter((file) => file !== row.file))
     setRows((current) => current.filter((item) => item.key !== key))
     setFormError(null)
-  }
-
-  function updateRow(key: string, patch: Partial<Row>) {
-    setRows((current) =>
-      current.map((row) => (row.key === key ? { ...row, ...patch } : row)),
-    )
   }
 
   // No se bloquea (el pin ya está creado): se avisa de que se recortará si
@@ -233,34 +238,16 @@ export function useBulkPinUpload({
       return
     }
 
-    setUploading(true)
-
     // Secuencial, no en paralelo: son subidas directas a Cloudinary desde
     // el navegador, y un lote de cientos de archivos en paralelo satura
-    // la conexión del admin sin necesidad.
-    for (const row of rows) {
-      if (row.status === 'ok') continue
-
-      updateRow(row.key, { status: 'uploading', error: undefined })
-
-      try {
-        // Si algo falla tras subir el archivo, el flujo lo descarta de
-        // Cloudinary antes de lanzar el error.
-        const note =
-          row.kind === 'video'
-            ? await uploadVideoRow(row)
-            : await uploadImageRow(row)
-
-        updateRow(row.key, { status: 'ok', note })
-      } catch (error) {
-        updateRow(row.key, {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Error al subir.',
-        })
-      }
-    }
-
-    setUploading(false)
+    // la conexión del admin sin necesidad. Si algo falla tras subir el
+    // archivo, el flujo lo descarta de Cloudinary antes de lanzar el error.
+    await run(async (row) => ({
+      note:
+        row.kind === 'video'
+          ? await uploadVideoRow(row)
+          : await uploadImageRow(row),
+    }))
   }
 
   return {

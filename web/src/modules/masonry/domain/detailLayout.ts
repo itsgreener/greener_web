@@ -1,7 +1,6 @@
-import { GAP } from './layout'
-
 import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 import { RATIO_DECIMAL_VALUE } from '@/modules/shared/domain/ratio'
+import { GAP } from './layout'
 /**
  * especificacion-final-formato-detalle.md §2 — el modelo de columnas de
  * una página de detalle, verificado por medición de píxeles directa

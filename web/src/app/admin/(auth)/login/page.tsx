@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
             </span>
 
             <span>
-              {loading ? 'Conectando con Google...' : 'Continuar con Google'}
+              {loading ? 'Conectando con Google…' : 'Continuar con Google'}
             </span>
           </AdminButton>
 

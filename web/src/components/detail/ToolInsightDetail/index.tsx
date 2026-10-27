@@ -14,19 +14,20 @@ import styles from './ToolInsightDetail.module.css'
 
 /**
  * Plantilla de detalle tipo A (especificacion-final-formato-detalle.md
- * §1, §2, §7) de tool e insight: cover a altura fija × ratio (nunca medida
+ * §1, §2, §7) de las tools: cover a altura fija × ratio (nunca medida
  * en columnas), bloque de contenido reservando 3-5 columnas según el grupo
- * de ratio, y panel de recomendaciones de la misma sección (Tool → Tools,
- * Insight → Insights) a la derecha + debajo, un único masonry sembrado de
- * forma asimétrica (useRecommendationMasonry) — no dos retículas separadas.
+ * de ratio, y panel de recomendaciones a la derecha + debajo, un único
+ * masonry sembrado de forma asimétrica (useRecommendationMasonry) — no dos
+ * retículas separadas. Las recomendaciones usan siempre el scope `home`
+ * (desde el 14 oct 2026), no el de la sección de la tool.
  *
- * Ni tool ni insight tienen portada propia (§2.40): la ficha pinta el medio
- * del pin del que llega el visitante (`cover`, `?pin=`, solo tools). Sin pin
- * no hay medio y se usa el ratio por defecto.
+ * Una tool no tiene portada propia (§2.40): la ficha pinta el medio del pin
+ * del que llega el visitante (`cover`, `?pin=`). Sin pin no hay medio y se
+ * usa el ratio por defecto.
  *
- * Insight ya no pasa por aquí (su URL redirige al paquete) y `other` dejará
- * de usarla (su página satélite abre directamente el paquete HTML, fase 4).
- * El evento "Tool Open" (§18.2) se dispara solo para tools.
+ * Hoy solo la usan las tools: la URL de un insight redirige a su paquete y
+ * la página satélite de un `other` abre directamente el paquete HTML. El
+ * evento "Tool Open" (§18.2) se dispara solo para tools.
  */
 export function ToolInsightDetail({
   content,

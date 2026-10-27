@@ -3,6 +3,8 @@
 import { useActionState } from 'react'
 import Link from 'next/link'
 import { CtaButton } from '@/components/cta/Cta'
+import { PublicField } from '@/components/form/PublicField'
+import { Honeypot } from '@/components/security/Honeypot'
 import { submitContactAction, type ContactActionState } from './contactActions'
 import styles from './ContactForm.module.css'
 
@@ -17,52 +19,43 @@ export function ContactForm() {
   if (state.success) {
     return (
       <p className={styles.success}>
-        Gracias por escribirnos — te responderemos lo antes posible.
+        Thanks for writing to us — we&apos;ll get back to you as soon as
+        possible.
       </p>
     )
   }
 
   return (
     <form action={formAction} className={styles.form}>
-      {/* Honeypot: oculto por CSS, no display:none/type=hidden — algunos
-          bots evitan justamente esos dos casos. tabIndex/autoComplete
-          impiden que un visitante real llegue a él sin querer. */}
-      <div className="honeypot" aria-hidden="true">
-        <label htmlFor="website">Website</label>
-        <input
-          id="website"
-          name="website"
-          type="text"
-          tabIndex={-1}
-          autoComplete="off"
-        />
-      </div>
+      <Honeypot name="website" id="website" label="Website" />
 
-      <div className={styles.field}>
-        <label htmlFor="name">Name</label>
-        <input id="name" name="name" type="text" required />
-        {state.fieldErrors?.name?.[0] && <p>{state.fieldErrors.name[0]}</p>}
-      </div>
-
-      <div className={styles.field}>
-        <label htmlFor="phone">Phone</label>
-        <input id="phone" name="phone" type="tel" required />
-        {state.fieldErrors?.phone?.[0] && <p>{state.fieldErrors.phone[0]}</p>}
-      </div>
-
-      <div className={styles.field}>
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required />
-        {state.fieldErrors?.email?.[0] && <p>{state.fieldErrors.email[0]}</p>}
-      </div>
-
-      <div className={styles.field}>
-        <label htmlFor="message">Message</label>
-        <textarea id="message" name="message" rows={6} required />
-        {state.fieldErrors?.message?.[0] && (
-          <p>{state.fieldErrors.message[0]}</p>
-        )}
-      </div>
+      <PublicField
+        name="name"
+        label="Name"
+        required
+        error={state.fieldErrors?.name?.[0]}
+      />
+      <PublicField
+        name="phone"
+        label="Phone"
+        type="tel"
+        required
+        error={state.fieldErrors?.phone?.[0]}
+      />
+      <PublicField
+        name="email"
+        label="Email"
+        type="email"
+        required
+        error={state.fieldErrors?.email?.[0]}
+      />
+      <PublicField
+        name="message"
+        label="Message"
+        rows={6}
+        required
+        error={state.fieldErrors?.message?.[0]}
+      />
 
       {/* Aviso informativo y botón en una misma fila (space-between). La
           casilla NO es un consentimiento (texto legal de /privacy, 19 oct

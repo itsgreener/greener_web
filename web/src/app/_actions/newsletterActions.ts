@@ -9,7 +9,8 @@ import {
   NEWSLETTER_COOKIE_VALUE,
 } from '@/modules/newsletter/domain/newsletterCookie'
 import { subscribeToNewsletter } from '@/modules/newsletter/container'
-import type { FormActionState } from '@/lib/forms/formActionState'
+import { toFormState, type FormActionState } from '@/lib/forms/formActionState'
+import { readHoneypot } from '@/lib/forms/honeypot'
 
 /**
  * Alta en la newsletter desde el pin del feed (plan de `other`, fase 3). Vive
@@ -28,19 +29,14 @@ export async function subscribeNewsletterAction(
   _previousState: NewsletterActionState,
   formData: FormData,
 ): Promise<NewsletterActionState> {
-  const honeypot = (formData.get('company') as string | null) ?? ''
+  const honeypot = readHoneypot(formData, 'company')
 
   const result = await subscribeToNewsletter(
     { email: formData.get('newsletterEmail') },
     honeypot,
   )
 
-  if (!result.ok) {
-    if ('fieldErrors' in result) {
-      return { fieldErrors: result.fieldErrors }
-    }
-    return { formError: result.formError }
-  }
+  if (!result.ok) return toFormState(result)
 
   // Cookie propia que marca este dispositivo como ya suscrito (alta nueva,
   // pendiente de confirmar o ya suscrito: los tres son «ya lo ha pedido»).

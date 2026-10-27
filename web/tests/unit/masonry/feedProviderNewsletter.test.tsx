@@ -10,6 +10,7 @@ import type {
   FeedNewsletterItem,
   FeedPinItem,
 } from '@/modules/feed/domain/feedReadModels'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
 
 /**
  * Plan de `other`, fase 3 (§5.7): tras suscribirse se retiran las demás
@@ -42,7 +43,7 @@ const NEWS = (n: number): FeedNewsletterItem => ({
 const BATCH_1: FeedBatchItem[] = [PIN('a'), NEWS(0), PIN('b'), PIN('c')]
 const BATCH_2: FeedBatchItem[] = [PIN('d'), NEWS(1), PIN('e')]
 
-function Consumer({ scope }: { scope: string }) {
+function Consumer({ scope }: { scope: FeedScope }) {
   const { getState, appendBatch, retireNewsletterCards } = useFeedContext()
   const state = getState(scope)
 
@@ -65,7 +66,7 @@ function Consumer({ scope }: { scope: string }) {
   )
 }
 
-function renderProvider(scope = 'home') {
+function renderProvider(scope: FeedScope = 'home') {
   render(
     <FeedProvider>
       <Consumer scope={scope} />

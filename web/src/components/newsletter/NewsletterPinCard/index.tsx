@@ -9,10 +9,20 @@ import {
 } from '@/app/_actions/newsletterActions'
 import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
 import type { FeedNewsletterItem } from '@/modules/feed/domain/feedReadModels'
-import type { PinCardStyle } from '@/components/pin/PinCard'
+import { BrokenHeadline } from '@/components/text/BrokenHeadline'
+import { Honeypot } from '@/components/security/Honeypot'
+import { cardPositionStyle, type PinCardStyle } from '@/components/pin/PinCard'
 import styles from './NewsletterPinCard.module.css'
 
 const initialState: NewsletterActionState = {}
+
+const NEWSLETTER_HEADLINE = [
+  'Like what',
+  'you see? We’ll',
+  'write you',
+  'when there’s',
+  'more',
+]
 
 /**
  * Pin de newsletter del feed (plan de `other`, fase 3): tarjeta nativa de una
@@ -67,10 +77,7 @@ export function NewsletterPinCard({
   return (
     <section
       className={styles.card}
-      style={{
-        transform: `translate(${style.x}px, ${style.y}px)`,
-        width: style.width,
-      }}
+      style={cardPositionStyle(style)}
       aria-label="Newsletter"
     >
       <div className={styles.inner}>
@@ -80,26 +87,16 @@ export function NewsletterPinCard({
           </div>
         ) : (
           <>
-            <h2 className={styles.headline}>
-              {/* Cada salto lleva un espacio antes: sin él, el nombre accesible
-                  del titular sale pegado («whatyou»). */}
-              Like what <br />
-              you see? We’ll <br />
-              write you <br />
-              when there’s <br />
-              more
-            </h2>
+            <BrokenHeadline
+              lines={NEWSLETTER_HEADLINE}
+              className={styles.headline}
+            />
             <form action={formAction} className={styles.form}>
-              <div className="honeypot" aria-hidden="true">
-                <label htmlFor={`${emailId}-company`}>Company</label>
-                <input
-                  id={`${emailId}-company`}
-                  name="company"
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                />
-              </div>
+              <Honeypot
+                name="company"
+                id={`${emailId}-company`}
+                label="Company"
+              />
               <label htmlFor={emailId} className="visually-hidden">
                 Your email
               </label>

@@ -6,6 +6,7 @@ import {
   contentTypeSchema,
   type ContentType,
 } from '@/modules/shared/domain/contentType'
+import { pageCount, parsePage } from '@/modules/shared/domain/pagination'
 
 /** Filas por página de la lista del ABM. */
 export const CONTENT_PAGE_SIZE = 25
@@ -36,7 +37,6 @@ export function parseContentListQuery(params: {
 }): ContentListQuery {
   const type = contentTypeSchema.safeParse(params.type)
   const status = contentStatusSchema.safeParse(params.status)
-  const page = Number.parseInt(params.page ?? '', 10)
 
   return {
     q: (params.q ?? '')
@@ -46,11 +46,11 @@ export function parseContentListQuery(params: {
       .slice(0, MAX_QUERY_LENGTH),
     type: type.success ? type.data : undefined,
     status: status.success ? status.data : undefined,
-    page: Number.isInteger(page) && page >= 1 ? page : 1,
+    page: parsePage(params.page),
     pageSize: CONTENT_PAGE_SIZE,
   }
 }
 
 export function contentPageCount(total: number, pageSize: number): number {
-  return Math.max(1, Math.ceil(total / pageSize))
+  return pageCount(total, pageSize)
 }

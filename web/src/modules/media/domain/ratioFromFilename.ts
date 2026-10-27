@@ -1,9 +1,9 @@
+import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 import {
   closestClosedRatio,
   isPinRatioValue,
   mediaMatchesRatio,
 } from './closestRatio'
-import type { PinRatioValue } from '@/modules/shared/domain/ratio'
 /**
  * Lee la proporción del nombre de archivo en el ABM (carga masiva de pines).
  *

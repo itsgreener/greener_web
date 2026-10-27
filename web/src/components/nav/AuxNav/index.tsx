@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { SECTION_LABELS } from '@/components/nav/sectionLabels'
 import styles from './AuxNav.module.css'
 
 /**
@@ -17,10 +18,10 @@ import styles from './AuxNav.module.css'
  */
 const AUX_NAV_ITEMS = [
   { href: '/', label: 'All' },
-  { href: '/work', label: 'We did it' },
-  { href: '/channel', label: 'Podcasts' },
-  { href: '/insights', label: 'Insights' },
-  { href: '/tools', label: 'Tools' },
+  { href: '/work', label: SECTION_LABELS.work },
+  { href: '/channel', label: SECTION_LABELS.channel },
+  { href: '/insights', label: SECTION_LABELS.insights },
+  { href: '/tools', label: SECTION_LABELS.tools },
   { href: '/contact', label: 'Contact' },
 ] as const
 

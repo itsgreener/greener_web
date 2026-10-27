@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createFeedSession, feedLimits } from '@/modules/feed/container'
 import { UnsupportedScopeError } from '@/modules/feed/domain/feedErrors'
+import { isFeedScope } from '@/modules/feed/domain/feedScope'
 import {
   attachVisitorCookie,
   getOrCreateVisitorId,
@@ -56,6 +57,14 @@ export async function POST(request: NextRequest) {
 
   if (typeof scope !== 'string') {
     return respond({ error: "'scope' debe ser una cadena." }, { status: 400 })
+  }
+
+  // Frontera de la API: de aquí en adelante `scope` es un `FeedScope`.
+  if (!isFeedScope(scope)) {
+    return respond(
+      { error: new UnsupportedScopeError(scope).message },
+      { status: 400 },
+    )
   }
 
   if (excludeContentId !== undefined && !isUuid(excludeContentId)) {

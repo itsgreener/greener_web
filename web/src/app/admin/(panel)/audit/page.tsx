@@ -1,4 +1,6 @@
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { buildListHref } from '@/app/admin/_lib/listHref'
+import { pluralize } from '@/app/admin/_lib/pluralize'
 import { AdminBadge } from '@/components/admin/AdminBadge'
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminCard } from '@/components/admin/AdminCard'
@@ -40,19 +42,9 @@ function pageHref(
   filters: { q: string; entity: string; entityId: string },
   page: number,
 ) {
-  const params = new URLSearchParams()
+  const { q, entity, entityId } = filters
 
-  if (filters.q) params.set('q', filters.q)
-
-  if (filters.entity) params.set('entity', filters.entity)
-
-  if (filters.entityId) params.set('entityId', filters.entityId)
-
-  if (page > 1) params.set('page', String(page))
-
-  const query = params.toString()
-
-  return query ? `/admin/audit?${query}` : '/admin/audit'
+  return buildListHref('/admin/audit', { q, entity, entityId }, page)
 }
 
 /**
@@ -137,7 +129,7 @@ export default async function AuditLogPage({ searchParams }: Props) {
 
         <AdminResultBar>
           <span>
-            {total} {total === 1 ? 'registro' : 'registros'}
+            {total} {pluralize(total, 'registro', 'registros')}
           </span>
         </AdminResultBar>
 

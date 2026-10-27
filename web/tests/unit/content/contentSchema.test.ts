@@ -9,6 +9,7 @@ import {
 } from '@/modules/content/domain/contentSchema'
 import { contentTypeSchema } from '@/modules/shared/domain/contentType'
 import { localeSchema } from '@/modules/shared/domain/locale'
+
 describe('contentTypeSchema', () => {
   it('acepta los cinco tipos del supertipo content (§7.1)', () => {
     for (const type of ['case', 'insight', 'tool', 'episode', 'other']) {

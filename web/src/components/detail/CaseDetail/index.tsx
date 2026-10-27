@@ -3,8 +3,6 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import {
-  buildImageUrl,
-  buildImageSrcSet,
   buildVideoPosterUrl,
   buildVideoSources,
 } from '@/modules/media/client/cloudinaryUrl'
@@ -13,8 +11,14 @@ import { widestCarouselRatio } from '@/modules/media/domain/closestRatio'
 import { caseVideoRatio } from '@/modules/media/domain/detailVideoRatio'
 import { detailVideoRungM } from '@/modules/media/domain/mediaDelivery'
 import { RecommendationsGrid } from '@/components/detail/RecommendationsGrid'
+import {
+  CloudinaryImage,
+  DETAIL_IMAGE_SIZES,
+} from '@/components/media/CloudinaryImage'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
+import { workLocalePath } from '@/modules/content/domain/contentPath'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
+import { localeCode } from '@/modules/shared/domain/locale'
 import type {
   PublicCaseDetail,
   PublicCaseCarouselItem,
@@ -53,8 +57,9 @@ function CarouselVideo({ item }: { item: PublicCaseCarouselItem }) {
 /**
  * Plantilla de detalle tipo B para un caso (especificacion-final-formato-
  * detalle.md §1, §2, §3): contenido siempre a 6/6 (fullWidthContent),
- * sin panel lateral — las recomendaciones usan scope='work' (solo Cases),
- * excluyéndose a sí mismo, y solo pueden aparecer debajo.
+ * sin panel lateral — las recomendaciones usan siempre el scope `home`
+ * (`RECOMMENDATIONS_SCOPE` en `useRecommendationMasonry`, desde el 14 oct
+ * 2026), excluyéndose a sí mismo, y solo pueden aparecer debajo.
  */
 export function CaseDetail({
   content,
@@ -97,13 +102,11 @@ export function CaseDetail({
                 }
               >
                 {item.kind === 'image' ? (
-                  // URL ya transformada por
-                  // modules/media/client/cloudinaryUrl.ts
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={buildImageUrl(item.cloudinaryPublicId, 'detail')}
-                    srcSet={buildImageSrcSet(item.cloudinaryPublicId, 'detail')}
-                    sizes="83vw"
+                  <CloudinaryImage
+                    publicId={item.cloudinaryPublicId}
+                    kind="image"
+                    profile="detail"
+                    sizes={DETAIL_IMAGE_SIZES}
                     alt={item.alt}
                     loading={index === 0 ? 'eager' : 'lazy'}
                     className={styles.media}
@@ -125,15 +128,15 @@ export function CaseDetail({
               {content.availableLocales.map((loc) => (
                 <Link
                   key={loc}
-                  href={
-                    loc === content.defaultLocale
-                      ? `/work/${content.slug}`
-                      : `/work/${content.slug}/${loc}`
-                  }
+                  href={workLocalePath(
+                    content.slug,
+                    loc,
+                    content.defaultLocale,
+                  )}
                   aria-current={loc === content.locale ? 'page' : undefined}
                   className={styles.localeLink}
                 >
-                  {loc.toUpperCase()}
+                  {localeCode(loc)}
                 </Link>
               ))}
             </nav>

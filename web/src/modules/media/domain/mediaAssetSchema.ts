@@ -1,16 +1,16 @@
 import { z } from 'zod'
 
+import { idSchema } from '@/lib/validation/idSchema'
+import {
+  mediaKindSchema,
+  type MediaKind,
+} from '@/modules/shared/domain/mediaKind'
 import { VIDEO_LIMITS } from './mediaLimits'
 import {
   cloudinaryPublicIdField,
   uploadedImageFields,
   uploadedVideoFields,
 } from './uploadedMediaFields'
-import { idSchema } from '@/lib/validation/idSchema'
-import {
-  mediaKindSchema,
-  type MediaKind,
-} from '@/modules/shared/domain/mediaKind'
 
 export const mediaStatusSchema = z.enum(['processing', 'ready', 'error'])
 

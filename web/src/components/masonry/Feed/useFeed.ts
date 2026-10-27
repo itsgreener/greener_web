@@ -6,6 +6,8 @@ import { useMasonryPositions } from '@/components/masonry/useMasonryPositions'
 import { useFeedContext } from '@/components/masonry/FeedProvider'
 import { fetchFeedBatch, openFeedSession } from '@/components/masonry/feedApi'
 import { useSentinel } from '@/components/masonry/useSentinel'
+import type { FeedScope } from '@/modules/feed/domain/feedScope'
+import { useFeedScroll } from './useFeedScroll'
 
 /**
  * Feed real de la home y las subhomes: abre una feedSession (POST
@@ -25,7 +27,7 @@ import { useSentinel } from '@/components/masonry/useSentinel'
  */
 export const RATE_LIMIT_RETRY_MS = 4000
 
-export function useFeed(scope: string) {
+export function useFeed(scope: FeedScope) {
   const {
     getState,
     setSessionId,
@@ -43,7 +45,8 @@ export function useFeed(scope: string) {
   // `useSentinel`). Si el visitante ya se alejó del final, no pasa nada.
   const [recheck, setRecheck] = useState(0)
   const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  // Solo importa si falló: `Feed` pinta `feedCopy.loadError`, no el mensaje.
+  const [error, setError] = useState(false)
 
   // Abrir sesión solo si este scope, en esta carga del documento,
   // todavía no tiene una (§6.1) — volver de un detalle a esta misma
@@ -55,12 +58,8 @@ export function useFeed(scope: string) {
       .then((id) => {
         if (!cancelled) setSessionId(scope, id)
       })
-      .catch((err) => {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : 'No se pudo abrir el feed.',
-          )
-        }
+      .catch(() => {
+        if (!cancelled) setError(true)
       })
     return () => {
       cancelled = true
@@ -104,10 +103,8 @@ export function useFeed(scope: string) {
           { interactive: false },
         )
       }
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'No se pudo cargar el feed.',
-      )
+    } catch {
+      setError(true)
     } finally {
       loadingRef.current = false
       setIsLoading(false)
@@ -133,38 +130,22 @@ export function useFeed(scope: string) {
     [],
   )
 
-  // Guarda la posición de scroll continuamente (throttled por rAF) para
-  // poder restaurarla si se vuelve de un detalle.
-  useEffect(() => {
-    let raf = 0
-    const onScroll = () => {
-      cancelAnimationFrame(raf)
-      raf = requestAnimationFrame(() => setScrollY(scope, window.scrollY))
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', onScroll)
-      cancelAnimationFrame(raf)
-    }
-  }, [scope, setScrollY])
-
   const { containerRef, positioned, totalHeight } = useMasonryPositions(
     state.items,
     state.batchSizes,
   )
 
-  // Restauración: si al montar ESTE hook ya había pines en el contexto
-  // (vuelta de un detalle), saltar a la posición de scroll guardada en
-  // cuanto el layout tenga altura real — antes de eso el scroll caería
-  // en una zona vacía. useRef captura el valor solo en el montaje de
-  // este hook, no en los renders siguientes.
-  const shouldRestoreRef = useRef(state.items.length > 0)
-  useEffect(() => {
-    if (!shouldRestoreRef.current || totalHeight === 0) return
-    window.scrollTo(0, getState(scope).scrollY)
-    shouldRestoreRef.current = false
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalHeight])
+  // Guardar el scroll y restaurarlo al volver de un detalle.
+  const getScrollY = useCallback(
+    () => getState(scope).scrollY,
+    [getState, scope],
+  )
+  useFeedScroll(scope, {
+    setScrollY,
+    getScrollY,
+    hadItemsOnMount: state.items.length > 0,
+    ready: totalHeight > 0,
+  })
 
   return {
     containerRef,
