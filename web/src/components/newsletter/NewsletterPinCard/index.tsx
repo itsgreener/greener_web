@@ -93,9 +93,9 @@ export function NewsletterPinCard({
             />
             <form action={formAction} className={styles.form}>
               <Honeypot
-                name="company"
-                id={`${emailId}-company`}
-                label="Company"
+                name="reference_code"
+                id={`${emailId}-reference`}
+                label="Reference code"
               />
               <label htmlFor={emailId} className="visually-hidden">
                 Your email

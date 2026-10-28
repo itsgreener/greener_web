@@ -106,7 +106,7 @@ export async function updatePinAction(
   try {
     await updatePin(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · updatePinAction:', error)
 
     if (isDomainError(error, 'pin_label_required')) {
       return {
@@ -149,7 +149,7 @@ export async function deletePinAction(
   try {
     purge = await deletePin(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · deletePinAction:', error)
 
     return {
       formError: 'No se ha podido borrar el pin.',
@@ -194,7 +194,7 @@ export async function deleteAllPinsAction(
   try {
     outcome = await deleteAllPins(parsedContentId.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · deleteAllPinsAction:', error)
 
     return {
       formError: 'No se han podido leer los pines del contenido.',
@@ -288,7 +288,7 @@ export async function createPinWithImageAction(
 
     return { ok: true, ...created }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · createPinWithImageAction:', error)
 
     if (error instanceof CreatePinWithMediaError && error.stage === 'attach') {
       revalidateContent(pinResult.data.contentId)
@@ -351,7 +351,7 @@ export async function attachPinImageAction(
       mediaId,
     }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · attachPinImageAction:', error)
 
     if (error instanceof ImageVerificationError) {
       return {
@@ -414,7 +414,7 @@ export async function attachPinVideoAction(
       mediaId,
     }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · attachPinVideoAction:', error)
 
     return {
       ok: false,
@@ -483,7 +483,7 @@ export async function createPinWithVideoAction(
 
     return { ok: true, ...created }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · createPinWithVideoAction:', error)
 
     if (!(error instanceof CreatePinWithMediaError)) {
       return { ok: false, error: videoAttachErrorMessage(error) }
@@ -532,7 +532,7 @@ export async function detachPinMediaAction(
   try {
     purge = await detachPinMedia(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · detachPinMediaAction:', error)
 
     return {
       ok: false,

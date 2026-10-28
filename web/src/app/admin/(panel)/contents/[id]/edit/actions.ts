@@ -48,7 +48,7 @@ export async function updateContentAction(
       }
     }
 
-    console.error(error)
+    console.error('Admin · updateContentAction:', error)
 
     return {
       formError: 'No se han podido guardar los cambios.',

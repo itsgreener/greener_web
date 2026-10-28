@@ -121,6 +121,13 @@ export const PERMISSIONS_POLICY = [
  */
 export const ADMIN_OPENER_POLICY = 'same-origin'
 
+/**
+ * Solo para el ABM: ninguna otra web puede incrustar sus respuestas (imágenes,
+ * scripts, fetch) aunque el navegador las pida con credenciales. Es el
+ * complemento de `frame-ancestors` y de la comprobación de sesión.
+ */
+export const ADMIN_RESOURCE_POLICY = 'same-origin'
+
 export function buildSecurityHeaders(
   input: SecurityHeadersInput,
 ): Record<string, string> {

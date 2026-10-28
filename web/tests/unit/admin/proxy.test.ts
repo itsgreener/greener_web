@@ -236,16 +236,20 @@ describe('proxy — Permissions-Policy y aislamiento de ventana (SEC-ADM-E1)', (
 
     expect(response.headers.get('Permissions-Policy')).toContain('camera=()')
     expect(response.headers.get('Cross-Origin-Opener-Policy')).toBeNull()
+    expect(response.headers.get('Cross-Origin-Resource-Policy')).toBeNull()
   })
 
   it.each(['/admin', '/admin/login', '/api/admin/media/sign'])(
-    '%s lleva COOP same-origin y Permissions-Policy',
+    '%s lleva COOP y CORP same-origin y Permissions-Policy',
     async (pathname) => {
       const { proxy } = await import('@/proxy')
 
       const response = await proxy(makeRequest(pathname))
 
       expect(response.headers.get('Cross-Origin-Opener-Policy')).toBe(
+        'same-origin',
+      )
+      expect(response.headers.get('Cross-Origin-Resource-Policy')).toBe(
         'same-origin',
       )
       expect(response.headers.get('Permissions-Policy')).toContain(

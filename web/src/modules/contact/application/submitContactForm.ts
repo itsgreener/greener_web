@@ -6,6 +6,23 @@ import type {
 } from '@/modules/contact/domain/contactPorts'
 import { contactFormSchema } from '@/modules/contact/domain/contactSchema'
 
+/**
+ * Lo único del fallo de envío que se guarda en la base (SEC-PUB-A3): el código
+ * corto de nodemailer (`EAUTH`, `ECONNECTION`, `ETIMEDOUT`…) o `unknown`. El
+ * mensaje completo puede traer el host o la respuesta del servidor SMTP: va al
+ * log del servidor, no a la tabla `contact_submission`.
+ */
+export function mailFailureCode(error: unknown): string {
+  const code =
+    typeof error === 'object' && error !== null
+      ? (error as { code?: unknown }).code
+      : undefined
+
+  return typeof code === 'string' && /^[A-Z][A-Z0-9_]{1,31}$/.test(code)
+    ? code
+    : 'unknown'
+}
+
 export type SubmitContactFormResult =
   | { ok: true }
   | { ok: false; fieldErrors: Record<string, string[]> }
@@ -59,11 +76,8 @@ export function makeSubmitContactForm({
     try {
       await mailer.send(parsed.data)
     } catch (error) {
-      await log.record(
-        ipHash,
-        'failed',
-        error instanceof Error ? error.message : 'Error desconocido',
-      )
+      console.error('Contacto: no se pudo enviar el mensaje', error)
+      await log.record(ipHash, 'failed', mailFailureCode(error))
       return {
         ok: false,
         formError:

@@ -97,7 +97,7 @@ export async function createContentAction(
       }
     }
 
-    console.error(error)
+    console.error('Admin · createContentAction:', error)
 
     return {
       formError: 'No se ha podido crear el contenido.',

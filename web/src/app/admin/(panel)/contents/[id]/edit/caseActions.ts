@@ -56,7 +56,7 @@ export async function saveCaseDetailAction(
   try {
     await upsertCaseDetail(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · saveCaseDetailAction:', error)
 
     return {
       formError: adminErrorMessage(

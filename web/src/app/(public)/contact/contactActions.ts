@@ -8,8 +8,9 @@ export type ContactActionState = FormActionState
 
 /**
  * El campo honeypot vive en el propio <input> del formulario con el
- * name "website" (ContactForm.tsx) — un nombre plausible para que un
- * bot que rellena formularios sin mirar lo complete, pero que un
+ * name "reference_code" (ContactForm.tsx) — un nombre que un bot que
+ * rellena formularios sin mirar completa, pero que el autorrelleno del
+ * navegador no reconoce (con «website» Chrome lo rellenaba solo). Un
  * visitante real nunca ve ni rellena (oculto por CSS, no por
  * display:none/type=hidden, que algunos bots más cuidadosos evitan).
  */
@@ -17,7 +18,7 @@ export async function submitContactAction(
   _previousState: ContactActionState,
   formData: FormData,
 ): Promise<ContactActionState> {
-  const honeypot = readHoneypot(formData, 'website')
+  const honeypot = readHoneypot(formData, 'reference_code')
 
   const result = await submitContactForm(
     {

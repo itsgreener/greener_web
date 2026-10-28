@@ -27,7 +27,11 @@ export function ContactForm() {
 
   return (
     <form action={formAction} className={styles.form}>
-      <Honeypot name="website" id="website" label="Website" />
+      <Honeypot
+        name="reference_code"
+        id="reference_code"
+        label="Reference code"
+      />
 
       <PublicField
         name="name"

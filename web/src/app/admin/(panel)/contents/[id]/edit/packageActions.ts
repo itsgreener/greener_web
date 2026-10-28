@@ -69,7 +69,7 @@ export async function uploadHtmlPackageAction(
   try {
     await uploadHtmlPackage(contentId, buffer)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · uploadHtmlPackageAction:', error)
 
     if (error instanceof PackageValidationError) {
       return {
@@ -110,7 +110,7 @@ export async function publishHtmlPackageVersionAction(
   try {
     await publishHtmlPackageVersion(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · publishHtmlPackageVersionAction:', error)
 
     return { error: 'No se ha podido publicar esta versión.' }
   }
@@ -155,7 +155,7 @@ export async function deleteHtmlPackageVersionAction(
   try {
     outcome = await deleteHtmlPackageVersion(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · deleteHtmlPackageVersionAction:', error)
 
     return { error: userFacingDeleteError(error) }
   }
@@ -188,7 +188,7 @@ export async function deleteOldHtmlPackageVersionsAction(
   try {
     outcome = await deleteOldHtmlPackageVersions(result.data.contentId)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · deleteOldHtmlPackageVersionsAction:', error)
 
     return { error: 'No se han podido leer las versiones del paquete.' }
   }

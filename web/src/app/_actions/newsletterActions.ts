@@ -29,7 +29,7 @@ export async function subscribeNewsletterAction(
   _previousState: NewsletterActionState,
   formData: FormData,
 ): Promise<NewsletterActionState> {
-  const honeypot = readHoneypot(formData, 'company')
+  const honeypot = readHoneypot(formData, 'reference_code')
 
   const result = await subscribeToNewsletter(
     { email: formData.get('newsletterEmail') },

@@ -2108,7 +2108,7 @@ Respuesta de Greener al §2.109: proveedor Anonymous apagado, Email encendido (s
 
 **Verificación.** 289 ficheros y **3288 tests en verde** (+2 ficheros y +23 tests respecto al §2.109); `tsc` y ESLint limpios. La memoización por petición de `React.cache` solo actúa dentro de una petición de Next, así que no se puede probar con vitest: lo probado es que el resultado sigue siendo correcto y que `getAdminActor` usa las mismas claims.
 
-**Para Greener.** Antes de desplegar, fijar `APP_SIGNING_SECRET` en el entorno de producción (en Vercel, Settings → Environment Variables). Probar: abrir `/admin/talent` con sesión (carga igual) y tras cerrar sesión (manda al login); generar un enlace de preview y comprobar en Actividad la entrada `preview_link`.
+**Para Greener.** Antes de desplegar, comprobar que `APP_SIGNING_SECRET` (la misma variable que ya existía, opcional hasta ahora; no cambia de nombre) está en el entorno de producción con 32 o más caracteres (en Vercel, Settings → Environment Variables). Probar: abrir `/admin/talent` con sesión (carga igual) y tras cerrar sesión (manda al login); generar un enlace de preview y comprobar en Actividad la entrada `preview_link`.
 
 ### 2.111 Auditoría de seguridad del backend, tercer lote (pruebas de Greener, build y caducidad de talent) (28 oct 2026)
 
@@ -2123,3 +2123,33 @@ Respuesta de Greener al §2.109: proveedor Anonymous apagado, Email encendido (s
 **Verificación.** Ver la cifra en `PROGRESO.md`. `tsc` y ESLint limpios, `next build` sin avisos de ruta dinámica.
 
 **Para Greener.** 1) Ejecutar el SQL del §4.6 en el proyecto Supabase de talent (y decidir si se ejecuta también el `update` opcional que hace caducar a la semana los enlaces ya enviados). 2) Probar con un candidato de prueba: reenviar el enlace desde el ABM y abrir el formulario (abre); poner a mano `access_token_expires_at` en el pasado y recargar (debe comportarse como enlace inexistente); repetir el email en el alta pública (renueva y reenvía).
+
+### 2.112 Auditoría de seguridad del backend, cuarto lote (cambios menores) (28 oct 2026)
+
+Greener aplicó la columna `access_token_expires_at` y el `update` opcional de talent, y pidió seguir con los cambios menores del informe.
+
+**SEC-PUB-C1.** Las rutas de talent dejan de fiarse de `Content-Length`. Nuevo `readBodyWithLimit` (`src/app/api/talent/_lib/boundedBody.ts`) lee el flujo contando bytes y lo cancela al pasar el tope; `readJsonBody` lo usa y mide bytes, no caracteres, y la subida de ficheros del formulario (`form/[token]/files`) también. Un cuerpo `chunked` o con `Content-Length` falso ya no se lee entero. El techo real sigue siendo el del proxy (25 MB) hasta que la subida pase a ir directa a Storage (S5), así que el hallazgo no se da por cerrado del todo.
+
+**SEC-PUB-A3.** `submitContactForm` ya no guarda `error.message` en `contact_submission.error`: `mailFailureCode` deja solo un código corto (`ETIMEDOUT`, `EAUTH`…) o `unknown`, y el texto de nodemailer se queda en el log del servidor. Las filas antiguas conservan el texto largo hasta que las purgue el cron diario; si Greener quiere limpiarlas ya, vale un `update contact_submission set error = 'unknown' where error is not null;`.
+
+**SEC-ADM-G5.** Los 32 `console.error` de `src/app/admin` pasan a la forma `Admin · <función>:` con el error como segundo argumento, para poder filtrarlos en el log.
+
+**SEC-ADM-E1.** `/admin` y `/api/admin` llevan también `Cross-Origin-Resource-Policy: same-origin` (`ADMIN_RESOURCE_POLICY`). No toca las páginas públicas ni los paquetes, que se embeben a propósito.
+
+**SEC-ADM-A3b, por lectura de las migraciones.** Ninguna política se restringe por rol, de modo que un usuario autenticado que no sea admin no ve más que el público: `admin_all` va siempre con `is_admin()`, la lectura pública solo alcanza filas `published`, `ready` o `active` (`tag`, `content_tag` y `feed_config` son de lectura abierta), `audit_log`, `feed_session` y `feed_round` son solo de admin y en Storage únicamente `html-packages` admite escritura, y solo de admin. La conclusión depende de que el proveedor Email siga apagado, porque `is_admin()` decide por el dominio del email.
+
+**Sin tocar.** SEC-ADM-G2 (envoltorio de acciones), SEC-ADM-D2 (revocar previews), SEC-X-1d (subdominio para paquetes), SEC-PUB-A5 (caché del HTML de paquetes) y todo S5, que sigue aplazado al despliegue en Vercel.
+
+**Verificación.** 290 ficheros y **3300 tests en verde** (+1 fichero y +12 tests respecto al §2.111); `tsc` y ESLint limpios, Prettier sin diferencias en los ficheros tocados y `next build` sin avisos de ruta dinámica (revisado el log completo).
+
+**Para Greener.** Apagar el proveedor Email en Supabase y llevar a Vercel el `APP_SIGNING_SECRET` que ya tienes en el `.env` (misma variable, obligatoria en producción, 32 o más caracteres) antes de desplegar. Probar el formulario de contacto con el SMTP caído (la fila debe guardar un código corto en `error`) y la subida de CV desde el formulario de talent (sigue funcionando igual).
+
+### 2.113 Honeypot rellenado por el autorrelleno del navegador (28 oct 2026)
+
+Al probar el SMTP roto, Greener vio el mensaje de éxito sin que saliera ningún correo. La tabla `contact_submission` mostró una fila `honeypot`: el navegador había rellenado el campo señuelo `website` (Chrome y los gestores de contraseñas deciden por el nombre del campo y la etiqueta, y no respetan `autoComplete="off"`). El honeypot finge éxito a propósito, así que una persona real con autorrelleno activo habría perdido su mensaje sin enterarse. El flujo del SMTP en sí estaba bien: con un host inexistente el caso de uso devuelve el error al visitante y guarda `failed` con el código (`EDNS` en la prueba).
+
+**Cambio.** El señuelo del contacto (`website`) y el de la newsletter (`company`, que Chrome asocia a «organización») pasan a llamarse `reference_code`, con la etiqueta «Reference code», un nombre fuera del vocabulario de autorrelleno. `components/security/Honeypot` añade además `data-1p-ignore`, `data-lpignore`, `data-bwignore` y `data-form-type="other"`, que respetan 1Password, LastPass, Bitwarden y Dashlane. El honeypot del alta de talent (`website` en el cuerpo JSON) no cambia: lo envía código propio, no un formulario HTML, y no hay autorrelleno de por medio.
+
+**Tests.** `contactActionHoneypot.test.ts` (nuevo: la acción lee `reference_code` y un `website` rellenado ya no descarta el envío), `honeypot.test.tsx` (atributos para gestores de contraseñas) y ajustes en los de contacto y newsletter. 291 ficheros y **3303 tests en verde**; `tsc`, ESLint, Prettier y `next build` limpios.
+
+**Para Greener.** Repetir la prueba del SMTP roto: reiniciar el servidor, romper el host en el `.env.local` que se esté leyendo y enviar el formulario con el autorrelleno del navegador activo; debe salir el mensaje de error y una fila `failed`. Después restaurar el host y comprobar que el envío normal llega.

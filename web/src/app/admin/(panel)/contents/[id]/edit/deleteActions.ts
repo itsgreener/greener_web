@@ -35,7 +35,7 @@ export async function deleteContentAction(
   try {
     purge = await deleteContent(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · deleteContentAction:', error)
 
     return {
       error: adminErrorMessage(

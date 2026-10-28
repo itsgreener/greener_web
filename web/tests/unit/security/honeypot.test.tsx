@@ -18,6 +18,16 @@ describe('Honeypot', () => {
     expect(input).not.toBeRequired()
   })
 
+  it('pide a los gestores de contraseñas que no lo rellenen', () => {
+    render(<Honeypot name="reference_code" id="ref" label="Reference code" />)
+
+    const input = screen.getByLabelText('Reference code', { selector: 'input' })
+    expect(input).toHaveAttribute('data-1p-ignore', 'true')
+    expect(input).toHaveAttribute('data-lpignore', 'true')
+    expect(input).toHaveAttribute('data-bwignore', 'true')
+    expect(input).toHaveAttribute('data-form-type', 'other')
+  })
+
   it('se oculta con la clase global, no con type=hidden ni display:none', () => {
     const { container } = render(
       <Honeypot name="company" id="x-company" label="Company" />,

@@ -40,7 +40,7 @@ export async function saveOtherFrequencyAction(
   try {
     await updateOtherFrequency(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · saveOtherFrequencyAction:', error)
 
     return {
       formError: adminErrorMessage(

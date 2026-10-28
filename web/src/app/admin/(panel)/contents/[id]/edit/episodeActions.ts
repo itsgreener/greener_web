@@ -43,7 +43,7 @@ export async function saveEpisodeAction(
           (await contents.getById(contentId))?.defaultLocale ?? null
       }
     } catch (error) {
-      console.error(error)
+      console.error('Admin · saveEpisodeAction:', error)
 
       return {
         formError: 'No se han podido guardar los datos del episodio.',
@@ -92,7 +92,7 @@ export async function saveEpisodeAction(
   try {
     await upsertEpisode(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · saveEpisodeAction:', error)
 
     return {
       formError: adminErrorMessage(

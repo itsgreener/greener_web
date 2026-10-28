@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
 import {
   ADMIN_OPENER_POLICY,
+  ADMIN_RESOURCE_POLICY,
   buildSecurityHeaders,
 } from '@/lib/securityHeaders'
 import { env } from '@/lib/env'
@@ -75,6 +76,7 @@ export async function proxy(request: NextRequest) {
 
   if (isAdminRoute(pathname)) {
     response.headers.set('Cross-Origin-Opener-Policy', ADMIN_OPENER_POLICY)
+    response.headers.set('Cross-Origin-Resource-Policy', ADMIN_RESOURCE_POLICY)
   }
 
   return response

@@ -24,7 +24,7 @@ function form(entries: Record<string, string>) {
 beforeEach(() => vi.clearAllMocks())
 
 describe('subscribeNewsletterAction', () => {
-  it('pasa el email (campo newsletterEmail) y el honeypot (company)', async () => {
+  it('pasa el email (campo newsletterEmail) y el honeypot (reference_code)', async () => {
     mockSubscribe.mockResolvedValueOnce({
       ok: true,
       status: 'confirmation_sent',
@@ -33,7 +33,7 @@ describe('subscribeNewsletterAction', () => {
 
     await subscribeNewsletterAction(
       {},
-      form({ newsletterEmail: 'a@example.com', company: 'x' }),
+      form({ newsletterEmail: 'a@example.com', reference_code: 'x' }),
     )
 
     expect(mockSubscribe).toHaveBeenCalledWith({ email: 'a@example.com' }, 'x')
@@ -86,7 +86,7 @@ describe('subscribeNewsletterAction', () => {
 
     const state = await subscribeNewsletterAction(
       {},
-      form({ newsletterEmail: 'bot@example.com', company: 'x' }),
+      form({ newsletterEmail: 'bot@example.com', reference_code: 'x' }),
     )
 
     expect(state.success).toBe(true)
@@ -150,7 +150,7 @@ describe('subscribeNewsletterAction', () => {
 
       await subscribeNewsletterAction(
         {},
-        form({ newsletterEmail: 'bot@example.com', company: 'x' }),
+        form({ newsletterEmail: 'bot@example.com', reference_code: 'x' }),
       )
 
       expect(cookieSet).not.toHaveBeenCalled()

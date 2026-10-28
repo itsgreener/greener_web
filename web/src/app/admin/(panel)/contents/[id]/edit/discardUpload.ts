@@ -22,6 +22,6 @@ export async function discardUploadQuietly(
       kind: asset.kind,
     })
   } catch (error) {
-    console.error(error)
+    console.error('Admin · discardUploadQuietly:', error)
   }
 }

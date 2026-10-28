@@ -74,7 +74,7 @@ const checkAdminSession = cache(async (): Promise<AdminCheck> => {
   } catch (error) {
     if (isNextControlFlowError(error)) throw error
 
-    console.error(error)
+    console.error('Admin · checkAdminSession:', error)
     return { ok: false, reason: 'unauthenticated' }
   }
 })

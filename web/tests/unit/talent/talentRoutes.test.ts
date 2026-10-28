@@ -162,6 +162,45 @@ describe('POST /api/talent/candidates', () => {
     expect(response.status).toBe(413)
   })
 
+  // SEC-PUB-C1: el tope es en bytes, no en caracteres
+  it('rechaza un cuerpo cuyos caracteres caben pero cuyos bytes no (acentos)', async () => {
+    const response = await postCandidates(
+      jsonRequest('/api/talent/candidates', {
+        email: 'a@b.co',
+        basura: 'é'.repeat(40_000),
+      }),
+    )
+
+    expect(response.status).toBe(413)
+    expect(container.registerCandidate).not.toHaveBeenCalled()
+  })
+
+  it('rechaza un cuerpo enorme enviado por trozos y sin Content-Length', async () => {
+    const chunk = new TextEncoder().encode('x'.repeat(10_000))
+    let sent = 0
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent >= 20) return controller.close()
+        sent += 1
+        controller.enqueue(chunk)
+      },
+    })
+    const request = new NextRequest(`${BASE}/api/talent/candidates`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: stream,
+      duplex: 'half',
+    } as ConstructorParameters<typeof NextRequest>[1])
+
+    expect(request.headers.get('content-length')).toBeNull()
+
+    const response = await postCandidates(request)
+
+    expect(response.status).toBe(413)
+    // Se dejó de leer al pasar el tope: no se consumió todo el flujo.
+    expect(sent).toBeLessThan(20)
+  })
+
   it.each([
     [
       {
@@ -343,6 +382,17 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
     expect((await postFile(upload('no soy un fichero'), params)).status).toBe(
       400,
     )
+    expect(container.uploadCandidateFile).not.toHaveBeenCalled()
+  })
+
+  it('POST de un fichero por encima del tope sin Content-Length: 413 (se mide lo recibido)', async () => {
+    const response = await postFile(
+      upload(new File([new Uint8Array(11 * 1024 * 1024)], 'grande.pdf')),
+      params,
+    )
+
+    expect(response.status).toBe(413)
+    expect(await response.json()).toEqual({ error: 'file_too_large' })
     expect(container.uploadCandidateFile).not.toHaveBeenCalled()
   })
 

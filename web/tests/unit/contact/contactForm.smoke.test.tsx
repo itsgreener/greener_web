@@ -67,9 +67,10 @@ describe('ContactForm — prueba de humo', () => {
   it('el honeypot existe en el DOM (para que un bot lo rellene) pero no es alcanzable por teclado', () => {
     const { container } = render(<ContactForm />)
 
-    const honeypot = container.querySelector('input[name="website"]')
+    const honeypot = container.querySelector('input[name="reference_code"]')
     expect(honeypot).toBeInTheDocument()
     expect(honeypot).toHaveAttribute('tabIndex', '-1')
     expect(honeypot).toHaveAttribute('autoComplete', 'off')
+    expect(container.querySelector('input[name="website"]')).toBeNull()
   })
 })

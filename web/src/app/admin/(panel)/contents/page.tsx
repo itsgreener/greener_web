@@ -87,7 +87,7 @@ export default async function ContentsPage({ searchParams }: Props) {
           .listPublishedFrequencies()
           .then(estimateOtherOccupation)
           .catch((error: unknown) => {
-            console.error(error)
+            console.error('Admin · ContentsPage:', error)
 
             return null
           })

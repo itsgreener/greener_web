@@ -42,7 +42,7 @@ export async function loadEditorData(id: string) {
     ? await others
         .listPublishedFrequencies(content.id)
         .catch((error: unknown) => {
-          console.error(error)
+          console.error('Admin · loadEditorData:', error)
 
           return []
         })
@@ -84,7 +84,7 @@ export async function loadEditorData(id: string) {
   try {
     pendingWarming = await contentWarming.countPendingWarming(content.id)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · loadEditorData:', error)
   }
 
   return {

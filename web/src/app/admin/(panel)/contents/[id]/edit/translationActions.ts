@@ -69,7 +69,7 @@ export async function saveTranslationAction(
   try {
     await upsertContentTranslation(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · saveTranslationAction:', error)
 
     return {
       formError: adminErrorMessage(

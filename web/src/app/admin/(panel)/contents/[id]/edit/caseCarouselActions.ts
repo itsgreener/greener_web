@@ -56,7 +56,7 @@ export async function addCaseCarouselImageAction(
       mediaId,
     }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · addCaseCarouselImageAction:', error)
 
     if (error instanceof ImageVerificationError) {
       return {
@@ -100,7 +100,7 @@ export async function addCaseCarouselVideoAction(
       mediaId,
     }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · addCaseCarouselVideoAction:', error)
 
     if (error instanceof VideoVerificationError) {
       return {
@@ -140,7 +140,7 @@ export async function removeCaseCarouselMediaAction(
   try {
     purge = await removeCaseCarouselMedia(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · removeCaseCarouselMediaAction:', error)
 
     return {
       ok: false,
@@ -200,7 +200,7 @@ export async function removeAllCaseCarouselMediaAction(
   try {
     outcome = await removeAllCaseCarouselMedia(parsedContentId.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · removeAllCaseCarouselMediaAction:', error)
 
     return {
       ok: false,

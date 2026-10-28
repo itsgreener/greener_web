@@ -238,7 +238,7 @@ Propuesta: `episodeEmbed.ts` (las dos funciones puras, con test por proveedor), 
 Riesgo: bajo-medio: es la parte legal (AEPD). Mantener textos, orden «consentimiento antes de montar el iframe» y desmontaje al revocar; lo cubren `episodeDetail.design` y `episodeDetail.smoke`.
 
 **TSX-PUB-A3 · Honeypot en dos sitios · B**
-`ContactForm` (`name="website"`) y `NewsletterPinCard` (`name="company"`) pintan el mismo bloque oculto (`div.honeypot`, `label`, `input` con `tabIndex={-1}` y `autoComplete="off"`), y las dos Server Actions leen el campo con `(formData.get(...) as string | null) ?? ''`. Propuesta: `<Honeypot name idPrefix />` junto a la clase global `honeypot` y `readHoneypot(formData, name)` en `lib/forms/`. El `as string | null` desaparece.
+`ContactForm` y `NewsletterPinCard` (ambos `name="reference_code"` desde el 28 oct, §2.113; antes `website` y `company`) pintan el mismo bloque oculto (`div.honeypot`, `label`, `input` con `tabIndex={-1}` y `autoComplete="off"`), y las dos Server Actions leen el campo con `(formData.get(...) as string | null) ?? ''`. Propuesta: `<Honeypot name idPrefix />` junto a la clase global `honeypot` y `readHoneypot(formData, name)` en `lib/forms/`. El `as string | null` desaparece.
 Riesgo: nulo. Ojo: los `id` del contacto son fijos (`website`) y los del pin usan `useId`; el componente debe aceptar el prefijo.
 
 **TSX-PUB-A4 · Botones aceptar/rechazar de cookies · B**

@@ -7,6 +7,7 @@ import {
 import { TALENT_FILE_LIMITS } from '@/modules/talent/domain/talentConstants'
 import { isUuid } from '@/lib/validation/uuid'
 
+import { readBodyWithLimit } from '@/app/api/talent/_lib/boundedBody'
 import {
   failureResponse,
   rejectCrossSite,
@@ -34,10 +35,25 @@ export async function POST(request: NextRequest, { params }: RouteContext) {
     return talent.respond({ error: 'file_too_large' }, { status: 413 })
   }
 
+  // Se lee el cuerpo contando bytes y se corta al pasar el tope (SEC-PUB-C1):
+  // `Content-Length` falta con `Transfer-Encoding: chunked` y puede mentir.
+  const read = await readBodyWithLimit(
+    request,
+    TALENT_FILE_LIMITS.maxFileBytes + MULTIPART_OVERHEAD_BYTES,
+  )
+
+  if (!read.ok) {
+    return talent.respond({ error: 'file_too_large' }, { status: 413 })
+  }
+
   let file: FormDataEntryValue | null
 
   try {
-    file = (await request.formData()).get('file')
+    file = (
+      await new Response(read.bytes as BodyInit, {
+        headers: { 'content-type': request.headers.get('content-type') ?? '' },
+      }).formData()
+    ).get('file')
   } catch {
     return talent.respond({ error: 'invalid_form_data' }, { status: 400 })
   }

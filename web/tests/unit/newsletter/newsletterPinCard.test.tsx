@@ -111,10 +111,10 @@ describe('NewsletterPinCard — contenido', () => {
     expect(card.style.width).toBe('200px')
   })
 
-  it('el honeypot se llama «company» y está fuera del flujo de tabulación', () => {
+  it('el honeypot se llama «reference_code» y está fuera del flujo de tabulación', () => {
     renderCard()
 
-    const honeypot = document.querySelector('input[name="company"]')
+    const honeypot = document.querySelector('input[name="reference_code"]')
     expect(honeypot).not.toBeNull()
     expect(honeypot).toHaveAttribute('tabindex', '-1')
     expect(honeypot!.closest('[aria-hidden="true"]')).not.toBeNull()

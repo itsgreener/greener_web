@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
+import { readBodyWithLimit } from '@/app/api/talent/_lib/boundedBody'
 import { clientIpFromHeaders, hashClientIp } from '@/lib/http/clientIp'
 import {
   attachVisitorCookie,
@@ -109,14 +110,21 @@ export async function readJsonBody(
     }
   }
 
-  const text = await request.text()
+  // Tope en BYTES y con el cuerpo cortado al pasarlo, no después de leerlo
+  // entero (SEC-PUB-C1): `Content-Length` puede faltar o mentir.
+  const read = await readBodyWithLimit(
+    request,
+    TALENT_TEXT_LIMITS.maxJsonBodyBytes,
+  )
 
-  if (text.length > TALENT_TEXT_LIMITS.maxJsonBodyBytes) {
+  if (!read.ok) {
     return {
       ok: false,
       response: respond({ error: 'too_large' }, { status: 413 }),
     }
   }
+
+  const text = new TextDecoder().decode(read.bytes)
 
   try {
     const body: unknown = JSON.parse(text)

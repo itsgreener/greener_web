@@ -56,7 +56,7 @@ export async function warmContentAction(
       message: `Calentamiento encargado para ${result.warmed} vídeo(s). Cloudinary tarda unos minutos en terminarlo.`,
     }
   } catch (error) {
-    console.error(error)
+    console.error('Admin · warmContentAction:', error)
 
     return { error: 'No se han podido calentar los vídeos.' }
   }

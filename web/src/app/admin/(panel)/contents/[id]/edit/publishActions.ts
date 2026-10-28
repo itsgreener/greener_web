@@ -59,7 +59,7 @@ export async function publishContentAction(
   try {
     await publishContent(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · publishContentAction:', error)
 
     return {
       error: adminErrorMessage(
@@ -99,7 +99,7 @@ export async function scheduleContentAction(
   try {
     await scheduleContent(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · scheduleContentAction:', error)
 
     if (isDomainError(error, 'publish_date_in_past')) {
       return {
@@ -144,7 +144,7 @@ export async function unpublishContentAction(
   try {
     await unpublishContent(result.data)
   } catch (error) {
-    console.error(error)
+    console.error('Admin · unpublishContentAction:', error)
 
     return { error: 'No se ha podido despublicar el contenido.' }
   }

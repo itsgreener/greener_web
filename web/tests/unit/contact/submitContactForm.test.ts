@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 
-import { makeSubmitContactForm } from '@/modules/contact/application/submitContactForm'
+import {
+  mailFailureCode,
+  makeSubmitContactForm,
+} from '@/modules/contact/application/submitContactForm'
 
 const VALID_INPUT = {
   name: 'Marta García',
@@ -91,6 +94,32 @@ describe('submitContactForm', () => {
     if (!result.ok && 'formError' in result) {
       expect(result.formError).toContain("couldn't send your message")
     }
-    expect(log.record).toHaveBeenCalledWith('hash-1', 'failed', 'SMTP caído')
+    // Solo un código, nunca el texto del error (SEC-PUB-A3)
+    expect(log.record).toHaveBeenCalledWith('hash-1', 'failed', 'unknown')
+  })
+
+  it('con un error de nodemailer guarda su código corto, no el mensaje', async () => {
+    const { submitContactForm, mailer, log } = setup()
+    mailer.send.mockRejectedValueOnce(
+      Object.assign(new Error('Invalid login: smtp.interno.example 535'), {
+        code: 'EAUTH',
+      }),
+    )
+
+    await submitContactForm(VALID_INPUT, '')
+
+    expect(log.record).toHaveBeenCalledWith('hash-1', 'failed', 'EAUTH')
+    expect(JSON.stringify(vi.mocked(log.record).mock.calls)).not.toContain(
+      'smtp.interno',
+    )
+  })
+
+  it.each([
+    ['sin código', new Error('x')],
+    ['código en minúsculas', Object.assign(new Error('x'), { code: 'host' })],
+    ['código largo', Object.assign(new Error('x'), { code: 'A'.repeat(40) })],
+    ['no es un Error', 'texto suelto'],
+  ])('mailFailureCode: %s → unknown', (_name, error) => {
+    expect(mailFailureCode(error)).toBe('unknown')
   })
 })
