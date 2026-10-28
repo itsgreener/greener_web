@@ -10,6 +10,19 @@ import type { ContactFormInput } from '@/modules/contact/domain/contactSchema'
  */
 let transporter: ReturnType<typeof nodemailer.createTransport> | null = null
 
+/**
+ * Tiempos máximos del SMTP. Los de nodemailer por defecto son de 2 minutos
+ * (conexión) y 10 minutos (socket): con un servidor que no responde, la
+ * persona que envía el formulario esperaría eso, o hasta que la función
+ * serverless se cortase sin dar mensaje de error. Con estos valores un SMTP
+ * caído devuelve el error a los pocos segundos.
+ */
+export const SMTP_TIMEOUTS = {
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 20_000,
+} as const
+
 function getTransporter() {
   if (!transporter) {
     const env = getContactEnv()
@@ -18,6 +31,7 @@ function getTransporter() {
       host: env.CONTACT_SMTP_HOST,
       port: env.CONTACT_SMTP_PORT,
       secure: env.CONTACT_SMTP_SECURE,
+      ...SMTP_TIMEOUTS,
       auth: {
         user: env.CONTACT_SMTP_USER,
         pass: env.CONTACT_SMTP_PASSWORD,

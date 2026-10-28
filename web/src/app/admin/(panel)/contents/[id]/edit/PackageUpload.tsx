@@ -1,7 +1,8 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useTransition } from 'react'
 import { formatAdminDateTime } from '@/app/admin/_lib/formatAdminDateTime'
+import { createClient } from '@/lib/supabase/client'
 
 import { AdminActionForm } from '@/components/admin/AdminActionForm'
 import { AdminBadge } from '@/components/admin/AdminBadge'
@@ -12,10 +13,12 @@ import { AdminForm, AdminFormActions } from '@/components/admin/AdminForm'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import { AdminCellActions, AdminTable } from '@/components/admin/AdminTable'
 import type { HtmlPackageVersionSummary } from '@/modules/packages/domain/htmlPackageRepository'
+import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
 
 import {
   deleteHtmlPackageVersionAction,
   deleteOldHtmlPackageVersionsAction,
+  prepareHtmlPackageUploadAction,
   publishHtmlPackageVersionAction,
   uploadHtmlPackageAction,
   type UploadPackageActionState,
@@ -36,6 +39,63 @@ export default function PackageUpload({ contentId, versions }: Props) {
   )
 
   const [file, setFile] = useState<File | null>(null)
+  const [staging, setStaging] = useState(false)
+  const [stagingError, setStagingError] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+
+  // El ZIP no viaja en el formulario (la plataforma limita el cuerpo de una
+  // petición a unos 4,5 MB): se sube directamente a Storage con una URL
+  // firmada y la acción recibe solo la ruta donde quedó.
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!file || staging || uploading) return
+
+    setStagingError(null)
+
+    if (file.size > PACKAGE_LIMITS.maxZipSizeBytes) {
+      setStagingError(
+        `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1_000_000} MB.`,
+      )
+      return
+    }
+
+    setStaging(true)
+
+    try {
+      const target = await prepareHtmlPackageUploadAction(contentId)
+
+      if (!target.ok) {
+        setStagingError(target.error)
+        return
+      }
+
+      const { error } = await createClient()
+        .storage.from(target.bucket)
+        .uploadToSignedUrl(target.path, target.token, file, {
+          contentType: 'application/zip',
+        })
+
+      if (error) {
+        console.error('Admin · subida directa del paquete:', error)
+        setStagingError(
+          'No se ha podido subir el archivo. Inténtalo de nuevo en unos minutos.',
+        )
+        return
+      }
+
+      const data = new FormData()
+      data.set('contentId', contentId)
+      data.set('stagedPath', target.path)
+
+      startTransition(() => uploadAction(data))
+    } catch (error) {
+      console.error('Admin · subida directa del paquete:', error)
+      setStagingError('No se ha podido subir el archivo.')
+    } finally {
+      setStaging(false)
+    }
+  }
 
   const oldVersionsCount = versions.filter(
     (version) => version.status === 'rolled_back',
@@ -43,9 +103,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
 
   return (
     <div className={styles.stack}>
-      <AdminForm action={uploadAction}>
-        <input type="hidden" name="contentId" value={contentId} />
-
+      <AdminForm onSubmit={handleSubmit}>
         <AdminField label="Paquete (.zip)" htmlFor="package-zip">
           <AdminInput
             id="package-zip"
@@ -56,6 +114,10 @@ export default function PackageUpload({ contentId, versions }: Props) {
             onChange={(event) => setFile(event.target.files?.[0] ?? null)}
           />
         </AdminField>
+
+        {stagingError && (
+          <AdminMessage kind="error">{stagingError}</AdminMessage>
+        )}
 
         {uploadState.error && (
           <div className={styles.issues}>
@@ -81,9 +143,9 @@ export default function PackageUpload({ contentId, versions }: Props) {
           <AdminButton
             type="submit"
             variant="primary"
-            disabled={uploading || !file}
+            disabled={staging || uploading || !file}
           >
-            {uploading ? 'Subiendo…' : 'Subir nueva versión'}
+            {staging || uploading ? 'Subiendo…' : 'Subir nueva versión'}
           </AdminButton>
         </AdminFormActions>
       </AdminForm>

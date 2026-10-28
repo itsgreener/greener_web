@@ -22,3 +22,24 @@ export interface VirusScanner {
   /** @throws VirusScanError si no está limpio o no se pudo comprobar */
   scan(zip: Buffer): Promise<void>
 }
+
+/** Destino al que el navegador sube el ZIP directamente (URL firmada). */
+export type PackageUploadTarget = {
+  bucket: string
+  path: string
+  token: string
+}
+
+/**
+ * Zona de paso del ZIP entre el navegador y la acción: el navegador sube ahí
+ * (sin pasar por la función) y la acción lo lee desde el servidor.
+ */
+export interface PackageUploadStaging {
+  createUploadTarget(contentId: string): Promise<PackageUploadTarget>
+
+  /** El ZIP subido a `path`. */
+  read(path: string): Promise<Buffer>
+
+  /** Borra la subida; si falla no se propaga (queda un fichero suelto). */
+  discard(path: string): Promise<void>
+}

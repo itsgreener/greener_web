@@ -13,7 +13,8 @@ const deleteHtmlPackageVersion = vi.fn()
 const deleteOldHtmlPackageVersions = vi.fn()
 
 vi.mock('@/modules/packages/container', () => ({
-  uploadHtmlPackage: vi.fn(),
+  prepareHtmlPackageUpload: vi.fn(),
+  uploadStagedHtmlPackage: vi.fn(),
   publishHtmlPackageVersion: vi.fn(),
   deleteHtmlPackageVersion: (...args: unknown[]) =>
     deleteHtmlPackageVersion(...args),

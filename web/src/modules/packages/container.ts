@@ -6,9 +6,14 @@ import {
   makeDeleteOldHtmlPackageVersions,
 } from './application/deleteHtmlPackageVersion'
 import { makePublishHtmlPackageVersion } from './application/publishHtmlPackageVersion'
-import { makeUploadHtmlPackage } from './application/uploadHtmlPackage'
+import {
+  makePrepareHtmlPackageUpload,
+  makeUploadHtmlPackage,
+  makeUploadStagedHtmlPackage,
+} from './application/uploadHtmlPackage'
 import { cloudmersiveVirusScanner } from './infrastructure/cloudmersiveVirusScan'
 import { supabaseHtmlPackageRepository } from './infrastructure/supabaseHtmlPackageRepository'
+import { supabasePackageUploadStaging } from './infrastructure/supabasePackageUploadStaging'
 import { supabasePublishedPackageSource } from './infrastructure/supabaseStorageSource'
 import { zipPackageValidator } from './infrastructure/zipValidation'
 
@@ -26,6 +31,15 @@ export const uploadHtmlPackage = makeUploadHtmlPackage({
   packages: htmlPackages,
   validator: zipPackageValidator,
   scanner: cloudmersiveVirusScanner,
+})
+
+export const prepareHtmlPackageUpload = makePrepareHtmlPackageUpload({
+  staging: supabasePackageUploadStaging,
+})
+
+export const uploadStagedHtmlPackage = makeUploadStagedHtmlPackage({
+  staging: supabasePackageUploadStaging,
+  upload: uploadHtmlPackage,
 })
 
 export const publishHtmlPackageVersion = makePublishHtmlPackageVersion({

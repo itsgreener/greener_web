@@ -2153,3 +2153,32 @@ Al probar el SMTP roto, Greener vio el mensaje de éxito sin que saliera ningún
 **Tests.** `contactActionHoneypot.test.ts` (nuevo: la acción lee `reference_code` y un `website` rellenado ya no descarta el envío), `honeypot.test.tsx` (atributos para gestores de contraseñas) y ajustes en los de contacto y newsletter. 291 ficheros y **3303 tests en verde**; `tsc`, ESLint, Prettier y `next build` limpios.
 
 **Para Greener.** Repetir la prueba del SMTP roto: reiniciar el servidor, romper el host en el `.env.local` que se esté leyendo y enviar el formulario con el autorrelleno del navegador activo; debe salir el mensaje de error y una fila `failed`. Después restaurar el host y comprobar que el envío normal llega.
+
+### 2.114 Pruebas del SMTP: contraseña con `$`, tiempos máximos y casilla del contacto (28 oct 2026)
+
+**Qué se probó.** En local, con la contraseña errónea, el formulario devolvió el error y el log mostró `EAUTH` (535); con el host y las credenciales correctas el login contra el SMTP de Dinahosting seguía dando 535 y el puerto 587 se colgó un minuto (`ESOCKET`). En la preview de Vercel un envío llegó (fila `sent`) y otro, con una variable rota, falló con `ETIMEDOUT` hacia dos IP del puerto 465 (aparentemente las de la web, no las del SMTP).
+
+**Lo que se aprendió del cargador de `.env`.** Next expande `$` en los valores del `.env.local`: una contraseña `ab$cdef^gh` llega como `ab^gh`, con o sin comillas; solo `\$` la conserva. En Vercel no hace falta escapar (el panel guarda el valor literal). Es una trampa para cualquier secreto con `$` en un `.env.local`, incluido el del servidor con PM2. En el caso de Greener la longitud que llegaba a la app (10) coincidía con la real, así que ese no era el problema; el 535 queda como cuestión de la cuenta de Dinahosting, cuyo correo se va a sustituir por Google Workspace (`smtp.gmail.com`, 465, contraseña de aplicación: solo cambian variables).
+
+**SMTP con tiempos máximos.** `mailer.ts` fija `connectionTimeout` 10 s, `greetingTimeout` 10 s y `socketTimeout` 20 s (`SMTP_TIMEOUTS`). Los valores por defecto de nodemailer son de 2 y 10 minutos: con un servidor que no responde, quien enviaba el formulario esperaba eso, o a que la función serverless se cortase sin mensaje. Primeros tests del mailer (`smtpMailer.test.ts`): opciones del transporte, reutilización, `replyTo` y propagación del fallo.
+
+**La casilla del contacto no es un fallo.** «I have read the privacy policy» no es obligatoria ni viaja con el formulario por decisión del §2.86 (texto del asesor: el tratamiento se basa en la solicitud de quien escribe, no en un consentimiento). Se mantiene tal cual.
+
+**Verificación.** 292 ficheros y **3306 tests en verde**; `tsc`, ESLint, Prettier y `next build` limpios.
+
+### 2.115 Subida directa del ZIP de paquetes a Storage (28 oct 2026)
+
+**El problema.** Vercel limita el cuerpo de una petición a una función a unos 4,5 MB y los ZIP de tools e insights pueden pesar hasta 10 MB. Greener lo comprobó en la preview con un ZIP de 6 MB reales: fallo instantáneo, sin llegar a nuestro código. Es la mitad de SEC-X-2 que el §2.109 dejó para el despliegue.
+
+**Cómo funciona ahora.** El ZIP ya no viaja en el formulario.
+1. El navegador pide a `prepareHtmlPackageUploadAction(contentId)` (con guard de admin y `isUuid`) una URL firmada para subir a `html-packages` bajo `_incoming/<contentId>/<uuid>.zip` (`createSignedUploadUrl`, con la sesión del admin y la política de `is_admin()` del bucket que ya existía; no hace falta SQL nuevo).
+2. El navegador sube el ZIP directamente a Supabase Storage con `uploadToSignedUrl`. El tope de 10 MB se comprueba antes en el cliente.
+3. `uploadHtmlPackageAction` recibe solo `contentId` y `stagedPath`. `uploadStagedHtmlPackage` comprueba que la ruta es una subida de ESE contenido (`isStagedPackagePathFor`: sin esto el campo podría apuntar a cualquier otro fichero del bucket), lee el ZIP desde Storage, vuelve a comprobar el tope, ejecuta el mismo `uploadHtmlPackage` de siempre (contrato, antivirus, versión en borrador) y borra la subida en un `finally`, haya ido bien o mal.
+
+**Capas.** Puerto `PackageUploadStaging` en el dominio, implementación `supabasePackageUploadStaging` en infraestructura (sesión de admin, no la clave de servicio: el test de importadores de `createServiceClient` sigue cerrado) y dos casos de uso nuevos en `uploadHtmlPackage.ts`.
+
+**Lo que queda.** Si alguien sube el ZIP y cierra la pestaña antes de que la acción lo procese, el fichero queda en `_incoming/` (pocos MB, solo visible para admin). Se puede borrar a mano desde Storage → `html-packages` → `_incoming`; si molesta, se añade al cron de limpieza. `serverActions.bodySizeLimit` (20 MB) y `proxyClientMaxBodySize` (25 MB) siguen como estaban: ya no tienen que contener el ZIP y se podrán bajar cuando los CV de talent hagan lo mismo. Los CV del formulario de talent (hasta 10 MB por fichero) tienen el mismo límite en Vercel y son el siguiente paso.
+
+**Tests.** `stagedUpload.test.ts` (ruta, lectura, tope, borrado en éxito y en error), `supabasePackageUploadStaging.test.ts`, `packageUploadDirect.test.tsx` (el componente sube con la URL firmada, no envía el fichero a la acción, rechaza un ZIP de más de 10 MB sin pedir nada y muestra los errores) y los de `packageActions.test.ts` reescritos. 295 ficheros y **3345 tests en verde**; `tsc`, ESLint y `next build` limpios.
+
+**Para Greener.** Probar en la preview de Vercel con `rings_prueba_6mb.zip` (6 MB reales, estructura y `metadata` correctos): debe subirse como borrador. Después, un ZIP de más de 10 MB debe rechazarse en el navegador con el mensaje del límite, y uno mal formado (por ejemplo, con la carpeta envolvente de Finder) debe devolver el error del contrato en vez de uno genérico.

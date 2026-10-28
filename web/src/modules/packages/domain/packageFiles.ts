@@ -8,6 +8,39 @@
 /** Bucket de Supabase Storage con los paquetes (privado: solo la service role lo lee). */
 export const PACKAGE_BUCKET = 'html-packages'
 
+/**
+ * Zona de paso de la subida directa de ZIP. El navegador sube el ZIP ahí con
+ * una URL firmada (la plataforma limita el cuerpo de una petición a una
+ * función a unos 4,5 MB, y un paquete puede pesar hasta 10 MB) y la acción lo
+ * lee desde Storage, lo valida y lo borra. Va dentro del mismo bucket y bajo
+ * un prefijo que no puede ser un id de contenido (`_incoming`), así que no se
+ * mezcla con las versiones (`<contentId>/v<n>`).
+ */
+export const PACKAGE_STAGING_PREFIX = '_incoming'
+
+export function stagedPackagePath(contentId: string, uploadId: string): string {
+  return `${PACKAGE_STAGING_PREFIX}/${contentId}/${uploadId}.zip`
+}
+
+const STAGED_PATH_PATTERN = /^_incoming\/([0-9a-f-]{36})\/[0-9a-f-]{36}\.zip$/i
+
+/**
+ * ¿Es `path` una subida preparada PARA este contenido? La acción lee la ruta
+ * de un campo del formulario, así que sin esta comprobación podría apuntar a
+ * cualquier otro fichero del bucket (otra versión, la subida de otro
+ * contenido).
+ */
+export function isStagedPackagePathFor(
+  contentId: string,
+  path: unknown,
+): path is string {
+  if (typeof path !== 'string') return false
+
+  const match = STAGED_PATH_PATTERN.exec(path)
+
+  return match !== null && match[1].toLowerCase() === contentId.toLowerCase()
+}
+
 // Tipos con Content-Type propio. Todo lo demás sale como
 // application/octet-stream (ver contrato-zip-tools-insights.md §1).
 //

@@ -9,7 +9,8 @@ vi.mock('next/cache', () => ({
 }))
 
 vi.mock('@/modules/packages/container', () => ({
-  uploadHtmlPackage: vi.fn(),
+  prepareHtmlPackageUpload: vi.fn(),
+  uploadStagedHtmlPackage: vi.fn(),
   publishHtmlPackageVersion: vi.fn(),
   deleteHtmlPackageVersion: vi.fn(),
   deleteOldHtmlPackageVersions: vi.fn(),
@@ -29,32 +30,95 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
+const STAGED_PATH = `_incoming/${CONTENT_ID}/4f1b2c3d-5e6f-4a7b-8c9d-0e1f2a3b4c5d.zip`
+
+describe('prepareHtmlPackageUploadAction', () => {
+  it('con un contentId válido, entrega la URL firmada del contenedor', async () => {
+    const { prepareHtmlPackageUploadAction } =
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { prepareHtmlPackageUpload } =
+      await import('@/modules/packages/container')
+
+    vi.mocked(prepareHtmlPackageUpload).mockResolvedValue({
+      bucket: 'html-packages',
+      path: STAGED_PATH,
+      token: 'tok',
+    })
+
+    const result = await prepareHtmlPackageUploadAction(CONTENT_ID)
+
+    expect(result).toEqual({
+      ok: true,
+      bucket: 'html-packages',
+      path: STAGED_PATH,
+      token: 'tok',
+    })
+    expect(prepareHtmlPackageUpload).toHaveBeenCalledWith(CONTENT_ID)
+  })
+
+  it.each(['../otro/contenido', 'no-es-uuid', '123', 'a/b', ''])(
+    'con contentId «%s» (no es uuid), no prepara nada',
+    async (contentId) => {
+      const { prepareHtmlPackageUploadAction } =
+        await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+      const { prepareHtmlPackageUpload } =
+        await import('@/modules/packages/container')
+
+      const result = await prepareHtmlPackageUploadAction(contentId)
+
+      expect(result).toEqual({
+        ok: false,
+        error: 'El identificador del contenido no es válido.',
+      })
+      expect(prepareHtmlPackageUpload).not.toHaveBeenCalled()
+    },
+  )
+
+  it('si falla Storage, devuelve un mensaje genérico sin filtrar el detalle', async () => {
+    const { prepareHtmlPackageUploadAction } =
+      await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+    const { prepareHtmlPackageUpload } =
+      await import('@/modules/packages/container')
+
+    vi.mocked(prepareHtmlPackageUpload).mockRejectedValue(
+      new Error('detalle interno de Storage'),
+    )
+
+    const result = await prepareHtmlPackageUploadAction(CONTENT_ID)
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'No se ha podido preparar la subida.',
+    })
+  })
+})
+
 describe('uploadHtmlPackageAction', () => {
-  it('con contentId y archivo válidos, sube y devuelve success', async () => {
+  it('con contentId y ruta de subida válidos, procesa el ZIP y devuelve success', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
 
-    vi.mocked(uploadHtmlPackage).mockResolvedValue(VERSION_ID)
-
-    const file = new File(['contenido'], 'package.zip', {
-      type: 'application/zip',
-    })
+    vi.mocked(uploadStagedHtmlPackage).mockResolvedValue(VERSION_ID)
 
     const result = await uploadHtmlPackageAction(
       {},
-      formData({ contentId: CONTENT_ID, file }),
+      formData({ contentId: CONTENT_ID, stagedPath: STAGED_PATH }),
     )
 
     expect(result.success).toBe(true)
-    expect(uploadHtmlPackage).toHaveBeenCalledOnce()
-    expect(vi.mocked(uploadHtmlPackage).mock.calls[0][0]).toBe(CONTENT_ID)
+    expect(uploadStagedHtmlPackage).toHaveBeenCalledWith(
+      CONTENT_ID,
+      STAGED_PATH,
+    )
   })
 
-  it('sin archivo, no llega a llamar a uploadHtmlPackage', async () => {
+  it('sin ruta de subida, no llega a procesar nada', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
 
     const result = await uploadHtmlPackageAction(
       {},
@@ -62,62 +126,62 @@ describe('uploadHtmlPackageAction', () => {
     )
 
     expect(result.error).toBeTruthy()
-    expect(uploadHtmlPackage).not.toHaveBeenCalled()
+    expect(uploadStagedHtmlPackage).not.toHaveBeenCalled()
   })
 
   // SEC-ADM-B2: la ruta de Storage se forma con este valor, así que tiene que
   // ser un uuid y no cualquier texto.
   it.each(['../otro/contenido', 'no-es-uuid', '123', 'a/b'])(
-    'con contentId «%s» (no es uuid), no llega a llamar a uploadHtmlPackage',
+    'con contentId «%s» (no es uuid), no llega a procesar nada',
     async (contentId) => {
       const { uploadHtmlPackageAction } =
         await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-      const { uploadHtmlPackage } = await import('@/modules/packages/container')
-
-      const file = new File(['contenido'], 'package.zip')
+      const { uploadStagedHtmlPackage } =
+        await import('@/modules/packages/container')
 
       const result = await uploadHtmlPackageAction(
         {},
-        formData({ contentId, file }),
+        formData({ contentId, stagedPath: STAGED_PATH }),
       )
 
       expect(result.error).toBe('El identificador del contenido no es válido.')
-      expect(uploadHtmlPackage).not.toHaveBeenCalled()
+      expect(uploadStagedHtmlPackage).not.toHaveBeenCalled()
     },
   )
 
-  it('con contentId vacío, no llega a llamar a uploadHtmlPackage', async () => {
+  it('con contentId vacío, no llega a procesar nada', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
 
-    const file = new File(['contenido'], 'package.zip')
-
-    const result = await uploadHtmlPackageAction({}, formData({ file }))
+    const result = await uploadHtmlPackageAction(
+      {},
+      formData({ stagedPath: STAGED_PATH }),
+    )
 
     expect(result.error).toBeTruthy()
-    expect(uploadHtmlPackage).not.toHaveBeenCalled()
+    expect(uploadStagedHtmlPackage).not.toHaveBeenCalled()
   })
 
-  it('si uploadHtmlPackage lanza PackageValidationError, expone los issues', async () => {
+  it('si el proceso lanza PackageValidationError, expone los issues', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
     const { PackageValidationError } =
       await import('@/modules/packages/domain/packageErrors')
 
-    vi.mocked(uploadHtmlPackage).mockRejectedValue(
+    vi.mocked(uploadStagedHtmlPackage).mockRejectedValue(
       new PackageValidationError([
         'Falta index.html',
         'manifest.json inválido',
       ]),
     )
 
-    const file = new File(['contenido'], 'package.zip')
-
     const result = await uploadHtmlPackageAction(
       {},
-      formData({ contentId: CONTENT_ID, file }),
+      formData({ contentId: CONTENT_ID, stagedPath: STAGED_PATH }),
     )
 
     expect(result.error).toBeTruthy()
@@ -127,24 +191,23 @@ describe('uploadHtmlPackageAction', () => {
     ])
   })
 
-  it('si uploadHtmlPackage lanza VirusScanError, usa su mensaje y no expone issues', async () => {
+  it('si el proceso lanza VirusScanError, usa su mensaje y no expone issues', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
     const { VirusScanError } =
       await import('@/modules/packages/domain/packageErrors')
 
-    vi.mocked(uploadHtmlPackage).mockRejectedValue(
+    vi.mocked(uploadStagedHtmlPackage).mockRejectedValue(
       new VirusScanError(
         'El escaneo antivirus ha encontrado contenido malicioso.',
       ),
     )
 
-    const file = new File(['contenido'], 'package.zip')
-
     const result = await uploadHtmlPackageAction(
       {},
-      formData({ contentId: CONTENT_ID, file }),
+      formData({ contentId: CONTENT_ID, stagedPath: STAGED_PATH }),
     )
 
     expect(result.error).toBe(
@@ -153,18 +216,19 @@ describe('uploadHtmlPackageAction', () => {
     expect(result.issues).toBeUndefined()
   })
 
-  it('si uploadHtmlPackage lanza un error genérico, no expone issues', async () => {
+  it('si el proceso lanza un error genérico, no expone issues', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
-    const { uploadHtmlPackage } = await import('@/modules/packages/container')
+    const { uploadStagedHtmlPackage } =
+      await import('@/modules/packages/container')
 
-    vi.mocked(uploadHtmlPackage).mockRejectedValue(new Error('fallo de red'))
-
-    const file = new File(['contenido'], 'package.zip')
+    vi.mocked(uploadStagedHtmlPackage).mockRejectedValue(
+      new Error('fallo de red'),
+    )
 
     const result = await uploadHtmlPackageAction(
       {},
-      formData({ contentId: CONTENT_ID, file }),
+      formData({ contentId: CONTENT_ID, stagedPath: STAGED_PATH }),
     )
 
     expect(result.error).toBeTruthy()

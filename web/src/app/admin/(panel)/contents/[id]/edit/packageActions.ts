@@ -11,8 +11,9 @@ import { adminErrorMessage } from '@/app/admin/_lib/adminErrorMessage'
 import {
   deleteHtmlPackageVersion,
   deleteOldHtmlPackageVersions,
+  prepareHtmlPackageUpload,
   publishHtmlPackageVersion,
-  uploadHtmlPackage,
+  uploadStagedHtmlPackage,
 } from '@/modules/packages/container'
 import {
   PackageValidationError,
@@ -45,6 +46,42 @@ function revalidateContent(id: string) {
   invalidatePackageCache()
 }
 
+export type PrepareUploadResult =
+  | { ok: true; bucket: string; path: string; token: string }
+  | { ok: false; error: string }
+
+/**
+ * Primer paso de la subida de un paquete: entrega al navegador una URL firmada
+ * para que suba el ZIP directamente a Storage. El ZIP no pasa por esta
+ * función: la plataforma limita el cuerpo de una petición a unos 4,5 MB y un
+ * paquete puede llegar a 10 MB.
+ */
+export async function prepareHtmlPackageUploadAction(
+  contentId: string,
+): Promise<PrepareUploadResult> {
+  if (!(await isAdminRequest())) {
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+  }
+
+  if (!isUuid(contentId)) {
+    return { ok: false, error: 'El identificador del contenido no es válido.' }
+  }
+
+  try {
+    const target = await prepareHtmlPackageUpload(contentId)
+
+    return { ok: true, ...target }
+  } catch (error) {
+    console.error('Admin · prepareHtmlPackageUploadAction:', error)
+
+    return { ok: false, error: 'No se ha podido preparar la subida.' }
+  }
+}
+
+/**
+ * Segundo paso: el ZIP ya está en Storage (`stagedPath`); se lee desde allí,
+ * se valida, se escanea y se crea la versión en borrador.
+ */
 export async function uploadHtmlPackageAction(
   _previousState: UploadPackageActionState,
   formData: FormData,
@@ -52,7 +89,7 @@ export async function uploadHtmlPackageAction(
   if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
 
   const contentId = formData.get('contentId')
-  const file = formData.get('file')
+  const stagedPath = formData.get('stagedPath')
 
   // uuid y no «cualquier texto»: la ruta de Storage se forma con este valor
   // (SEC-ADM-B2).
@@ -60,14 +97,12 @@ export async function uploadHtmlPackageAction(
     return { error: 'El identificador del contenido no es válido.' }
   }
 
-  if (!(file instanceof File) || file.size === 0) {
+  if (typeof stagedPath !== 'string' || stagedPath === '') {
     return { error: 'Selecciona un archivo ZIP.' }
   }
 
-  const buffer = Buffer.from(await file.arrayBuffer())
-
   try {
-    await uploadHtmlPackage(contentId, buffer)
+    await uploadStagedHtmlPackage(contentId, stagedPath)
   } catch (error) {
     console.error('Admin · uploadHtmlPackageAction:', error)
 
