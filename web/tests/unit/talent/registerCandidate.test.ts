@@ -44,6 +44,7 @@ describe('registerCandidate', () => {
         email: 'ada@example.com',
         status: 'processed',
         access_token: NEW_TOKEN,
+        access_token_expires_at: expect.any(String),
       },
     ])
     expect(sendFormLink).toHaveBeenCalledExactlyOnceWith(NEW_TOKEN)

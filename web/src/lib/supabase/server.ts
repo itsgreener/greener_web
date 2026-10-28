@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/lib/supabase/database'
 import { env } from '@/lib/env'
+import { hardenSessionCookie } from '@/lib/supabase/sessionCookies'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -18,7 +19,7 @@ export async function createClient() {
         setAll(cookiesToSet) {
           try {
             cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options)
+              cookieStore.set(name, value, hardenSessionCookie(options))
             })
           } catch {
             // El Proxy será responsable de refrescar

@@ -103,11 +103,6 @@ export function consentStatusOf(record: ConsentRecord | null): ConsentStatus {
   return record ? record.decision : 'undecided'
 }
 
-/** Solo un «sí» válido y vigente permite cargar contenido de terceros. */
-export function allowsThirdParties(status: ConsentStatus): boolean {
-  return status === 'accepted'
-}
-
 /** Nombre de la decisión que registra el contador anónimo («Cookie Choice»). */
 export function choiceFor(
   decision: ConsentDecision,

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   encodePreviewToken,
   decodePreviewToken,
+  PREVIEW_TOKEN_TTL_MS,
 } from '@/modules/content/infrastructure/previewToken'
 
 describe('token de preview firmado (§15.3)', () => {
@@ -38,17 +39,21 @@ describe('token de preview firmado (§15.3)', () => {
     expect(decodePreviewToken('')).toBeNull()
   })
 
-  it('vale justo antes de caducar y deja de valer justo después (7 días)', () => {
+  it('vale justo antes de caducar y deja de valer justo después (24 horas)', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-01-01T00:00:00.000Z'))
 
     const token = encodePreviewToken('content-a')
 
-    vi.setSystemTime(new Date('2026-01-07T23:59:59.999Z'))
+    vi.setSystemTime(new Date('2026-01-01T23:59:59.999Z'))
     expect(decodePreviewToken(token)).toBe('content-a')
 
-    vi.setSystemTime(new Date('2026-01-08T00:00:00.001Z'))
+    vi.setSystemTime(new Date('2026-01-02T00:00:00.001Z'))
     expect(decodePreviewToken(token)).toBeNull()
+  })
+
+  it('el tiempo de vida es de 24 horas, no de días (SEC-ADM-D2)', () => {
+    expect(PREVIEW_TOKEN_TTL_MS).toBe(24 * 60 * 60 * 1000)
   })
 
   it('dos contentId distintos producen tokens distintos', () => {

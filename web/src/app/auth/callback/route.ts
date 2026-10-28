@@ -36,6 +36,23 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
+      // Auditoría de seguridad del 23 oct, SEC-ADM-A3a: cualquier cuenta de
+      // Google completa el OAuth. Aquí se comprueba que además sea de un
+      // dominio autorizado (`is_admin`), y si no se cierra la sesión que
+      // acaba de crearse: una cuenta ajena no debe quedarse con una sesión
+      // `authenticated` de Supabase. Falla cerrado ante cualquier error.
+      // `signOut` local, para no tocar otras sesiones de esa persona.
+      const { data: isAdmin, error: adminError } =
+        await supabase.rpc('is_admin')
+
+      if (adminError || !isAdmin) {
+        await supabase.auth.signOut({ scope: 'local' })
+
+        return NextResponse.redirect(
+          `${siteUrl}/admin/login?error=unauthorized`,
+        )
+      }
+
       return NextResponse.redirect(`${siteUrl}${next}`)
     }
   }

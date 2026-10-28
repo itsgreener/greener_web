@@ -19,14 +19,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: z.string().min(1),
   SUPABASE_SECRET_KEY: z.string().min(1),
 
-  // Secreto propio para firmar el cursor del feed y los links de preview
-  // Opcional: sin él se usa SUPABASE_SECRET_KEY. Fijarlo invalida los cursores y previews ya emitidos (24 h y
-  // 7 días de vida respectivamente), nada más.
-  APP_SIGNING_SECRET: z.preprocess(
-    (value) => (value === '' ? undefined : value),
-    z.string().min(32).optional(),
-  ),
-
   // Site
   // Sin barra final: se recorta aquí una sola vez ("https://itsgreener.com/"
   // → "https://itsgreener.com") para que quien la concatena con una ruta
@@ -71,18 +63,6 @@ function loadEnv(): Env {
       '⚠ NEXT_PUBLIC_SITE_URL no está definida: se usa http://localhost:3000. ' +
         'En producción debe ser el dominio público (https://itsgreener.com) — ' +
         'de ello dependen el sitemap, robots.txt, el hreflang y los links de preview.',
-    )
-  }
-
-  if (
-    process.env.NODE_ENV === 'production' &&
-    !parsed.data.APP_SIGNING_SECRET
-  ) {
-    console.warn(
-      '⚠ APP_SIGNING_SECRET no está definida: el cursor del feed y los links ' +
-        'de preview se firman con SUPABASE_SECRET_KEY. Define un secreto propio ' +
-        '(32+ caracteres, sin comillas) en .env.local para no mezclar ambos usos; ' +
-        'genéralo con: openssl rand -base64 48',
     )
   }
 

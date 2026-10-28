@@ -412,7 +412,9 @@ describe('findAccessById / setAccessToken', () => {
   it('guarda el token nuevo', async () => {
     await repository.setAccessToken('c1', 'tok')
 
-    expect(stepsOf(0).update).toEqual([{ access_token: 'tok' }])
+    expect(stepsOf(0).update).toEqual([
+      { access_token: 'tok', access_token_expires_at: expect.any(String) },
+    ])
     expect(stepsOf(0).eq).toEqual(['id', 'c1'])
   })
 })

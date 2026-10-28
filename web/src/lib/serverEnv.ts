@@ -111,6 +111,23 @@ export const getIpHashEnv = createScopedEnv('el hash de IP', () =>
   }),
 )
 
+/**
+ * Clave de firma de los tokens (cursor del feed y enlaces de preview). Propia
+ * y obligatoria en producción (SEC-ADM-D1); en desarrollo y tests es opcional
+ * y se usa `SUPABASE_SECRET_KEY` en su lugar (ver `signedToken.ts`).
+ */
+export const getSigningEnv = createScopedEnv('la firma de tokens', () =>
+  z.object({
+    APP_SIGNING_SECRET:
+      process.env.NODE_ENV === 'production'
+        ? z.string().min(32, 'Debe tener al menos 32 caracteres')
+        : z.preprocess(
+            (value) => (value === '' ? undefined : value),
+            z.string().min(32).optional(),
+          ),
+  }),
+)
+
 /** Newsletter: Mailchimp Marketing API (doble opt-in). */
 export const getMailchimpEnv = createScopedEnv('Mailchimp', () =>
   z.object({
@@ -198,6 +215,7 @@ const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
   ['Cloudmersive', getCloudmersiveEnv],
   ['contacto', getContactEnv],
   ['hash de IP', getIpHashEnv],
+  ['firma de tokens', getSigningEnv],
   ['Mailchimp', getMailchimpEnv],
   ['Talent', getTalentEnv],
   ['Talent (purga)', getTalentPurgeEnv],

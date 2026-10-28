@@ -202,6 +202,27 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     ])
   }
 
+  // Documentos HTML adicionales (SEC-PUB-B1, decidido el 27 oct 2026): el
+  // contrato solo exige `index.html` (o el entrypoint declarado). Un `.html`
+  // o `.htm` más, abierto por su URL directa, sería otro documento en el
+  // origen del sitio. El servidor ya le pone una CSP sin scripts, pero lo
+  // más sencillo es no admitirlo.
+  const extraDocuments = entries.filter(
+    (entry) =>
+      /\.html?$/i.test(entry.path) &&
+      entry.path !== 'index.html' &&
+      entry.path !== manifestResult.data.entrypoint,
+  )
+
+  if (extraDocuments.length > 0) {
+    throw new PackageValidationError(
+      extraDocuments.map(
+        (entry) =>
+          `"${entry.path}" es un documento HTML adicional: el paquete solo puede llevar index.html (o el entrypoint del manifest). Quita los demás .html/.htm.`,
+      ),
+    )
+  }
+
   const manifest = withMeasuredOgImage(manifestResult.data, entries)
 
   const declaredDomains = new Set(

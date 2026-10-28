@@ -19,6 +19,7 @@ import {
 import { AdminSubtext } from '@/components/admin/AdminTable'
 import { AdminTextLink } from '@/components/admin/AdminTextLink'
 
+import { requireAdminPage } from '@/lib/auth/adminSession'
 import { talentAdminQueries } from '@/modules/talent/container'
 import {
   CANDIDATE_STATUS_IN_PROCESS,
@@ -75,6 +76,8 @@ function rate(value: number | null, unit: string) {
 }
 
 export default async function AdminTalentCandidatePage({ params }: Props) {
+  await requireAdminPage()
+
   const { id } = await params
 
   if (!z.uuid().safeParse(id).success) notFound()

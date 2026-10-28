@@ -70,7 +70,10 @@ describe('cursor del feed — opaco y firmado (§8.5)', () => {
   })
 
   it('un cursor sin offset (anterior a servir la ronda por tramos) vale «principio de la ronda»', () => {
-    const signed = encodeSignedToken({ sessionId: 'session-a', roundIndex: 2 })
+    const signed = encodeSignedToken('cursor', {
+      sessionId: 'session-a',
+      roundIndex: 2,
+    })
     expect(decodeCursor(signed)).toEqual({
       sessionId: 'session-a',
       roundIndex: 2,
@@ -80,7 +83,7 @@ describe('cursor del feed — opaco y firmado (§8.5)', () => {
   })
 
   it('un cursor anterior a los interludios (sin served) vale «0 pines servidos»', () => {
-    const signed = encodeSignedToken({
+    const signed = encodeSignedToken('cursor', {
       sessionId: 'session-a',
       roundIndex: 1,
       offset: 40,
@@ -95,7 +98,7 @@ describe('cursor del feed — opaco y firmado (§8.5)', () => {
 
   it('rechaza un served negativo o no entero aunque la firma sea válida', () => {
     for (const served of [-1, 2.5, '10']) {
-      const signed = encodeSignedToken({
+      const signed = encodeSignedToken('cursor', {
         sessionId: 'session-a',
         roundIndex: 0,
         offset: 0,
@@ -107,7 +110,7 @@ describe('cursor del feed — opaco y firmado (§8.5)', () => {
 
   it('rechaza un offset negativo o no entero aunque la firma sea válida', () => {
     for (const offset of [-1, 1.5, '3']) {
-      const signed = encodeSignedToken({
+      const signed = encodeSignedToken('cursor', {
         sessionId: 'session-a',
         roundIndex: 0,
         offset,

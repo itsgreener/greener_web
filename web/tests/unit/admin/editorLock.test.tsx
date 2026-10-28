@@ -29,7 +29,6 @@ vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
 }))
 
 vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({
-  createPinAction: vi.fn(),
   updatePinAction: vi.fn(),
   deletePinAction: (...a: unknown[]) => deletePin(...a),
   deleteAllPinsAction: (...a: unknown[]) => deleteAllPins(...a),

@@ -183,3 +183,74 @@ describe('proxy — rutas de admin: la verificación de dominio (§15.2) sigue i
     expect(response.headers.get('Strict-Transport-Security')).toBeTruthy()
   })
 })
+
+// SEC-T3: tabla de rutas del apartado 4.1 de la auditoría de seguridad.
+describe('proxy — qué rutas son del ABM (SEC-ADM-A4)', () => {
+  it.each([
+    '/admin',
+    '/admin/contents',
+    '/admin/../admin',
+    '/./admin',
+    '/%2e/admin',
+    '/admin%2f',
+    '/admin;x',
+  ])('%s sin sesión redirige al login del ABM', async (pathname) => {
+    const { proxy } = await import('@/proxy')
+
+    const response = await proxy(makeRequest(pathname))
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toContain('/admin/login')
+  })
+
+  it.each(['/api/admin/media/sign', '/api/admin/talent/cv'])(
+    '%s sin sesión responde 401 en JSON',
+    async (pathname) => {
+      const { proxy } = await import('@/proxy')
+
+      const response = await proxy(makeRequest(pathname))
+
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'No autenticado' })
+    },
+  )
+
+  it.each(['/administrator', '/administracion', '/admin-panel'])(
+    '%s ya no se trata como el ABM: no redirige al login',
+    async (pathname) => {
+      const { proxy } = await import('@/proxy')
+
+      const response = await proxy(makeRequest(pathname))
+
+      expect(response.headers.get('location')).toBeNull()
+      expect(response.headers.get('Content-Security-Policy')).toBeTruthy()
+    },
+  )
+})
+
+describe('proxy — Permissions-Policy y aislamiento de ventana (SEC-ADM-E1)', () => {
+  it('las rutas públicas llevan Permissions-Policy y no el COOP del ABM', async () => {
+    const { proxy } = await import('@/proxy')
+
+    const response = await proxy(makeRequest('/contact'))
+
+    expect(response.headers.get('Permissions-Policy')).toContain('camera=()')
+    expect(response.headers.get('Cross-Origin-Opener-Policy')).toBeNull()
+  })
+
+  it.each(['/admin', '/admin/login', '/api/admin/media/sign'])(
+    '%s lleva COOP same-origin y Permissions-Policy',
+    async (pathname) => {
+      const { proxy } = await import('@/proxy')
+
+      const response = await proxy(makeRequest(pathname))
+
+      expect(response.headers.get('Cross-Origin-Opener-Policy')).toBe(
+        'same-origin',
+      )
+      expect(response.headers.get('Permissions-Policy')).toContain(
+        'microphone=()',
+      )
+    },
+  )
+})

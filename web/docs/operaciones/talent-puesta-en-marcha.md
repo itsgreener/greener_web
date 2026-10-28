@@ -224,6 +224,29 @@ where id = 'cvs';
 
 La web nueva da de alta en Mailchimp desde su servidor, así que la función de Supabase-talent (versión 7) y sus secretos `MAILCHIMP_API_KEY`, `MAILCHIMP_LIST_ID` y `MAILCHIMP_SERVER_PREFIX` dejan de hacer falta. Se borran con el resto de la web antigua (Edge Functions → `subscribe-mailchimp` → Delete, y los secretos en Edge Functions → Secrets). La clave de API de Mailchimp que contenía sigue siendo la de la cuenta: si se quiere, se rota en Mailchimp.
 
+### 4.6 Caducidad del enlace personal (SEC-PUB-C2)
+
+**Hay que ejecutarlo ANTES de desplegar la versión del 28 oct de la web:** el código lee y escribe `access_token_expires_at` y falla si la columna no existe.
+
+```sql
+alter table public.candidates
+  add column if not exists access_token_expires_at timestamptz;
+
+alter table public.candidates
+  alter column access_token_expires_at set default (now() + interval '7 days');
+```
+
+Las filas que ya existen quedan con `null` (el enlace que tienen no caduca hasta que se les reenvíe). Si Greener prefiere que todos los enlaces vigentes caduquen también dentro de una semana, se ejecuta además, **una sola vez**:
+
+```sql
+update public.candidates
+set access_token_expires_at = now() + interval '7 days'
+where access_token is not null
+  and access_token_expires_at is null;
+```
+
+El valor por defecto cubre las filas que inserta n8n (la subida del personal); la web lo fija al dar de alta por email y en cada reenvío del enlace (desde el ABM o repitiendo el email en el alta pública), así que reenviar el enlace es la forma de dar otra semana a un candidato.
+
 ## 5. Prueba de extremo a extremo
 
 Con un email propio:

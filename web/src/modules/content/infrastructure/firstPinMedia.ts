@@ -1,9 +1,6 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import type {
-  PublicContentMedia,
-  PublicPinCover,
-} from '@/modules/content/domain/publicContent'
+import type { PublicPinCover } from '@/modules/content/domain/publicContent'
 
 /**
  * Primer pin de un contenido (orden de cola, luego antigüedad) con su primer
@@ -53,12 +50,4 @@ export async function getFirstPinCover(
       cloudinaryPublicId: first.media_asset.cloudinary_public_id,
     },
   }
-}
-
-/** Solo el medio del primer pin (imagen de compartición). */
-export async function getFirstPinMedia(
-  contentId: string,
-  client?: AppSupabaseClient,
-): Promise<PublicContentMedia | null> {
-  return (await getFirstPinCover(contentId, client))?.media ?? null
 }

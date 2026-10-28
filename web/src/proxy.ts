@@ -1,8 +1,12 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { updateSession } from '@/lib/supabase/proxy'
-import { buildSecurityHeaders } from '@/lib/securityHeaders'
+import {
+  ADMIN_OPENER_POLICY,
+  buildSecurityHeaders,
+} from '@/lib/securityHeaders'
 import { env } from '@/lib/env'
 import { classifyBotTrap, logBotTrap } from '@/lib/botTraps'
+import { isAdminRoute } from '@/lib/adminRoute'
 
 // especificacion-final-formato-detalle.md / contrato-zip-tools-insights.md
 // §12.4: estas rutas llevan su propia CSP, pensada para el contrato del
@@ -10,10 +14,6 @@ import { classifyBotTrap, logBotTrap } from '@/lib/botTraps'
 // sustituyen, se combinan — nunca deben tocarse aquí, ni con el nonce ni
 // con el resto de cabeceras globales.
 const SANDBOXED_APP_PATTERN = /^\/(tools|insights|variety)\/[^/]+\/app(\/.*)?$/
-
-function isAdminRoute(pathname: string): boolean {
-  return pathname.startsWith('/admin') || pathname.startsWith('/api/admin')
-}
 
 /**
  * Cabeceras de seguridad globales (arquitectura §17.1) + verificación de
@@ -71,6 +71,10 @@ export async function proxy(request: NextRequest) {
 
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value)
+  }
+
+  if (isAdminRoute(pathname)) {
+    response.headers.set('Cross-Origin-Opener-Policy', ADMIN_OPENER_POLICY)
   }
 
   return response

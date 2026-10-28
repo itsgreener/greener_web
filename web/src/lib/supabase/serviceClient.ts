@@ -20,6 +20,13 @@ import { env } from '@/lib/env'
  * anotar con `mark_media_asset_warmed` desde `after()`, donde la sesión del
  * admin no está garantizada (la función admite el rol de servicio).
  *
+ * Importadores permitidos (los fija `tests/unit/security/serviceClientImporters.test.ts`):
+ * `content/container.ts` (preview), `feed/infrastructure/feedSessionRepository.ts`,
+ * `media/infrastructure/supabaseWarmRepository.ts`,
+ * `contact/infrastructure/contactSubmissionLog.ts`,
+ * `audit/infrastructure/serviceAuditRecorder.ts` y
+ * `packages/infrastructure/supabaseStorageSource.ts` (bucket privado).
+ *
  * NUNCA importar este módulo desde un componente cliente ('use client')
  * ni exponer su resultado, directa o indirectamente, en una respuesta al
  * navegador. Para todo lo que sí tiene política pública de lectura

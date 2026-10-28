@@ -143,10 +143,12 @@ describe('classifyCvLocation', () => {
 })
 
 describe('externalCvUrl', () => {
-  it('solo devuelve URLs http(s)', () => {
+  it('solo devuelve URLs https (SEC-ADM-B3)', () => {
     expect(externalCvUrl('https://example.com/a')).toBe('https://example.com/a')
-    expect(externalCvUrl('http://example.com/a')).toBe('http://example.com/a')
+    expect(externalCvUrl('http://example.com/a')).toBeNull()
+    expect(externalCvUrl('HTTP://example.com/a')).toBeNull()
     expect(externalCvUrl('javascript:alert(1)')).toBeNull()
+    expect(externalCvUrl('data:text/html,<script>1</script>')).toBeNull()
     expect(externalCvUrl('ftp://example.com/a')).toBeNull()
     expect(externalCvUrl('no es una url')).toBeNull()
     expect(externalCvUrl(null)).toBeNull()

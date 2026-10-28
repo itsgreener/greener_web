@@ -16,6 +16,7 @@ import {
 } from '@/modules/talent/domain/talentCvLocation'
 import type { CandidateProject } from '@/modules/talent/domain/talentModels'
 import type { TalentAdminRepository } from '@/modules/talent/domain/talentPorts'
+import { accessExpiresAt } from '@/modules/talent/domain/talentRows'
 import {
   RETENTION_YEARS,
   UNDATED_RETENTION_END,
@@ -317,7 +318,10 @@ export const supabaseTalentAdminRepository: TalentAdminRepository = {
   async setAccessToken(candidateId, accessToken) {
     const { error } = await getTalentClient()
       .from('candidates')
-      .update({ access_token: accessToken })
+      .update({
+        access_token: accessToken,
+        access_token_expires_at: accessExpiresAt(),
+      })
       .eq('id', candidateId)
 
     if (error) fail('candidates.setAccessToken', error)

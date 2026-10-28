@@ -1,6 +1,7 @@
 import {
   CANDIDATE_STATUS,
   CV_UPLOAD_PREFIX,
+  TALENT_ACCESS_TTL_DAYS,
   WORK_TYPE_FREELANCE,
   type AllowedFileExtension,
 } from './talentConstants'
@@ -18,6 +19,7 @@ export type NewCandidateRow = {
   email: string
   status: typeof CANDIDATE_STATUS.processed
   access_token: string
+  access_token_expires_at: string
 }
 
 export type CandidateUpdateRow = {
@@ -61,6 +63,13 @@ export type FileRow = {
   access_token: string
 }
 
+/** Fin de la ventana del enlace personal emitido en `now` (ISO, UTC). */
+export function accessExpiresAt(now: Date = new Date()): string {
+  return new Date(
+    now.getTime() + TALENT_ACCESS_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString()
+}
+
 /**
  * Alta por email. El `status` es obligatorio (la columna es `NOT NULL` sin
  * valor por defecto) y vale `processed`: la fila ya está lista para que n8n le
@@ -69,11 +78,13 @@ export type FileRow = {
 export function buildSignupRow(
   email: string,
   accessToken: string,
+  now: Date = new Date(),
 ): NewCandidateRow {
   return {
     email,
     status: CANDIDATE_STATUS.processed,
     access_token: accessToken,
+    access_token_expires_at: accessExpiresAt(now),
   }
 }
 

@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense, useState } from 'react'
 
 import { AdminBrand } from '@/components/admin/AdminBrand'
 import { AdminButton } from '@/components/admin/AdminButton'
@@ -9,6 +10,29 @@ import { AdminMessage } from '@/components/admin/AdminMessage'
 import { createClient } from '@/lib/supabase/client'
 
 import styles from './page.module.css'
+
+// El callback y el proxy mandan aquí con `?error=…`. Sin esto la persona
+// volvía al login sin saber por qué.
+const URL_ERROR_MESSAGES: Record<string, string> = {
+  unauthorized:
+    'Esa cuenta no tiene acceso al panel. Usa una cuenta corporativa autorizada.',
+  oauth: 'No se ha podido iniciar sesión con Google. Inténtalo de nuevo.',
+}
+
+function UrlErrorMessage() {
+  const code = useSearchParams().get('error')
+  const message = code ? URL_ERROR_MESSAGES[code] : undefined
+
+  if (!message) return null
+
+  return (
+    <div className={styles.error}>
+      <AdminMessage kind="error" role="alert">
+        {message}
+      </AdminMessage>
+    </div>
+  )
+}
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false)
@@ -94,6 +118,10 @@ export default function AdminLoginPage() {
               {loading ? 'Conectando con Google…' : 'Continuar con Google'}
             </span>
           </AdminButton>
+
+          <Suspense fallback={null}>
+            <UrlErrorMessage />
+          </Suspense>
 
           {errorMessage && (
             <div className={styles.error}>

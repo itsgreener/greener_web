@@ -8,6 +8,7 @@ import type {
   CandidateProject,
 } from '@/modules/talent/domain/talentModels'
 import type { TalentRepository } from '@/modules/talent/domain/talentPorts'
+import { accessExpiresAt } from '@/modules/talent/domain/talentRows'
 
 import { getTalentClient } from './talentSupabaseClient'
 
@@ -16,6 +17,13 @@ const FORM_COLUMNS =
   'id,email,name,phone,comment,profile,experience,work_types,rate_day,rate_hour,languages,socials,newsletter_accepted'
 
 const UNIQUE_VIOLATION = '23505'
+
+/**
+ * Enlace vigente: sin fecha de caducidad (filas anteriores a la columna) o con
+ * la fecha en el futuro. Un enlace caducado se comporta como uno que no existe.
+ */
+const NOT_EXPIRED = () =>
+  `access_token_expires_at.is.null,access_token_expires_at.gt.${new Date().toISOString()}`
 
 type CandidateAccessRow = {
   id: string
@@ -110,7 +118,10 @@ export const supabaseTalentRepository: TalentRepository = {
   async setAccessToken(candidateId, accessToken) {
     const { error } = await getTalentClient()
       .from('candidates')
-      .update({ access_token: accessToken })
+      .update({
+        access_token: accessToken,
+        access_token_expires_at: accessExpiresAt(),
+      })
       .eq('id', candidateId)
 
     if (error) fail('candidates.setAccessToken', error)
@@ -121,6 +132,7 @@ export const supabaseTalentRepository: TalentRepository = {
       .from('candidates')
       .select('id,email,status,access_token')
       .eq('access_token', accessToken)
+      .or(NOT_EXPIRED())
       .limit(1)
 
     if (error) fail('candidates.findAccessByToken', error)
@@ -137,6 +149,7 @@ export const supabaseTalentRepository: TalentRepository = {
       .from('candidates')
       .select(FORM_COLUMNS)
       .eq('access_token', accessToken)
+      .or(NOT_EXPIRED())
       .limit(1)
 
     if (error) fail('candidates.findFormByToken', error)

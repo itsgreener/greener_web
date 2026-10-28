@@ -4,6 +4,10 @@ import { env } from '@/lib/env'
 import { buildAssetResponse } from '@/lib/http/packageAssetResponse'
 import { packageErrorResponse } from '@/lib/http/packageErrorResponse'
 import {
+  PACKAGE_BASE_SECURITY_HEADERS,
+  PACKAGE_DOCUMENT_CSP,
+} from '@/lib/http/packageSecurityHeaders'
+import {
   composeToolDocument,
   publishedPackages,
 } from '@/modules/packages/container'
@@ -33,22 +37,17 @@ export const SIDEBAR_WIDTH_PX = 64
  * Cabeceras de un documento de paquete. La CSP es propia y aislada (el HTML
  * del paquete es ejecutable y autocontenido: sin dominios externos). El resto
  * de cabeceras de seguridad hay que ponerlas aquí: `src/proxy.ts` salta por
- * completo estas rutas para no mezclar la CSP global con la suya, lo que
- * deja fuera HSTS y Referrer-Policy (arquitectura §17.1, PROGRESO §4.8).
- * Mismos valores que `src/lib/securityHeaders.ts`; con estas dos no hay
- * conflicto posible, a diferencia de la CSP.
+ * completo estas rutas para no mezclar la CSP global con la suya (arquitectura
+ * §17.1, PROGRESO §4.8). Los valores viven en
+ * `lib/http/packageSecurityHeaders.ts`, compartidos con los assets y con las
+ * respuestas de error.
  */
 export const PACKAGE_DOCUMENT_HEADERS = {
   'Content-Type': 'text/html; charset=utf-8',
 
-  'Content-Security-Policy':
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;",
+  'Content-Security-Policy': PACKAGE_DOCUMENT_CSP,
 
-  'X-Content-Type-Options': 'nosniff',
-
-  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
-
-  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  ...PACKAGE_BASE_SECURITY_HEADERS,
 } as const
 
 type SlugParams = { params: Promise<{ slug: string }> }

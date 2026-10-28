@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { updateTag } from 'next/cache'
 import { dbError } from '@tests/helpers/dbError'
 
 /**
@@ -18,7 +17,6 @@ vi.mock('next/cache', () => ({
 vi.mock('@/modules/pin/container', () => ({
   attachPinImage: vi.fn(),
   attachPinVideo: vi.fn(),
-  createPin: vi.fn(),
   createPinWithImage: vi.fn(),
   createPinWithVideo: vi.fn(),
   deleteAllPins: vi.fn(),
@@ -28,7 +26,6 @@ vi.mock('@/modules/pin/container', () => ({
 }))
 
 import {
-  createPinAction,
   updatePinAction,
   deletePinAction,
   createPinWithImageAction,
@@ -44,7 +41,6 @@ import {
 import {
   attachPinImage,
   attachPinVideo,
-  createPin,
   createPinWithImage,
   createPinWithVideo,
   deletePin,
@@ -125,7 +121,6 @@ const VALID_PIN_WITH_VIDEO = {
 beforeEach(() => {
   vi.clearAllMocks()
   vi.spyOn(console, 'error').mockImplementation(() => {})
-  vi.mocked(createPin).mockResolvedValue(PIN_ID)
   vi.mocked(updatePin).mockResolvedValue(PIN_ID)
   vi.mocked(deletePin).mockResolvedValue({ purged: 1, failed: 0 })
   vi.mocked(attachPinImage).mockResolvedValue(MEDIA_ID)
@@ -138,27 +133,6 @@ beforeEach(() => {
   vi.mocked(createPinWithVideo).mockResolvedValue({
     pinId: PIN_ID,
     mediaId: MEDIA_ID,
-  })
-})
-
-describe('createPinAction', () => {
-  it('con datos válidos, crea y devuelve success', async () => {
-    const result = await createPinAction(CONTENT_ID, {}, createValidFormData())
-
-    expect(result).toEqual({ success: true })
-    expect(createPin).toHaveBeenCalledTimes(1)
-    expect(updateTag).toHaveBeenCalledWith('feed-dataset')
-  })
-
-  it('con alt vacío, no llega a llamar a createPin', async () => {
-    const formData = createValidFormData()
-
-    formData.set('alt', '')
-
-    const result = await createPinAction(CONTENT_ID, {}, formData)
-
-    expect(result.fieldErrors).toBeDefined()
-    expect(createPin).not.toHaveBeenCalled()
   })
 })
 

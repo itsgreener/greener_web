@@ -23,6 +23,30 @@ Lo más relevante, por este orden:
 6. **El registro de actividad solo recoge talent (SEC-ADM-F1).**
 7. **Cualquier POST anónimo puede obligar al servidor a recibir hasta 20–25 MB (SEC-X-2).**
 
+## 1 bis. Estado de aplicación (27 oct 2026)
+
+Primer lote aplicado: fases S1 a S4 del plan de ataque, todo lo que no necesitaba una decisión de Greener ni una capa nueva. Cada punto lleva su test.
+
+| Hallazgo | Qué se ha hecho | Test |
+|----------|-----------------|------|
+| SEC-ADM-A1 | Cierre de sesión en el menú del ABM (`signOutAction`, `signOut({ scope: 'local' })`, sin guard a propósito) | `signOutAction.test.ts`, `adminShell.test.tsx` |
+| SEC-X-1a | Cookies de sesión `httpOnly`, `secure` en producción y vida máxima de 7 días (`sessionCookies.ts`, aplicado en `server.ts` y `proxy.ts`) | `sessionCookies.test.ts`, `supabaseCookieHardening.test.ts` (SEC-T9) |
+| SEC-ADM-A3a | El callback de OAuth comprueba `is_admin()` y, si no lo es, cierra la sesión y devuelve a `/admin/login?error=unauthorized` | `authCallback.test.ts` |
+| SEC-ADM-A4 | `isAdminRoute` única y a prueba de variantes (`/admin%2f`, `/admin;x`…), compartida con el proxy | `adminRoute.test.ts`, `proxy.test.ts` (SEC-T3) |
+| SEC-PUB-B1, B2 | CSP y `nosniff` en los assets `.html` y `.svg`; HSTS, `nosniff` y `Referrer-Policy` también en 304, 404 y 503; `frame-ancestors`, `base-uri`, `form-action` y `object-src` en el documento | `packageSecurityHeaders.test.ts` (SEC-T7, T8), `packageRoutes.test.ts` |
+| SEC-PUB-B1 (decisión 7) | La subida rechaza `.html` y `.htm` secundarios | `zipExtraHtml.test.ts` |
+| SEC-ADM-D2 (decisión 2) | El enlace de preview dura 24 h (antes 7 días) | `previewToken.test.ts` |
+| SEC-ADM-B3 (decisión 4) | El redirect de CV solo admite `https` | `talentAdminDomain.test.ts` |
+| SEC-ADM-E1 (decisión 5) | `Permissions-Policy` con las capacidades sensibles cerradas y `Cross-Origin-Opener-Policy: same-origin` en `/admin` y `/api/admin`; `Cross-Origin-Resource-Policy` no se ha tocado | `securityHeaders.test.ts`, `proxy.test.ts` |
+| SEC-ADM-B2, C1, C2, G3, SEC-X-3, SEC-X-4, SEC-ADM-A6 | `isUuid` en las acciones de paquetes y preview; tiempos máximos en Cloudmersive y Cloudinary; comprobación del tamaño antes de descargar de Cloudinary; `env` en lugar de `process.env` en la analítica; comentario de `serviceClient`; tipos sin uso y `createPinAction` eliminados (X-4: las funciones `allowsThirdParties`, `getFirstPinMedia` y `pickDetailWidth`, que solo usan sus tests, se dejan hasta decidir si se van a usar) | tests de cada fichero |
+| SEC-ADM-D1 | `APP_SIGNING_SECRET` obligatoria en producción (`getSigningEnv`) y propósito (`cursor`/`preview`) en la firma | `signedToken.test.ts`, `serverEnv.test.ts` |
+| SEC-ADM-A2, A5 | `requireAdminPage()` en las tres páginas de talent; sesión de admin con el email incluido y memoizada por petición | `adminSession.test.ts`, `adminGuardStructure.test.ts` |
+| SEC-ADM-F1 | Corregido: la base ya anota contenidos, pines, medios y paquetes; se añade `preview_link` (el enlace no toca la base). Sin evento de login (lo guarda Supabase Auth) | `previewActionsUuid.test.ts` |
+| SEC-PUB-C2 | El enlace personal de talent caduca a los 7 días (`access_token_expires_at`, renovada en cada reenvío); caducado = inexistente | `supabaseTalentRepository.test.ts`, `talentRows.contract.test.ts`, `registerCandidate.test.ts`, `talentAdminUseCases.test.ts` |
+| SEC-T1, T2, T4 | Tests estructurales: guard en cada Server Action de admin y en cada ruta de `api/admin` (como primer `await`), y lista cerrada de importadores de `createServiceClient` | `tests/unit/security/adminGuardStructure.test.ts`, `serviceClientImporters.test.ts` |
+
+Queda para los lotes siguientes: SEC-PUB-A1 y A2 y el tope de tamaño de SEC-X-2 (S5, aplazada al despliegue en Vercel por decisión de Greener del 28 oct, con almacén compartido y subida directa a Storage), SEC-ADM-D2 (revocar previews) y SEC-ADM-G2 (envoltorio de acciones, de poco valor tras el test estructural). SEC-PUB-C2 (caducidad del enlace de talent) está hecha en código y espera a que Greener ejecute el SQL de `docs/operaciones/talent-puesta-en-marcha.md` §4.6. Las comprobaciones externas de S0 se hicieron con Greener y están cerradas (RLS en todas las tablas, ninguna política de escritura abierta a `anon`, crons activos, `/ADMIN` da 404, Anonymous apagado); queda apagar el proveedor Email, que lo ha pedido Greener el 28 oct.
+
 ## 2. Qué se ha comprobado y cómo
 
 1. **Admin.** Lectura del código de las rutas, las 35 Server Actions, el proxy, la sesión, los clientes de Supabase, los módulos de media, packages, talent y audit, las cabeceras de seguridad y la validación de entorno. Un script recorrió todos los `*actions.ts` de `src/app/admin`: 35 funciones exportadas en 17 ficheros, todas `async` y con `'use server'`. En 34 el primer paso es `isAdminRequest()` o `getAdminActor()`; en `discardUploadedMediaAction` primero se valida con zod (sin efectos) y la comprobación llega antes de cualquier operación.
@@ -179,7 +203,7 @@ Propuesta: `Permissions-Policy` restrictiva (cámara, micrófono, geolocalizaci�
 
 ### 5.6 F. Registro de actividad
 
-**SEC-ADM-F1 · Media · M — El registro de actividad solo cubre talent.**
+**SEC-ADM-F1 · Media · M — El registro de actividad solo cubre talent.** *(Corregido el 28 oct: con las migraciones a la vista, la base ya anota los cambios de contenido, pines, medios y paquetes; solo faltaba el enlace de preview, ya anotado. Ver §1 bis.)*
 Evidencia: `recordAuditEvent` aparece en `talent/actions.ts` (6 usos) y en `/api/admin/talent/cv`; los otros 15 ficheros de acciones (crear, editar, publicar y borrar contenidos, pines, carruseles, traducciones, paquetes, generar enlace de preview, descartar subidas) no registran nada. Tampoco hay evento de inicio de sesión.
 Impacto: ante «¿quién borró este caso?» o «¿quién generó este enlace?» no hay respuesta, y el enlace de preview da acceso a contenido sin publicar.
 Propuesta: eventos mínimos sin datos personales (acción, entidad, id, actor): `content.create/update/publish/unpublish/delete`, `pin.delete(_all)`, `package.upload/publish/delete`, `preview.link`, `auth.login`. `recordAuditEvent` ya no lanza, así que no rompe ninguna acción. Para no repetir 20 líneas, un envoltorio `withAudit` (ver SEC-ADM-G2).

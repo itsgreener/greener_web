@@ -100,5 +100,6 @@ vi.mock('@/lib/auth/adminSession', async (importOriginal) => {
   return {
     ...actual,
     isAdminRequest: vi.fn(async () => true),
+    requireAdminPage: vi.fn(async () => undefined),
   }
 })

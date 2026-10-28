@@ -21,8 +21,16 @@ import { buildVideoTransformations } from '@/modules/media/client/cloudinaryUrl'
 import {
   IMAGE_LIMITS,
   validateImageFile,
+  validateImageSize,
   validateVideoUpload,
 } from '@/modules/media/domain/mediaLimits'
+
+/**
+ * Tiempo máximo para descargar el original de una imagen y verificarla.
+ * Antes no había tope y una descarga lenta dejaba la acción colgada
+ * (SEC-ADM-C2).
+ */
+export const CLOUDINARY_DOWNLOAD_TIMEOUT_MS = 20_000
 
 let configured = false
 
@@ -242,11 +250,24 @@ export async function verifyCloudinaryImageAsset(
     throw new ImageVerificationError(IMAGE_FORMAT_NOT_ALLOWED_MESSAGE)
   }
 
+  // SEC-ADM-C1: el tamaño que declara Cloudinary se comprueba ANTES de
+  // descargar, para no bajar a memoria un original enorme que luego se iba a
+  // rechazar. La comprobación sobre los bytes reales sigue más abajo.
+  const declaredSizeMessage = imageValidationMessage(
+    validateImageSize(resource.bytes),
+    'La imagen subida no es válida.',
+  )
+
+  if (declaredSizeMessage) {
+    throw new ImageVerificationError(declaredSizeMessage)
+  }
+
   let response: Response
 
   try {
     response = await fetch(resource.secure_url, {
       cache: 'no-store',
+      signal: AbortSignal.timeout(CLOUDINARY_DOWNLOAD_TIMEOUT_MS),
     })
   } catch (error) {
     console.error(error)
@@ -262,7 +283,18 @@ export async function verifyCloudinaryImageAsset(
     )
   }
 
-  const buffer = await response.arrayBuffer()
+  let buffer: ArrayBuffer
+
+  try {
+    buffer = await response.arrayBuffer()
+  } catch (error) {
+    // El tiempo máximo también corta la lectura del cuerpo.
+    console.error(error)
+
+    throw new ImageVerificationError(
+      'No se ha podido descargar la imagen original para verificarla.',
+    )
+  }
 
   const validation = await validateImageFile({
     name: `cloudinary.${format}`,

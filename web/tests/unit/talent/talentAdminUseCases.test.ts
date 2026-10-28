@@ -432,12 +432,13 @@ describe('resendFormLink', () => {
     accessToken: 'tok-1',
   }
 
-  it('reenvía el enlace con el token que ya tiene', async () => {
+  it('reenvía el enlace con el token que ya tiene y renueva su vigencia', async () => {
     const { resend, sendFormLink, tokens } = setup({ access: [base] })
 
     expect(await resend(CANDIDATE_ID)).toEqual({ ok: true })
     expect(sendFormLink).toHaveBeenCalledWith('tok-1')
-    expect(tokens).toEqual([])
+    // Se vuelve a guardar el mismo token: es lo que abre otra semana.
+    expect(tokens).toEqual([{ id: CANDIDATE_ID, token: 'tok-1' }])
   })
 
   it('si la fila no tiene token, lo genera y lo guarda antes de enviar', async () => {

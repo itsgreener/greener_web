@@ -64,6 +64,17 @@
   }
 }
 
+/* El botón de cerrar sesión se ve como un enlace más de la barra. */
+.linkButton {
+  composes: link;
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 .icon {
   display: inline-flex;
   align-items: center;

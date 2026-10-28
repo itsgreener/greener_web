@@ -6,6 +6,16 @@ import type { VirusScanner } from '@/modules/packages/domain/packageUploadPorts'
 const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
 
 /**
+ * Tiempo máximo de la petición completa (envío del fichero y lectura de la
+ * respuesta). Antes el comentario de `scanFileForViruses` decía que se
+ * rechazaba si el servicio «tarda demasiado», pero nada lo cumplía y una
+ * subida podía quedarse colgada hasta el tope del servidor (SEC-ADM-C2). Con
+ * 10 MB de tope, 30 s dan margen de sobra; al vencer, el `catch` de abajo lo
+ * convierte en un rechazo, como cualquier otro fallo del servicio.
+ */
+export const CLOUDMERSIVE_TIMEOUT_MS = 30_000
+
+/**
  * Tamaño máximo que admite el escaneo (cuenta gratuita de Cloudmersive:
  * "requires paid account for >10MB"). Se cuenta en decimal (10.000.000
  * bytes) por prudencia — su documentación no aclara si son MB o MiB.
@@ -68,6 +78,7 @@ export async function scanFileForViruses(
         Apikey: getCloudmersiveEnv().CLOUDMERSIVE_API_KEY,
       },
       body: formData,
+      signal: AbortSignal.timeout(CLOUDMERSIVE_TIMEOUT_MS),
     })
   } catch {
     throw new VirusScanError(

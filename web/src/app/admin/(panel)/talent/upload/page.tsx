@@ -1,3 +1,5 @@
+import { requireAdminPage } from '@/lib/auth/adminSession'
+
 import { AdminCard } from '@/components/admin/AdminCard'
 import {
   AdminBackLink,
@@ -7,7 +9,9 @@ import {
 
 import UploadCvs from './UploadCvs'
 
-export default function AdminTalentUploadPage() {
+export default async function AdminTalentUploadPage() {
+  await requireAdminPage()
+
   return (
     <AdminPage width="narrow">
       <AdminBackLink href="/admin/talent">← Candidatos</AdminBackLink>

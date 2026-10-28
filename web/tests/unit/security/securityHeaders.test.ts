@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest'
 
 import {
+  ADMIN_OPENER_POLICY,
   buildContentSecurityPolicy,
   buildSecurityHeaders,
+  PERMISSIONS_POLICY,
 } from '@/lib/securityHeaders'
 
 const INPUT = {
@@ -126,7 +128,7 @@ describe('buildContentSecurityPolicy', () => {
 })
 
 describe('buildSecurityHeaders', () => {
-  it('trae las cuatro cabeceras globales, ninguna vacía', () => {
+  it('trae las cinco cabeceras globales, ninguna vacía', () => {
     const headers = buildSecurityHeaders(INPUT)
 
     expect(headers['Content-Security-Policy']).toBeTruthy()
@@ -135,5 +137,28 @@ describe('buildSecurityHeaders', () => {
     )
     expect(headers['X-Content-Type-Options']).toBe('nosniff')
     expect(headers['Referrer-Policy']).toBe('strict-origin-when-cross-origin')
+    expect(headers['Permissions-Policy']).toBe(PERMISSIONS_POLICY)
+  })
+})
+
+// SEC-ADM-E1
+describe('Permissions-Policy', () => {
+  it.each(['camera', 'microphone', 'geolocation', 'payment', 'usb'])(
+    'apaga %s para todos, iframes incluidos',
+    (feature) => {
+      expect(PERMISSIONS_POLICY).toContain(`${feature}=()`)
+    },
+  )
+
+  // Los embeds de YouTube y Spotify y el vídeo de los pines las necesitan.
+  it.each(['autoplay', 'fullscreen', 'encrypted-media', 'picture-in-picture'])(
+    'no nombra %s: los embeds conservan su comportamiento',
+    (feature) => {
+      expect(PERMISSIONS_POLICY).not.toContain(feature)
+    },
+  )
+
+  it('el aislamiento de ventana del ABM es same-origin', () => {
+    expect(ADMIN_OPENER_POLICY).toBe('same-origin')
   })
 })

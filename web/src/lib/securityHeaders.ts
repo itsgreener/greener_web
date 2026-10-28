@@ -93,6 +93,34 @@ export function buildContentSecurityPolicy({
   return directives.join('; ')
 }
 
+/**
+ * Permissions-Policy (SEC-ADM-E1, decidido el 27 oct 2026): se apagan las
+ * funciones del navegador que el sitio no usa en ningún sitio, para que un
+ * script o un iframe no pueda pedirlas. A propósito NO se tocan `autoplay`,
+ * `fullscreen`, `encrypted-media` ni `picture-in-picture`: los embeds de
+ * YouTube y Spotify (`EMBED_FRAME_ORIGINS`) y el vídeo de los pines las
+ * necesitan, y al no nombrarlas conservan su comportamiento actual.
+ */
+export const PERMISSIONS_POLICY = [
+  'camera=()',
+  'microphone=()',
+  'geolocation=()',
+  'payment=()',
+  'usb=()',
+  'serial=()',
+  'bluetooth=()',
+  'browsing-topics=()',
+].join(', ')
+
+/**
+ * Solo para el ABM (`/admin`, `/api/admin`): su ventana no comparte grupo de
+ * navegación con ninguna otra. El login es una redirección completa, no una
+ * ventana emergente, así que no le afecta. No se aplica al resto del sitio:
+ * un `same-origin` global rompería cualquier enlace que abra otra web en una
+ * ventana relacionada.
+ */
+export const ADMIN_OPENER_POLICY = 'same-origin'
+
 export function buildSecurityHeaders(
   input: SecurityHeadersInput,
 ): Record<string, string> {
@@ -105,5 +133,6 @@ export function buildSecurityHeaders(
     'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
     'X-Content-Type-Options': 'nosniff',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'Permissions-Policy': PERMISSIONS_POLICY,
   }
 }

@@ -143,6 +143,14 @@ export const SOCIAL_KEYS = [
 ] as const
 
 /** Bucket privado de Supabase-talent y carpeta donde n8n espera los ficheros. */
+/**
+ * Vida del enlace personal del formulario (`access_token`): una semana desde
+ * que se emite o se reenvía (SEC-PUB-C2, decidido el 28 oct 2026). Se guarda
+ * en `candidates.access_token_expires_at`; `null` = sin caducidad (filas
+ * anteriores a la columna, hasta que se les reenvíe el enlace).
+ */
+export const TALENT_ACCESS_TTL_DAYS = 7
+
 export const CV_BUCKET = 'cvs'
 export const CV_UPLOAD_PREFIX = 'uploads/'
 

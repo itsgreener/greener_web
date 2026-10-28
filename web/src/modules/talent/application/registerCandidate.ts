@@ -102,14 +102,11 @@ export function makeRegisterCandidate({
   async function resendLink(existing: CandidateAccess) {
     if (CANDIDATE_STATUS_IN_PROCESS.includes(existing.status)) return
 
-    let accessToken = existing.accessToken
+    // Sin token no se puede enviar: se genera. Con él se conserva, pero se
+    // vuelve a guardar para abrir otra semana de vigencia (el enlace caduca).
+    const accessToken = existing.accessToken ?? newToken()
 
-    if (!accessToken) {
-      // Fila sin token: no se puede enviar, se genera y se guarda antes.
-      accessToken = newToken()
-      await repository.setAccessToken(existing.id, accessToken)
-    }
-
+    await repository.setAccessToken(existing.id, accessToken)
     await workflows.sendFormLink(accessToken)
   }
 }

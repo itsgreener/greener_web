@@ -59,11 +59,11 @@ beforeEach(() => {
 })
 
 describe('cabeceras del documento de un paquete', () => {
-  it('son exactamente las cinco de siempre', () => {
+  it('son exactamente las cinco de siempre, con la CSP completa (SEC-PUB-B2)', () => {
     expect(PACKAGE_DOCUMENT_HEADERS).toEqual({
       'Content-Type': 'text/html; charset=utf-8',
       'Content-Security-Policy':
-        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:;",
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none';",
       'X-Content-Type-Options': 'nosniff',
       'Strict-Transport-Security':
         'max-age=63072000; includeSubDomains; preload',

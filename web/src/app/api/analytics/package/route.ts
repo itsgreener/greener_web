@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+import { env } from '@/lib/env'
 import { clientIpFromHeaders } from '@/lib/http/clientIp'
 import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
 import { publicContent } from '@/modules/content/container'
@@ -112,7 +113,7 @@ export async function POST(request: NextRequest) {
   const slug = body.slug
   const action = typeof body.action === 'string' ? body.action.trim() : ''
 
-  const domain = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN?.trim()
+  const domain = env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN?.trim()
 
   /**
    * Igual que analytics.ts:

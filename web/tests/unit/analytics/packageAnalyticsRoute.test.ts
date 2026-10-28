@@ -3,11 +3,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 const mocks = vi.hoisted(() => ({
+  fakeEnv: { NEXT_PUBLIC_PLAUSIBLE_DOMAIN: undefined as string | undefined },
   from: vi.fn(),
   select: vi.fn(),
   eq: vi.fn(),
   maybeSingle: vi.fn(),
 }))
+
+vi.mock('@/lib/env', () => ({ env: mocks.fakeEnv }))
 
 vi.mock('@/lib/supabase/publicReadClient', () => ({
   createPublicReadClient: vi.fn(() => ({
@@ -63,7 +66,7 @@ describe('POST /api/analytics/package', () => {
 
     vi.stubEnv('NODE_ENV', 'production')
 
-    vi.stubEnv('NEXT_PUBLIC_PLAUSIBLE_DOMAIN', 'example.com')
+    mocks.fakeEnv.NEXT_PUBLIC_PLAUSIBLE_DOMAIN = 'example.com'
 
     vi.stubGlobal(
       'fetch',

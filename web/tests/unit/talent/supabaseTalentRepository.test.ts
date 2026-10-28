@@ -111,6 +111,7 @@ describe('insertCandidate', () => {
       email: 'a@b.co',
       status: 'processed' as const,
       access_token: 't',
+      access_token_expires_at: '2026-11-04T10:00:00.000Z',
     }
 
     expect(await repository.insertCandidate(row)).toEqual({ id: 'nuevo' })
@@ -130,6 +131,7 @@ describe('insertCandidate', () => {
         email: 'a@b.co',
         status: 'processed',
         access_token: 't',
+        access_token_expires_at: '2026-11-04T10:00:00.000Z',
       })
       .catch((e: unknown) => e)
 
@@ -208,6 +210,10 @@ describe('findFormByToken', () => {
     const columns = String(stepsOf(0).select?.[0])
 
     expect(columns).not.toBe('*')
+    expect(String(stepsOf(0).or?.[0])).toContain(
+      'access_token_expires_at.is.null',
+    )
+    expect(String(stepsOf(0).or?.[0])).toContain('access_token_expires_at.gt.')
     for (const secret of [
       'access_token',
       'status',
@@ -308,5 +314,34 @@ describe('ficheros', () => {
       ['id', 'f1'],
       ['candidate_id', 'c1'],
     ])
+  })
+})
+
+describe('caducidad del enlace personal (SEC-PUB-C2)', () => {
+  it('findAccessByToken solo devuelve enlaces sin fecha o con la fecha en el futuro', async () => {
+    program('candidates.select', { data: [] })
+
+    expect(await repository.findAccessByToken('token')).toBeNull()
+
+    const filter = String(stepsOf(0).or?.[0])
+
+    expect(filter).toMatch(
+      /^access_token_expires_at\.is\.null,access_token_expires_at\.gt\.\d{4}-\d{2}-\d{2}T/,
+    )
+  })
+
+  it('setAccessToken guarda el token y abre una semana nueva', async () => {
+    const before = Date.now()
+
+    await repository.setAccessToken('c1', 'tok')
+
+    const [update] = stepsOf(0).update as [
+      { access_token: string; access_token_expires_at: string },
+    ]
+    const expires = Date.parse(update.access_token_expires_at)
+
+    expect(update.access_token).toBe('tok')
+    expect(expires).toBeGreaterThanOrEqual(before + 7 * 24 * 3600 * 1000)
+    expect(expires).toBeLessThan(before + 7 * 24 * 3600 * 1000 + 60_000)
   })
 })

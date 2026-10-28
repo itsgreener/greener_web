@@ -64,7 +64,6 @@ export const detachPinMediaSchema = z.object({
   kind: mediaKindSchema,
 })
 
-export type PinImageUpload = z.infer<typeof pinImageUploadSchema>
 export type PinVideoUpload = z.infer<typeof pinVideoUploadSchema>
 export type AttachPinImageInput = z.infer<typeof attachPinImageSchema>
 export type AttachPinVideoInput = z.infer<typeof attachPinVideoSchema>

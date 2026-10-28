@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   CONSENT_MAX_AGE_DAYS,
   CONSENT_TEXT_VERSION,
-  allowsThirdParties,
   choiceFor,
   consentStatusOf,
   createConsentRecord,
@@ -72,13 +71,6 @@ describe('consentimiento — dominio', () => {
     const raw = serializeConsent(createConsentRecord('accepted', NOW))
 
     expect(parseConsent(raw, new Date(NOW.getTime() - 3 * 86400000))).toBeNull()
-  })
-
-  it('solo «accepted» permite cargar terceros; unknown y undecided cuentan como no', () => {
-    expect(allowsThirdParties('accepted')).toBe(true)
-    expect(allowsThirdParties('rejected')).toBe(false)
-    expect(allowsThirdParties('undecided')).toBe(false)
-    expect(allowsThirdParties('unknown')).toBe(false)
   })
 
   it('sin registro el estado es undecided', () => {

@@ -65,6 +65,27 @@ describe('uploadHtmlPackageAction', () => {
     expect(uploadHtmlPackage).not.toHaveBeenCalled()
   })
 
+  // SEC-ADM-B2: la ruta de Storage se forma con este valor, así que tiene que
+  // ser un uuid y no cualquier texto.
+  it.each(['../otro/contenido', 'no-es-uuid', '123', 'a/b'])(
+    'con contentId «%s» (no es uuid), no llega a llamar a uploadHtmlPackage',
+    async (contentId) => {
+      const { uploadHtmlPackageAction } =
+        await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')
+      const { uploadHtmlPackage } = await import('@/modules/packages/container')
+
+      const file = new File(['contenido'], 'package.zip')
+
+      const result = await uploadHtmlPackageAction(
+        {},
+        formData({ contentId, file }),
+      )
+
+      expect(result.error).toBe('El identificador del contenido no es válido.')
+      expect(uploadHtmlPackage).not.toHaveBeenCalled()
+    },
+  )
+
   it('con contentId vacío, no llega a llamar a uploadHtmlPackage', async () => {
     const { uploadHtmlPackageAction } =
       await import('@/app/admin/(panel)/contents/[id]/edit/packageActions')

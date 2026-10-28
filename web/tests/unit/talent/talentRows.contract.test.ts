@@ -6,6 +6,7 @@ import {
   WORK_TYPE_VALUES,
 } from '@/modules/talent/domain/talentConstants'
 import {
+  accessExpiresAt,
   buildCandidateUpdate,
   buildFileRow,
   buildProjectRows,
@@ -29,14 +30,23 @@ const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
 describe('alta por email → fila de candidates', () => {
-  it('escribe exactamente email, status y access_token (el resto, por defecto)', () => {
+  it('escribe exactamente email, status, access_token y su caducidad (el resto, por defecto)', () => {
     const { email } = signupSchema.parse({ email: '  Ada@Example.COM ' })
 
-    expect(buildSignupRow(email, TOKEN)).toEqual({
+    expect(
+      buildSignupRow(email, TOKEN, new Date('2026-10-28T10:00:00.000Z')),
+    ).toEqual({
       email: 'ada@example.com',
       status: 'processed',
       access_token: TOKEN,
+      access_token_expires_at: '2026-11-04T10:00:00.000Z',
     })
+  })
+
+  it('el enlace caduca a los 7 días exactos de emitirse', () => {
+    expect(accessExpiresAt(new Date('2026-12-28T23:30:00.000Z'))).toBe(
+      '2027-01-04T23:30:00.000Z',
+    )
   })
 
   it('el status es processed: es el que espera "Enviar mail a candidato"', () => {

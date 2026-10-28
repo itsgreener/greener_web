@@ -15,7 +15,7 @@ export type ResendFormLinkResult =
  * Reenvía el enlace del formulario a un candidato. Mismas reglas que el
  * reenvío del alta pública: no si n8n está procesando la fila (al terminar
  * envía el enlace por su cuenta) y, si la fila no tiene `access_token`, se
- * genera y se guarda antes. Efecto conocido: una fila `closed` pasa a `sent`
+ * genera antes. Siempre renueva la vigencia del enlace (una semana). Efecto conocido: una fila `closed` pasa a `sent`
  * hasta que complete el formulario otra vez (contrato de datos, §2).
  */
 export function makeResendFormLink({
@@ -41,13 +41,11 @@ export function makeResendFormLink({
         return { ok: false, reason: 'in_process' }
       }
 
-      let accessToken = candidate.accessToken
+      // Se vuelve a guardar el token (el mismo o uno nuevo si faltaba) para
+      // abrir otra semana de vigencia: el enlace del formulario caduca.
+      const accessToken = candidate.accessToken ?? newToken()
 
-      if (!accessToken) {
-        accessToken = newToken()
-        await admin.setAccessToken(candidate.id, accessToken)
-      }
-
+      await admin.setAccessToken(candidate.id, accessToken)
       await workflows.sendFormLink(accessToken)
 
       return { ok: true }

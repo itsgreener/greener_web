@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildContentMetadata } from '@/lib/contentMetadata'
-import {
-  getFirstPinCover,
-  getFirstPinMedia,
-} from '@/modules/content/infrastructure/firstPinMedia'
+import { getFirstPinCover } from '@/modules/content/infrastructure/firstPinMedia'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 
 function content(overrides: Partial<PublicContent> = {}): PublicContent {
@@ -57,39 +54,6 @@ function fakeClient(result: { data: unknown; error: unknown }) {
   chain.maybeSingle = async () => result
   return { from: () => chain } as unknown as SupabaseClient
 }
-
-describe('getFirstPinMedia', () => {
-  it('elige el slide de menor orden', async () => {
-    const media = await getFirstPinMedia(
-      'c1',
-      fakeClient({
-        error: null,
-        data: {
-          pin_media: [
-            {
-              slide_order: 1,
-              media_asset: { kind: 'image', cloudinary_public_id: 'b' },
-            },
-            {
-              slide_order: 0,
-              media_asset: { kind: 'image', cloudinary_public_id: 'a' },
-            },
-          ],
-        },
-      }),
-    )
-    expect(media).toEqual({ kind: 'image', cloudinaryPublicId: 'a' })
-  })
-
-  it('devuelve null sin pines o ante un error', async () => {
-    expect(
-      await getFirstPinMedia('c1', fakeClient({ data: null, error: null })),
-    ).toBeNull()
-    expect(
-      await getFirstPinMedia('c1', fakeClient({ data: null, error: {} })),
-    ).toBeNull()
-  })
-})
 
 describe('getFirstPinCover', () => {
   it('devuelve el medio de menor orden con el ratio y el alt del pin', async () => {

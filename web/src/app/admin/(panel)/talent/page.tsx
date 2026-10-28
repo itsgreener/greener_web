@@ -25,6 +25,7 @@ import {
   AdminTd,
 } from '@/components/admin/AdminTable'
 import { AdminTextLink } from '@/components/admin/AdminTextLink'
+import { requireAdminPage } from '@/lib/auth/adminSession'
 import { cx } from '@/lib/cx'
 import { talentAdminQueries } from '@/modules/talent/container'
 import {
@@ -63,6 +64,8 @@ function pageHref(
 }
 
 export default async function AdminTalentPage({ searchParams }: Props) {
+  await requireAdminPage()
+
   const params = await searchParams
   const query = parseCandidateSearchQuery(params)
   const { q, status, profile } = query

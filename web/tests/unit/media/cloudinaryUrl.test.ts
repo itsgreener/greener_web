@@ -7,10 +7,7 @@ import {
   buildVideoSources,
   buildFeedVideoSources,
 } from '@/modules/media/client/cloudinaryUrl'
-import {
-  IMAGE_DELIVERY,
-  pickDetailWidth,
-} from '@/modules/media/domain/mediaDelivery'
+import { IMAGE_DELIVERY } from '@/modules/media/domain/mediaDelivery'
 
 // NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME = "test-cloud" viene de tests/setup.ts.
 // Las cadenas EXACTAS del contrato las fija mediaContract.test.ts; aquí se
@@ -107,34 +104,5 @@ describe('buildVideoSources', () => {
     for (const { src } of buildFeedVideoSources(PUBLIC_ID)) {
       expect(src).toContain('c_limit,w_480')
     }
-  })
-})
-
-describe('pickDetailWidth', () => {
-  it('reutiliza los anchos de detalle de las imágenes, sin constantes nuevas', () => {
-    const widths = IMAGE_DELIVERY.detail.widths
-
-    for (const css of [100, 480, 481, 800, 1500, 5000]) {
-      for (const dpr of [1, 1.5, 2, 3]) {
-        expect(widths).toContain(pickDetailWidth(css, dpr) as never)
-      }
-    }
-  })
-
-  it('elige el menor ancho que cubre la caja a la densidad del dispositivo', () => {
-    expect(pickDetailWidth(400, 1)).toBe(960)
-    expect(pickDetailWidth(480, 1)).toBe(960)
-    expect(pickDetailWidth(481, 2)).toBe(1440)
-    expect(pickDetailWidth(800, 2)).toBe(1920)
-  })
-
-  it('limita la densidad a 2: un DPR 3 no pide más que un DPR 2', () => {
-    expect(pickDetailWidth(480, 3)).toBe(pickDetailWidth(480, 2))
-  })
-
-  it('con una caja mayor que el mayor ancho, usa el mayor; sin caja, el menor', () => {
-    expect(pickDetailWidth(5000, 2)).toBe(1920)
-    expect(pickDetailWidth(0, 1)).toBe(960)
-    expect(pickDetailWidth(-10, 1)).toBe(960)
   })
 })

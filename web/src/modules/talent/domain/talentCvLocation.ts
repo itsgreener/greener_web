@@ -4,11 +4,15 @@ import type { CvLocationKind } from './talentAdminModels'
 /** Hosts de Google que sirven los ficheros que n8n sube a Drive. */
 const DRIVE_HOSTS = new Set(['drive.google.com', 'docs.google.com'])
 
-function parseHttpUrl(value: string): URL | null {
+// Solo https (SEC-ADM-B3, decidido el 27 oct 2026): el ABM redirige a este
+// valor con la confianza del dominio de Greener, y un enlace http viaja sin
+// cifrar y se puede alterar por el camino. Los enlaces antiguos en http se
+// siguen mostrando, pero ya no se abren con un clic.
+function parseHttpsUrl(value: string): URL | null {
   try {
     const url = new URL(value)
 
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url : null
+    return url.protocol === 'https:' ? url : null
   } catch {
     return null
   }
@@ -37,7 +41,7 @@ export function isBucketPath(path: string): boolean {
  * - `bucket`: un objeto de `cvs` que n8n aún no ha movido a Drive.
  * - `drive`: un enlace de Drive (el `webViewLink` que escribe n8n).
  * - `external`: cualquier otra cosa con texto (un enlace de otro sitio, o
- *   algo que no es una URL; se enseña pero solo se enlaza si es http/https).
+ *   algo que no es una URL; se enseña pero solo se enlaza si es https).
  * - `none`: vacío.
  */
 export function classifyCvLocation(
@@ -49,9 +53,9 @@ export function classifyCvLocation(
 
   if (isBucketPath(value)) return 'bucket'
 
-  const url = parseHttpUrl(value)
+  const url = parseHttpsUrl(value)
 
-  if (url && url.protocol === 'https:' && DRIVE_HOSTS.has(url.hostname)) {
+  if (url && DRIVE_HOSTS.has(url.hostname)) {
     return 'drive'
   }
 
@@ -64,5 +68,5 @@ export function externalCvUrl(path: string | null | undefined): string | null {
 
   if (!value) return null
 
-  return parseHttpUrl(value)?.href ?? null
+  return parseHttpsUrl(value)?.href ?? null
 }

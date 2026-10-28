@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import {
   CLOUDMERSIVE_MAX_FILE_BYTES,
+  CLOUDMERSIVE_TIMEOUT_MS,
   scanFileForViruses,
   scanZipForViruses,
 } from '@/modules/packages/infrastructure/cloudmersiveVirusScan'
@@ -45,6 +46,28 @@ describe('scanZipForViruses', () => {
       'test-cloudmersive-key',
     )
     expect(init?.body).toBeInstanceOf(FormData)
+  })
+
+  // SEC-ADM-C2: el comentario del servicio decía «tarda demasiado» pero nada lo cumplía.
+  it('la petición lleva un tiempo máximo (AbortSignal)', async () => {
+    vi.mocked(fetch).mockResolvedValue(fakeResponse({ CleanResult: true }))
+
+    await scanZipForViruses(Buffer.from('contenido'))
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]
+
+    expect(init?.signal).toBeInstanceOf(AbortSignal)
+    expect(CLOUDMERSIVE_TIMEOUT_MS).toBe(30_000)
+  })
+
+  it('si vence el tiempo máximo, la subida se rechaza (falla cerrado)', async () => {
+    vi.mocked(fetch).mockRejectedValue(
+      new DOMException('The operation timed out', 'TimeoutError'),
+    )
+
+    await expect(scanZipForViruses(Buffer.from('x'))).rejects.toThrow(
+      'No se ha podido contactar con el servicio de escaneo antivirus.',
+    )
   })
 
   it('lanza VirusScanError con los nombres de virus si CleanResult es false', async () => {

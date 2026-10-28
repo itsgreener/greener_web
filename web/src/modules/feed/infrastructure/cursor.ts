@@ -18,12 +18,15 @@ import type {
  * apuntando a otra sesión o a un roundIndex arbitrario sin pasar por la API.
  */
 export function encodeCursor(payload: FeedCursorPayload): string {
-  return encodeSignedToken(payload)
+  return encodeSignedToken('cursor', payload)
 }
 
 /** Devuelve el payload si la firma es válida; null si el cursor es inválido, ajeno o corrupto. */
 export function decodeCursor(cursor: string): FeedCursorPayload | null {
-  const parsed = decodeSignedToken(cursor) as Partial<FeedCursorPayload> | null
+  const parsed = decodeSignedToken(
+    'cursor',
+    cursor,
+  ) as Partial<FeedCursorPayload> | null
   // Los cursores anteriores a servir la ronda por tramos no llevan offset:
   // equivalen a «principio de esa ronda».
   const offset = parsed?.offset ?? 0

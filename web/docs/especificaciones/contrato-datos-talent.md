@@ -10,7 +10,7 @@
 
 Tres tablas en `public`. En las tres, todas las columnas de texto son `text` (no hay enumerados en uso, ver §2). «n8n» indica qué hacen los workflows con la columna; «—» es que no la tocan.
 
-### `candidates` (22 columnas; la posición 16 no existe, se borró una columna en su día)
+### `candidates` (22 columnas + `access_token_expires_at` desde el 28 oct; la posición 16 no existe, se borró una columna en su día)
 
 | Columna | Tipo | Nulo | Por defecto | n8n |
 | --- | --- | --- | --- | --- |
@@ -36,6 +36,9 @@ Tres tablas en `public`. En las tres, todas las columnas de texto son `text` (no
 | `blocked` | boolean | sí | — | — |
 | `ai_comment` | text | sí | — | escribe |
 | `file_name` | text | sí | — | escribe y lee |
+| `access_token_expires_at` | timestamptz | sí | `now() + 7 días` | — (añadida el 28 oct 2026, SEC-PUB-C2) |
+
+`access_token_expires_at` es la **única columna que la web nueva añade** al esquema de talent: fin de la vigencia del enlace personal. `null` = sin caducidad (filas anteriores). La web la rellena al dar de alta y cada vez que reenvía el enlace (una semana desde ese momento) y trata un enlace caducado como uno que no existe; el valor por defecto cubre las filas que inserta n8n. SQL en `docs/operaciones/talent-puesta-en-marcha.md` §4.6.
 
 Como `status` es `NOT NULL` y no tiene valor por defecto, **todo `insert` en `candidates` tiene que enviar `status`**.
 

@@ -35,7 +35,6 @@ import { pinCreationErrorMessage } from '@/modules/pin/domain/pinCreationError'
 import {
   attachPinImage,
   attachPinVideo,
-  createPin,
   createPinWithImage,
   createPinWithVideo,
   deleteAllPins,
@@ -80,53 +79,6 @@ function revalidateContent(contentId: string) {
 
 const PURGE_WARNING =
   'Se limpiarán con el reconciliador (scripts/reconcile-cloudinary.mjs). Recarga la página.'
-
-export async function createPinAction(
-  contentId: string,
-  _previousState: PinFormState,
-  formData: FormData,
-): Promise<PinFormState> {
-  if (!(await isAdminRequest())) return { formError: ADMIN_REQUIRED_MESSAGE }
-
-  const result = createPinSchema.safeParse({
-    contentId,
-    ratio: formData.get('ratio'),
-    label: formData.get('label'),
-    language: formData.get('language'),
-    autoplayMode: formData.get('autoplayMode') || null,
-    alt: formData.get('alt'),
-  })
-
-  if (!result.success) {
-    return {
-      fieldErrors: fieldErrorsOf(result.error),
-    }
-  }
-
-  try {
-    await createPin(result.data)
-  } catch (error) {
-    console.error(error)
-
-    if (isDomainError(error, 'pin_label_required')) {
-      return {
-        fieldErrors: {
-          label: [PIN_LABEL_REQUIRED_MESSAGE],
-        },
-      }
-    }
-
-    return {
-      formError: 'No se ha podido crear el pin.',
-    }
-  }
-
-  revalidateContent(contentId)
-
-  return {
-    success: true,
-  }
-}
 
 export async function updatePinAction(
   pinId: string,

@@ -12,14 +12,15 @@ import {
  * Autocontenido y sin estado a propósito: el propio token lleva firmados
  * `contentId` y `expiresAt`, no hay tabla ni migración nueva que
  * mantener. La contrapartida es que no se puede revocar un token antes
- * de que caduque — solo esperar. Vigencia de 7 días: suficiente para una
- * revisión con idas y vueltas sin regenerar el link.
+ * de que caduque — solo esperar. Por eso la vigencia es corta: 24 horas
+ * (decidido el 27 oct 2026; antes eran 7 días, SEC-ADM-D2). Cubre una
+ * revisión en el día; si hace falta más, se genera otro enlace.
  *
  * El preview es para revisar contenido *antes* de que pase por primera
  * vez a `published` — no hay concepto de "borrador sobre lo publicado"
  * (arquitectura §19.1: "no habrá staging persistente de contenido").
  */
-const PREVIEW_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000
+export const PREVIEW_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
 export interface PreviewTokenPayload {
   contentId: string
@@ -31,7 +32,7 @@ export function encodePreviewToken(contentId: string): string {
     contentId,
     expiresAt: Date.now() + PREVIEW_TOKEN_TTL_MS,
   }
-  return encodeSignedToken(payload)
+  return encodeSignedToken('preview', payload)
 }
 
 /**
@@ -41,7 +42,10 @@ export function encodePreviewToken(contentId: string): string {
  * slug pedido (ver `resolvePreviewContext`).
  */
 export function decodePreviewToken(token: string): string | null {
-  const parsed = decodeSignedToken(token) as Partial<PreviewTokenPayload> | null
+  const parsed = decodeSignedToken(
+    'preview',
+    token,
+  ) as Partial<PreviewTokenPayload> | null
 
   if (
     !parsed ||

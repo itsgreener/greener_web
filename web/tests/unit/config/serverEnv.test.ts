@@ -117,6 +117,46 @@ describe('CONTACT_IP_HASH_SALT', () => {
   })
 })
 
+describe('APP_SIGNING_SECRET (SEC-ADM-D1)', () => {
+  it('en desarrollo y tests es opcional', async () => {
+    vi.stubEnv('APP_SIGNING_SECRET', '')
+
+    const { getSigningEnv } = await import('@/lib/serverEnv')
+
+    expect(getSigningEnv().APP_SIGNING_SECRET).toBeUndefined()
+  })
+
+  it.each([
+    ['ausente', ''],
+    ['demasiado corta', 'corta'],
+  ])('en producción no admite una clave %s', async (_name, value) => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('APP_SIGNING_SECRET', value)
+
+    const { getSigningEnv } = await import('@/lib/serverEnv')
+
+    expect(() => getSigningEnv()).toThrow(/firma de tokens/)
+  })
+
+  it('en producción admite una clave de 32 o más caracteres', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('APP_SIGNING_SECRET', 'x'.repeat(40))
+
+    const { getSigningEnv } = await import('@/lib/serverEnv')
+
+    expect(getSigningEnv().APP_SIGNING_SECRET).toBe('x'.repeat(40))
+  })
+
+  it('el arranque la cuenta entre los ámbitos inválidos si falta en producción', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('APP_SIGNING_SECRET', '')
+
+    const { validateServerEnv } = await import('@/lib/serverEnv')
+
+    expect(validateServerEnv()).toContain('firma de tokens')
+  })
+})
+
 describe('validateServerEnv (arranque)', () => {
   it('con todo bien devuelve una lista vacía', async () => {
     const { validateServerEnv } = await import('@/lib/serverEnv')

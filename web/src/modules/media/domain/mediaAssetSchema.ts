@@ -1,10 +1,7 @@
 import { z } from 'zod'
 
 import { idSchema } from '@/lib/validation/idSchema'
-import {
-  mediaKindSchema,
-  type MediaKind,
-} from '@/modules/shared/domain/mediaKind'
+import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
 import { VIDEO_LIMITS } from './mediaLimits'
 import {
   cloudinaryPublicIdField,
@@ -60,25 +57,3 @@ export type AddCaseCarouselVideoInput = z.infer<
 export type RemoveCaseCarouselMediaInput = z.infer<
   typeof removeCaseCarouselMediaSchema
 >
-
-export type MediaAsset = {
-  id: string
-
-  kind: MediaKind
-
-  cloudinaryPublicId: string
-
-  format: string | null
-
-  width: number | null
-
-  height: number | null
-
-  durationSeconds: number | null
-
-  bytes: number | null
-
-  status: MediaStatus
-
-  createdAt: string
-}

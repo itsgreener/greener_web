@@ -1,6 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { env } from '@/lib/env'
+import { hardenSessionCookie } from '@/lib/supabase/sessionCookies'
 
 /**
  * `requestHeaders` (opcional): las cabeceras que verá el render downstream
@@ -35,7 +36,7 @@ export async function updateSession(
           })
 
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, hardenSessionCookie(options))
           })
         },
       },

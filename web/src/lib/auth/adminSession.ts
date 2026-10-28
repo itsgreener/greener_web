@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { redirect } from 'next/navigation'
+import { cache } from 'react'
 
 import { createClient } from '@/lib/supabase/server'
 
@@ -15,12 +17,38 @@ import { createClient } from '@/lib/supabase/server'
  */
 
 export type AdminCheck =
-  { ok: true } | { ok: false; reason: 'unauthenticated' | 'forbidden' }
+  | { ok: true; email: string | null }
+  | { ok: false; reason: 'unauthenticated' | 'forbidden' }
 
 export const ADMIN_REQUIRED_MESSAGE =
   'Tu sesión ha caducado o no tienes permisos de administración. Vuelve a iniciar sesión.'
 
-async function checkAdminSession(): Promise<AdminCheck> {
+/**
+ * Next usa excepciones para avisar de que una página es dinámica (al leer
+ * `cookies()` durante el build) o de que hay que redirigir. Quien captura
+ * errores alrededor de código que las puede lanzar tiene que dejarlas pasar:
+ * si se tragan, la página se queda marcada como estática y el build lo
+ * muestra como «Dynamic server usage».
+ */
+function isNextControlFlowError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+
+  const digest = (error as { digest?: unknown }).digest
+
+  return (
+    typeof digest === 'string' &&
+    (digest === 'DYNAMIC_SERVER_USAGE' ||
+      digest === 'BAILOUT_TO_CLIENT_SIDE_RENDERING' ||
+      digest.startsWith('NEXT_'))
+  )
+}
+
+/**
+ * Memoizada por petición con `React.cache`: una misma petición (la ruta de
+ * CV, por ejemplo, pasa por el guard y por el actor) hace una sola vez
+ * `getClaims` y `rpc('is_admin')`. No se comparte entre peticiones.
+ */
+const checkAdminSession = cache(async (): Promise<AdminCheck> => {
   try {
     const supabase = await createClient()
 
@@ -37,12 +65,19 @@ async function checkAdminSession(): Promise<AdminCheck> {
       return { ok: false, reason: 'forbidden' }
     }
 
-    return { ok: true }
+    const email = claimsData.claims.email
+
+    return {
+      ok: true,
+      email: typeof email === 'string' && email ? email : null,
+    }
   } catch (error) {
+    if (isNextControlFlowError(error)) throw error
+
     console.error(error)
     return { ok: false, reason: 'unauthenticated' }
   }
-}
+})
 
 /**
  * Quién es el admin de esta petición, para anotarlo en el registro de
@@ -50,21 +85,19 @@ async function checkAdminSession(): Promise<AdminCheck> {
  * misma comprobación que `isAdminRequest`.
  */
 export async function getAdminActor(): Promise<{ email: string } | null> {
-  try {
-    if (!(await checkAdminSession()).ok) return null
+  const check = await checkAdminSession()
 
-    const supabase = await createClient()
-    const { data, error } = await supabase.auth.getClaims()
-    const email = data?.claims?.email
+  return check.ok && check.email ? { email: check.email } : null
+}
 
-    if (error || typeof email !== 'string' || !email) return null
-
-    return { email }
-  } catch (error) {
-    console.error(error)
-
-    return null
-  }
+/**
+ * Para las páginas del ABM que leen datos SIN RLS (talent usa la clave
+ * secreta de su proyecto): comprueba la sesión en la propia página en vez
+ * de fiarlo todo al proxy, y manda al login si no es admin. Un layout no
+ * basta: Next no lo vuelve a renderizar en cada navegación.
+ */
+export async function requireAdminPage(): Promise<void> {
+  if (!(await checkAdminSession()).ok) redirect('/admin/login')
 }
 
 /** Atajo para las Server Actions: true solo con sesión de admin válida. */

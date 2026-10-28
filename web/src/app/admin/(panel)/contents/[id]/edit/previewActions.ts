@@ -1,7 +1,13 @@
 'use server'
 
-import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
+import {
+  ADMIN_REQUIRED_MESSAGE,
+  getAdminActor,
+  isAdminRequest,
+} from '@/lib/auth/adminSession'
+import { isUuid } from '@/lib/validation/uuid'
 
+import { recordAuditEvent } from '@/modules/audit/container'
 import { generatePreviewLink } from '@/modules/content/container'
 
 export type PreviewLinkActionState = {
@@ -22,7 +28,7 @@ export async function generatePreviewLinkAction(
 
   const id = formData.get('id')
 
-  if (typeof id !== 'string' || id.length === 0) {
+  if (!isUuid(id)) {
     return { error: 'El identificador del contenido no es válido.' }
   }
 
@@ -30,6 +36,21 @@ export async function generatePreviewLinkAction(
 
   if (!url) {
     return { error: 'No se ha encontrado el contenido.' }
+  }
+
+  // El enlace da acceso a contenido sin publicar: queda anotado quién lo
+  // generó (SEC-ADM-F1). El resto de acciones sobre contenidos ya las anota
+  // la propia base. `recordAuditEvent` no lanza: un fallo del registro no
+  // impide entregar el enlace, solo queda en el log del servidor.
+  const actor = await getAdminActor()
+
+  if (actor) {
+    await recordAuditEvent({
+      actorEmail: actor.email,
+      action: 'preview_link',
+      entity: 'content',
+      entityId: id,
+    })
   }
 
   return { url }

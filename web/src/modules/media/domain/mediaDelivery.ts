@@ -67,23 +67,6 @@ function clampDensity(devicePixelRatio: number): number {
 }
 
 /**
- * Ancho de entrega de un medio de detalle (imagen o vídeo) para una caja de
- * `cssWidthPx` píxeles CSS: el menor de los anchos de IMAGE_DELIVERY.detail
- * que cubre la caja a la densidad del dispositivo (con tope de 2×: más
- * densidad no se nota y en vídeo cuesta ancho de banda). Si la caja es más
- * ancha que el mayor, se usa el mayor.
- */
-export function pickDetailWidth(
-  cssWidthPx: number,
-  devicePixelRatio = 1,
-): number {
-  const widths = IMAGE_DELIVERY.detail.widths
-  const needed = Math.max(0, cssWidthPx) * clampDensity(devicePixelRatio)
-
-  return widths.find((w) => w >= needed) ?? widths[widths.length - 1]
-}
-
-/**
  * Escalón de la escalera del feed para una tarjeta de `cssWidthPx` px CSS.
  * Es el `src` de reserva de la imagen (el navegador elige del `srcset`);
  * nunca el ancho exacto de la tarjeta, que crearía una versión única por

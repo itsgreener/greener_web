@@ -1,5 +1,6 @@
 import Link from 'next/link'
 
+import { signOutAction } from '@/app/admin/(panel)/authActions'
 import { AdminBrand } from '@/components/admin/AdminBrand'
 
 import styles from './AdminShell.module.css'
@@ -35,6 +36,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <span className={styles.icon}>↗</span>
             Ver web
           </Link>
+
+          <form action={signOutAction}>
+            <button type="submit" className={styles.linkButton}>
+              <span className={styles.icon}>↩</span>
+              Cerrar sesión
+            </button>
+          </form>
         </div>
       </aside>
 

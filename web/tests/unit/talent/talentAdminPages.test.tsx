@@ -16,7 +16,11 @@ const notFound = vi.hoisted(() =>
 const uploadStaffCvAction = vi.hoisted(() => vi.fn())
 const processPendingCvsAction = vi.hoisted(() => vi.fn())
 
-vi.mock('next/navigation', () => ({ notFound }))
+vi.mock('next/navigation', () => ({ notFound, redirect: vi.fn() }))
+
+const requireAdminPage = vi.hoisted(() => vi.fn())
+
+vi.mock('@/lib/auth/adminSession', () => ({ requireAdminPage }))
 
 vi.mock('@/modules/talent/container', () => ({
   talentAdminQueries: { search, statusCounts, detail },

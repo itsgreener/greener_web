@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 
 import { invalidatePackageCache } from '@/lib/cache/packageCache'
+import { isUuid } from '@/lib/validation/uuid'
 
 import { adminErrorMessage } from '@/app/admin/_lib/adminErrorMessage'
 
@@ -53,7 +54,9 @@ export async function uploadHtmlPackageAction(
   const contentId = formData.get('contentId')
   const file = formData.get('file')
 
-  if (typeof contentId !== 'string' || !contentId) {
+  // uuid y no «cualquier texto»: la ruta de Storage se forma con este valor
+  // (SEC-ADM-B2).
+  if (!isUuid(contentId)) {
     return { error: 'El identificador del contenido no es válido.' }
   }
 

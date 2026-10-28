@@ -30,5 +30,3 @@ export const TEXT_LIMITS = {
   seoTitle: 60,
   seoDescription: 160,
 } as const
-
-export type TextLimitField = keyof typeof TEXT_LIMITS

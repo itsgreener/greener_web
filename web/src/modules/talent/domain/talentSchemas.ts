@@ -163,7 +163,6 @@ export const candidateFormSchema = z.object({
     .max(TALENT_TEXT_LIMITS.projects),
 })
 
-export type SignupInput = z.output<typeof signupSchema>
 export type CandidateFormInput = z.output<typeof candidateFormSchema>
 
 /**

@@ -190,6 +190,7 @@ describe('cloudinaryServer', () => {
 
       expect(fetch).toHaveBeenCalledWith(IMAGE_URL, {
         cache: 'no-store',
+        signal: expect.any(AbortSignal),
       })
 
       expect(mockValidateImageFile).toHaveBeenCalledTimes(1)
@@ -346,6 +347,39 @@ describe('cloudinaryServer', () => {
 
       await expect(verifyCloudinaryImageAsset(IMAGE_PUBLIC_ID)).rejects.toThrow(
         'No se permiten archivos GIF.',
+      )
+    })
+
+    // SEC-ADM-C1: no se baja a memoria un original que ya se sabe demasiado grande.
+    it('rechaza por el tamaño que declara Cloudinary SIN descargar el original', async () => {
+      mockResource.mockResolvedValueOnce({
+        ...validImageResource(),
+
+        bytes: 500 * 1024 * 1024,
+      })
+
+      await expect(verifyCloudinaryImageAsset(IMAGE_PUBLIC_ID)).rejects.toThrow(
+        'La imagen supera el límite',
+      )
+
+      expect(fetch).not.toHaveBeenCalled()
+      expect(mockValidateImageFile).not.toHaveBeenCalled()
+    })
+
+    // SEC-ADM-C2: la descarga tiene tiempo máximo y también cubre la lectura del cuerpo.
+    it('si se corta la lectura del cuerpo (tiempo máximo), es un rechazo de verificación', async () => {
+      mockResource.mockResolvedValueOnce(validImageResource())
+
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+
+        arrayBuffer: async () => {
+          throw new DOMException('timeout', 'TimeoutError')
+        },
+      } as unknown as Response)
+
+      await expect(verifyCloudinaryImageAsset(IMAGE_PUBLIC_ID)).rejects.toThrow(
+        'No se ha podido descargar la imagen original para verificarla.',
       )
     })
 
