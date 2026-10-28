@@ -204,7 +204,7 @@ Los dos tienen que devolver cero filas (la primera lista cualquier política que
 
 **Aplicado el 20 oct.**
 
-El servidor ya impone 10 MB y la lista de tipos; fijarlo también en el bucket protege si algún día se sube desde otro sitio. Se aplica **después** de retirar la web antigua:
+El servidor ya impone 3,5 MB y la lista de tipos; fijarlo también en el bucket protege si algún día se sube desde otro sitio. Se aplica **después** de retirar la web antigua:
 
 ```sql
 update storage.buckets
@@ -264,7 +264,7 @@ Prueba también un enlace con el email de otro candidato en el último paso del 
 Para el personal con acceso al panel. Menú lateral → **Talent**.
 
 - **Listado.** Arriba, los contadores por estado (`pending`, `started`, `processed`, `sent`, `completed`, `closed`, `error`); cada uno filtra. Debajo, buscador por nombre o email, y filtros por estado y perfil. 25 por página. Una fila sin nombre ni email (n8n aún no la ha procesado) se muestra como «Sin procesar».
-- **Subir CVs.** **Subir CVs** → hasta 10 por vez, 10 MB cada uno (pdf, doc, docx, png, jpg, jpeg, webp). Se suben de uno en uno y, al terminar, se lanza **una** vez el procesado de n8n. Cada CV acaba en Drive y la fila en `closed` (n8n pone nombre, email, teléfono, perfil y valoración, y avisa al que lo subió). Si un fichero falla, la pantalla dice cuál y por qué, y el resto sigue.
+- **Subir CVs.** **Subir CVs** → hasta 10 por vez, 3,5 MB cada uno (pdf, doc, docx, png, jpg, jpeg, webp). Se suben de uno en uno y, al terminar, se lanza **una** vez el procesado de n8n. Cada CV acaba en Drive y la fila en `closed` (n8n pone nombre, email, teléfono, perfil y valoración, y avisa al que lo subió). Si un fichero falla, la pantalla dice cuál y por qué, y el resto sigue.
 - **Procesar pendientes.** Si hay filas `pending`, el botón lanza el procesado. No hace nada si no hay pendientes ni si n8n está trabajando (`started`); en ese caso aparece «Lanzar igualmente», que pide confirmación (úsalo solo si la fila lleva horas en `started`). Entre dos lanzamientos pasan al menos 2 minutos. n8n no avisa de que termina: se ve en los contadores.
 - **Ficha.** Datos, valoración de la IA, proyectos y ficheros. «Reprocesar CV» (solo en `started` o `error` con el CV todavía en el bucket) y «Reenviar enlace del formulario» (no con la fila en `pending` o `started`, ni sin email). Un `closed` al que se reenvía el enlace vuelve a `sent`.
 - **Abrir un CV.** Siempre por la web, nunca con el enlace de Drive pegado a mano: queda registrado quién lo abrió y cuándo. Bucket: enlace temporal de 60 s. Si el registro falla, no se abre.

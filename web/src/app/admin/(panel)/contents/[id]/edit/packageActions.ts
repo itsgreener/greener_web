@@ -54,7 +54,8 @@ export type PrepareUploadResult =
  * Primer paso de la subida de un paquete: entrega al navegador una URL firmada
  * para que suba el ZIP directamente a Storage. El ZIP no pasa por esta
  * función: la plataforma limita el cuerpo de una petición a unos 4,5 MB y un
- * paquete puede llegar a 10 MB.
+ * paquete puede llegar a 3,5 MB, justo bajo ese límite una vez sumado el
+ * resto de la petición.
  */
 export async function prepareHtmlPackageUploadAction(
   contentId: string,

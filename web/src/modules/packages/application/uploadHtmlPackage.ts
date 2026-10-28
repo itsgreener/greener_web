@@ -1,7 +1,10 @@
 import type { HtmlPackageRepository } from '@/modules/packages/domain/htmlPackageRepository'
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
 import { isStagedPackagePathFor } from '@/modules/packages/domain/packageFiles'
-import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
+import {
+  PACKAGE_LIMITS,
+  formatMegabytes,
+} from '@/modules/packages/domain/packageLimits'
 import type {
   PackageUploadStaging,
   PackageZipValidator,
@@ -86,7 +89,7 @@ export function makeUploadStagedHtmlPackage({
 
       if (zip.byteLength > PACKAGE_LIMITS.maxZipSizeBytes) {
         throw new PackageValidationError([
-          `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1_000_000} MB.`,
+          `El ZIP supera el límite de ${formatMegabytes(PACKAGE_LIMITS.maxZipSizeBytes)}.`,
         ])
       }
 

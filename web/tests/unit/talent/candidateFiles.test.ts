@@ -129,7 +129,7 @@ describe('uploadCandidateFile', () => {
     },
   )
 
-  it('rechaza vacío y más de 10 MB sin escanear', async () => {
+  it('rechaza vacío y más de 3,5 MB sin escanear', async () => {
     const { upl, scan } = setup()
     const big = new Uint8Array(TALENT_FILE_LIMITS.maxFileBytes + 1)
     big.set(FILE_BYTES.pdf)
@@ -147,7 +147,7 @@ describe('uploadCandidateFile', () => {
     expect(scan).not.toHaveBeenCalled()
   })
 
-  it('acepta justo el tope de 10 MB', async () => {
+  it('acepta justo el tope de 3,5 MB', async () => {
     const { upl } = setup()
     const exact = new Uint8Array(TALENT_FILE_LIMITS.maxFileBytes)
     exact.set(FILE_BYTES.pdf)

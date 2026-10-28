@@ -73,7 +73,7 @@ export const CV_KIND_LABELS: Readonly<Record<CvLocationKind, string>> = {
 
 export const REJECTION_MESSAGES: Readonly<Record<FileRejection, string>> = {
   file_empty: 'el fichero está vacío.',
-  file_too_large: 'supera los 10 MB.',
+  file_too_large: 'supera los 3,5 MB.',
   file_type:
     'no es un PDF, Word o imagen (png, jpg, webp) válido; el contenido no coincide con la extensión.',
   too_many_files: 'hay demasiados ficheros.',

@@ -1,6 +1,7 @@
 import { getCloudmersiveEnv } from '@/lib/serverEnv'
 
 import { VirusScanError } from '@/modules/packages/domain/packageErrors'
+import { formatMegabytes } from '@/modules/packages/domain/packageLimits'
 import type { VirusScanner } from '@/modules/packages/domain/packageUploadPorts'
 
 const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
@@ -10,18 +11,20 @@ const CLOUDMERSIVE_SCAN_URL = 'https://api.cloudmersive.com/virus/scan/file'
  * respuesta). Antes el comentario de `scanFileForViruses` decía que se
  * rechazaba si el servicio «tarda demasiado», pero nada lo cumplía y una
  * subida podía quedarse colgada hasta el tope del servidor (SEC-ADM-C2). Con
- * 10 MB de tope, 30 s dan margen de sobra; al vencer, el `catch` de abajo lo
+ * 3,5 MB de tope, 30 s dan margen de sobra; al vencer, el `catch` de abajo lo
  * convierte en un rechazo, como cualquier otro fallo del servicio.
  */
 export const CLOUDMERSIVE_TIMEOUT_MS = 30_000
 
 /**
- * Tamaño máximo que admite el escaneo (cuenta gratuita de Cloudmersive:
- * "requires paid account for >10MB"). Se cuenta en decimal (10.000.000
- * bytes) por prudencia — su documentación no aclara si son MB o MiB.
- * Debe ser >= `PACKAGE_LIMITS.maxZipSizeBytes`; un test lo comprueba.
+ * Tamaño máximo que admite el escaneo en la cuenta gratuita de Cloudmersive:
+ * 3,5 MB (su aviso del 28 oct 2026: «Your API call exceeded 3.5 MB file size
+ * limit of free tier»; el 400 que devuelve no explica la causa). Se cuenta en
+ * decimal (3.500.000 bytes) por prudencia: es la lectura más estricta. Con un
+ * plan de pago se sube aquí y en `PACKAGE_LIMITS.maxZipSizeBytes` y
+ * `TALENT_FILE_LIMITS.maxFileBytes`; un test comprueba que no se desalineen.
  */
-export const CLOUDMERSIVE_MAX_FILE_BYTES = 10 * 1000 * 1000
+export const CLOUDMERSIVE_MAX_FILE_BYTES = 3_500_000
 
 type CloudmersiveScanResult = {
   CleanResult?: boolean
@@ -47,7 +50,7 @@ export async function scanZipForViruses(buffer: Buffer): Promise<void> {
 
 /**
  * El mismo escaneo para cualquier fichero. Lo usa también talent con los CVs
- * que sube un candidato (cuenta gratuita: mismo tope de 10 MB decimales).
+ * que sube un candidato (cuenta gratuita: mismo tope de 3,5 MB decimales).
  * `label` solo cambia el texto del tope de tamaño («El ZIP supera…»).
  */
 export async function scanFileForViruses(
@@ -62,7 +65,7 @@ export async function scanFileForViruses(
   // bloqueante: nunca se publica un ZIP sin escanear.
   if (buffer.byteLength > CLOUDMERSIVE_MAX_FILE_BYTES) {
     throw new VirusScanError(
-      `El ${label} supera el tamaño máximo que admite el servicio de escaneo antivirus (${CLOUDMERSIVE_MAX_FILE_BYTES / 1_000_000} MB).`,
+      `El ${label} supera el tamaño máximo que admite el servicio de escaneo antivirus (${formatMegabytes(CLOUDMERSIVE_MAX_FILE_BYTES)}).`,
     )
   }
 
@@ -87,6 +90,15 @@ export async function scanFileForViruses(
   }
 
   if (!response.ok) {
+    // El cuerpo de un error de Cloudmersive suele explicar la causa (tamaño,
+    // formato, cuota…). Va al log del servidor, nunca al mensaje que ve el
+    // admin ni a la base de datos; sin él, un 400 no se puede diagnosticar.
+    console.error(
+      'Antivirus · Cloudmersive respondió',
+      response.status,
+      await readErrorBody(response),
+    )
+
     throw new VirusScanError(
       `El servicio de escaneo antivirus ha devuelto un error (${response.status}).`,
     )
@@ -113,6 +125,16 @@ export async function scanFileForViruses(
         ? `El escaneo antivirus ha encontrado contenido malicioso: ${foundNames}.`
         : 'El escaneo antivirus no ha confirmado que el archivo esté limpio.',
     )
+  }
+}
+
+const ERROR_BODY_LOG_LIMIT = 500
+
+async function readErrorBody(response: Response): Promise<string> {
+  try {
+    return (await response.text()).slice(0, ERROR_BODY_LOG_LIMIT)
+  } catch {
+    return '(sin cuerpo legible)'
   }
 }
 

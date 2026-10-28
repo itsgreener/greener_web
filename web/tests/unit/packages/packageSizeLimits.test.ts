@@ -10,8 +10,8 @@ import { VirusScanError } from '@/modules/packages/domain/packageErrors'
 import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
 
 /**
- * El límite del ZIP (10 MB) sale de que el ZIP completo se envía tal cual a
- * Cloudmersive, que en cuenta gratuita solo admite hasta 10 MB. Estos
+ * El límite del ZIP (3,5 MB) sale de que el ZIP completo se envía tal cual a
+ * Cloudmersive, que en cuenta gratuita solo admite hasta 3,5 MB. Estos
  * tests atan las tres cifras que tienen que moverse juntas
  * (packageLimits.ts, cloudmersiveVirusScan.ts y next.config.ts): si alguien
  * cambia una sin las otras, falla aquí y no en producción.
@@ -49,8 +49,8 @@ afterEach(() => {
 })
 
 describe('límite de tamaño del ZIP de tools/insights', () => {
-  it('es de 10 MB decimales (10.000.000 bytes), lo que muestra el Finder de macOS', () => {
-    expect(PACKAGE_LIMITS.maxZipSizeBytes).toBe(10_000_000)
+  it('es de 3,5 MB decimales (3.500.000 bytes), lo que muestra el Finder de macOS', () => {
+    expect(PACKAGE_LIMITS.maxZipSizeBytes).toBe(3_500_000)
   })
 
   it('no supera nunca el máximo que admite el servicio de antivirus', () => {
@@ -77,11 +77,11 @@ describe('límite de tamaño del ZIP de tools/insights', () => {
     )
   })
 
-  it('el validador rechaza un byte por encima con el mensaje claro «10 MB»', () => {
+  it('el validador rechaza un byte por encima con el mensaje claro «3,5 MB»', () => {
     const buffer = Buffer.alloc(PACKAGE_LIMITS.maxZipSizeBytes + 1)
 
     expect(() => validateHtmlPackageZip(buffer)).toThrow(
-      'El ZIP supera el límite de 10 MB.',
+      'El ZIP supera el límite de 3,5 MB.',
     )
   })
 
@@ -101,7 +101,7 @@ describe('guarda de tamaño en scanZipForViruses', () => {
     await expect(scanZipForViruses(buffer)).rejects.toBeInstanceOf(
       VirusScanError,
     )
-    await expect(scanZipForViruses(buffer)).rejects.toThrow(/10 MB/)
+    await expect(scanZipForViruses(buffer)).rejects.toThrow(/3,5 MB/)
     expect(fetch).not.toHaveBeenCalled()
   })
 

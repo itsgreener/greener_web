@@ -11,7 +11,7 @@ import {
 } from '@tests/helpers/packageFixtures'
 
 /**
- * Auditoría 8 oct, P0-3: el tope de 10 MB es del ZIP COMPRIMIDO. Un fichero
+ * Auditoría 8 oct, P0-3: el tope de 3,5 MB es del ZIP COMPRIMIDO. Un fichero
  * de ceros comprime casi a nada, así que sin tope de lo descomprimido un ZIP
  * minúsculo podía ocupar gigas en memoria al validarlo.
  */

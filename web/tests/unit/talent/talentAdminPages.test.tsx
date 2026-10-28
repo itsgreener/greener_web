@@ -418,7 +418,7 @@ describe('subida de CVs — navegador', () => {
     choose([
       pdf('bueno.pdf'),
       pdf('virus.exe'),
-      pdf('grande.pdf', 10_000_001),
+      pdf('grande.pdf', 3_500_001),
       pdf('vacio.pdf', 0),
     ])
 
@@ -427,7 +427,9 @@ describe('subida de CVs — navegador', () => {
     expect(
       screen.getByText(/virus.exe: formato no admitido/),
     ).toBeInTheDocument()
-    expect(screen.getByText(/grande.pdf: supera los 10 MB/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/grande.pdf: supera los 3,5 MB/),
+    ).toBeInTheDocument()
     expect(screen.getByText(/vacio.pdf: está vacío/)).toBeInTheDocument()
   })
 

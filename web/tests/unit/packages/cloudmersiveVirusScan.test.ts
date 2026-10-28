@@ -13,6 +13,7 @@ function fakeResponse(body: unknown, init?: { ok?: boolean; status?: number }) {
     ok: init?.ok ?? true,
     status: init?.status ?? 200,
     json: async () => body,
+    text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
   } as unknown as Response
 }
 
@@ -102,6 +103,42 @@ describe('scanZipForViruses', () => {
     await expect(scanZipForViruses(Buffer.from('x'))).rejects.toThrow(
       VirusScanError,
     )
+  })
+
+  it('registra en el log del servidor el cuerpo del error, pero no lo pone en el mensaje', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(fetch).mockResolvedValue(
+      fakeResponse('Invalid input: detalle interno del servicio', {
+        ok: false,
+        status: 400,
+      }),
+    )
+
+    const error = await scanZipForViruses(Buffer.from('x')).catch((e) => e)
+
+    expect(error).toBeInstanceOf(VirusScanError)
+    expect(error.message).toContain('(400)')
+    expect(error.message).not.toContain('detalle interno')
+    expect(log).toHaveBeenCalledWith(
+      'Antivirus · Cloudmersive respondió',
+      400,
+      'Invalid input: detalle interno del servicio',
+    )
+
+    log.mockRestore()
+  })
+
+  it('el cuerpo del error se recorta a 500 caracteres en el log', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(fetch).mockResolvedValue(
+      fakeResponse('x'.repeat(5000), { ok: false, status: 400 }),
+    )
+
+    await scanZipForViruses(Buffer.from('x')).catch(() => {})
+
+    expect(log.mock.calls[0][2]).toHaveLength(500)
+
+    log.mockRestore()
   })
 
   it('lanza VirusScanError si fetch falla (sin red) — bloqueante, no se traga el error', async () => {

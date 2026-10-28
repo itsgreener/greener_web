@@ -19,7 +19,7 @@ export default async function AdminTalentUploadPage() {
       <AdminPageHeader
         eyebrow="Talent"
         title="Subir CVs"
-        description="Hasta 10 por vez, de 10 MB como máximo: PDF, Word o imagen (png, jpg, webp). Cada CV pasa por el antivirus; después n8n lo lee, extrae el email y los datos, lo guarda en Drive y envía al candidato el enlace para completar su perfil. Si el email ya estaba en la base, n8n descarta el CV nuevo y te avisa por email."
+        description="Hasta 10 por vez, de 3,5 MB como máximo: PDF, Word o imagen (png, jpg, webp). Cada CV pasa por el antivirus; después n8n lo lee, extrae el email y los datos, lo guarda en Drive y envía al candidato el enlace para completar su perfil. Si el email ya estaba en la base, n8n descarta el CV nuevo y te avisa por email."
       />
 
       <AdminCard>

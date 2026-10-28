@@ -42,7 +42,10 @@ function hasAllowedExtension(name: string) {
   return (ALLOWED_FILE_EXTENSIONS as readonly string[]).includes(extension)
 }
 
-const MAX_MB = TALENT_FILE_LIMITS.maxFileBytes / 1_000_000
+const MAX_MB = String(TALENT_FILE_LIMITS.maxFileBytes / 1_000_000).replace(
+  '.',
+  ',',
+)
 
 export default function UploadCvs() {
   const { rows, setRows, running, run } = useUploadQueue<Row>(rowKey)

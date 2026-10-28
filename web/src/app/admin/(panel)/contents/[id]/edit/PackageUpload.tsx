@@ -13,7 +13,10 @@ import { AdminForm, AdminFormActions } from '@/components/admin/AdminForm'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import { AdminCellActions, AdminTable } from '@/components/admin/AdminTable'
 import type { HtmlPackageVersionSummary } from '@/modules/packages/domain/htmlPackageRepository'
-import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
+import {
+  PACKAGE_LIMITS,
+  formatMegabytes,
+} from '@/modules/packages/domain/packageLimits'
 
 import {
   deleteHtmlPackageVersionAction,
@@ -55,7 +58,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
 
     if (file.size > PACKAGE_LIMITS.maxZipSizeBytes) {
       setStagingError(
-        `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1_000_000} MB.`,
+        `El ZIP supera el límite de ${formatMegabytes(PACKAGE_LIMITS.maxZipSizeBytes)}.`,
       )
       return
     }

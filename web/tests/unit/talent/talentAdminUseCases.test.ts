@@ -157,7 +157,7 @@ describe('uploadStaffCv', () => {
 
   it.each([
     ['vacío', new Uint8Array(), 'cv.pdf', 'file_empty'],
-    ['más de 10 MB', new Uint8Array(10_000_001), 'cv.pdf', 'file_too_large'],
+    ['más de 3,5 MB', new Uint8Array(3_500_001), 'cv.pdf', 'file_too_large'],
     ['extensión no admitida', FILE_BYTES.pdf, 'cv.exe', 'file_type'],
     [
       'contenido que no es lo que dice la extensión',

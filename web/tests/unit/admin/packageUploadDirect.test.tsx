@@ -64,7 +64,7 @@ beforeEach(() => {
 describe('PackageUpload · subida directa del ZIP', () => {
   it('sube el ZIP a Storage con la URL firmada y envía a la acción solo la ruta', async () => {
     const { input, form } = renderUpload()
-    const file = zipOfSize(6 * 1000 * 1000)
+    const file = zipOfSize(3 * 1000 * 1000)
 
     fireEvent.change(input, { target: { files: [file] } })
     await submit(form)
@@ -91,11 +91,11 @@ describe('PackageUpload · subida directa del ZIP', () => {
     const { input, form } = renderUpload()
 
     fireEvent.change(input, {
-      target: { files: [zipOfSize(10 * 1000 * 1000 + 1)] },
+      target: { files: [zipOfSize(3_500_001)] },
     })
     await submit(form)
 
-    expect(screen.getByText(/supera el límite de 10 MB/)).toBeInTheDocument()
+    expect(screen.getByText(/supera el límite de 3,5 MB/)).toBeInTheDocument()
     expect(prepare).not.toHaveBeenCalled()
     expect(uploadToSignedUrl).not.toHaveBeenCalled()
     expect(upload).not.toHaveBeenCalled()

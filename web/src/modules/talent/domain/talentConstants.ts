@@ -155,13 +155,14 @@ export const CV_BUCKET = 'cvs'
 export const CV_UPLOAD_PREFIX = 'uploads/'
 
 /**
- * Límites de subida (valores por defecto de la fase 1, plan §5.2). 10 MB en
- * decimal, igual que el tope del escaneo antivirus: un fichero mayor no se
- * podría escanear y no se acepta sin escanear.
+ * Límites de subida (valores por defecto de la fase 1, plan §5.2). 3,5 MB en
+ * decimal, igual que el tope del escaneo antivirus de la cuenta gratuita de
+ * Cloudmersive: un fichero mayor no se podría escanear y no se acepta sin
+ * escanear (antes eran 10 MB, un error: ver `CLOUDMERSIVE_MAX_FILE_BYTES`).
  */
 export const TALENT_FILE_LIMITS = {
   maxFilesPerCandidate: 10,
-  maxFileBytes: 10 * 1000 * 1000,
+  maxFileBytes: 3_500_000,
 } as const
 
 /** Ficheros que se aceptan, por extensión. */

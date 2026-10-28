@@ -11,7 +11,8 @@ export const PACKAGE_BUCKET = 'html-packages'
 /**
  * Zona de paso de la subida directa de ZIP. El navegador sube el ZIP ahí con
  * una URL firmada (la plataforma limita el cuerpo de una petición a una
- * función a unos 4,5 MB, y un paquete puede pesar hasta 10 MB) y la acción lo
+ * función a unos 4,5 MB, y el tope del paquete, 3,5 MB, queda justo debajo: se
+ * sube directo para no depender de ese margen) y la acción lo
  * lee desde Storage, lo valida y lo borra. Va dentro del mismo bucket y bajo
  * un prefijo que no puede ser un id de contenido (`_incoming`), así que no se
  * mezcla con las versiones (`<contentId>/v<n>`).

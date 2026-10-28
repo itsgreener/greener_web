@@ -1,27 +1,31 @@
 /**
- * Tamaño máximo del ZIP de tools/insights: 10 MB.
+ * Tamaño máximo del ZIP de tools/insights: 3,5 MB.
  *
- * Por qué 10 MB y no más: el ZIP completo se envía a Cloudmersive para el
+ * Por qué 3,5 MB y no más: el ZIP completo se envía a Cloudmersive para el
  * escaneo antivirus (§12.5, `uploadHtmlPackage.ts`), y su cuenta gratuita
- * solo admite hasta 10 MB; un ZIP mayor no se podría escanear y, como el
- * escaneo es bloqueante, tampoco publicar. Con un plan de pago se sube aquí,
- * en `CLOUDMERSIVE_MAX_FILE_BYTES` y en `next.config.ts`; un test falla si
- * los límites se desalinean.
+ * solo admite ficheros de hasta 3,5 MB (confirmado por Cloudmersive el 28 oct
+ * 2026: «Your API call exceeded 3.5 MB file size limit of free tier»; antes
+ * se creía que eran 10 MB). Un ZIP mayor no se podría escanear y, como el
+ * escaneo es bloqueante, tampoco publicar. Con un plan de pago se sube aquí y
+ * en `CLOUDMERSIVE_MAX_FILE_BYTES`; un test falla si los límites se
+ * desalinean.
  *
- * Son 10 MB DECIMALES (10.000.000 bytes), como los muestra el Finder: lo que
- * verá quien prepare el ZIP, y con margen bajo el tope del antivirus.
+ * Son MB DECIMALES (3.500.000 bytes), como los muestra el Finder: lo que verá
+ * quien prepare el ZIP, y el valor más estricto de las dos lecturas posibles
+ * (MB o MiB) del límite del servicio.
  *
- * `next.config.ts` (`serverActions.bodySizeLimit`) debe ser IGUAL O MAYOR: el
- * cuerpo lleva el ZIP más los campos del formulario. Es bastante mayor
- * (20 MB) para que un ZIP de 15 MB llegue al validador y reciba el mensaje
- * claro «supera el límite» en vez del error genérico de Next.
+ * `next.config.ts` (`serverActions.bodySizeLimit`) debe ser IGUAL O MAYOR. Es
+ * bastante mayor (20 MB) para que un ZIP de 15 MB reciba el mensaje claro
+ * «supera el límite» en vez del error genérico de Next. El ZIP ya no viaja en
+ * esa petición (sube directo a Storage), pero 3,5 MB cabe además bajo el
+ * límite de ~4,5 MB que la plataforma pone al cuerpo de una función.
  */
 export const PACKAGE_LIMITS = {
-  maxZipSizeBytes: 10 * 1000 * 1000,
+  maxZipSizeBytes: 3_500_000,
 
   /*
    * Límites del contenido DESCOMPRIMIDO (ZIP bomb).
-   * Los 10 MB de arriba son del ZIP comprimido; sin estos topes, un ZIP
+   * Los 3,5 MB de arriba son del ZIP comprimido; sin estos topes, un ZIP
    * pequeño puede declarar gigas y tumbar el único proceso PM2 al extraerlo.
    * Holgados para un paquete real (HTML + JS + fuentes + imágenes).
    */
@@ -53,4 +57,9 @@ export const PACKAGE_LIMITS = {
     ratio: 1200 / 630,
     ratioTolerance: 0.05,
   },
+}
+
+/** «3,5 MB» (decimal, con coma) para los mensajes que ve quien sube el ZIP. */
+export function formatMegabytes(bytes: number): string {
+  return `${String(bytes / 1_000_000).replace('.', ',')} MB`
 }

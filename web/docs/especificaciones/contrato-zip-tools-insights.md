@@ -10,7 +10,7 @@ Especificación técnica para quien prepare los paquetes de una tool, un insight
 - **`manifest.json` en la raíz del ZIP.** Obligatorio (ver §2).
 - **Todo lo demás (CSS, JS, Workers, imágenes, fuentes…) dentro de una carpeta `assets/`**, con las subcarpetas que se quiera dentro de ella (`assets/img/logo.png`, `assets/js/worker.js`…). No es solo una recomendación de orden: el servidor solo entrega archivos que cuelguen de `assets/`. **Desde el 29 de septiembre, la subida rechaza directamente cualquier archivo (que no sea `index.html` o `manifest.json`) que esté fuera de `assets/`**, con un mensaje que dice cuál. Antes de esa fecha, un `style.css` suelto en la raíz pasaba la validación sin avisar y solo se descubría al dar 404 en la página publicada.
 - **Un solo documento HTML: el `index.html` (o el `entrypoint` declarado).** Desde el 27 de octubre, la subida rechaza cualquier otro `.html` o `.htm` dentro del ZIP (también dentro de `assets/`), con un mensaje que dice cuál. Motivo: un HTML suelto se serviría como asset sin pasar por el montaje del sitio, y los assets `.html` y `.svg` salen con una política de seguridad que bloquea todo script (`default-src 'none'; sandbox`), así que no funcionarían como página. Si necesitas varias vistas, resuélvelo dentro del propio `index.html` con JavaScript.
-- **Tamaño máximo del ZIP completo: 10 MB** (10.000.000 bytes, que es lo que muestra el Finder de macOS). Se mide sobre el archivo `.zip` ya comprimido, no sobre su contenido descomprimido. El límite viene del antivirus: el ZIP entero se escanea antes de publicarse y el servicio de escaneo no admite más. Un ZIP mayor se rechaza en la subida con un mensaje explícito.
+- **Tamaño máximo del ZIP completo: 3,5 MB** (3.500.000 bytes, que es lo que muestra el Finder de macOS). Se mide sobre el archivo `.zip` ya comprimido, no sobre su contenido descomprimido. El límite viene del antivirus: el ZIP entero se escanea antes de publicarse y la cuenta gratuita del servicio de escaneo no admite más (hasta el 28 de octubre de 2026 este contrato decía 10 MB, un error). Con un plan de pago del antivirus se podrá subir. Un ZIP mayor se rechaza en la subida con un mensaje explícito.
 - **Límites del contenido descomprimido** (`PACKAGE_LIMITS`, protección contra ZIP bomb): como mucho **1.000 entradas**, **60 MB** descomprimidos en total y **25 MB por fichero**. Se miden sobre el tamaño declarado de cada entrada y se comprueban también contra lo que realmente se infla: un ZIP cuya cabecera miente sobre su tamaño se rechaza con un mensaje de validación (no con un error 500).
 - **Nada de rutas que salgan de la carpeta del paquete**: ninguna ruta interna puede contener `..` ni empezar por `/`. Cualquier entrada así hace que se rechace el ZIP entero.
 - **Sin symlinks** dentro del ZIP — se rechaza el ZIP entero si se detecta alguno.
@@ -90,7 +90,7 @@ Añadido el 15 de octubre. Un insight o una tool **no tienen ficha propia en el 
 - **Mínimo 1200 × 630 píxeles**, que es también el tamaño recomendado. Se admite cualquier tamaño mayor con la misma proporción (2400 × 1260 sirve).
 - **Proporción 1,91 : 1** (1200 × 630), con un margen del ±5 %. Una imagen cuadrada o vertical se rechaza: las redes la recortarían por el centro y se perdería lo importante. Conviene dejar el contenido clave en el tercio central.
 - **Máximo 5 MB.** Para una tarjeta basta con mucho menos (un PNG de 1200 × 630 suele quedar entre 100 y 400 KB).
-- Va dentro de `assets/` como el resto, así que **cuenta para el límite de 10 MB del ZIP**, y se sirve igual que cualquier otro asset del paquete.
+- Va dentro de `assets/` como el resto, así que **cuenta para el límite de 3,5 MB del ZIP**, y se sirve igual que cualquier otro asset del paquete.
 
 Otras cosas que conviene saber:
 
@@ -334,7 +334,7 @@ Los archivos de `assets/` **no llevan la versión en su dirección** (`/tools/mi
 - [ ] CSS colgado de una clase de contenedor propio, sin estilar `body`/`html` directamente, ni depender de atributos del `<body>` (§6)
 - [ ] Si es un Insight: no hay que hacer nada para la analítica, la apertura se registra sola (§6.7)
 - [ ] Si es una Tool con alguna acción real (generar, descargar, transformar...): llama a `window.GreenerAnalytics.toolUsed('acción')` tras esa acción — si no, mostrará cero uso en analítica aunque reciba visitas (§6.7)
-- [ ] ZIP completo por debajo de 10 MB (la imagen para compartir cuenta)
+- [ ] ZIP completo por debajo de 3,5 MB (la imagen para compartir cuenta)
 - [ ] Sin rutas `..` ni symlinks (si se ha construido el ZIP con herramientas estándar, esto no suele dar problema — es una comprobación de seguridad, no algo que haya que montar a mano)
 - [ ] Nada de `100vw`/`100vh`/`window.innerWidth`/`window.innerHeight` en el código — solo `100%` o las variables `--greener-available-*`
 - [ ] Probado visualmente redimensionando la ventana del navegador (§6) — el viewport es real y dinámico por visitante desde el 21 de septiembre, ya no hay un único tamaño fijo contra el que probar

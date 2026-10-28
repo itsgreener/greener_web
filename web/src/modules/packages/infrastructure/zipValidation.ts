@@ -7,7 +7,10 @@ import {
   type PackageManifestInput,
 } from '@/modules/packages/domain/manifestSchema'
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
-import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
+import {
+  PACKAGE_LIMITS,
+  formatMegabytes,
+} from '@/modules/packages/domain/packageLimits'
 import type {
   PackageZipValidator,
   ValidatedPackage,
@@ -84,7 +87,7 @@ const SERVICE_WORKER_REGEX = /serviceWorker\s*\.\s*register\s*\(/i
 export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   if (buffer.byteLength > PACKAGE_LIMITS.maxZipSizeBytes) {
     throw new PackageValidationError([
-      `El ZIP supera el límite de ${PACKAGE_LIMITS.maxZipSizeBytes / 1_000_000} MB.`,
+      `El ZIP supera el límite de ${formatMegabytes(PACKAGE_LIMITS.maxZipSizeBytes)}.`,
     ])
   }
 

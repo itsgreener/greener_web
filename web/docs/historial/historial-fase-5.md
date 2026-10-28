@@ -2182,3 +2182,24 @@ Al probar el SMTP roto, Greener vio el mensaje de éxito sin que saliera ningún
 **Tests.** `stagedUpload.test.ts` (ruta, lectura, tope, borrado en éxito y en error), `supabasePackageUploadStaging.test.ts`, `packageUploadDirect.test.tsx` (el componente sube con la URL firmada, no envía el fichero a la acción, rechaza un ZIP de más de 10 MB sin pedir nada y muestra los errores) y los de `packageActions.test.ts` reescritos. 295 ficheros y **3345 tests en verde**; `tsc`, ESLint y `next build` limpios.
 
 **Para Greener.** Probar en la preview de Vercel con `rings_prueba_6mb.zip` (6 MB reales, estructura y `metadata` correctos): debe subirse como borrador. Después, un ZIP de más de 10 MB debe rechazarse en el navegador con el mensaje del límite, y uno mal formado (por ejemplo, con la carpeta envolvente de Finder) debe devolver el error del contrato en vez de uno genérico.
+
+### 2.116 El tope real del antivirus es de 3,5 MB, no de 10 (28 oct 2026)
+
+**Qué pasó.** Al probar `rings_prueba_6mb.zip` en la preview, la subida directa funcionó (el ZIP llegó a la validación y al antivirus) pero Cloudmersive respondió 400. Greener recibió el mismo día un correo del servicio: «Your API call exceeded 3.5 MB file size limit of free tier, causing failures». El código y el contrato daban por hecho que la cuenta gratuita admitía 10 MB (`CLOUDMERSIVE_MAX_FILE_BYTES`, `PACKAGE_LIMITS.maxZipSizeBytes`, `TALENT_FILE_LIMITS.maxFileBytes`); era un error de la documentación que se asumió, no del servicio.
+
+**Decisión de Greener.** Seguir en la cuenta gratuita y bajar los topes a **3,5 MB decimales (3.500.000 bytes)**. Se aplica a: ZIP de tools/insights, escáner, CV del formulario de talent y CV de la subida del ABM. El mensaje en español usa la coma («3,5 MB», `formatMegabytes`). Un fichero mayor se rechaza en el navegador (ZIP) o en el servidor (CV) antes de escanear, como hasta ahora.
+
+**Consecuencias.**
+- 3,5 MB queda por debajo del límite de ~4,5 MB que Vercel pone al cuerpo de una función. La subida directa del ZIP (§2.115) se mantiene, pero ya no es imprescindible, y **los CV de talent no necesitan subida directa**: llegan de uno en uno por la ruta de siempre. Desaparece ese trabajo de S5.
+- `serverActions.bodySizeLimit` (20 MB) y `proxyClientMaxBodySize` (25 MB) siguen como estaban (un test exige que sean mayores que el tope del ZIP).
+- El formulario público de talent vive fuera de este repositorio y puede seguir avisando de «10 MB»: hay que cambiar ese texto y su comprobación en el cliente a 3,5 MB. Hasta entonces, un CV de entre 3,5 y 10 MB se subirá y la web lo rechazará con `file_too_large`.
+- La imagen para compartir (`ogImage`, hasta 5 MB) sigue teniendo su regla, pero cuenta para los 3,5 MB del ZIP.
+- Si algún día se contrata un plan de pago de Cloudmersive, se sube el valor en las tres constantes; un test comprueba que no se desalineen.
+
+**Diagnóstico.** `cloudmersiveVirusScan.ts` registra ahora en el log del servidor el cuerpo del error del servicio (recortado a 500 caracteres); no se añade al mensaje que ve el admin ni a la base. Con eso el 400 se habría explicado a la primera.
+
+**Documentación.** Contrato del ZIP, contrato de datos de talent, guía de puesta en marcha de talent, plan de talent, consulta al asesor (el formulario pide ficheros de 3,5 MB) y `despliegue.md`.
+
+**Verificación.** 295 ficheros y **3347 tests en verde**; `tsc`, ESLint y `next build` limpios.
+
+**Para Greener.** 1) Probar en la preview con `rings_prueba.zip` (55 KB): debe pasar el antivirus. Un ZIP de 3,5 a 4 MB debe rechazarse en el navegador con «El ZIP supera el límite de 3,5 MB.» 2) Cambiar en el formulario público de talent el texto y la comprobación de «10 MB» a 3,5 MB.
