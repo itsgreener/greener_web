@@ -9,12 +9,14 @@ import {
  * del feed: `lib/security/signedToken.ts` (HMAC-SHA256, payload en
  * base64url + firma).
  *
- * Autocontenido y sin estado a propósito: el propio token lleva firmados
- * `contentId` y `expiresAt`, no hay tabla ni migración nueva que
- * mantener. La contrapartida es que no se puede revocar un token antes
- * de que caduque — solo esperar. Por eso la vigencia es corta: 24 horas
- * (decidido el 27 oct 2026; antes eran 7 días, SEC-ADM-D2). Cubre una
- * revisión en el día; si hace falta más, se genera otro enlace.
+ * Autocontenido y sin estado: el propio token lleva firmados `contentId`,
+ * `issuedAt` y `expiresAt`. Vigencia corta, 24 horas (decidido el 27 oct 2026;
+ * antes eran 7 días, SEC-ADM-D2): cubre una revisión en el día; si hace falta
+ * más, se genera otro enlace.
+ *
+ * Revocar un enlace antes de que caduque (29 oct 2026) no se guarda en el
+ * token sino en el contenido (`content.preview_revoked_at`): el enlace solo
+ * vale si `issuedAt` es posterior. Ver `previewRevocations.ts`.
  *
  * El preview es para revisar contenido *antes* de que pase por primera
  * vez a `published` — no hay concepto de "borrador sobre lo publicado"
@@ -24,24 +26,31 @@ export const PREVIEW_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
 export interface PreviewTokenPayload {
   contentId: string
+  /** Cuándo se generó el enlace (ms); lo compara la revocación. */
+  issuedAt: number
   expiresAt: number
 }
 
 export function encodePreviewToken(contentId: string): string {
+  const issuedAt = Date.now()
   const payload: PreviewTokenPayload = {
     contentId,
-    expiresAt: Date.now() + PREVIEW_TOKEN_TTL_MS,
+    issuedAt,
+    expiresAt: issuedAt + PREVIEW_TOKEN_TTL_MS,
   }
   return encodeSignedToken('preview', payload)
 }
 
 /**
- * Devuelve el `contentId` si el token es válido y no ha caducado; null en
- * cualquier otro caso (token ajeno, corrupto o caducado). Decodificar el
- * token no basta: quien llama comprueba además que ese `contentId` es el del
- * slug pedido (ver `resolvePreviewContext`).
+ * Devuelve el `contentId` y la fecha de emisión si el token es válido y no ha
+ * caducado; null en cualquier otro caso (token ajeno, corrupto, caducado o de
+ * antes de que el token llevara fecha de emisión). Decodificar el token no
+ * basta: quien llama comprueba además que ese `contentId` es el del slug
+ * pedido y que no está revocado (ver `resolvePreviewContext`).
  */
-export function decodePreviewToken(token: string): string | null {
+export function decodePreviewToken(
+  token: string,
+): { contentId: string; issuedAt: number } | null {
   const parsed = decodeSignedToken(
     'preview',
     token,
@@ -50,6 +59,7 @@ export function decodePreviewToken(token: string): string | null {
   if (
     !parsed ||
     typeof parsed.contentId !== 'string' ||
+    typeof parsed.issuedAt !== 'number' ||
     typeof parsed.expiresAt !== 'number'
   ) {
     return null
@@ -57,5 +67,5 @@ export function decodePreviewToken(token: string): string | null {
 
   if (Date.now() >= parsed.expiresAt) return null
 
-  return parsed.contentId
+  return { contentId: parsed.contentId, issuedAt: parsed.issuedAt }
 }

@@ -2225,3 +2225,27 @@ Al probar el SMTP roto, Greener vio el mensaje de éxito sin que saliera ningún
 **Verificación.** 297 ficheros y **3375 tests en verde**; `tsc`, ESLint, Prettier y `next build` limpios (sin «Dynamic server usage»).
 
 **Para Greener.** 1) Crear la base de Upstash Redis en una región de la UE (Vercel → Storage / Marketplace → Upstash, o upstash.com), con TLS. 2) Copiar `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN` (o dejar que la integración de Vercel ponga las `KV_REST_API_*`) a las variables del proyecto en Vercel, en Production y en Preview. 3) Redesplegar y comprobar que en el log de arranque ya no sale el aviso «Sin almacén compartido de límites». 4) Prueba: 13 `POST /api/feed/sessions` seguidos en menos de un minuto con la misma cookie deben devolver, desde la 13.ª, la sesión anterior (código 200) en vez de crear una nueva (201); sin cookie, el corte por IP llega a la petición 61. 5) Avisar al asesor de que Upstash es un nuevo encargado.
+
+### 2.118 Revocar enlaces de preview (SEC-ADM-D2, 29 oct 2026)
+
+**Decisión de Greener.** Poder invalidar un enlace de preview antes de que caduque (24 h), con un botón en el ABM y con migración SQL (no con Upstash, para que la revocación no dependa de un servicio externo).
+
+**Cómo funciona.** El token sigue siendo firmado y sin estado, pero ahora lleva también `issuedAt` (cuándo se generó). Cada contenido tiene una columna nueva, `content.preview_revoked_at`: los enlaces emitidos hasta esa fecha (incluida) ya no valen, y los que se generen después sí. El botón **«Revocar enlaces»** (junto a «Preview», en borradores y programados, con confirmación) llama a la función SQL `revoke_content_preview_links(p_content_id, p_revoked_at)`, que comprueba `is_admin()`, escribe la fecha, anota `preview_revoke` en el registro de actividad y devuelve `P0002` si el contenido no existe.
+
+**Al abrir un preview.** `resolvePreviewContext` decodifica el token y, antes de cualquier lectura con privilegios, consulta `preview_revoked_at` con el cliente de servicio (una consulta por petición con token válido; sin token no hay ninguna). Si el enlace está revocado, se cae al camino público: el mismo resultado que con un token caducado. Si la consulta falla, la petición falla: no se sirve un borrador sin poder comprobar la revocación. En empate de milésima entre emisión y revocación se rechaza.
+
+**Tokens ya emitidos.** Los generados antes de este cambio no llevan `issuedAt` y dejan de valer (como mucho se perdían 24 h; basta con generar otro).
+
+**Cabeceras.** El proxy añade `Cache-Control: private, no-store`, `Referrer-Policy: no-referrer` y `X-Robots-Tag: noindex, nofollow` a las respuestas GET con `?preview=` (el token no viaja en el Referer a otros sitios ni se cachea ni se indexa).
+
+**Corregido de paso.** El aviso del ABM bajo el enlace decía «Caduca en 7 días»; son 24 horas desde el 27 oct.
+
+**Capas.** Puertos `PreviewRevocationReader` y `PreviewRevoker` en el dominio (`previewRevocations.ts`), implementación en `supabasePreviewRevocations.ts` (el lector recibe el cliente de servicio desde el container, así que el fichero no lo importa y no cambia la lista cerrada de importadores), caso de uso `revokePreviewLinks`.
+
+**Tests.** `previewRevocation.test.ts` (regla de empate, caso de uso, función SQL y lector), ampliaciones de `previewToken.test.ts` y `resolvePreviewContext.test.ts` (revocado, emitido después, empate, sin consulta sin token o con token corrupto), `revokePreviewLinksAction.test.ts`, `proxyPreviewHeaders.test.ts` y el botón en `otherAbmUi.test.tsx`.
+
+**Sigue sin verificar.** Si el script de Plausible envía la query `?preview=` al servicio (la analítica no cuenta los previews, pero el token podría quedar en la URL registrada). Se comprueba en el panel de Plausible: buscar páginas con `preview=` en la lista.
+
+**Verificación.** 300 ficheros y **3405 tests en verde**; `tsc` y ESLint limpios.
+
+**Para Greener.** 1) Ejecutar en el SQL editor de Supabase `supabase/migrations/20261029100000_content_preview_revocation.sql` (añade la columna y la función). Hasta entonces el botón y la apertura de cualquier preview dan error. 2) Probar: generar un enlace de un borrador y abrirlo (debe verse); pulsar «Revocar enlaces» y recargar (debe dar 404); generar otro enlace (debe funcionar). 3) Mirar en Plausible si aparece alguna página con `preview=`.

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
+import { encodeSignedToken } from '@/lib/security/signedToken'
 import {
   encodePreviewToken,
   decodePreviewToken,
@@ -12,7 +13,27 @@ describe('token de preview firmado (§15.3)', () => {
 
   it('codifica y decodifica el mismo contentId', () => {
     const token = encodePreviewToken('content-a')
-    expect(decodePreviewToken(token)).toBe('content-a')
+    expect(decodePreviewToken(token)?.contentId).toBe('content-a')
+  })
+
+  it('lleva la fecha de emisión, que es la que compara la revocación', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T10:00:00.000Z'))
+
+    const token = encodePreviewToken('content-a')
+
+    expect(decodePreviewToken(token)?.issuedAt).toBe(
+      new Date('2026-01-01T10:00:00.000Z').getTime(),
+    )
+  })
+
+  it('rechaza un token bien firmado pero sin fecha de emisión (formato anterior a la revocación)', () => {
+    const legacy = encodeSignedToken('preview', {
+      contentId: 'content-a',
+      expiresAt: Date.now() + 1000,
+    })
+
+    expect(decodePreviewToken(legacy)).toBeNull()
   })
 
   it('rechaza un token con la firma alterada', () => {
@@ -46,7 +67,7 @@ describe('token de preview firmado (§15.3)', () => {
     const token = encodePreviewToken('content-a')
 
     vi.setSystemTime(new Date('2026-01-01T23:59:59.999Z'))
-    expect(decodePreviewToken(token)).toBe('content-a')
+    expect(decodePreviewToken(token)?.contentId).toBe('content-a')
 
     vi.setSystemTime(new Date('2026-01-02T00:00:00.001Z'))
     expect(decodePreviewToken(token)).toBeNull()

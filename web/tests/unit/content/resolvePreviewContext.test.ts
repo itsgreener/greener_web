@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 import { makeResolvePreviewContext } from '@/modules/content/application/resolvePreviewContext'
 import type { PublicContentReader } from '@/modules/content/domain/publicContentReader'
@@ -17,16 +17,21 @@ describe('resolvePreviewContext (§15.3)', () => {
   let publicReader: PublicContentReader
   let previewReader: PublicContentReader
   let makePreviewReader: ReturnType<typeof vi.fn>
+  let revokedAt: ReturnType<typeof vi.fn>
   let resolvePreviewContext: ReturnType<typeof makeResolvePreviewContext>
 
   function setup(publicContent: unknown, previewContent: unknown) {
     publicReader = fakeReader(publicContent)
     previewReader = fakeReader(previewContent)
     makePreviewReader = vi.fn(() => previewReader)
+    revokedAt = vi.fn(async () => null)
     resolvePreviewContext = makeResolvePreviewContext({
       publicReader,
       previewReader: makePreviewReader as () => PublicContentReader,
       decodePreviewToken,
+      revocations: {
+        revokedAt: revokedAt as (contentId: string) => Promise<number | null>,
+      },
     })
   }
 
@@ -100,6 +105,76 @@ describe('resolvePreviewContext (§15.3)', () => {
       content: null,
       reader: publicReader,
       isPreview: false,
+    })
+  })
+
+  describe('revocación de enlaces (SEC-ADM-D2)', () => {
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('un enlace emitido antes de la revocación no abre el borrador y no crea el lector con privilegios', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-01T10:00:00.000Z'))
+      setup(PUBLIC_CONTENT, PUBLIC_CONTENT)
+      const token = encodePreviewToken('content-a')
+
+      revokedAt.mockResolvedValue(
+        new Date('2026-01-01T10:30:00.000Z').getTime(),
+      )
+      vi.setSystemTime(new Date('2026-01-01T11:00:00.000Z'))
+
+      const result = await resolvePreviewContext('mi-caso', token)
+
+      expect(result.isPreview).toBe(false)
+      expect(result.reader).toBe(publicReader)
+      expect(revokedAt).toHaveBeenCalledWith('content-a')
+      expect(makePreviewReader).not.toHaveBeenCalled()
+    })
+
+    it('un enlace generado después de revocar funciona', async () => {
+      vi.useFakeTimers()
+      setup(null, PUBLIC_CONTENT)
+      revokedAt.mockResolvedValue(
+        new Date('2026-01-01T10:30:00.000Z').getTime(),
+      )
+      vi.setSystemTime(new Date('2026-01-01T10:45:00.000Z'))
+
+      const token = encodePreviewToken('content-a')
+      const result = await resolvePreviewContext('mi-caso', token)
+
+      expect(result.isPreview).toBe(true)
+    })
+
+    it('un enlace emitido en la misma milésima que la revocación se rechaza', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-01-01T10:30:00.000Z'))
+      setup(PUBLIC_CONTENT, PUBLIC_CONTENT)
+      const token = encodePreviewToken('content-a')
+
+      revokedAt.mockResolvedValue(
+        new Date('2026-01-01T10:30:00.000Z').getTime(),
+      )
+
+      expect((await resolvePreviewContext('mi-caso', token)).isPreview).toBe(
+        false,
+      )
+    })
+
+    it('sin token no se consulta la revocación', async () => {
+      setup(PUBLIC_CONTENT, PUBLIC_CONTENT)
+
+      await resolvePreviewContext('mi-caso', undefined)
+
+      expect(revokedAt).not.toHaveBeenCalled()
+    })
+
+    it('con un token corrupto no se consulta la revocación', async () => {
+      setup(PUBLIC_CONTENT, PUBLIC_CONTENT)
+
+      await resolvePreviewContext('mi-caso', 'basura-no-token')
+
+      expect(revokedAt).not.toHaveBeenCalled()
     })
   })
 

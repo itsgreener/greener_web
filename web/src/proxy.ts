@@ -8,6 +8,7 @@ import {
 import { env } from '@/lib/env'
 import { classifyBotTrap, logBotTrap } from '@/lib/botTraps'
 import { isAdminRoute } from '@/lib/adminRoute'
+import { PREVIEW_PARAM } from '@/modules/analytics/previewRequest'
 
 // especificacion-final-formato-detalle.md / contrato-zip-tools-insights.md
 // §12.4: estas rutas llevan su propia CSP, pensada para el contrato del
@@ -72,6 +73,18 @@ export async function proxy(request: NextRequest) {
 
   for (const [key, value] of Object.entries(securityHeaders)) {
     response.headers.set(key, value)
+  }
+
+  // Páginas con un enlace de preview (`?preview=<token>`, SEC-ADM-D2): el
+  // token da acceso a un borrador, así que no se cachea, no viaja en el
+  // Referer a otros sitios y no se indexa.
+  if (
+    request.method === 'GET' &&
+    request.nextUrl.searchParams.has(PREVIEW_PARAM)
+  ) {
+    response.headers.set('Cache-Control', 'private, no-store')
+    response.headers.set('Referrer-Policy', 'no-referrer')
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
   }
 
   if (isAdminRoute(pathname)) {

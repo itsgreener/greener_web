@@ -23,7 +23,9 @@ import {
 
 import {
   generatePreviewLinkAction,
+  revokePreviewLinksAction,
   type PreviewLinkActionState,
+  type RevokePreviewState,
 } from './previewActions'
 
 import styles from './PublishControls.module.css'
@@ -39,6 +41,7 @@ type Props = {
 const publishInitialState: PublishActionState = {}
 const scheduleInitialState: ScheduleActionState = {}
 const previewInitialState: PreviewLinkActionState = {}
+const revokeInitialState: RevokePreviewState = {}
 
 export default function PublishControls({
   contentId,
@@ -64,6 +67,11 @@ export default function PublishControls({
   const [previewState, previewAction, generatingPreview] = useActionState(
     generatePreviewLinkAction,
     previewInitialState,
+  )
+
+  const [revokeState, revokeAction, revoking] = useActionState(
+    revokePreviewLinksAction,
+    revokeInitialState,
   )
 
   const [rawPublishAt, setRawPublishAt] = useState('')
@@ -98,6 +106,19 @@ export default function PublishControls({
             hidden={{ id: contentId }}
             label="Preview"
             pendingLabel="Generando…"
+          />
+        )}
+
+        {status !== 'published' && previewAvailable && (
+          <AdminActionFormView
+            action={revokeAction}
+            pending={revoking}
+            state={revokeState}
+            showMessages={false}
+            hidden={{ id: contentId }}
+            confirmText="Los enlaces de preview generados hasta ahora dejarán de funcionar. ¿Continuar?"
+            label="Revocar enlaces"
+            pendingLabel="Revocando…"
           />
         )}
 
@@ -174,13 +195,21 @@ export default function PublishControls({
           </AdminField>
 
           <small className={styles.hint}>
-            Caduca en 7 días. Haz clic en el campo para seleccionarlo.
+            Caduca en 24 horas. Haz clic en el campo para seleccionarlo.
           </small>
         </div>
       )}
 
       {previewState.error && (
         <AdminMessage kind="error">{previewState.error}</AdminMessage>
+      )}
+
+      {revokeState.error && (
+        <AdminMessage kind="error">{revokeState.error}</AdminMessage>
+      )}
+
+      {revokeState.message && (
+        <AdminMessage kind="success">{revokeState.message}</AdminMessage>
       )}
 
       {publishState.error && (

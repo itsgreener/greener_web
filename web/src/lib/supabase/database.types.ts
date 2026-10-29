@@ -185,6 +185,7 @@ export type Database = {
           default_locale: Database["public"]["Enums"]["locale"]
           id: string
           og_media_id: string | null
+          preview_revoked_at: string | null
           publish_at: string | null
           slug: string
           status: Database["public"]["Enums"]["content_status"]
@@ -196,6 +197,7 @@ export type Database = {
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
           og_media_id?: string | null
+          preview_revoked_at?: string | null
           publish_at?: string | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"]
@@ -207,6 +209,7 @@ export type Database = {
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
           og_media_id?: string | null
+          preview_revoked_at?: string | null
           publish_at?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"]
@@ -836,6 +839,10 @@ export type Database = {
       }
       schedule_content: {
         Args: { p_content_id: string; p_publish_at: string }
+        Returns: string
+      }
+      revoke_content_preview_links: {
+        Args: { p_content_id: string; p_revoked_at: string }
         Returns: string
       }
       unpublish_content: { Args: { p_content_id: string }; Returns: string }

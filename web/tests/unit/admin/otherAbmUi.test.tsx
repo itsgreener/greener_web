@@ -19,6 +19,7 @@ vi.mock('@/app/admin/(panel)/contents/[id]/edit/publishActions', () => ({
 
 vi.mock('@/app/admin/(panel)/contents/[id]/edit/previewActions', () => ({
   generatePreviewLinkAction: vi.fn(),
+  revokePreviewLinksAction: vi.fn(),
 }))
 
 vi.mock('@/app/admin/(panel)/contents/[id]/edit/translationActions', () => ({
@@ -257,6 +258,9 @@ describe('PublishControls — vista previa (§6.7 del plan)', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Preview' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Revocar enlaces' }),
+    ).toBeInTheDocument()
   })
 
   it('un other no lo tiene: no hay vista previa de borrador', () => {
@@ -270,6 +274,7 @@ describe('PublishControls — vista previa (§6.7 del plan)', () => {
     )
 
     expect(screen.queryByRole('button', { name: 'Preview' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Revocar enlaces' })).toBeNull()
     expect(screen.getByRole('button', { name: /Publicar/ })).toBeInTheDocument()
   })
 })

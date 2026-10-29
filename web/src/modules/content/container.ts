@@ -33,6 +33,7 @@ import {
   previewOfType,
 } from './application/resolvePreviewContext'
 import { resolveDetailCover } from './application/resolveDetailCover'
+import { makeRevokePreviewLinks } from './application/revokePreviewLinks'
 import { makeUnpublishContent } from './application/unpublishContent'
 import { makeUpdateContent } from './application/updateContent'
 import { makeUpdateOtherFrequency } from './application/updateOtherFrequency'
@@ -49,6 +50,10 @@ import { supabaseContentRepository } from './infrastructure/supabaseContentRepos
 import { supabaseContentTranslationRepository } from './infrastructure/supabaseContentTranslationRepository'
 import { supabaseEpisodeRepository } from './infrastructure/supabaseEpisodeRepository'
 import { supabaseOtherRepository } from './infrastructure/supabaseOtherRepository'
+import {
+  createSupabasePreviewRevocationReader,
+  supabasePreviewRevoker,
+} from './infrastructure/supabasePreviewRevocations'
 import { requestScopedReader } from './infrastructure/requestScopedReader'
 import { createSupabasePublicContentReader } from './infrastructure/supabasePublicContentReader'
 
@@ -149,6 +154,14 @@ export const resolvePreviewContext = cache(
         createSupabasePublicContentReader(createServiceClient()),
       ),
     decodePreviewToken,
+    // Perezoso, como `previewReader`: el cliente de servicio solo se crea
+    // cuando llega un token válido.
+    revocations: {
+      revokedAt: (contentId) =>
+        createSupabasePreviewRevocationReader(createServiceClient()).revokedAt(
+          contentId,
+        ),
+    },
   }),
 )
 
@@ -169,6 +182,10 @@ export async function resolvePreviewOfType(
  * primer pin. Función pura sobre el lector que devuelve `resolvePreviewContext`.
  */
 export { resolveDetailCover }
+
+export const revokePreviewLinks = makeRevokePreviewLinks({
+  revoker: supabasePreviewRevoker,
+})
 
 export const generatePreviewLink = makeGeneratePreviewLink({
   contents,

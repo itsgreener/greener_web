@@ -3,6 +3,10 @@ import type { Locale } from '@/modules/shared/domain/locale'
 
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import type { PublicContentReader } from '@/modules/content/domain/publicContentReader'
+import {
+  isPreviewLinkRevoked,
+  type PreviewRevocationReader,
+} from '@/modules/content/domain/previewRevocations'
 
 export interface PreviewResolution {
   content: PublicContent | null
@@ -22,7 +26,7 @@ export interface PreviewResolution {
  * para que las páginas lo reutilicen en sus lecturas secundarias — la RLS
  * pública las bloquearía igual.
  *
- * Sin token, o con uno inválido/caducado/ajeno a este slug, se cae al
+ * Sin token, o con uno inválido/caducado/revocado/ajeno a este slug, se cae al
  * camino público normal: el mismo resultado que si esta función no
  * existiera.
  */
@@ -30,11 +34,16 @@ export function makeResolvePreviewContext({
   publicReader,
   previewReader,
   decodePreviewToken,
+  revocations,
 }: {
   publicReader: PublicContentReader
   previewReader: () => PublicContentReader
-  /** Devuelve el id del contenido si el token es válido; null si no. */
-  decodePreviewToken: (token: string) => string | null
+  /** Devuelve el id del contenido y la fecha de emisión si el token es válido; null si no. */
+  decodePreviewToken: (
+    token: string,
+  ) => { contentId: string; issuedAt: number } | null
+  /** Desde cuándo están revocados los enlaces de cada contenido (SEC-ADM-D2). */
+  revocations: PreviewRevocationReader
 }) {
   return async function resolvePreviewContext(
     slug: string,
@@ -42,9 +51,17 @@ export function makeResolvePreviewContext({
     locale?: Locale,
   ): Promise<PreviewResolution> {
     if (previewToken) {
-      const contentId = decodePreviewToken(previewToken)
+      const claims = decodePreviewToken(previewToken)
 
-      if (contentId) {
+      // Primero la revocación, antes de cualquier lectura con privilegios.
+      if (
+        claims &&
+        !isPreviewLinkRevoked(
+          claims.issuedAt,
+          await revocations.revokedAt(claims.contentId),
+        )
+      ) {
+        const { contentId } = claims
         const reader = previewReader()
         const content = await reader.contentBySlug(slug, locale)
 

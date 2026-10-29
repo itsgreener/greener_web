@@ -8,7 +8,10 @@ import {
 import { isUuid } from '@/lib/validation/uuid'
 
 import { recordAuditEvent } from '@/modules/audit/container'
-import { generatePreviewLink } from '@/modules/content/container'
+import {
+  generatePreviewLink,
+  revokePreviewLinks,
+} from '@/modules/content/container'
 
 export type PreviewLinkActionState = {
   url?: string
@@ -54,4 +57,43 @@ export async function generatePreviewLinkAction(
   }
 
   return { url }
+}
+
+export type RevokePreviewState = {
+  error?: string
+  message?: string
+}
+
+/**
+ * Invalida los enlaces de preview ya generados de un contenido (SEC-ADM-D2):
+ * para cuando uno se ha compartido por error y no se quiere esperar a que
+ * caduque (24 h). Los enlaces que se generen después funcionan con normalidad.
+ * El registro de actividad lo escribe la propia función SQL.
+ */
+export async function revokePreviewLinksAction(
+  _previousState: RevokePreviewState,
+  formData: FormData,
+): Promise<RevokePreviewState> {
+  if (!(await isAdminRequest())) return { error: ADMIN_REQUIRED_MESSAGE }
+
+  const id = formData.get('id')
+
+  if (!isUuid(id)) {
+    return { error: 'El identificador del contenido no es válido.' }
+  }
+
+  try {
+    if (!(await revokePreviewLinks(id))) {
+      return { error: 'No se ha encontrado el contenido.' }
+    }
+  } catch (error) {
+    console.error('Admin · revokePreviewLinksAction:', error)
+
+    return { error: 'No se han podido revocar los enlaces.' }
+  }
+
+  return {
+    message:
+      'Enlaces revocados: los generados hasta ahora ya no abren el borrador.',
+  }
 }
