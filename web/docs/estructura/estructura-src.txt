@@ -39,6 +39,7 @@ src/app/admin/(auth)/login/page.module.css
 src/app/admin/(auth)/login/page.tsx
 src/app/admin/(panel)/audit/page.module.css
 src/app/admin/(panel)/audit/page.tsx
+src/app/admin/(panel)/authActions.ts
 src/app/admin/(panel)/contents/ContentFilterBar.tsx
 src/app/admin/(panel)/contents/OtherOccupationNotice.tsx
 src/app/admin/(panel)/contents/[id]/edit/BulkPinUpload/BulkPinRow.module.css
@@ -134,9 +135,12 @@ src/app/api/admin/media/sign-video/route.ts
 src/app/api/admin/media/sign/route.ts
 src/app/api/admin/talent/cv/route.ts
 src/app/api/analytics/package/route.ts
+src/app/api/cron/_lib/cronAuth.ts
+src/app/api/cron/cleanup-staging/route.ts
 src/app/api/feed/[sessionId]/route.ts
 src/app/api/feed/sessions/route.ts
 src/app/api/health/route.ts
+src/app/api/talent/_lib/boundedBody.ts
 src/app/api/talent/_lib/purgeAuth.ts
 src/app/api/talent/_lib/talentRequest.ts
 src/app/api/talent/candidates/route.ts
@@ -275,6 +279,7 @@ src/fonts/helvetica-neue-400.woff2
 src/fonts/helvetica-neue-700.woff2
 src/fonts/kinder-400.woff2
 src/instrumentation.ts
+src/lib/adminRoute.ts
 src/lib/auth/adminSession.ts
 src/lib/botTraps.ts
 src/lib/cache/feedCache.ts
@@ -288,15 +293,20 @@ src/lib/fonts.ts
 src/lib/forms/README.md
 src/lib/forms/formActionState.ts
 src/lib/forms/honeypot.ts
+src/lib/http/bearerSecret.ts
 src/lib/http/clientIp.ts
 src/lib/http/clientIpFromHeaders.ts
 src/lib/http/packageAssetResponse.ts
 src/lib/http/packageErrorResponse.ts
+src/lib/http/packageSecurityHeaders.ts
 src/lib/rateLimit/inMemoryRateLimiter.ts
+src/lib/rateLimit/sharedRateLimiter.ts
+src/lib/rateLimit/upstashRest.ts
 src/lib/rateLimit/visitorCookie.ts
 src/lib/security/signedToken.ts
 src/lib/securityHeaders.ts
 src/lib/serverEnv.ts
+src/lib/supabase/browserCookies.ts
 src/lib/supabase/client.ts
 src/lib/supabase/database.ts
 src/lib/supabase/database.types.ts
@@ -306,6 +316,7 @@ src/lib/supabase/publicReadClient.ts
 src/lib/supabase/repositoryError.ts
 src/lib/supabase/server.ts
 src/lib/supabase/serviceClient.ts
+src/lib/supabase/sessionCookies.ts
 src/lib/useMotionPreferences.ts
 src/lib/validation/idSchema.ts
 src/lib/validation/uuid.ts
@@ -343,6 +354,7 @@ src/modules/content/application/publishContent.ts
 src/modules/content/application/removeCaseCarouselMedia.ts
 src/modules/content/application/resolveDetailCover.ts
 src/modules/content/application/resolvePreviewContext.ts
+src/modules/content/application/revokePreviewLinks.ts
 src/modules/content/application/unpublishContent.ts
 src/modules/content/application/updateContent.ts
 src/modules/content/application/updateOtherFrequency.ts
@@ -368,6 +380,7 @@ src/modules/content/domain/llmsTxt.ts
 src/modules/content/domain/otherRepository.ts
 src/modules/content/domain/otherSchema.ts
 src/modules/content/domain/pinFooter.ts
+src/modules/content/domain/previewRevocations.ts
 src/modules/content/domain/publicContent.ts
 src/modules/content/domain/publicContentReader.ts
 src/modules/content/domain/reservedSlugs.ts
@@ -389,6 +402,7 @@ src/modules/content/infrastructure/supabaseContentRepository.ts
 src/modules/content/infrastructure/supabaseContentTranslationRepository.ts
 src/modules/content/infrastructure/supabaseEpisodeRepository.ts
 src/modules/content/infrastructure/supabaseOtherRepository.ts
+src/modules/content/infrastructure/supabasePreviewRevocations.ts
 src/modules/content/infrastructure/supabasePublicContentReader.ts
 src/modules/feed/application/createFeedSession.ts
 src/modules/feed/application/getFeedSessionBatch.ts
@@ -416,6 +430,7 @@ src/modules/feed/infrastructure/feedRateLimit.ts
 src/modules/feed/infrastructure/feedSessionRepository.ts
 src/modules/feed/infrastructure/supabaseFeedSource.ts
 src/modules/health/container.ts
+src/modules/health/domain/healthLimits.ts
 src/modules/health/infrastructure/databaseHealth.ts
 src/modules/masonry/domain/detailLayout.ts
 src/modules/masonry/domain/labelHeight.ts
@@ -467,6 +482,7 @@ src/modules/packages/application/composeToolDocument.ts
 src/modules/packages/application/deleteHtmlPackageVersion.ts
 src/modules/packages/application/publishHtmlPackageVersion.ts
 src/modules/packages/application/renderPackageHead.ts
+src/modules/packages/application/sweepStagedUploads.ts
 src/modules/packages/application/uploadHtmlPackage.ts
 src/modules/packages/container.ts
 src/modules/packages/domain/assetCaching.ts
@@ -483,6 +499,8 @@ src/modules/packages/domain/packageVersionSchema.ts
 src/modules/packages/domain/publishedPackageSource.ts
 src/modules/packages/infrastructure/cloudmersiveVirusScan.ts
 src/modules/packages/infrastructure/supabaseHtmlPackageRepository.ts
+src/modules/packages/infrastructure/supabasePackageUploadStaging.ts
+src/modules/packages/infrastructure/supabaseStagedUploadSweeper.ts
 src/modules/packages/infrastructure/supabaseStorageSource.ts
 src/modules/packages/infrastructure/zipValidation.ts
 src/modules/pin/application/attachPinImage.ts

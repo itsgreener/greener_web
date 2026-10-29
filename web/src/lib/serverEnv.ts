@@ -200,6 +200,21 @@ export const getTalentPurgeEnv = createScopedEnv('Talent (purga)', () =>
 )
 
 /**
+ * Credencial de las tareas programadas (`/api/cron/*`; Vercel Cron la envía
+ * como `Authorization: Bearer`). Opcional y en su PROPIO ámbito, como la de la
+ * purga: si falta o es corta solo se cierran esas rutas y la web sigue
+ * sirviendo. Mínimo 32 caracteres (`openssl rand -base64 48`).
+ */
+export const getCronEnv = createScopedEnv('Tareas programadas', () =>
+  z.object({
+    CRON_SECRET: z.preprocess(
+      (value) => (value === '' ? undefined : value),
+      z.string().min(32).optional(),
+    ),
+  }),
+)
+
+/**
  * Audiencia de Mailchimp de talent. Es otra audiencia de la MISMA cuenta que la
  * newsletter de Greener (misma clave de API y mismo prefijo, ver
  * `getMailchimpEnv`), así que solo cambia el identificador.
@@ -288,6 +303,7 @@ const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
   ['Mailchimp', getMailchimpEnv],
   ['Talent', getTalentEnv],
   ['Talent (purga)', getTalentPurgeEnv],
+  ['Tareas programadas', getCronEnv],
   ['Mailchimp (talent)', getTalentMailchimpEnv],
 ]
 

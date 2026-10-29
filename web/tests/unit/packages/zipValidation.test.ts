@@ -3,7 +3,11 @@ import { describe, it, expect } from 'vitest'
 import AdmZip from 'adm-zip'
 
 import { PackageValidationError } from '@/modules/packages/domain/packageErrors'
-import { validateHtmlPackageZip } from '@/modules/packages/infrastructure/zipValidation'
+import {
+  isOsJunkPath,
+  validateHtmlPackageZip,
+} from '@/modules/packages/infrastructure/zipValidation'
+import { PACKAGE_LIMITS } from '@/modules/packages/domain/packageLimits'
 import {
   OG_IMAGE_PATH,
   VALID_METADATA,
@@ -193,5 +197,169 @@ describe('validateHtmlPackageZip', () => {
     const resultB = validateHtmlPackageZip(bufferB)
 
     expect(resultA.checksum).toBe(resultB.checksum)
+  })
+})
+
+describe('ZIP mal preparado: mensajes claros', () => {
+  function issuesOf(buffer: Buffer): string[] {
+    try {
+      validateHtmlPackageZip(buffer)
+    } catch (error) {
+      if (error instanceof PackageValidationError) return error.issues
+      throw error
+    }
+
+    throw new Error('Se esperaba un rechazo de validación.')
+  }
+
+  /** ZIP con la misma ruta dos veces: adm-zip no puede crearlo, se escribe a mano. */
+  function zipWithDuplicate(): Buffer {
+    const zip = new AdmZip()
+    zip.addFile('index.html', Buffer.from('<html></html>'))
+    zip.addFile('assets/a.js', Buffer.from('1'))
+    zip.addFile('assets/b.js', Buffer.from('2'))
+
+    // Renombra la segunda entrada para que coincida con la primera, tanto en
+    // el directorio local como en el central (mismo largo: «a.js» / «b.js»).
+    return Buffer.from(
+      zip.toBuffer().toString('latin1').replaceAll('b.js', 'a.js'),
+      'latin1',
+    )
+  }
+
+  it('una ruta repetida se rechaza con un mensaje claro, no con el error genérico', () => {
+    expect(issuesOf(zipWithDuplicate())).toEqual([
+      'El ZIP contiene dos ficheros con la misma ruta: "assets/a.js".',
+    ])
+  })
+
+  it('mayúsculas distintas no cuentan como ruta repetida', () => {
+    const zip = new AdmZip()
+    zip.addFile('assets/a.js', Buffer.from('1'))
+    zip.addFile('assets/A.JS', Buffer.from('2'))
+
+    expect(issuesOf(zip.toBuffer())[0]).toMatch(/Falta index.html/)
+  })
+
+  it('un fichero que no es un ZIP sigue dando el mensaje de siempre', () => {
+    expect(issuesOf(Buffer.from('esto no es un zip'))).toEqual([
+      'El archivo no es un ZIP válido.',
+    ])
+  })
+
+  it('con la carpeta comprimida en vez de su contenido, dice cuál es el problema', () => {
+    const zip = new AdmZip()
+    zip.addFile('rings/index.html', Buffer.from('<html></html>'))
+    zip.addFile('rings/manifest.json', Buffer.from('{}'))
+    zip.addFile('rings/assets/a.js', Buffer.from('1'))
+    zip.addFile('__MACOSX/rings/._index.html', Buffer.from('x'))
+    zip.addFile('.DS_Store', Buffer.from('x'))
+
+    const [message] = issuesOf(zip.toBuffer())
+
+    expect(message).toContain('Falta index.html en la raíz del ZIP (§12.2)')
+    expect(message).toContain('«rings»')
+    expect(message).toContain('no la carpeta que los contiene')
+  })
+
+  it('sin index.html ni carpeta envolvente, el mensaje es el de siempre', () => {
+    const zip = new AdmZip()
+    zip.addFile('manifest.json', Buffer.from('{}'))
+    zip.addFile('assets/a.js', Buffer.from('1'))
+
+    expect(issuesOf(zip.toBuffer())).toEqual([
+      'Falta index.html en la raíz del ZIP (§12.2).',
+    ])
+  })
+
+  it('dos carpetas en la raíz no se toman por una envolvente', () => {
+    const zip = new AdmZip()
+    zip.addFile('uno/index.html', Buffer.from('<html></html>'))
+    zip.addFile('dos/index.html', Buffer.from('<html></html>'))
+
+    expect(issuesOf(zip.toBuffer())).toEqual([
+      'Falta index.html en la raíz del ZIP (§12.2).',
+    ])
+  })
+})
+
+describe('restos del sistema operativo en el ZIP', () => {
+  const MAC_JUNK = {
+    '__MACOSX/._index.html': 'x',
+    '__MACOSX/assets/._app.js': 'x',
+    '.DS_Store': 'x',
+    'assets/.DS_Store': 'x',
+  }
+
+  it('un ZIP hecho con el Finder se acepta igual que uno limpio', () => {
+    const clean = validateHtmlPackageZip(
+      buildZip({ 'index.html': '<h1>Hola</h1>', 'assets/app.js': '1' }),
+    )
+    const withJunk = validateHtmlPackageZip(
+      buildZip({
+        'index.html': '<h1>Hola</h1>',
+        'assets/app.js': '1',
+        ...MAC_JUNK,
+      }),
+    )
+
+    expect(withJunk.entries.map((e) => e.path).sort()).toEqual(
+      clean.entries.map((e) => e.path).sort(),
+    )
+    expect(withJunk.checksum).toBe(clean.checksum)
+  })
+
+  it('no se publica ninguno de esos ficheros', () => {
+    const result = validateHtmlPackageZip(
+      buildZip({ 'index.html': '<h1>Hola</h1>', ...MAC_JUNK }),
+    )
+    const paths = result.entries.map((e) => e.path)
+
+    expect(paths.some((p) => p.includes('__MACOSX'))).toBe(false)
+    expect(paths.some((p) => p.endsWith('.DS_Store'))).toBe(false)
+  })
+
+  it('la copia ._index.html de __MACOSX no cuenta como documento HTML adicional', () => {
+    expect(() =>
+      validateHtmlPackageZip(
+        buildZip({ 'index.html': '<h1>Hola</h1>', ...MAC_JUNK }),
+      ),
+    ).not.toThrow()
+  })
+
+  it('no cuentan para el tope de ficheros del ZIP', () => {
+    const junk: Record<string, string> = {}
+
+    for (let i = 0; i < PACKAGE_LIMITS.maxEntries + 5; i++) {
+      junk[`__MACOSX/assets/._f${i}.js`] = 'x'
+    }
+
+    expect(() =>
+      validateHtmlPackageZip(
+        buildZip({ 'index.html': '<h1>Hola</h1>', ...junk }),
+      ),
+    ).not.toThrow()
+  })
+
+  it('un fichero de verdad fuera de assets/ se sigue rechazando', () => {
+    const zip = new AdmZip()
+    zip.addFile('manifest.json', Buffer.from(JSON.stringify(VALID_MANIFEST)))
+    zip.addFile('index.html', Buffer.from('<h1>Hola</h1>'))
+    zip.addFile('suelto.js', Buffer.from('1'))
+    zip.addFile('.DS_Store', Buffer.from('x'))
+
+    expect(() => validateHtmlPackageZip(zip.toBuffer())).toThrow(
+      /"suelto.js" está fuera de la carpeta assets/,
+    )
+  })
+
+  it('isOsJunkPath: solo esos nombres, en cualquier nivel', () => {
+    expect(isOsJunkPath('__MACOSX/a/._b.js')).toBe(true)
+    expect(isOsJunkPath('.DS_Store')).toBe(true)
+    expect(isOsJunkPath('assets/img/.DS_Store')).toBe(true)
+    expect(isOsJunkPath('assets\\.DS_Store')).toBe(true)
+    expect(isOsJunkPath('assets/DS_Store.png')).toBe(false)
+    expect(isOsJunkPath('assets/my.DS_Store.js')).toBe(false)
+    expect(isOsJunkPath('index.html')).toBe(false)
   })
 })

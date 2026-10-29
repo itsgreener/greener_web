@@ -48,6 +48,8 @@ Hay dos tipos y se comportan distinto:
 
 El build también necesita un `.env.local` válido, porque `next build` importa `env.ts`. `NEXT_PUBLIC_SITE_URL` debe ser `https://itsgreener.com`; si lleva barra final, `env.ts` la recorta, y si falta en producción, avisa al arrancar.
 
+**Tareas programadas (opcional).** `CRON_SECRET`, mínimo 32 caracteres (`openssl rand -base64 48`). Es la credencial con la que Vercel Cron llama a `/api/cron/*` (la envía sola como `Authorization: Bearer` cuando la variable existe en el proyecto). Sin ella, o si es más corta, esas rutas responden 503 `not_configured` y no hacen nada; el resto de la web no se ve afectado (ámbito `Tareas programadas`). Ver §9 bis.
+
 **Límites de uso compartidos (opcionales).** `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`, o `KV_REST_API_URL` y `KV_REST_API_TOKEN`, o `UPSTASH_KV_REST_API_URL` y `UPSTASH_KV_REST_API_TOKEN` (el prefijo que añade la integración de Vercel; el `*_READ_ONLY_TOKEN` no sirve, el contador escribe) si la base se crea desde el Marketplace de Vercel (se aceptan los dos pares, y van siempre juntas). Son la URL https y el token REST de una base de Upstash Redis en una región de la UE. Sin ellas los límites de uso (feed, analítica, talent, newsletter) cuentan en memoria de cada instancia, que en Vercel apenas frena nada; con la app en PM2 de un solo proceso valen como antes. El arranque de producción avisa en el log si faltan. Si Upstash cae, los límites vuelven solos al contador en memoria (§2.117).
 
 **Talent (gestión de CVs).** Nueve variables propias (`TALENT_*`), todas solo de servidor, con su bloque para el `.env.local.example` y los pasos fuera del repositorio (n8n y Supabase-talent): `docs/operaciones/talent-puesta-en-marcha.md`.
@@ -208,6 +210,16 @@ Corren dentro de la base, no en el servidor de Dinahosting. Las crea la migraci�
 Para comprobar que están programados, en el SQL Editor de Supabase: `select jobname, schedule, active from cron.job;`. Para ver sus últimas ejecuciones: `select jobname, status, start_time, return_message from cron.job_run_details order by start_time desc limit 20;`.
 
 La primera ejecución de la purga puede borrar mucho si la tabla llevaba meses acumulando; por eso va por lotes.
+
+## 9 bis. Tareas programadas en Vercel (Vercel Cron)
+
+Las declara `vercel.json` y solo se ejecutan en el despliegue de **producción** (no en las previews). Llaman por `GET` a una ruta de la web con `Authorization: Bearer <CRON_SECRET>`.
+
+| Ruta | Cuándo | Qué hace |
+| --- | --- | --- |
+| `/api/cron/cleanup-staging` | domingos a las 04:00 UTC | Borra de la zona de paso del bucket `html-packages` (`_incoming/`) las subidas de ZIP de más de 24 h que nadie confirmó. Revisa hasta 200 contenidos por pasada, solo toca rutas `_incoming/<uuid>/<uuid>.zip` y responde `{ ok, scanned, deleted, failed, truncated }`. |
+
+Para comprobarla: Settings → Cron Jobs en Vercel (aparece tras desplegar con `CRON_SECRET` puesto, y tiene un botón para lanzarla a mano), o `curl -H "Authorization: Bearer <secreto>" https://<dominio>/api/cron/cleanup-staging`. Repetirla es seguro. Si algún día se sale de Vercel, cualquier planificador sirve con esa misma llamada.
 
 ## 10. Registros del servidor: 30 días (texto de `/privacy`)
 

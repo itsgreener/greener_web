@@ -55,3 +55,4 @@ supabase/migrations/20261016090000_other_abm.sql
 supabase/migrations/20261016100000_purge_feed_sessions_cron.sql
 supabase/migrations/20261016110000_feed_config_drop_dead_columns.sql
 supabase/migrations/20261019140000_purge_contact_submissions_cron.sql
+supabase/migrations/20261029100000_content_preview_revocation.sql

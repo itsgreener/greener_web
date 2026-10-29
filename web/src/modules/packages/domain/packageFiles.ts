@@ -26,6 +26,19 @@ export function stagedPackagePath(contentId: string, uploadId: string): string {
 const STAGED_PATH_PATTERN = /^_incoming\/([0-9a-f-]{36})\/[0-9a-f-]{36}\.zip$/i
 
 /**
+ * Una subida preparada pasa a ser huérfana cuando el admin la sube pero nunca
+ * llega a confirmarla (cierra la pestaña) o falla su borrado. La limpieza
+ * semanal borra las que llevan más de 24 horas: una subida real se lee a los
+ * pocos segundos de terminar.
+ */
+export const STAGED_UPLOAD_MAX_AGE_MS = 24 * 60 * 60 * 1000
+
+/** ¿Es `path` cualquier subida preparada (de cualquier contenido)? */
+export function isStagedPackagePath(path: string): boolean {
+  return STAGED_PATH_PATTERN.test(path)
+}
+
+/**
  * ¿Es `path` una subida preparada PARA este contenido? La acción lee la ruta
  * de un campo del formulario, así que sin esta comprobación podría apuntar a
  * cualquier otro fichero del bucket (otra versión, la subida de otro

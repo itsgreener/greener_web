@@ -15,6 +15,7 @@ const ALLOWED_IMPORTERS = [
   'src/modules/content/container.ts',
   'src/modules/feed/infrastructure/feedSessionRepository.ts',
   'src/modules/media/infrastructure/supabaseWarmRepository.ts',
+  'src/modules/packages/infrastructure/supabaseStagedUploadSweeper.ts',
   'src/modules/packages/infrastructure/supabaseStorageSource.ts',
 ].sort()
 

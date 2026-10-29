@@ -16,8 +16,9 @@ import type { CookieOptions } from '@supabase/ssr'
  *   abandonada caduca sola.
  * - `secure` en producción.
  *
- * La cookie del verificador PKCE la crea el navegador (`createBrowserClient`)
- * con sus propias opciones: no pasa por aquí.
+ * La cookie del verificador PKCE la crea el navegador (`createBrowserClient`):
+ * no pasa por aquí, sino por el adaptador de `browserCookies.ts`, que la acorta
+ * a 10 minutos.
  */
 export const SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
 

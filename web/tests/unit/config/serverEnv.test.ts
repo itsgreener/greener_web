@@ -245,3 +245,28 @@ describe('almacén compartido de límites (opcional)', () => {
     expect(() => env.getRateLimitStoreEnv()).toThrow(/límites de uso/)
   })
 })
+
+describe('CRON_SECRET (tareas programadas, opcional)', () => {
+  it('sin ella es válido y la ruta queda cerrada', async () => {
+    vi.stubEnv('CRON_SECRET', '')
+    const { getCronEnv, validateServerEnv } = await import('@/lib/serverEnv')
+
+    expect(getCronEnv().CRON_SECRET).toBeUndefined()
+    expect(validateServerEnv()).toEqual([])
+  })
+
+  it('con 32 caracteres o más se acepta', async () => {
+    vi.stubEnv('CRON_SECRET', 'k'.repeat(32))
+    const { getCronEnv } = await import('@/lib/serverEnv')
+
+    expect(getCronEnv().CRON_SECRET).toBe('k'.repeat(32))
+  })
+
+  it('una demasiado corta invalida solo su ámbito, no el resto', async () => {
+    vi.stubEnv('CRON_SECRET', 'corta')
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { validateServerEnv } = await import('@/lib/serverEnv')
+
+    expect(validateServerEnv()).toEqual(['Tareas programadas'])
+  })
+})

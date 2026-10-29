@@ -24,8 +24,10 @@ import { env } from '@/lib/env'
  * `content/container.ts` (preview), `feed/infrastructure/feedSessionRepository.ts`,
  * `media/infrastructure/supabaseWarmRepository.ts`,
  * `contact/infrastructure/contactSubmissionLog.ts`,
- * `audit/infrastructure/serviceAuditRecorder.ts` y
- * `packages/infrastructure/supabaseStorageSource.ts` (bucket privado).
+ * `audit/infrastructure/serviceAuditRecorder.ts`,
+ * `packages/infrastructure/supabaseStorageSource.ts` (bucket privado) y
+ * `packages/infrastructure/supabaseStagedUploadSweeper.ts` (limpieza semanal de
+ * `_incoming/`, que corre sin sesión de admin).
  *
  * NUNCA importar este módulo desde un componente cliente ('use client')
  * ni exponer su resultado, directa o indirectamente, en una respuesta al

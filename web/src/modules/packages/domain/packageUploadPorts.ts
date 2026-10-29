@@ -30,6 +30,24 @@ export type PackageUploadTarget = {
   token: string
 }
 
+/** Una subida preparada que sigue en la zona de paso. */
+export type StagedUploadFile = {
+  path: string
+  /** Fecha de creación en ms; `null` si Storage no la da (no se borra). */
+  createdAt: number | null
+}
+
+/** Recorre y limpia la zona de paso (tarea programada, sin sesión de admin). */
+export interface StagedUploadSweeper {
+  /** Subidas preparadas de hasta `maxFolders` contenidos. `truncated` = quedan más. */
+  listStaged(
+    maxFolders: number,
+  ): Promise<{ files: StagedUploadFile[]; truncated: boolean }>
+
+  /** Borra esas rutas y devuelve cuántas se borraron. @throws si Storage falla */
+  remove(paths: string[]): Promise<number>
+}
+
 /**
  * Zona de paso del ZIP entre el navegador y la acción: el navegador sube ahí
  * (sin pasar por la función) y la acción lo lee desde el servidor.

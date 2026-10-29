@@ -17,6 +17,19 @@ import type {
   ValidatedPackageEntry,
 } from '@/modules/packages/domain/packageUploadPorts'
 
+/**
+ * Restos que el sistema operativo mete solo al comprimir (Finder en macOS:
+ * la carpeta `__MACOSX/` con las copias `._*` de los metadatos y los
+ * `.DS_Store`). Quien sube el ZIP no los ve ni los ha puesto a propósito, así
+ * que se descartan antes de validar nada: no cuentan para los topes, ni para
+ * el checksum, ni se publican.
+ */
+export function isOsJunkPath(entryName: string): boolean {
+  const segments = entryName.replace(/\\/g, '/').split('/')
+
+  return segments.includes('__MACOSX') || segments.at(-1) === '.DS_Store'
+}
+
 const TEXT_EXTENSIONS = new Set(['html', 'htm', 'js', 'mjs', 'css', 'json'])
 
 // Detecta URLs absolutas en el texto de HTML/JS/CSS, para contrastarlas
@@ -91,19 +104,30 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
     ])
   }
 
-  let zip: AdmZip
+  let zipEntries: AdmZip.IZipEntry[]
 
+  // `getEntries()` es quien lee el directorio central y quien falla con una
+  // ruta repetida (`ADM-ZIP: Duplicate entry name "…"`): va dentro del `try`
+  // para que ese fallo salga como un rechazo claro y no como un error genérico.
   try {
-    zip = new AdmZip(buffer)
-  } catch {
-    throw new PackageValidationError(['El archivo no es un ZIP válido.'])
+    zipEntries = new AdmZip(buffer)
+      .getEntries()
+      .filter((entry) => !isOsJunkPath(entry.entryName))
+  } catch (error) {
+    const duplicate = /Duplicate entry name "([^"]*)"/.exec(
+      error instanceof Error ? error.message : '',
+    )
+
+    throw new PackageValidationError([
+      duplicate
+        ? `El ZIP contiene dos ficheros con la misma ruta: "${duplicate[1]}".`
+        : 'El archivo no es un ZIP válido.',
+    ])
   }
 
   const structuralIssues: string[] = []
   const entries: ValidatedPackageEntry[] = []
   const entryPaths = new Set<string>()
-
-  const zipEntries = zip.getEntries()
 
   // ZIP bomb: se comprueban los tamaños DECLARADOS antes de descomprimir
   // nada. Eso solo vale si la descompresión no puede pasar de lo declarado:
@@ -147,8 +171,12 @@ export function validateHtmlPackageZip(buffer: Buffer): ValidatedPackage {
   }
 
   if (!entryPaths.has('index.html')) {
+    const wrapper = findWrapperFolder(entryPaths)
+
     throw new PackageValidationError([
-      'Falta index.html en la raíz del ZIP (§12.2).',
+      wrapper
+        ? `Falta index.html en la raíz del ZIP (§12.2): has comprimido la carpeta «${wrapper}» en vez de su contenido. Comprime los ficheros de dentro (index.html, manifest.json y assets), no la carpeta que los contiene.`
+        : 'Falta index.html en la raíz del ZIP (§12.2).',
     ])
   }
 
@@ -411,6 +439,27 @@ function assertWithinUncompressedLimits(zipEntries: AdmZip.IZipEntry[]): void {
  * que hashear el buffer completo daría un checksum distinto para el
  * "mismo" paquete según cómo se comprimiera. Esto es estable frente a eso.
  */
+/**
+ * El caso típico de «Falta index.html»: se comprime la CARPETA del paquete (el
+ * Finder de macOS lo hace con «Comprimir») y todo queda bajo `carpeta/`. Devuelve
+ * el nombre de esa carpeta única si todo el contenido cuelga de ella y trae su
+ * `index.html`; null en cualquier otro caso. Los restos de macOS
+ * (`__MACOSX/`, `.DS_Store`) no cuentan.
+ */
+function findWrapperFolder(paths: ReadonlySet<string>): string | null {
+  const real = [...paths]
+
+  const folders = new Set(real.map((path) => path.split('/')[0]))
+
+  if (folders.size !== 1) return null
+
+  const [folder] = [...folders]
+
+  if (!real.every((path) => path.startsWith(`${folder}/`))) return null
+
+  return paths.has(`${folder}/index.html`) ? folder.slice(0, 60) : null
+}
+
 function computeContentChecksum(entries: ValidatedPackageEntry[]): string {
   const hash = createHash('sha256')
 
