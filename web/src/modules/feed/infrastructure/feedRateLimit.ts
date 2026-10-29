@@ -1,4 +1,9 @@
-import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
+import { runRedis } from '@/lib/rateLimit/upstashRest'
+import {
+  createSharedRateLimiter,
+  sharedStoreKey,
+} from '@/lib/rateLimit/sharedRateLimiter'
+import { isRateLimitStoreConfigured } from '@/lib/serverEnv'
 
 import type { FeedRequestLimits } from '@/modules/feed/domain/feedPorts'
 import type { FeedScope } from '@/modules/feed/domain/feedScope'
@@ -10,21 +15,54 @@ import type { FeedScope } from '@/modules/feed/domain/feedScope'
  * algoritmo de cuotas y mezcla contra todo el catálogo, §8), así que
  * merece más margen — una persona haciendo scroll rápido puede pedir
  * varios lotes por minuto sin hacer nada indebido.
+ *
+ * Cada límite se cuenta dos veces: por visitante (cookie) y por IP. La cookie
+ * la controla quien hace la petición, así que rotarla esquivaba el límite por
+ * completo (SEC-PUB-A2); la IP se cuenta con un cupo mayor porque tras una
+ * misma IP pueden estar varias personas (oficina, red móvil con NAT). Los
+ * contadores viven en un almacén compartido si está configurado (Upstash,
+ * SEC-PUB-A1) y, si no, en memoria de la instancia.
  */
 const SESSION_CREATION_LIMIT = { max: 12, windowMs: 60_000 }
 const BATCH_FETCH_LIMIT = { max: 50, windowMs: 60_000 }
+const SESSION_CREATION_BY_IP_LIMIT = { max: 60, windowMs: 60_000 }
+const BATCH_FETCH_BY_IP_LIMIT = { max: 300, windowMs: 60_000 }
 
-const sessionCreationLimiter = createFixedWindowRateLimiter(
-  SESSION_CREATION_LIMIT,
-)
-const batchFetchLimiter = createFixedWindowRateLimiter(BATCH_FETCH_LIMIT)
+const sessionCreationLimiter = createSharedRateLimiter({
+  name: 'feed-session',
+  ...SESSION_CREATION_LIMIT,
+})
+const batchFetchLimiter = createSharedRateLimiter({
+  name: 'feed-batch',
+  ...BATCH_FETCH_LIMIT,
+})
+const sessionCreationByIpLimiter = createSharedRateLimiter({
+  name: 'feed-session-ip',
+  ...SESSION_CREATION_BY_IP_LIMIT,
+})
+const batchFetchByIpLimiter = createSharedRateLimiter({
+  name: 'feed-batch-ip',
+  ...BATCH_FETCH_BY_IP_LIMIT,
+})
 
-export function canCreateSession(visitorId: string): boolean {
-  return sessionCreationLimiter.check(visitorId)
+export async function canCreateSession(
+  visitorId: string,
+  ip?: string | null,
+): Promise<boolean> {
+  const byVisitor = await sessionCreationLimiter.check(visitorId)
+  const byIp = await sessionCreationByIpLimiter.check(ip ?? 'unknown')
+
+  return byVisitor && byIp
 }
 
-export function canFetchBatch(visitorId: string): boolean {
-  return batchFetchLimiter.check(visitorId)
+export async function canFetchBatch(
+  visitorId: string,
+  ip?: string | null,
+): Promise<boolean> {
+  const byVisitor = await batchFetchLimiter.check(visitorId)
+  const byIp = await batchFetchByIpLimiter.check(ip ?? 'unknown')
+
+  return byVisitor && byIp
 }
 
 // Sesión más reciente de cada visitante Y scope. Es importante no reutilizar
@@ -36,6 +74,9 @@ export function canFetchBatch(visitorId: string): boolean {
 // perezosa igual que el limitador.
 const SESSION_MEMORY_TTL_MS = 60 * 60 * 24 * 1000
 const SWEEP_EVERY_CALLS = 1000
+// Tope duro de entradas: con cookies o IPs rotatorias el mapa no puede crecer
+// sin límite entre purgas (SEC-PUB-A1). Al llegar, se descarta la más antigua.
+const MAX_REMEMBERED_SESSIONS = 10_000
 
 const lastSessionByVisitorAndScope = new Map<
   string,
@@ -55,7 +96,7 @@ function sweepExpiredSessions(now: number): void {
   }
 }
 
-export function rememberSession(
+function rememberSessionLocally(
   visitorId: string,
   sessionId: string,
   scope: FeedScope,
@@ -68,13 +109,23 @@ export function rememberSession(
     sweepExpiredSessions(now)
   }
 
-  lastSessionByVisitorAndScope.set(memoryKey(visitorId, scope), {
+  if (lastSessionByVisitorAndScope.size >= MAX_REMEMBERED_SESSIONS) {
+    const oldest = lastSessionByVisitorAndScope.keys().next().value
+
+    if (oldest !== undefined) lastSessionByVisitorAndScope.delete(oldest)
+  }
+
+  const key = memoryKey(visitorId, scope)
+
+  // Reinsertar mueve la clave al final: el orden del mapa es el de recencia.
+  lastSessionByVisitorAndScope.delete(key)
+  lastSessionByVisitorAndScope.set(key, {
     sessionId,
     rememberedAt: now,
   })
 }
 
-export function getLastSession(
+function getLastSessionLocally(
   visitorId: string,
   scope: FeedScope,
 ): string | null {
@@ -91,6 +142,60 @@ export function getLastSession(
   }
 
   return entry.sessionId
+}
+
+const SESSION_MEMORY_TTL_SECONDS = SESSION_MEMORY_TTL_MS / 1000
+
+function sessionStoreKey(visitorId: string, scope: FeedScope): string {
+  return sharedStoreKey('feed-last-session', memoryKey(visitorId, scope))
+}
+
+/**
+ * Recuerda la sesión más reciente. Con almacén compartido se guarda ahí (sin
+ * él, la «sesión de repuesto» de un visitante solo existiría en la instancia
+ * que la creó); siempre queda también en memoria como respaldo.
+ */
+export async function rememberSession(
+  visitorId: string,
+  sessionId: string,
+  scope: FeedScope,
+): Promise<void> {
+  rememberSessionLocally(visitorId, sessionId, scope)
+
+  if (!isRateLimitStoreConfigured()) return
+
+  try {
+    await runRedis([
+      [
+        'SET',
+        sessionStoreKey(visitorId, scope),
+        sessionId,
+        'EX',
+        SESSION_MEMORY_TTL_SECONDS,
+      ],
+    ])
+  } catch (error) {
+    console.error('Feed · no se pudo recordar la sesión en el almacén:', error)
+  }
+}
+
+export async function getLastSession(
+  visitorId: string,
+  scope: FeedScope,
+): Promise<string | null> {
+  if (isRateLimitStoreConfigured()) {
+    try {
+      const [stored] = await runRedis([
+        ['GET', sessionStoreKey(visitorId, scope)],
+      ])
+
+      if (typeof stored === 'string' && stored.length > 0) return stored
+    } catch (error) {
+      console.error('Feed · no se pudo leer la sesión del almacén:', error)
+    }
+  }
+
+  return getLastSessionLocally(visitorId, scope)
 }
 
 export const inMemoryFeedRequestLimits: FeedRequestLimits = {

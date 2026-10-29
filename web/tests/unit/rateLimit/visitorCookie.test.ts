@@ -47,3 +47,20 @@ describe('attachVisitorCookie', () => {
     expect(cookie?.path).toBe('/')
   })
 })
+
+describe('valores de cookie no aceptables (SEC-PUB-A1)', () => {
+  it.each([
+    ['demasiado largo', 'a'.repeat(65)],
+    ['con símbolos', 'a b;c'],
+    ['con comillas', '"x"'],
+  ])('%s: se ignora y se trata como visitante nuevo', (_label, value) => {
+    expect(readVisitorId(requestWithCookie(value))).toBeNull()
+    expect(getOrCreateVisitorId(requestWithCookie(value))).not.toBe(value)
+  })
+
+  it('un uuid pasa tal cual', () => {
+    const uuid = '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
+
+    expect(readVisitorId(requestWithCookie(uuid))).toBe(uuid)
+  })
+})

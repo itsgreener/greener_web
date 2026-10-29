@@ -173,3 +173,75 @@ describe('validateServerEnv (arranque)', () => {
     expect(validateServerEnv()).toEqual(['contacto', 'Mailchimp'])
   })
 })
+
+describe('almacén compartido de límites (opcional)', () => {
+  function clearStore() {
+    for (const name of [
+      'UPSTASH_REDIS_REST_URL',
+      'UPSTASH_REDIS_REST_TOKEN',
+      'KV_REST_API_URL',
+      'KV_REST_API_TOKEN',
+      'UPSTASH_KV_REST_API_URL',
+      'UPSTASH_KV_REST_API_TOKEN',
+      'UPSTASH_KV_REST_API_READ_ONLY_TOKEN',
+    ]) {
+      vi.stubEnv(name, '')
+    }
+  }
+
+  it('sin variables es válido y no está configurado', async () => {
+    clearStore()
+    const env = await import('@/lib/serverEnv')
+
+    expect(env.getRateLimitStoreEnv()).toEqual({
+      url: undefined,
+      token: undefined,
+    })
+    expect(env.isRateLimitStoreConfigured()).toBe(false)
+    expect(env.validateServerEnv()).not.toContain('límites de uso compartidos')
+  })
+
+  it('acepta los nombres de Upstash y los de la integración de Vercel', async () => {
+    clearStore()
+    vi.stubEnv('KV_REST_API_URL', 'https://eu.upstash.io')
+    vi.stubEnv('KV_REST_API_TOKEN', 'token')
+    const env = await import('@/lib/serverEnv')
+
+    expect(env.getRateLimitStoreEnv()).toEqual({
+      url: 'https://eu.upstash.io',
+      token: 'token',
+    })
+    expect(env.isRateLimitStoreConfigured()).toBe(true)
+  })
+
+  it('acepta los nombres con prefijo UPSTASH_KV_ que pone la integración de Vercel y no usa el token de solo lectura', async () => {
+    clearStore()
+    vi.stubEnv('UPSTASH_KV_REST_API_URL', 'https://eu.upstash.io')
+    vi.stubEnv('UPSTASH_KV_REST_API_TOKEN', 'token-escritura')
+    vi.stubEnv('UPSTASH_KV_REST_API_READ_ONLY_TOKEN', 'token-lectura')
+    const env = await import('@/lib/serverEnv')
+
+    expect(env.getRateLimitStoreEnv()).toEqual({
+      url: 'https://eu.upstash.io',
+      token: 'token-escritura',
+    })
+  })
+
+  it('una URL sin token (o al revés) es inválida y se avisa en el arranque', async () => {
+    clearStore()
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'https://eu.upstash.io')
+    const env = await import('@/lib/serverEnv')
+
+    expect(env.isRateLimitStoreConfigured()).toBe(false)
+    expect(env.validateServerEnv()).toContain('límites de uso compartidos')
+  })
+
+  it('la URL tiene que ser https (el token viaja en la cabecera)', async () => {
+    clearStore()
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', 'http://eu.upstash.io')
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', 'token')
+    const env = await import('@/lib/serverEnv')
+
+    expect(() => env.getRateLimitStoreEnv()).toThrow(/límites de uso/)
+  })
+})

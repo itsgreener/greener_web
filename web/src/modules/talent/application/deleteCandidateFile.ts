@@ -28,13 +28,13 @@ export function makeDeleteCandidateFile({
     fileId: string,
     context: TalentRequestContext,
   ): Promise<DeleteCandidateFileResult> {
-    if (!limiters.uploadByIp.check(context.ipKey)) {
+    if (!(await limiters.uploadByIp.check(context.ipKey))) {
       return { ok: false, reason: 'rate_limited' }
     }
 
     if (!isWellFormedToken(token)) return { ok: false, reason: 'not_found' }
 
-    if (!limiters.uploadByToken.check(token)) {
+    if (!(await limiters.uploadByToken.check(token))) {
       return { ok: false, reason: 'rate_limited' }
     }
 

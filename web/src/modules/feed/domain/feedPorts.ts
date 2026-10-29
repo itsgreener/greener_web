@@ -81,13 +81,22 @@ export interface FeedCursorCodec {
   decode(cursor: string): FeedCursorPayload | null
 }
 
-/** Límites de peticiones del feed público por visitante. */
+/**
+ * Límites de peticiones del feed público, por visitante (cookie anónima) y por
+ * IP: la cookie la controla quien hace la petición y rotarla es gratis, la IP
+ * no tanto. Son asíncronos porque el contador puede vivir en un almacén
+ * compartido entre instancias (SEC-PUB-A1).
+ */
 export interface FeedRequestLimits {
-  canCreateSession(visitorId: string): boolean
+  canCreateSession(visitorId: string, ip?: string | null): Promise<boolean>
 
-  canFetchBatch(visitorId: string): boolean
+  canFetchBatch(visitorId: string, ip?: string | null): Promise<boolean>
 
-  rememberSession(visitorId: string, sessionId: string, scope: FeedScope): void
+  rememberSession(
+    visitorId: string,
+    sessionId: string,
+    scope: FeedScope,
+  ): Promise<void>
 
-  getLastSession(visitorId: string, scope: FeedScope): string | null
+  getLastSession(visitorId: string, scope: FeedScope): Promise<string | null>
 }

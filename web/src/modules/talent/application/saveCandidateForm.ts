@@ -54,13 +54,13 @@ export function makeSaveCandidateForm({
 
     // IP primero; el token solo cuenta si tiene forma de token, para que quien
     // manda cadenas inventadas no llene la memoria del limitador.
-    if (!limiters.formSaveByIp.check(context.ipKey)) {
+    if (!(await limiters.formSaveByIp.check(context.ipKey))) {
       return { ok: false, reason: 'rate_limited' }
     }
 
     if (!isWellFormedToken(token)) return { ok: false, reason: 'not_found' }
 
-    if (!limiters.formSaveByToken.check(token)) {
+    if (!(await limiters.formSaveByToken.check(token))) {
       return { ok: false, reason: 'rate_limited' }
     }
 

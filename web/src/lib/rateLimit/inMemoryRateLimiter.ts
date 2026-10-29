@@ -1,4 +1,4 @@
-export interface RateLimiter {
+export interface SyncRateLimiter {
   /** true = la petición está permitida (y ya cuenta); false = supera el límite. */
   check(key: string): boolean
 }
@@ -34,7 +34,7 @@ export function createFixedWindowRateLimiter(options: {
   now?: () => number
   /** Cada cuántas comprobaciones se purgan las entradas caducadas. */
   sweepEveryChecks?: number
-}): RateLimiter {
+}): SyncRateLimiter {
   const now = options.now ?? Date.now
   const sweepEveryChecks = options.sweepEveryChecks ?? 1000
   const buckets = new Map<string, Bucket>()

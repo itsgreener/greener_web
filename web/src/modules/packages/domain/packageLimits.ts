@@ -14,11 +14,12 @@
  * quien prepare el ZIP, y el valor más estricto de las dos lecturas posibles
  * (MB o MiB) del límite del servicio.
  *
- * `next.config.ts` (`serverActions.bodySizeLimit`) debe ser IGUAL O MAYOR. Es
- * bastante mayor (20 MB) para que un ZIP de 15 MB reciba el mensaje claro
- * «supera el límite» en vez del error genérico de Next. El ZIP ya no viaja en
- * esa petición (sube directo a Storage), pero 3,5 MB cabe además bajo el
- * límite de ~4,5 MB que la plataforma pone al cuerpo de una función.
+ * `next.config.ts` (`serverActions.bodySizeLimit`, 5 MB) debe ser IGUAL O
+ * MAYOR: lo necesita el CV del personal, que sí viaja en una Server Action y
+ * tiene el mismo tope. El ZIP ya no viaja en esa petición (sube directo a
+ * Storage, y el navegador avisa antes de subir si pasa de 3,5 MB), y 3,5 MB
+ * cabe además bajo el límite de ~4,5 MB que la plataforma pone al cuerpo de
+ * una función.
  */
 export const PACKAGE_LIMITS = {
   maxZipSizeBytes: 3_500_000,

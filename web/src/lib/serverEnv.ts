@@ -210,7 +210,76 @@ export const getTalentMailchimpEnv = createScopedEnv('Mailchimp (talent)', () =>
   }),
 )
 
+/**
+ * Almacén compartido de los límites de uso (Upstash Redis por REST; SEC-PUB-A1
+ * y A2). Opcional a propósito: sin él los límites siguen funcionando EN
+ * MEMORIA de cada instancia (como antes), que en un entorno serverless apenas
+ * frena nada; `warnIfSharedLimitsMissing` lo avisa en el log del arranque de
+ * producción. Acepta los nombres propios de Upstash (`UPSTASH_REDIS_REST_*`) y
+ * los que pone la integración de Vercel según el prefijo elegido
+ * (`KV_REST_API_*` o `UPSTASH_KV_REST_API_*`). Nunca se usa el token de solo
+ * lectura (`*_READ_ONLY_TOKEN`): el contador necesita escribir.
+ */
+function optionalText() {
+  return z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(1).optional(),
+  )
+}
+
+export const getRateLimitStoreEnv = createScopedEnv(
+  'límites de uso compartidos',
+  () =>
+    z
+      .object({
+        UPSTASH_REDIS_REST_URL: optionalText(),
+        UPSTASH_REDIS_REST_TOKEN: optionalText(),
+        KV_REST_API_URL: optionalText(),
+        KV_REST_API_TOKEN: optionalText(),
+        UPSTASH_KV_REST_API_URL: optionalText(),
+        UPSTASH_KV_REST_API_TOKEN: optionalText(),
+      })
+      .transform((env) => ({
+        url:
+          env.UPSTASH_REDIS_REST_URL ??
+          env.KV_REST_API_URL ??
+          env.UPSTASH_KV_REST_API_URL,
+        token:
+          env.UPSTASH_REDIS_REST_TOKEN ??
+          env.KV_REST_API_TOKEN ??
+          env.UPSTASH_KV_REST_API_TOKEN,
+      }))
+      .refine(
+        (store) => Boolean(store.url) === Boolean(store.token),
+        'La URL y el token del almacén de límites van juntos (o ninguno de los dos)',
+      )
+      .refine(
+        (store) => store.url === undefined || /^https:\/\//.test(store.url),
+        'La URL del almacén de límites debe ser https',
+      ),
+)
+
+let rateLimitStoreMisconfigured = false
+
+/**
+ * ¿Hay almacén compartido de límites configurado (y bien formado)? Se pregunta
+ * en cada comprobación de límite, así que una configuración rota se recuerda:
+ * el motivo ya se escribió una vez en el log y no se repite en cada petición.
+ */
+export function isRateLimitStoreConfigured(): boolean {
+  if (rateLimitStoreMisconfigured) return false
+
+  try {
+    const store = getRateLimitStoreEnv()
+    return Boolean(store.url && store.token)
+  } catch {
+    rateLimitStoreMisconfigured = true
+    return false
+  }
+}
+
 const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
+  ['límites de uso compartidos', getRateLimitStoreEnv],
   ['Cloudinary', getCloudinaryEnv],
   ['Cloudmersive', getCloudmersiveEnv],
   ['contacto', getContactEnv],

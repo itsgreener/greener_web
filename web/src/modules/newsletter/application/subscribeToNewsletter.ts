@@ -69,7 +69,7 @@ export function makeSubscribeToNewsletter({
       return { ok: false, fieldErrors: fieldErrorsOf(parsed.error) }
     }
 
-    if (!limiter.check(await visitorKey())) {
+    if (!(await limiter.check(await visitorKey()))) {
       return {
         ok: false,
         formError: 'Too many attempts. Please try again later.',

@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { getHashedClientIp } from '@/lib/http/clientIp'
-import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
+import { createSharedRateLimiter } from '@/lib/rateLimit/sharedRateLimiter'
 
 import {
   NEWSLETTER_MAX_PER_WINDOW,
@@ -14,7 +14,8 @@ import { mailchimpNewsletterSubscriber } from './infrastructure/mailchimpNewslet
 
 export const subscribeToNewsletter = makeSubscribeToNewsletter({
   subscriber: mailchimpNewsletterSubscriber,
-  limiter: createFixedWindowRateLimiter({
+  limiter: createSharedRateLimiter({
+    name: 'newsletter',
     max: NEWSLETTER_MAX_PER_WINDOW,
     windowMs: NEWSLETTER_WINDOW_MS,
   }),

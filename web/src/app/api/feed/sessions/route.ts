@@ -6,6 +6,7 @@ import {
   attachVisitorCookie,
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
+import { clientIpFromHeaders } from '@/lib/http/clientIpFromHeaders'
 import { isUuid } from '@/lib/validation/uuid'
 
 /**
@@ -79,8 +80,10 @@ export async function POST(request: NextRequest) {
       ? (filter as Record<string, string>)
       : undefined
 
-  if (!feedLimits.canCreateSession(visitorId)) {
-    const lastSessionId = feedLimits.getLastSession(visitorId, scope)
+  const ip = clientIpFromHeaders(request.headers)
+
+  if (!(await feedLimits.canCreateSession(visitorId, ip))) {
+    const lastSessionId = await feedLimits.getLastSession(visitorId, scope)
 
     // Con algo que devolver, se devuelve en vez de crear una sesión
     // nueva (§2.16). Sin nada que devolver — un visitante que agota el
@@ -101,7 +104,7 @@ export async function POST(request: NextRequest) {
       filter: parsedFilter,
       excludeContentId,
     })
-    feedLimits.rememberSession(visitorId, result.sessionId, scope)
+    await feedLimits.rememberSession(visitorId, result.sessionId, scope)
     return respond(result, {
       status: 201,
       headers: { 'Cache-Control': 'no-store' },

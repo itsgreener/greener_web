@@ -30,7 +30,7 @@ export function makeGetCandidateForm({
     token: string,
     context: TalentRequestContext,
   ): Promise<GetCandidateFormResult> {
-    if (!limiters.formReadByIp.check(context.ipKey)) {
+    if (!(await limiters.formReadByIp.check(context.ipKey))) {
       return { ok: false, reason: 'rate_limited' }
     }
 

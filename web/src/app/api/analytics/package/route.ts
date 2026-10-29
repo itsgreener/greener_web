@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import { env } from '@/lib/env'
 import { clientIpFromHeaders } from '@/lib/http/clientIp'
-import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
+import { createSharedRateLimiter } from '@/lib/rateLimit/sharedRateLimiter'
 import { publicContent } from '@/modules/content/container'
 
 const ACTION_PATTERN = /^[a-z0-9][a-z0-9:_-]{0,63}$/i
@@ -14,7 +14,11 @@ const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
  * Used» en bucle (el filtro `sec-fetch-site` no existe fuera de un
  * navegador). Holgado: una tool real dispara pocos eventos por minuto.
  */
-const limiter = createFixedWindowRateLimiter({ max: 60, windowMs: 60_000 })
+const limiter = createSharedRateLimiter({
+  name: 'analytics-package',
+  max: 60,
+  windowMs: 60_000,
+})
 
 /** Tiempo máximo de la llamada a Plausible: que nunca deje la petición colgada. */
 const PLAUSIBLE_TIMEOUT_MS = 5000
@@ -59,7 +63,7 @@ export async function POST(request: NextRequest) {
 
   const clientIp = clientIpFromHeaders(request.headers)
 
-  if (!limiter.check(clientIp ?? 'unknown')) {
+  if (!(await limiter.check(clientIp ?? 'unknown'))) {
     return new NextResponse(null, { status: 429 })
   }
 

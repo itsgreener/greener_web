@@ -2,7 +2,7 @@ import 'server-only'
 
 import { randomUUID } from 'node:crypto'
 
-import { createFixedWindowRateLimiter } from '@/lib/rateLimit/inMemoryRateLimiter'
+import { createSharedRateLimiter } from '@/lib/rateLimit/sharedRateLimiter'
 
 import { recordSystemAuditEvent } from '@/modules/audit/container'
 
@@ -31,20 +31,45 @@ import { talentMailchimpNewsletter } from './infrastructure/talentMailchimp'
 import { cloudmersiveTalentScanner } from './infrastructure/talentVirusScanner'
 
 /**
- * Composition root de talent. Los límites son en memoria del proceso (como
- * los del feed y la newsletter): amortiguan, no son una defensa contra abuso
- * deliberado. Ver `inMemoryRateLimiter.ts`.
+ * Composition root de talent. Los límites cuentan en un almacén compartido
+ * entre instancias (Upstash, SEC-PUB-A1) y, si no está configurado o falla,
+ * en memoria de la instancia: amortiguan, no son una defensa contra abuso
+ * deliberado. Ver `sharedRateLimiter.ts`.
  */
 
 const limiters: TalentLimiters = {
-  signupByIp: createFixedWindowRateLimiter(TALENT_LIMITS.signupByIp),
-  signupByVisitor: createFixedWindowRateLimiter(TALENT_LIMITS.signupByVisitor),
-  signupByEmail: createFixedWindowRateLimiter(TALENT_LIMITS.signupByEmail),
-  formReadByIp: createFixedWindowRateLimiter(TALENT_LIMITS.formReadByIp),
-  formSaveByIp: createFixedWindowRateLimiter(TALENT_LIMITS.formSaveByIp),
-  formSaveByToken: createFixedWindowRateLimiter(TALENT_LIMITS.formSaveByToken),
-  uploadByIp: createFixedWindowRateLimiter(TALENT_LIMITS.uploadByIp),
-  uploadByToken: createFixedWindowRateLimiter(TALENT_LIMITS.uploadByToken),
+  signupByIp: createSharedRateLimiter({
+    name: 'talent-signupByIp',
+    ...TALENT_LIMITS.signupByIp,
+  }),
+  signupByVisitor: createSharedRateLimiter({
+    name: 'talent-signupByVisitor',
+    ...TALENT_LIMITS.signupByVisitor,
+  }),
+  signupByEmail: createSharedRateLimiter({
+    name: 'talent-signupByEmail',
+    ...TALENT_LIMITS.signupByEmail,
+  }),
+  formReadByIp: createSharedRateLimiter({
+    name: 'talent-formReadByIp',
+    ...TALENT_LIMITS.formReadByIp,
+  }),
+  formSaveByIp: createSharedRateLimiter({
+    name: 'talent-formSaveByIp',
+    ...TALENT_LIMITS.formSaveByIp,
+  }),
+  formSaveByToken: createSharedRateLimiter({
+    name: 'talent-formSaveByToken',
+    ...TALENT_LIMITS.formSaveByToken,
+  }),
+  uploadByIp: createSharedRateLimiter({
+    name: 'talent-uploadByIp',
+    ...TALENT_LIMITS.uploadByIp,
+  }),
+  uploadByToken: createSharedRateLimiter({
+    name: 'talent-uploadByToken',
+    ...TALENT_LIMITS.uploadByToken,
+  }),
 }
 
 export const registerCandidate = makeRegisterCandidate({

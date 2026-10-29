@@ -11,6 +11,6 @@ export interface NewsletterSubscriber {
 
 /** Límite de intentos por visitante. */
 export interface AttemptLimiter {
-  /** true si el intento cabe en el cupo. */
-  check(key: string): boolean
+  /** true si el intento cabe en el cupo. Hay que esperarla: el cupo puede ser compartido. */
+  check(key: string): boolean | Promise<boolean>
 }

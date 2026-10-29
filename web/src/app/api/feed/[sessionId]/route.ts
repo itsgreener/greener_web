@@ -8,6 +8,7 @@ import {
   attachVisitorCookie,
   getOrCreateVisitorId,
 } from '@/lib/rateLimit/visitorCookie'
+import { clientIpFromHeaders } from '@/lib/http/clientIpFromHeaders'
 import { isUuid } from '@/lib/validation/uuid'
 import {
   NEWSLETTER_COOKIE_NAME,
@@ -58,7 +59,12 @@ export async function GET(
     return respond({ error: 'La sesión de feed no existe.' }, { status: 404 })
   }
 
-  if (!feedLimits.canFetchBatch(visitorId)) {
+  if (
+    !(await feedLimits.canFetchBatch(
+      visitorId,
+      clientIpFromHeaders(request.headers),
+    ))
+  ) {
     return respond(
       {
         items: [],

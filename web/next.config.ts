@@ -20,14 +20,17 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Por defecto 1 MB — insuficiente para un ZIP de tool/insight. Tiene
-      // que ser IGUAL O MAYOR que PACKAGE_LIMITS.maxZipSizeBytes (3,5 MB,
-      // modules/packages/domain/packageLimits.ts): el cuerpo lleva el ZIP
-      // más los campos del formulario. Es más grande a propósito, para que
-      // un ZIP de 5-20 MB llegue al validador y reciba el mensaje claro
-      // "supera el límite de 3,5 MB" en vez del error genérico de Next.
-      // Un test (packageSizeLimits.test.ts) falla si baja de aquí.
-      bodySizeLimit: '20mb',
+      // Por defecto 1 MB — insuficiente para subir un CV (un archivo por
+      // petición, máximo 3,5 MB, talentConstants.ts). Tiene que ser IGUAL O
+      // MAYOR que ese máximo (y que PACKAGE_LIMITS.maxZipSizeBytes, el mismo
+      // 3,5 MB): el cuerpo lleva el archivo más los campos del formulario.
+      // El ZIP de tool/insight ya NO viaja por una Server Action (va directo
+      // a Storage, packageActions.ts), así que no hace falta el margen de
+      // 20 MB de antes: cuanto más bajo es el tope, menos cuerpo puede
+      // obligar a Next a leer y copiar un POST anónimo (SEC-X-2). 5 MB es
+      // también más o menos lo que admite Vercel (4,5 MB) en cualquier caso.
+      // Un test (packageSizeLimits.test.ts) falla si baja de 3,5 MB.
+      bodySizeLimit: '5mb',
     },
     // OJO, no es opcional: como existe `src/proxy.ts` y su matcher cubre los
     // POST de las Server Actions, Next COPIA en memoria el cuerpo de cada
@@ -35,11 +38,9 @@ const nextConfig: NextConfig = {
     // encima de ese tope NO rechaza: trunca en silencio y deja seguir con un
     // cuerpo cortado (documentado en `proxyClientMaxBodySize`; probado aquí el
     // 28 sep: un cuerpo de 12 MB llegaba a 10 MB y fallaba con «no es JSON
-    // válido»). Sin esto, el `bodySizeLimit` de arriba nunca llegaría a
-    // aplicarse a un ZIP de 10-20 MB. Tiene que ser IGUAL O MAYOR que
-    // `bodySizeLimit`; el margen es para la cabecera multipart del
-    // formulario. Un test lo comprueba.
-    proxyClientMaxBodySize: '25mb',
+    // válido»). Tiene que ser IGUAL O MAYOR que `bodySizeLimit`; el margen es
+    // para la cabecera multipart del formulario. Un test lo comprueba.
+    proxyClientMaxBodySize: '6mb',
   },
 }
 

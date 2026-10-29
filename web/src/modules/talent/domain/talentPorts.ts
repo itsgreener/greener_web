@@ -140,6 +140,6 @@ export interface TalentVirusScanner {
 
 /** Límite de intentos por clave. */
 export interface AttemptLimiter {
-  /** true si el intento cabe en el cupo (y ya cuenta). */
-  check(key: string): boolean
+  /** true si el intento cabe en el cupo (y ya cuenta). Hay que esperarla: el cupo puede ser compartido. */
+  check(key: string): boolean | Promise<boolean>
 }

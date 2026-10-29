@@ -60,9 +60,9 @@ export function makeRegisterCandidate({
     const { email } = parsed.data
 
     if (
-      !limiters.signupByIp.check(context.ipKey) ||
-      !limiters.signupByVisitor.check(context.visitorKey) ||
-      !limiters.signupByEmail.check(email)
+      !(await limiters.signupByIp.check(context.ipKey)) ||
+      !(await limiters.signupByVisitor.check(context.visitorKey)) ||
+      !(await limiters.signupByEmail.check(email))
     ) {
       return { ok: false, reason: 'rate_limited' }
     }

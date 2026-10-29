@@ -23,8 +23,16 @@ export const VISITOR_COOKIE_NAME = 'greener_visitor'
 // que las sesiones a las que se aplica.
 const VISITOR_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24
 
+// Lo que genera la propia app es un uuid; se aceptan además valores cortos de
+// letras, números, guion y guion bajo (cookies de visitas anteriores o de
+// pruebas). Cualquier otra cosa — un valor enorme, con símbolos — no se usa
+// como clave de nada y se trata como visitante nuevo (SEC-PUB-A1).
+const VISITOR_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/
+
 export function readVisitorId(request: NextRequest): string | null {
-  return request.cookies.get(VISITOR_COOKIE_NAME)?.value ?? null
+  const value = request.cookies.get(VISITOR_COOKIE_NAME)?.value
+
+  return value !== undefined && VISITOR_ID_PATTERN.test(value) ? value : null
 }
 
 export function getOrCreateVisitorId(request: NextRequest): string {
