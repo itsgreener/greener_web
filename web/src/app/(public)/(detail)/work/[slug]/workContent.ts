@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { buildOpenGraph } from '@/lib/pageMetadata'
 import { publicContent } from '@/modules/content/container'
 import { workLocalePath } from '@/modules/content/domain/contentPath'
 import type { PublicContentReader } from '@/modules/content/domain/publicContentReader'
@@ -29,7 +30,7 @@ export async function buildWorkMetadata(
 
   // Caso y episodio no tienen imagen de compartición propia (og_media_id):
   // para un caso se usa la primera imagen de su carrusel; un episodio, sin
-  // thumbnail propio, se queda sin imagen de compartición por ahora.
+  // thumbnail propio, usa la imagen de marca por defecto.
   let ogImage: string | undefined
   if (content.type === 'case') {
     const carousel = await (options?.reader ?? publicContent).caseCarousel(
@@ -57,10 +58,12 @@ export async function buildWorkMetadata(
     // Preview (arquitectura §15.3): "noindex" — un borrador no debe
     // aparecer nunca en buscadores, aunque el link llegue a filtrarse.
     robots: options?.noindex ? { index: false, follow: false } : undefined,
-    openGraph: {
+    // Un episodio, o un caso sin imagen en el carrusel, comparte la imagen de
+    // marca por defecto (RES-C3).
+    openGraph: buildOpenGraph({
       title,
       description,
       images: ogImage ? [ogImage] : undefined,
-    },
+    }),
   }
 }

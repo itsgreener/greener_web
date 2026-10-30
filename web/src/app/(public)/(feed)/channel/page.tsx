@@ -1,4 +1,12 @@
 import { Feed } from '@/components/masonry/Feed'
+import { SECTION_LABELS } from '@/components/nav/sectionLabels'
+import { buildPageMetadata } from '@/lib/pageMetadata'
+
+export const metadata = buildPageMetadata({
+  title: SECTION_LABELS.channel,
+  description:
+    "Episodes of Greener's podcast programs: Brand the Future, Brand into Europe and Brand Founders & Leaders.",
+})
 
 /**
  * Subhome de episodios ("Podcasts" en el AuxNav) — scope="channel"

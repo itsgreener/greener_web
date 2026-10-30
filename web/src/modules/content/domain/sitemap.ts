@@ -23,10 +23,11 @@ export interface SitemapEntry {
 }
 
 // Páginas fijas indexables. Ni /admin, ni /api, ni /auth, ni /preview
-// (ver src/app/robots.ts). /privacy es hoy un placeholder, pero es una
-// URL pública estable que tendrá contenido real.
+// (ver src/app/robots.ts). /work es la subhome de casos: no duplica la home
+// (la home mezcla todos los tipos), así que va como las otras tres subhomes.
 export const STATIC_SITEMAP_PATHS = [
   '/',
+  '/work',
   '/channel',
   '/insights',
   '/tools',

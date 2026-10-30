@@ -18,7 +18,7 @@ import {
   encodeCursor,
   signedFeedCursor,
 } from '@/modules/feed/infrastructure/cursor'
-import type { FeedConfig } from '@/modules/feed/domain'
+import type { FeedConfig } from '@/modules/feed/domain/types'
 
 /** Dobles en memoria de los puertos; se pueden reasignar en cada test. */
 interface GetFeedSessionBatchDeps {

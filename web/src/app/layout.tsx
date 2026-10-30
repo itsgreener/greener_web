@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { env } from '@/lib/env'
 import { helveticaNeue, kinder } from '@/lib/fonts'
+import { buildOpenGraph } from '@/lib/pageMetadata'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -10,14 +11,29 @@ export const metadata: Metadata = {
   // y en producción saldrían contra localhost. Sale de NEXT_PUBLIC_SITE_URL,
   // ya normalizada sin barra final (src/lib/env.ts).
   metadataBase: new URL(env.NEXT_PUBLIC_SITE_URL),
-  // Favicon: sin él el navegador pide /favicon.ico en cada visita y recibe
-  // un 404. El logo ya vive en /public/icons.
-  icons: { icon: '/icons/logo_greener.svg' },
+  // Favicon: el SVG del logo para los navegadores que lo admiten, y
+  // `src/app/favicon.ico` (lo añade Next solo) para el resto y para los
+  // rastreadores que lo piden. El icono de iOS va declarado aquí a mano: con
+  // `icons` definido, Next ignora el `apple-icon.png` de la convención de
+  // ficheros (solo trata como caso especial el favicon). Vive en `public/` con
+  // el nombre por defecto que iOS pide aunque no haya `<link>` (RES-C4).
+  icons: {
+    icon: '/icons/logo_greener.svg',
+    apple: '/apple-touch-icon.png',
+  },
   title: {
     default: 'Greener',
     template: '%s · Greener',
   },
   description: 'Greener — visual discovery, cases, insights and tools.',
+  // Imagen para compartir por defecto (RES-C3). Las páginas que declaran su
+  // propio `openGraph` (Next lo fusiona de forma superficial) vuelven a poner
+  // esta misma imagen con `buildOpenGraph`; aquí cubre cualquier otra ruta.
+  openGraph: buildOpenGraph({
+    title: 'Greener',
+    description: 'Greener — visual discovery, cases, insights and tools.',
+  }),
+  twitter: { card: 'summary_large_image' },
 }
 
 export default async function RootLayout({ children }: LayoutProps<'/'>) {

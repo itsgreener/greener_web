@@ -23,6 +23,19 @@ export async function register() {
     )
   }
 
+  // Los webhooks de n8n de talent aceptan peticiones de quien conozca su URL
+  // hasta que se activa la cabecera de autenticación (RES-D1; procedimiento en
+  // `docs/operaciones/talent-puesta-en-marcha.md` §3.4).
+  const { isTalentWebhookAuthMissing } = await import('@/lib/serverEnv')
+
+  if (process.env.NODE_ENV === 'production' && isTalentWebhookAuthMissing()) {
+    console.warn(
+      '⚠ Los webhooks de n8n de talent no tienen cabecera de autenticación ' +
+        '(TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME y TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE): ' +
+        'solo los protege que su URL sea secreta.',
+    )
+  }
+
   if (invalid.length > 0) {
     console.error(
       `⚠ Entorno incompleto o inválido en: ${invalid.join(', ')}. ` +

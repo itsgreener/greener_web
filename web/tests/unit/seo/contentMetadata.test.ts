@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildContentMetadata } from '@/lib/contentMetadata'
+import { DEFAULT_OG_IMAGE } from '@/lib/pageMetadata'
 import { getFirstPinCover } from '@/modules/content/infrastructure/firstPinMedia'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 
@@ -23,17 +24,18 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
 }
 
 const images = (m: ReturnType<typeof buildContentMetadata>) =>
-  (m.openGraph as { images?: string[] } | null | undefined)?.images
+  (m.openGraph as { images?: unknown[] } | null | undefined)?.images
 
 describe('imagen de OG sin portada (tool/insight)', () => {
-  it('sin portada ni medio de respaldo no hay imagen', () => {
-    expect(images(buildContentMetadata(content()))).toBeUndefined()
+  it('sin portada ni medio de respaldo usa la imagen de marca por defecto (RES-C3)', () => {
+    expect(images(buildContentMetadata(content()))).toEqual([DEFAULT_OG_IMAGE])
   })
 
   it('usa la imagen del primer pin', () => {
     const m = buildContentMetadata(content(), {
       shareMedia: { kind: 'image', cloudinaryPublicId: 'pins/a' },
     })
+    expect(images(m)).toHaveLength(1)
     expect(images(m)?.[0]).toContain('pins/a')
     expect(images(m)?.[0]).toContain('w_1200')
   })

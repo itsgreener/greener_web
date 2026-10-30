@@ -20,7 +20,7 @@ import {
   encodeCursor,
   signedFeedCursor,
 } from '@/modules/feed/infrastructure/cursor'
-import type { FeedConfig } from '@/modules/feed/domain'
+import type { FeedConfig } from '@/modules/feed/domain/types'
 
 /**
  * Interludios en el caso de uso (plan de `other`, fase 2): calendario por

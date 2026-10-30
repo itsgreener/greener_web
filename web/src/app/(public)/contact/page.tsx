@@ -1,6 +1,5 @@
-import type { Metadata } from 'next'
-
 import { BrokenHeadline } from '@/components/text/BrokenHeadline'
+import { buildPageMetadata } from '@/lib/pageMetadata'
 import { ContactForm } from './ContactForm'
 import styles from './page.module.css'
 
@@ -17,9 +16,11 @@ const CONTACT_HEADLINE = ['We', 'should have', 'a brand', 'together']
  * Ruta e interfaz en inglés (arquitectura §2.4: "interfaz global en
  * inglés").
  */
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Contact',
-}
+  description:
+    'Get in touch with Greener: a new website, a new brand, a product launch or a campaign.',
+})
 
 export default function ContactPage() {
   return (

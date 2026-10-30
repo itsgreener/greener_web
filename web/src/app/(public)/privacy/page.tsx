@@ -1,7 +1,6 @@
-import type { Metadata } from 'next'
-
 import { CookieChoice } from '@/components/consent/CookieChoice'
 import { PolicyBlock } from '@/app/(public)/privacy/PolicyBlock'
+import { buildPageMetadata } from '@/lib/pageMetadata'
 import { POLICY } from './policyContent'
 import styles from './page.module.css'
 
@@ -11,9 +10,11 @@ import styles from './page.module.css'
  * aquí solo se pinta. El aviso legal y las condiciones aún no tienen página
  * propia (arquitectura §17.3).
  */
-export const metadata: Metadata = {
+export const metadata = buildPageMetadata({
   title: 'Privacy & Cookies',
-}
+  description:
+    'How Greener handles personal data and cookies on itsgreener.com.',
+})
 
 export default function PrivacyPage() {
   return (

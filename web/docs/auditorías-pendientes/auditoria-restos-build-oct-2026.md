@@ -1,5 +1,7 @@
 # Auditoría de restos y olvidos en la build final · 23 oct 2026
 
+**Estado (29 oct 2026): aplicada en el código (§2.121 de `historial/historial-fase-5.md`).** Hechos RES-A1, A2, B1, C2, C3, C4 y las limpiezas del apartado 7 (`@vitest/ui`); RES-B2 y RES-C1 ya estaban resueltos en el zip del 29 oct; RES-A3 y RES-D2 no piden cambios de código. **Quedan dos cosas de Greener** (`PROGRESO.md` §4.1): activar la autenticación de los webhooks de n8n (RES-D1; el arranque de producción avisa en el log mientras falte) y sustituir la imagen para compartir provisional (RES-C3). Con ambas hechas, esta auditoría pasa a `historial/historial-informes-cerrados-oct-2026.md`. Correcciones al texto de abajo: `/work` no duplica la home (es la subhome de casos) y la nota de RES-A1 sobre sharp: sigue dentro del standalone aunque el optimizador esté apagado (80 MB), porque Next lo traza como dependencia opcional; en Vercel no importa.
+
 Auditoría de solo lectura: no se ha modificado ningún fichero del proyecto. Revisa lo que acaba dentro de la build de producción (`next build`, salida `standalone`) y busca dos cosas: **restos** (ficheros, rutas, configuración o código que se quedaron sin uso) y **olvidos** (cosas que la build espera o que una web publicada debería tener y no están). Quedan fuera `tests/`, `scripts/`, la documentación y la configuración de desarrollo; solo se mencionan de pasada en el apartado 7. Los hallazgos llevan prefijo **RES-**. Severidad: **Baja** o **Info**. Prioridad: **M** (merece hacerse) o **B** (mejora menor).
 
 ## 1. Resumen

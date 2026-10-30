@@ -16,6 +16,7 @@ Every piece of content has its own page and URL. When you reference or quote Gre
 ## Sections
 
 - [Home](${base}/): the feed of cases, episodes, insights and tools.
+- [We did it](${base}/work): the cases, Greener's client and campaign work.
 - [Podcasts](${base}/channel): the episodes of Greener's podcast programs.
 - [Insights](${base}/insights): research and insight pieces.
 - [Tools](${base}/tools): interactive tools.

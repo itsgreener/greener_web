@@ -336,17 +336,27 @@ describe('GET y PUT /api/talent/form/[token]', () => {
 })
 
 describe('POST y DELETE /api/talent/form/[token]/files', () => {
-  function upload(
+  // El FormData se serializa a bytes antes de montar la petición. Con un
+  // FormData directo, `request.body` es un generador interno de undici y, al
+  // cancelarlo (el test del tope de 11 MB), Node 24.22 lanza un
+  // `ERR_INVALID_STATE` sin capturar. El multipart es el mismo; solo cambia
+  // cómo se entrega el cuerpo.
+  async function upload(
     file: File | string | null,
     headers: Record<string, string> = {},
   ) {
     const form = new FormData()
     if (file !== null) form.append('file', file)
 
+    const encoded = new Response(form)
+
     return new NextRequest(`${BASE}/api/talent/form/${TOKEN}/files`, {
       method: 'POST',
-      body: form,
-      headers,
+      body: await encoded.arrayBuffer(),
+      headers: {
+        'content-type': encoded.headers.get('content-type') ?? '',
+        ...headers,
+      },
     })
   }
 
@@ -357,7 +367,7 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
     })
 
     const response = await postFile(
-      upload(
+      await upload(
         new File([new Uint8Array([1, 2, 3])], 'cv.pdf', {
           type: 'application/pdf',
         }),
@@ -378,16 +388,16 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
   })
 
   it('POST sin el campo "file" o con texto en su lugar: 400', async () => {
-    expect((await postFile(upload(null), params)).status).toBe(400)
-    expect((await postFile(upload('no soy un fichero'), params)).status).toBe(
-      400,
-    )
+    expect((await postFile(await upload(null), params)).status).toBe(400)
+    expect(
+      (await postFile(await upload('no soy un fichero'), params)).status,
+    ).toBe(400)
     expect(container.uploadCandidateFile).not.toHaveBeenCalled()
   })
 
   it('POST de un fichero por encima del tope sin Content-Length: 413 (se mide lo recibido)', async () => {
     const response = await postFile(
-      upload(new File([new Uint8Array(11 * 1024 * 1024)], 'grande.pdf')),
+      await upload(new File([new Uint8Array(11 * 1024 * 1024)], 'grande.pdf')),
       params,
     )
 
@@ -398,7 +408,7 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
 
   it('POST con Content-Length muy por encima del tope: 413 sin leer el cuerpo', async () => {
     const response = await postFile(
-      upload(new File([new Uint8Array(1)], 'a.pdf'), {
+      await upload(new File([new Uint8Array(1)], 'a.pdf'), {
         'content-length': String(50 * 1000 * 1000),
       }),
       params,
@@ -423,7 +433,7 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
     })
 
     const response = await postFile(
-      upload(new File([new Uint8Array(1)], 'a.pdf')),
+      await upload(new File([new Uint8Array(1)], 'a.pdf')),
       params,
     )
 
@@ -433,7 +443,7 @@ describe('POST y DELETE /api/talent/form/[token]/files', () => {
 
   it('POST desde otro sitio: 403', async () => {
     const response = await postFile(
-      upload(new File([new Uint8Array(1)], 'a.pdf'), {
+      await upload(new File([new Uint8Array(1)], 'a.pdf'), {
         'sec-fetch-site': 'cross-site',
       }),
       params,

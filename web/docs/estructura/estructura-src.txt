@@ -149,6 +149,7 @@ src/app/api/talent/form/[token]/route.ts
 src/app/api/talent/purge/route.ts
 src/app/auth/callback/route.ts
 src/app/error.tsx
+src/app/favicon.ico
 src/app/global-error.tsx
 src/app/globals.css
 src/app/layout.tsx
@@ -299,6 +300,7 @@ src/lib/http/clientIpFromHeaders.ts
 src/lib/http/packageAssetResponse.ts
 src/lib/http/packageErrorResponse.ts
 src/lib/http/packageSecurityHeaders.ts
+src/lib/pageMetadata.ts
 src/lib/rateLimit/inMemoryRateLimiter.ts
 src/lib/rateLimit/sharedRateLimiter.ts
 src/lib/rateLimit/upstashRest.ts
@@ -417,7 +419,6 @@ src/modules/feed/domain/feedPorts.ts
 src/modules/feed/domain/feedReadModels.ts
 src/modules/feed/domain/feedScope.ts
 src/modules/feed/domain/generateRound.ts
-src/modules/feed/domain/index.ts
 src/modules/feed/domain/interludes.ts
 src/modules/feed/domain/prng.ts
 src/modules/feed/domain/quotas.ts

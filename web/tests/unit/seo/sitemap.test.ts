@@ -27,6 +27,7 @@ describe('buildSitemapEntries — páginas fijas', () => {
 
     expect(urls(entries)).toEqual([
       'https://itsgreener.com/',
+      'https://itsgreener.com/work',
       'https://itsgreener.com/channel',
       'https://itsgreener.com/insights',
       'https://itsgreener.com/tools',

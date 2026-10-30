@@ -84,7 +84,21 @@ describe('metadataBase y favicon del layout raíz', () => {
   it('declara el favicon (evita el 404 de /favicon.ico en cada visita)', async () => {
     const { metadata } = await import('@/app/layout')
 
-    expect(metadata.icons).toEqual({ icon: '/icons/logo_greener.svg' })
+    expect(metadata.icons).toEqual({
+      icon: '/icons/logo_greener.svg',
+      apple: '/apple-touch-icon.png',
+    })
+  })
+
+  it('trae una imagen para compartir por defecto y la tarjeta grande de X (RES-C3)', async () => {
+    const { metadata } = await import('@/app/layout')
+
+    expect(
+      (metadata.openGraph as { images?: unknown[] } | null)?.images,
+    ).toEqual([
+      { url: '/og-default.png', width: 1200, height: 630, alt: 'Greener' },
+    ])
+    expect(metadata.twitter).toEqual({ card: 'summary_large_image' })
   })
 })
 

@@ -10,7 +10,14 @@ describe('buildLlmsTxt', () => {
   })
 
   it('enlaza las secciones públicas con URL absolutas y el sitemap', () => {
-    for (const path of ['/', '/channel', '/insights', '/tools', '/contact']) {
+    for (const path of [
+      '/',
+      '/work',
+      '/channel',
+      '/insights',
+      '/tools',
+      '/contact',
+    ]) {
       expect(text).toContain(`(https://itsgreener.com${path})`)
     }
     expect(text).toContain('(https://itsgreener.com/sitemap.xml)')

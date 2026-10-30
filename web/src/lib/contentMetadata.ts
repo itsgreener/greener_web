@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { buildOpenGraph } from '@/lib/pageMetadata'
 import {
   buildImageUrl,
   buildVideoPosterUrl,
@@ -32,11 +33,12 @@ export function buildContentMetadata(
     // Preview (arquitectura §15.3): "noindex" — un borrador no debe
     // aparecer nunca en buscadores, aunque el link llegue a filtrarse.
     robots: options?.noindex ? { index: false, follow: false } : undefined,
-    openGraph: {
+    // Sin imagen propia, la de marca por defecto (RES-C3).
+    openGraph: buildOpenGraph({
       title,
       description,
       images: ogImage ? [ogImage] : undefined,
-    },
+    }),
   }
 }
 

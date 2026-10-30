@@ -183,6 +183,26 @@ export const getTalentEnv = createScopedEnv('Talent', () =>
 )
 
 /**
+ * `true` si talent está configurado pero los webhooks de n8n NO llevan
+ * cabecera de autenticación: en ese caso la URL del webhook es lo único que
+ * los protege (RES-D1). El arranque de producción lo avisa en el log; si
+ * talent no está configurado o es inválido devuelve `false`, porque eso ya lo
+ * cuenta `validateServerEnv`.
+ */
+export function isTalentWebhookAuthMissing(): boolean {
+  try {
+    const talent = getTalentEnv()
+
+    return !(
+      talent.TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME &&
+      talent.TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE
+    )
+  } catch {
+    return false
+  }
+}
+
+/**
  * Credencial de la purga por plazo (`POST /api/talent/purge`): al revés que las
  * demás variables de talent, es el secreto con el que n8n llama a la web. Va en
  * su propio ámbito a propósito: si estuviera dentro de `getTalentEnv`, un valor

@@ -27,9 +27,11 @@ export const RESERVED_ROOT_SEGMENTS: readonly string[] = [
   'work',
 
   // Ficheros y carpetas de `public`, y rutas que sirve Next.js
+  'apple-touch-icon.png',
   'favicon.ico',
   'greener-package-analytics.js',
   'icons',
+  'og-default.png',
   '_next',
 
   // Señuelo para bots (`lib/botTraps.ts`)

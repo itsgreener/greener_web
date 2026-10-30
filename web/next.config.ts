@@ -9,14 +9,16 @@ const nextConfig: NextConfig = {
   // tras el build. Pasos exactos y verificados en `despliegue.md`.
   output: 'standalone',
   images: {
-    // Permite optimizar con next/image las imágenes servidas desde Cloudinary
-    // (arquitectura §5, §9.2 — Cloudinary es la fuente de originales/derivadas).
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-      },
-    ],
+    // El optimizador `/_next/image` está APAGADO a propósito (RES-A1): la web
+    // no importa `next/image` en ningún sitio. Las imágenes ya llegan
+    // transformadas desde la CDN de medios (`modules/media/client/
+    // cloudinaryUrl.ts`: perfil, ancho y `srcset` en la propia URL), y un
+    // segundo optimizador las retransformaría. Con `remotePatterns` abierto a
+    // un dominio, cualquier visitante anónimo podía pedir al servidor que
+    // descargara y reescalara imágenes de cualquier cuenta de ese dominio, con
+    // el coste de CPU, red y (en Vercel) cuota de optimización que eso trae.
+    // Un test (nextImages.test.ts) falla si alguien lo vuelve a abrir.
+    unoptimized: true,
   },
   experimental: {
     serverActions: {
