@@ -2370,3 +2370,50 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Cifras.** 311 ficheros y 3772 tests en verde; ESLint y Prettier limpios; `tsc` solo muestra el falso positivo conocido de `LayoutProps` sin la carpeta `.next` (§2.123).
 
 **Para Greener.** Nada pendiente de esto. Si el informe de navegadores de Plausible muestra algún día muchos visitantes sin soporte, se revisan el ABM y `:has()`.
+
+### 2.125 Checklist por tipo de trabajo y estado de las tres auditorías (2 nov 2026)
+
+**Origen.** Greener preguntó si, con lo aplicado hasta el §2.124, las tres auditorías que quedaban en `docs/auditorías-pendientes/` se podían borrar, y pidió la checklist centrada en lo que se puede hacer desde código. Sin cambios de código.
+
+**Estado de las auditorías.** Contrastadas una por una con la checklist y con el historial.
+
+- *Restos del build* (§2.121): aplicada. Lo que queda es de Greener (RES-D1, autenticación de los webhooks de n8n, y RES-C3, imagen para compartir definitiva) y está en el §4.1. Se puede borrar.
+- *Seguridad del backend* (§2.109 al §2.121): aplicada salvo tres puntos que ya estaban en el §4.3 (SEC-X-1d, SEC-ADM-C1 y SEC-PUB-A5); SEC-X-1d se ha ampliado con el porqué y las dos opciones, que antes solo constaban en el informe. Las comprobaciones externas del apartado 10 del informe se cerraron el 29 oct. Se puede borrar.
+- *TSX* (§2.103 al §2.108): abierta solo por TSX-PUB-B6, lote 3 (`usePinVideo`, `useToolCoverVideo` y `useRecommendationMasonry`); la checklist lleva ahora también la receta del cambio. Se puede borrar cuando se haga o se descarte ese lote.
+- *CSS*: ya cerrada y retirada en el §2.123.
+
+**Checklist.** Nuevo §4.0 bis en `PROGRESO.md`, por tipo de trabajo y con tamaños (S, M, L): lo que tiene plazo esta semana, lo que se puede hacer ya sin depender de nadie, la documentación que Claude puede escribir, la migración en rama, el código que espera una decisión y lo que no es código. Lo único con plazo es `scripts/bunny-probe.mjs` y la página mínima de `tus` y del iframe para la prueba de Bunny (la cuenta caduca hacia el 8 de noviembre), que todavía no está escrito.
+
+**Cifras.** 311 ficheros y 3772 tests, sin cambios respecto al §2.124.
+
+### 2.126 Plan de mejoras desde código (2 nov 2026)
+
+**Origen.** Greener pidió ampliar y planificar los puntos de código sin dependencias del §4.0 bis de `PROGRESO.md`. El resultado es `docs/especificaciones/plan-mejoras-codigo-nov-2026.md`. Sin cambios de código.
+
+**Qué corrigió la lectura del código.**
+
+- `<html lang="en">` es correcto para una interfaz en inglés; lo que falta es marcar con `lang` el texto de cada contenido y de cada pin. Un `<html lang>` dinámico exigiría una consulta por petición y varios layouts raíz romperían la persistencia del feed.
+- El carrusel de la ficha de caso no tiene movimiento (scroll nativo, sin autoplay): `prefers-reduced-motion` no aplica; falta el `preload` de sus vídeos.
+- `?pin=` ya tiene tests y `slide=` ya no existe en el código. La laguna es `getPublicPinCover`.
+- El formulario de contacto ya tiene los textos en inglés y los errores de campo accesibles; quedan conservar lo escrito, el mensaje cuando Supabase no responde, `autocomplete`, `maxlength` y el foco.
+- No hay `rel="canonical"` en las páginas que renderiza Next (las de paquetes ya lo llevan) ni `x-default`.
+
+**Hallazgos nuevos.** `--admin-text-muted` (#6b7180) da 4,44:1 sobre el gris único #f4f4f4, por debajo del 4,5:1 de WCAG AA (propuesta #686d7b). Y `/privacy` afirma que se guarda el mensaje de error del servidor de correo y que puede incluir el email, cuando desde SEC-PUB-A3 solo se guarda un código corto: se corrige a través de la consulta 2 al asesor, no por nuestra cuenta.
+
+**Mediciones.** `vitest run` 201 s en este entorno (37 s de tests), ESLint 22 s y `npm run typecheck` 19 s, todo limpio. Con `npm run typecheck` desaparece el falso positivo de `LayoutProps`.
+
+**Cifras.** 311 ficheros y 3772 tests, sin cambios respecto al §2.125.
+
+### 2.127 CI, plazo de los logs y documentos del asesor y del DNS (2 nov 2026)
+
+**Petición.** Montar el CI, cambiar «30 días» por «menos de 30 días» en `/privacy` para que sea cierto, actualizar el documento de consultas del asesor y preparar la tabla DNS de D2. Decisiones de Greener: Vercel se desplegará dentro de la UE; los archivos se siguen gestionando íntegramente en Cloudinary y Cloudflare solo gestiona el dominio (si eso cambia, se vuelve a preguntar); los subdominios de tools e insights se apagan; los documentos no mencionan proveedores de vídeo ni de almacenamiento nuevos; la foto de los DNS la hace Greener.
+
+**CI.** `.github/workflows/ci.yml` con cuatro trabajos (lint, tipos y tests; build; `npm audit --omit=dev --audit-level=high`, también cada lunes; formato, informativo porque `format:check` marca hoy unos 25 ficheros), `.github/dependabot.yml` (npm y acciones, semanal y agrupado, sin subidas mayores de Next, React, React DOM ni TypeScript) y `docs/operaciones/ci.md`. Las acciones van fijadas por SHA (`actions/checkout` v7.0.1 y `actions/setup-node` v7.1.0), con permisos de solo lectura. El build falló dos veces antes de pasar: `env.ts` exige además `SUPABASE_SECRET_KEY` y `env.client.ts` `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`; con cinco variables de relleno termina bien. Test nuevo `tests/unit/shared/ciWorkflow.test.ts` (6 comprobaciones). Validado con `actionlint`; no ejecutado todavía en GitHub.
+
+**`/privacy`.** La frase de «Security logs» dice ahora «en menos de 30 días» (antes, «después de 30 días»), cierta con los planes Hobby y Pro de Vercel; con Observability Plus serían 30 días exactos. La fecha de «Last updated» y `CONSENT_TEXT_VERSION` no se tocaron, para no volver a mostrar la ventana de cookies; se consulta al asesor (consulta 4). Test de `privacy.smoke.test.tsx` ajustado; el texto del formulario de contacto («deleted automatically after 30 days») y `contactPurgeMigration.test.ts` no cambian.
+
+**Documentos.** `consultas-asesor-legal.md`: consultas 30 a 34 nuevas (Vercel en la UE, Google Workspace, Cloudflare solo DNS, baja de Dinahosting y subdominios, cuándo actualizar `/privacy`) y consultas 1, 2, 3, 4, 9 y 17 reformuladas. Hallazgo: la tabla del formulario ya solo guarda un código técnico de error (SEC-PUB-A3) y `/privacy` sigue diciendo que guarda el mensaje; el mensaje completo sí va al registro de ejecución del servidor. `operaciones/dns-d2-tabla-registros.md`: plantilla con los registros de la web, el correo de D4 y los demás de la exportación, todo en DNS only. El plan (`plan-mejoras-codigo-nov-2026.md`) marca el CI y los documentos como hechos.
+
+**Cifras.** 312 ficheros y 3778 tests en verde (6 más: `ciWorkflow`); ESLint y `npm run typecheck` limpios; `next build` con las cinco variables de relleno termina bien; `npm audit --omit=dev` sin vulnerabilidades.
+
+**Sin resolver.** Región de las funciones de Vercel (`vercel.json` no fija `regions`: la región de Supabase no consta en la documentación), nombre de la rama principal y regla de protección en GitHub, valores actuales de la tabla DNS (exportación de D0).

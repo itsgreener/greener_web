@@ -1,0 +1,99 @@
+# Integración continua. Qué hace cada trabajo y cómo reproducirlo en local:
+# docs/operaciones/ci.md
+#
+# Las acciones van fijadas por SHA de commit (el comentario dice la versión):
+# Dependabot (dependabot.yml) propone las subidas.
+
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main, master]
+  # Revisión semanal de dependencias de producción: una vulnerabilidad nueva
+  # aparece aunque nadie haya tocado el código.
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Un push nuevo a la misma rama cancela la ejecución anterior que sigue en curso.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, tipos y tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Sin las ejecuciones semanales: ahí solo interesa el audit.
+    if: github.event_name != 'schedule'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      # Sin NEXT_PUBLIC_SITE_URL en el entorno: varios tests comprueban el
+      # valor por defecto (http://localhost:3000).
+      - run: npm test
+
+  build:
+    name: Build de producción
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name != 'schedule'
+    # Valores de relleno: el build solo exige que existan y sean válidos
+    # (src/lib/env.ts). No se conecta a ningún servicio ni hay secretos reales.
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+      NEXT_PUBLIC_SITE_URL: https://ci.invalid
+      SUPABASE_SECRET_KEY: sb_secret_ci_placeholder
+      NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME: ci-placeholder
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  audit:
+    name: Dependencias de producción
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      # Solo falla con vulnerabilidades altas o críticas en lo que se despliega.
+      - run: npm audit --omit=dev --audit-level=high
+
+  format:
+    name: Formato (Prettier)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name != 'schedule'
+    # Informativo mientras `npm run format:check` no pase limpio en todo el
+    # repositorio (hoy marca algunos scripts y tipos generados). Cuando pase,
+    # se quita esta línea y el trabajo pasa a bloquear.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check

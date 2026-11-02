@@ -1,0 +1,33 @@
+# Subidas de dependencias: una PR semanal por ecosistema, agrupadas para no
+# recibir una por paquete. Las acciones de .github/workflows van fijadas por
+# SHA y Dependabot las actualiza igualmente (mantiene el comentario de versión).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      menores-y-parches:
+        update-types: [minor, patch]
+    # Next, React y TypeScript se suben a mano: una mayor mueve medio proyecto.
+    ignore:
+      - dependency-name: next
+        update-types: [version-update:semver-major]
+      - dependency-name: react
+        update-types: [version-update:semver-major]
+      - dependency-name: react-dom
+        update-types: [version-update:semver-major]
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      acciones:
+        patterns: ['*']

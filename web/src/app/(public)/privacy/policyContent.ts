@@ -192,7 +192,7 @@ export const POLICY: PolicyDocument = {
       blocks: [
         {
           type: 'p',
-          text: "To protect the site from bots and vulnerability scanners, our server keeps a log of requests to addresses that no real visitor ever opens: a decoy page hidden from people, and the typical paths scanners probe (such as .php files or .env files, which this site does not have). For each of those requests the log records the address requested, your IP address and your browser's user agent. We use these records only to detect and block abusive traffic. The legal basis is our legitimate interest in the security of the site, and the records are deleted automatically from the server's logs after 30 days.",
+          text: "To protect the site from bots and vulnerability scanners, our server keeps a log of requests to addresses that no real visitor ever opens: a decoy page hidden from people, and the typical paths scanners probe (such as .php files or .env files, which this site does not have). For each of those requests the log records the address requested, your IP address and your browser's user agent. We use these records only to detect and block abusive traffic. The legal basis is our legitimate interest in the security of the site, and the records are deleted automatically from the server's logs in less than 30 days.",
         },
       ],
     },

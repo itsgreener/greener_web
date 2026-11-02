@@ -118,7 +118,7 @@ describe('/privacy — prueba de humo', () => {
     expect(section.textContent).toMatch(/your IP address/)
     expect(section.textContent).toMatch(/user agent/)
     expect(section.textContent).toMatch(/detect and block abusive traffic/)
-    expect(section.textContent).toMatch(/after 30 days/)
+    expect(section.textContent).toMatch(/in less than 30 days/)
   })
 
   it('la tabla de terceros lleva los siete elementos de la auditoría, con sus nombres completos', () => {
