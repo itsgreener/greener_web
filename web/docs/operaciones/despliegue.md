@@ -1,5 +1,7 @@
 # Despliegue — Dinahosting (PM2 + cron, con el proxy gestionado por Dinahosting)
 
+> **Estado a 30 de octubre de 2026.** Esta guía describe el modelo de **Dinahosting**, que ya no es el destino previsto: la web corre hoy en una preview de **Vercel** (desde el 28 oct) y el plan es pasar el dominio a Cloudflare y el correo a Google Workspace (resumen en `docs/operaciones/migracion-infraestructura.md`; seguimiento en `PROGRESO.md` §4.0). Hasta que ese cambio se ejecute y esta guía se reescriba para Vercel, se conserva como plan B. **Siguen valiendo en Vercel:** el §2 (variables de entorno; allí se dan de alta en Settings → Environment Variables y `$` no se escapa), el §8 (`/api/health`), el §9 (`pg_cron`) y el §9 bis (Vercel Cron, que solo corre en producción). **Solo valen con Dinahosting:** el §1 (carpeta `standalone`), el §3 al §6 (PM2, versiones, nvm y el cron de vigilancia, proxy) y el §10 (rotación de logs de PM2). El §7 recoge la decisión de no hacer redirecciones 301 desde las apps antiguas (apagarlas cuando la web nueva esté publicada), que no depende del alojamiento.
+
 Guía del despliegue con `output: 'standalone'` (arquitectura §19.1, ADR-12). El modelo es el que ya usáis en `tools.itsgreener.com` e `insight.itsgreener.com`: la aplicación corre con **PM2**, un **cron** la vigila, y delante hay un **proxy inverso Nginx que gestiona Dinahosting**: vosotros lo encendéis, esperáis a que os asigne un puerto y la aplicación escucha en ese puerto. Lo único que no podéis hacer es modificar ese proxy.
 
 Distingue tres niveles de certeza:
@@ -27,7 +29,6 @@ standalone/          <- esto es lo que se sube (una «release»)
 ├── server.js
 ├── package.json
 ├── node_modules/
-├── data/
 ├── public/          <- copiado a mano
 ├── .env.local       <- ver §2
 └── .next/
@@ -54,7 +55,7 @@ El build también necesita un `.env.local` válido, porque `next build` importa 
 
 **Talent (gestión de CVs).** Nueve variables propias (`TALENT_*`), todas solo de servidor, con su bloque para el `.env.local.example` y los pasos fuera del repositorio (n8n y Supabase-talent): `docs/operaciones/talent-puesta-en-marcha.md`.
 
-## 3. Arrancar con PM2 (verificado)
+## 3. Arrancar con PM2 (verificado; solo Dinahosting)
 
 `server.js` lee `PORT` y `HOSTNAME` del entorno (`parseInt(process.env.PORT) || 3000`, y `0.0.0.0` por defecto). **`PORT` es el que os asigne Dinahosting.** Un fichero de configuración de PM2, `ecosystem.config.cjs`, lo deja todo en un sitio:
 
@@ -96,7 +97,7 @@ La aplicación guarda estado **en la memoria del proceso**, así que `ecosystem.
 
 Si algún día hiciera falta más de una instancia, hay que mover primero esos tres estados a un almacén compartido (Redis, o tablas en Supabase para los limitadores).
 
-## 4. Cambiar de versión sin cortar el sitio (verificado)
+## 4. Cambiar de versión sin cortar el sitio (verificado; solo Dinahosting)
 
 Con varias releases en `releases/<nombre>` y un enlace simbólico `current` que apunta a la activa:
 
@@ -108,7 +109,7 @@ pm2 restart greener
 
 Probado: **tras cambiar el enlace, el proceso sigue sirviendo la release vieja hasta que se reinicia**; tras `pm2 restart`, arranca desde la nueva. Por eso el `cwd` del `ecosystem.config.cjs` es la ruta del enlace y no la de una release. Cada release necesita su `.env.local` (o un enlace a uno compartido, §2). Para volver atrás basta apuntar el enlace a la release anterior y reiniciar.
 
-## 5. Node con nvm y el cron (verificado)
+## 5. Node con nvm y el cron (verificado; solo Dinahosting)
 
 Next 16 exige como mínimo Node 20.9. El `engines` de este proyecto pide 24.22.1 (la versión que corrige las vulnerabilidades graves de octubre), pero solo lo comprueba `npm` al instalar; con la carpeta standalone no se ejecuta `npm` en el servidor. Toda la verificación de esta sesión se hizo con Node 22. Con nvm se puede fijar la 24 (`nvm install 24` da la última 24.x, que cumple `>=24.22.1 <25`), y es lo coherente con el `.nvmrc`. Se indica por ruta absoluta en `interpreter` (§3).
 
@@ -143,7 +144,7 @@ fi
 
 Resultado de las pruebas: con el daemon muerto, la app vuelve a responder en unos 2 s; con la app en marcha no toca nada (mismo PID); parada o borrada, la arranca; si el proceso muere con el daemon vivo, lo levanta PM2 antes de que intervenga el vigilante. Si ya tenéis un cron que hace lo mismo, contrastadlo con esto: en particular, cómo lee el PID y si fija el `PATH`.
 
-## 6. Lo que depende del proxy que no controláis: pruebas tras el primer despliegue
+## 6. Lo que depende del proxy que no controláis: pruebas tras el primer despliegue (solo Dinahosting)
 
 Nada de esto se puede reproducir fuera del servidor de Dinahosting ni configurar por vuestra parte: hay que **comprobarlo** una vez desplegado. Cada punto dice qué hacer si falla.
 
@@ -221,7 +222,7 @@ Las declara `vercel.json` y solo se ejecutan en el despliegue de **producción**
 
 Para comprobarla: Settings → Cron Jobs en Vercel (aparece tras desplegar con `CRON_SECRET` puesto, y tiene un botón para lanzarla a mano), o `curl -H "Authorization: Bearer <secreto>" https://<dominio>/api/cron/cleanup-staging`. Repetirla es seguro. Si algún día se sale de Vercel, cualquier planificador sirve con esa misma llamada.
 
-## 10. Registros del servidor: 30 días (texto de `/privacy`)
+## 10. Registros del servidor: 30 días (texto de `/privacy`; solo Dinahosting)
 
 El texto de `/privacy` dice que los registros de seguridad (la ruta, la IP y el user agent de las visitas a la ruta señuelo y a rutas de escáner, `logBotTrap` en `src/lib/botTraps.ts`) «se borran automáticamente del log del servidor a los 30 días». PM2 **no rota los logs por sí solo**: sin lo de abajo, `~/.pm2/logs/greener-out.log` crece sin límite y la frase es falsa. Hay que hacerlo en el servidor de Dinahosting:
 
@@ -235,4 +236,4 @@ pm2 set pm2-logrotate:compress true
 
 `retain` cuenta ficheros, no días: con `max_size` alto y rotación diaria, 30 ficheros son unos 30 días. **No se ha probado aquí** (no hay PM2 contra el servidor real); tras configurarlo, comprobar con `pm2 conf pm2-logrotate` y, a los pocos días, que aparecen los ficheros rotados. Si el proxy de Dinahosting guarda además sus propios logs de acceso, su plazo no lo controla la aplicación: conviene preguntárselo al proveedor y, si es mayor, decírselo al asesor.
 
-El correo del formulario sale por el servidor SMTP de Dinahosting (`CONTACT_SMTP_*`, §2).
+El correo del formulario sale hoy por el servidor SMTP de Dinahosting (`CONTACT_SMTP_*`, §2); pasará a Google Workspace con la etapa D4 de la migración (`migracion-infraestructura.md`).

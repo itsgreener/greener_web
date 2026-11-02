@@ -10,12 +10,12 @@
   padding: var(--admin-space-32);
 }
 
-.danger {
-  border-color: var(--admin-danger-border);
-  background: var(--admin-danger-bg);
+.error {
+  border-color: var(--admin-error-border);
+  background: var(--admin-error-bg);
 
   & .header {
-    border-bottom-color: var(--admin-danger-border);
+    border-bottom-color: var(--admin-error-border);
   }
 
   & .kicker {

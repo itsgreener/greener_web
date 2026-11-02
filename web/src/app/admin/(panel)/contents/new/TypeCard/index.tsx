@@ -25,7 +25,7 @@ export function TypeCard({
   onSelect,
 }: TypeCardProps) {
   return (
-    <label className={cx(styles.typeCard, selected && styles.selected)}>
+    <label className={cx(styles.typeCard, selected && styles.active)}>
       <input
         type="radio"
         name={name}

@@ -3,19 +3,29 @@
   --color-bg: #ffffff;
   --color-text: #111111;
   --color-border: #e5e5e5;
-  --color-surface-hover: #f4f4f4;
-  /* Fondo de las zonas de medio mientras carga (episodio) */
-  --color-surface-muted: #f2f2f2;
+  /* Único gris de fondo de toda la web (hover, zonas de medio mientras
+     cargan, insignias, fondo del ABM, cabeceras de tabla, campos de solo
+     lectura…). Antes había cuatro casi iguales (#f2f2f2, #f4f4f4, #f6f7f9 y
+     #fafbfc); no se añaden más. */
+  --color-surface: #f4f4f4;
   /* Reproductor / lienzo de vídeo */
   --color-media-backdrop: #000000;
   /* Mensajes de error de formularios */
   --color-error: #c0392b;
-  /* Velo claro sobre una portada (consentimiento del episodio) y sombra de
-     la ventana de cookies: derivados de --color-bg y --color-text, no
-     colores propios. */
-  --color-scrim: color-mix(in srgb, var(--color-bg) 92%, transparent);
-  --shadow-banner: 0 -8px 24px
-    color-mix(in srgb, var(--color-text) 8%, transparent);
+  /* Velo claro sobre una portada (consentimiento del episodio), sombra de la
+     ventana de cookies y tres tonos del pin de newsletter: derivados de
+     --color-bg, --color-text, --color-cta y --color-error, no colores
+     propios. Aquí va el valor ya calculado, para los navegadores sin
+     color-mix() (≈5 % de los usuarios en nov 2026: Chrome < 111, Safari <
+     16.2, Firefox < 113); donde existe, el bloque @supports de debajo lo
+     recalcula a partir de los tokens base. Un test comprueba que ambos
+     coinciden, así que si cambia un color base hay que actualizar aquí el
+     valor calculado. */
+  --color-scrim: rgb(255 255 255 / 92%);
+  --shadow-banner: 0 -8px 24px rgb(17 17 17 / 8%);
+  --color-cta-tint: #8197fa;
+  --color-cta-tint-light: #c6d0fd;
+  --color-error-tint: #efceca;
 
   /* CTA (azul #1941F5, radio 11px sobre
      una base de 16px = 0.6875rem). A diferencia del resto de esta hoja,
@@ -30,6 +40,9 @@
      el valor en píxeles. */
   --radius-media: 12px;
   --radius-control: 8px;
+  /* Círculos y pastillas (botón de play, insignias, tooltips). Nunca 50 % ni
+     999px a mano. */
+  --radius-pill: 999px;
 
   /* Escala de tamaños de texto. Los módulos usan estas variables, nunca un
      tamaño en rem a mano. --fs-sm es el del texto de las tarjetas del feed
@@ -84,6 +97,27 @@
     sans-serif;
   --font-display:
     var(--font-kinder), 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+/* Mismos tokens, calculados a partir de los colores base donde el navegador
+   entiende color-mix(). Debe ir después de :root para pisar los valores fijos. */
+@supports (color: color-mix(in srgb, red, blue)) {
+  :root {
+    --color-scrim: color-mix(in srgb, var(--color-bg) 92%, transparent);
+    --shadow-banner: 0 -8px 24px
+      color-mix(in srgb, var(--color-text) 8%, transparent);
+    --color-cta-tint: color-mix(in srgb, var(--color-cta) 55%, var(--color-bg));
+    --color-cta-tint-light: color-mix(
+      in srgb,
+      var(--color-cta) 25%,
+      var(--color-bg)
+    );
+    --color-error-tint: color-mix(
+      in srgb,
+      var(--color-error) 25%,
+      var(--color-bg)
+    );
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

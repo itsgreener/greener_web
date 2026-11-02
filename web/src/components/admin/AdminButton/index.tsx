@@ -5,7 +5,7 @@ import { cx } from '@/lib/cx'
 import styles from './AdminButton.module.css'
 
 export type AdminButtonVariant =
-  'primary' | 'secondary' | 'danger' | 'danger-solid'
+  'primary' | 'secondary' | 'error' | 'error-solid'
 
 type Options = {
   variant?: AdminButtonVariant
@@ -17,8 +17,8 @@ type Options = {
 const VARIANT_CLASS: Record<AdminButtonVariant, string> = {
   primary: styles.primary,
   secondary: styles.secondary,
-  danger: styles.danger,
-  'danger-solid': styles.dangerSolid,
+  error: styles.error,
+  'error-solid': styles.errorSolid,
 }
 
 /**

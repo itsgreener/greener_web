@@ -1,8 +1,8 @@
 # Consultas para el asesor legal: texto de /privacy y candidatos (talent)
 
-Oct 23, 2026 · @ItsGreener
+Oct 30, 2026 · @ItsGreener
 
-Actualizado el 23 de octubre de 2026. Este documento reúne **todo lo que queda pendiente del asesor legal**, tanto de la web principal como de la página de candidatos (talent). Parte de la versión del 21 de octubre, que contenía a las anteriores, y no renumera nada: las consultas **1 a 9** son las de `/privacy`, las **10 a 24** las de talent, las **25 a 27** se añadieron el 21 de octubre y la **28** es nueva.
+Actualizado el 30 de octubre de 2026 (revisión de la documentación; las consultas son las del 23, más la 29). Este documento reúne **todo lo que queda pendiente del asesor legal**, tanto de la web principal como de la página de candidatos (talent). Parte de la versión del 21 de octubre, que contenía a las anteriores, y no renumera nada: las consultas **1 a 9** son las de `/privacy`, las **10 a 24** las de talent, las **25 a 27** se añadieron el 21 de octubre, la **28** el 23 y la **29** (Upstash) el 28.
 
 **Qué ha cambiado desde la versión del 21 de octubre.**
 - Consulta nueva **28**: la ventana de cookies y la prueba de la elección. El texto del asesor la describe, pero no consta que haya confirmado expresamente que cumple la guía de la AEPD.
@@ -16,9 +16,11 @@ Actualizado el 23 de octubre de 2026. Este documento reúne **todo lo que queda 
 | Prioridad | Consultas | Por qué |
 | --- | --- | --- |
 | 1. Antes de abrir la página de talent | **10, 11, 12, 15, 16, 17** (la propuesta de mínimos de la 24) | La página no debería abrirse al público sin su texto, su base jurídica, el aviso a quien sube el personal, la corrección del proveedor de IA, la política de documentos sensibles y la lista de encargados. |
-| 2. Antes de publicar la web | **1 a 9, 26, 28** y el visto bueno a los cuatro cambios de la sección siguiente | Texto de `/privacy` que ya está en la web con cambios de Greener sin revisar. |
+| 2. Antes de publicar la web | **1 a 9, 26, 28, 29** y el visto bueno a los cuatro cambios de la sección siguiente | Texto de `/privacy` que ya está en la web con cambios de Greener sin revisar. |
 | 3. Segunda fase, si el asesor lo confirma | **13, 14, 18, 19, 20, 21, 22, 23** | Se pueden resolver con la página ya abierta, salvo que el asesor diga otra cosa. |
 | 4. Más adelante | **27** | Decisión de Greener de dejarlo para más adelante. |
+
+**Cambio de proveedores pendiente (30 de octubre).** La migración de infraestructura (`docs/operaciones/migracion-infraestructura.md`) cambiará los encargados del tratamiento que citan este documento y `/privacy`: **sale Dinahosting** (alojamiento, correo del formulario y registros de acceso del proxy) y **entran Vercel** (la web ya corre en una preview de Vercel desde el 28 de octubre, consulta 17), **Cloudflare** (DNS, medios y, si se elige, vídeo), el **proveedor de vídeo largo** (Bunny Stream, Mux o Cloudflare Stream) y, solo si se activa, **BotID de Vercel**; **Cloudinary** dejaría de serlo cuando se complete el traslado de medios. Greener pidió el 26 de octubre un documento de preguntas nuevas para el asesor sobre todo esto (contratos de encargado, ubicación de los datos, retención de los registros de Vercel frente a los 30 días que promete `/privacy`, vídeos de caso con o sin token). Todavía no está redactado: se prepara con las decisiones de Greener y irá como anexo de este documento con las consultas **30 en adelante**. Hasta entonces, las menciones a Dinahosting y Cloudinary de las consultas siguen siendo las de hoy.
 
 ## Cambios que Greener ha pedido añadir al texto
 
@@ -128,7 +130,7 @@ No dependen del asesor, pero el texto da por hecho que están resueltos:
 - **Datos de inscripción en el Registro Mercantil** de XAGA Creatividad Interactiva, S.A., si el asesor decide añadirlos.
 - **Plazo de los registros de acceso del proxy de Dinahosting**, que la aplicación no controla.
 - **Migración `20261019140000`** (purga a 30 días de `contact_submission`): Greener confirmó el 21 de octubre que está aplicada. Queda comprobar que el job de `pg_cron` aparece programado.
-- **Rotar los logs de PM2 a 30 días** en el servidor (`docs/operaciones/despliegue.md` §10). Hasta entonces, la frase de «Security logs» no es cierta.
+- **Sincronizar los 30 días de «Security logs»** con el sitio de alojamiento: con Dinahosting, rotar los logs de PM2 a 30 días (`docs/operaciones/despliegue.md` §10); con Vercel, el plazo lo fija el plan (Hobby 1 hora, Pro 1 día, Pro con Observability Plus 30 días) y hay que elegir plan, comprobar que no hay Log Drains y ajustar la frase (`docs/PROGRESO.md` §4.1). Hasta entonces, la frase no es verificable.
 - **Borrar a los 12 meses los mensajes del formulario de contacto.** El texto promete conservar 12 meses desde el último intercambio los mensajes que no deriven en relación profesional. Esos mensajes están en el buzón de Google Workspace y hoy nada los borra: hace falta un procedimiento (revisión periódica o regla del buzón).
 - **Repetir la auditoría de cookies en producción**, con Plausible medido y con una tool y un insight reales, y confirmar la causa de los dos fallos de revocación del 15 de octubre. Si el inventario cambia, avisar para actualizar las tablas.
 - **Licencias de las tipografías de la web** (Helvetica Neue y Kinder): confirmar con el proveedor que cubren la web autoalojada y la conversión a WOFF2 (punto 17 del plan de pendientes). La de Coolvetica, que usa el paquete de talent, ya está confirmada para uso web.

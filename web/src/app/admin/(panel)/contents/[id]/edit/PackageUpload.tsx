@@ -157,7 +157,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
         <AdminActionForm
           action={deleteOldHtmlPackageVersionsAction}
           hidden={{ contentId }}
-          variant="danger"
+          variant="error"
           label={`Borrar versiones anteriores (${oldVersionsCount})`}
           pendingLabel="Borrando…"
           confirmText={`¿Borrar las ${oldVersionsCount} versiones anteriores? La versión activa y los borradores no se tocan; se borrarán también los ficheros de las anteriores. Esta acción no se puede deshacer.`}
@@ -215,7 +215,7 @@ export default function PackageUpload({ contentId, versions }: Props) {
                     <AdminActionForm
                       action={deleteHtmlPackageVersionAction}
                       hidden={{ contentId, versionId: version.id }}
-                      variant="danger"
+                      variant="error"
                       compact
                       label="Borrar versión"
                       pendingLabel="Borrando…"

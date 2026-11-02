@@ -4,7 +4,7 @@
    Aquí no hay clases: cada componente de `components/admin/` y cada página
    del ABM lleva su CSS module y consume estas variables, igual que la web
    pública consume las de globals.css. Lo que ya existe allí se reutiliza
-   tal cual (--color-bg, --color-text, --color-border, --color-surface-*,
+   tal cual (--color-bg, --color-text, --color-border, --color-surface,
    --color-cta*, --color-error, --space-*, --font-body); esta hoja solo
    añade lo que el ABM necesita y la web no.
 
@@ -13,9 +13,8 @@
    heredan la fuente por defecto: cada control declara `font: inherit`. */
 
 :root {
-  /* Superficies. El blanco y el hover son los globales. */
-  --admin-page-bg: #f6f7f9;
-  --admin-surface-subtle: #fafbfc;
+  /* Superficies: el blanco (--color-bg) y el único gris (--color-surface)
+     son los globales; el ABM no tiene grises propios. */
 
   /* Texto: tres niveles por debajo de --color-text. */
   --admin-text-secondary: #575d6b;
@@ -40,9 +39,9 @@
   --admin-warning-text: #7a5200;
   --admin-warning-bg: #fff8e8;
   --admin-warning-border: #f0d9a4;
-  --admin-danger-bg: #fdf1f1;
-  --admin-danger-border: #efc4c0;
-  --admin-danger-hover: #a5301f;
+  --admin-error-bg: #fdf1f1;
+  --admin-error-border: #efc4c0;
+  --admin-error-hover: #a5301f;
 
   /* Radios: pequeño (controles, botones, avisos), medio (paneles, tarjetas
      seleccionables), grande (tarjetas) y extra (tarjeta del login). */
@@ -50,7 +49,7 @@
   --admin-radius-md: 12px;
   --admin-radius-lg: 16px;
   --admin-radius-xl: 20px;
-  --admin-radius-pill: 999px;
+  --admin-radius-pill: var(--radius-pill);
 
   /* Espaciado: complementa --space-xs/sm/md/lg/xl (4, 8, 16, 24, 40). */
   --admin-space-12: 12px;

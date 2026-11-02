@@ -14,7 +14,7 @@
   aspect-ratio: var(--ratio);
   overflow: hidden;
   border-radius: var(--radius-media);
-  background: var(--color-surface-hover);
+  background: var(--color-surface);
 
   /* El aspecto es el de components/cta/Cta; aquí solo la posición y la
      aparición al pasar el puntero. */

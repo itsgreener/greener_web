@@ -6,7 +6,7 @@
   padding: var(--space-lg);
   border: 1px dashed var(--admin-border-control-hover);
   border-radius: var(--admin-radius-md);
-  background: var(--admin-surface-subtle);
+  background: var(--color-surface);
 }
 
 .outcome {

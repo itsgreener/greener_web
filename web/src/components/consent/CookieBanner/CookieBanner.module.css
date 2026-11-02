@@ -69,16 +69,16 @@
   width: 2rem;
   height: 2rem;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: inherit;
   font: inherit;
-  font-size: 1.5rem;
+  font-size: var(--fs-xl);
   line-height: 1;
   cursor: pointer;
 
   &:hover {
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
   }
 }
 

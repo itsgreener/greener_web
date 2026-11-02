@@ -10,7 +10,7 @@
       color-mix(in srgb, var(--color-cta) 8%, transparent),
       transparent 35%
     ),
-    var(--admin-page-bg);
+    var(--color-surface);
   font-family: var(--font-body);
 }
 
@@ -77,7 +77,7 @@
   padding: var(--admin-space-12);
   margin-top: var(--space-md);
   border-radius: var(--admin-radius-sm);
-  background: var(--admin-surface-subtle);
+  background: var(--color-surface);
 }
 
 .securityIcon {
@@ -88,7 +88,7 @@
   width: 18px;
   height: 18px;
   margin-top: 1px;
-  border-radius: 50%;
+  border-radius: var(--admin-radius-pill);
   background: var(--admin-success-bg);
   color: var(--admin-success-text);
   font-size: var(--admin-fs-xs);
@@ -110,7 +110,7 @@
   min-height: 62px;
   padding: 0 var(--admin-space-32);
   border-top: 1px solid var(--color-border);
-  background: var(--admin-surface-subtle);
+  background: var(--color-surface);
 
   & a {
     color: var(--admin-text-secondary);

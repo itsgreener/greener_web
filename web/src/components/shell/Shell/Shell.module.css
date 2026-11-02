@@ -62,7 +62,7 @@
 
   &:hover,
   &:focus-visible {
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
   }
 
   &:hover .icon,
@@ -108,7 +108,7 @@
   transform: translateY(-50%) translateX(-4px);
   white-space: nowrap;
   padding: 0.3rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-text);
   color: var(--color-bg);
   font-size: var(--fs-xs);

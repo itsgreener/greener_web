@@ -62,7 +62,7 @@
   /* Al pasar el ratón el contenido se desplaza 4 px hacia dentro. Se anima
      con transform (no con padding) para que no haya reflow ni saltos de línea. */
   &:hover {
-    background: var(--admin-surface-subtle);
+    background: var(--color-surface);
   }
 
   &:hover .recentMain {

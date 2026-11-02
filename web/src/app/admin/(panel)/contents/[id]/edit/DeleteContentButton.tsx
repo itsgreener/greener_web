@@ -24,7 +24,7 @@ export default function DeleteContentButton({ id, status }: Props) {
     <AdminActionForm
       action={deleteContentAction}
       hidden={{ id }}
-      variant="danger-solid"
+      variant="error-solid"
       label="Eliminar contenido"
       pendingLabel="Eliminando…"
       confirmText="¿Seguro que quieres eliminar este contenido? Esta acción no se puede deshacer."

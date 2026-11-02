@@ -51,7 +51,7 @@ function DeleteButton({
     <div>
       <AdminButton
         type="button"
-        variant="danger"
+        variant="error"
         compact={compact}
         onClick={handleClick}
         disabled={pending || busy}

@@ -250,7 +250,7 @@ export default async function EditContentPage({ params }: Props) {
           </AdminCard>
         )}
 
-        <AdminCard tone="danger">
+        <AdminCard tone="error">
           <AdminCardHeader
             kicker="Danger zone"
             title="Zona peligrosa"

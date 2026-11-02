@@ -2,7 +2,7 @@
   display: grid;
   grid-template-columns: var(--admin-sidebar-width) minmax(0, 1fr);
   min-height: 100dvh;
-  background: var(--admin-page-bg);
+  background: var(--color-surface);
   color: var(--color-text);
   font-family: var(--font-body);
 }
@@ -54,7 +54,7 @@
     color var(--admin-transition);
 
   &:hover {
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
     color: var(--color-text);
   }
 

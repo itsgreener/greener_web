@@ -18,7 +18,7 @@
 
   &:hover {
     border-color: var(--admin-border-control-hover);
-    background: var(--admin-surface-subtle);
+    background: var(--color-surface);
   }
 
   &:has(input:focus-visible) {
@@ -35,8 +35,8 @@
   }
 }
 
-.selected,
-.selected:hover {
+.active,
+.active:hover {
   border-color: var(--color-cta);
   background: var(--admin-cta-soft);
   box-shadow: var(--admin-focus-ring);
@@ -49,13 +49,13 @@
   width: 38px;
   height: 38px;
   border-radius: var(--admin-radius-sm);
-  background: var(--color-surface-hover);
+  background: var(--color-surface);
   color: var(--admin-text-secondary);
   font-size: var(--admin-fs-md);
   font-weight: 700;
 }
 
-.selected .symbol {
+.active .symbol {
   background: var(--color-cta);
   color: var(--color-cta-text);
 }
@@ -84,13 +84,13 @@
   width: 22px;
   height: 22px;
   border: 1px solid var(--admin-border-control);
-  border-radius: 50%;
+  border-radius: var(--admin-radius-pill);
   color: transparent;
   font-size: var(--admin-fs-xs);
   font-weight: 700;
 }
 
-.selected .check {
+.active .check {
   border-color: var(--color-cta);
   background: var(--color-cta);
   color: var(--color-cta-text);

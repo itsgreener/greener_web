@@ -56,7 +56,7 @@ export default function CaseCarouselManager(props: CaseCarouselManagerProps) {
         <div>
           <AdminButton
             type="button"
-            variant="danger"
+            variant="error"
             disabled={removingAll || uploading || busy}
             onClick={handleRemoveAll}
           >

@@ -17,7 +17,7 @@
 
 .neutral,
 .draft {
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   color: var(--admin-text-secondary);
 }
 

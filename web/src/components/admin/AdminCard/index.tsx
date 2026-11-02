@@ -4,8 +4,8 @@ import styles from './AdminCard.module.css'
 
 type CardProps = {
   as?: 'section' | 'article' | 'aside' | 'div'
-  /** `danger` tiñe la tarjeta de rojo (zona peligrosa). */
-  tone?: 'default' | 'danger'
+  /** `error` tiñe la tarjeta de rojo (zona peligrosa). */
+  tone?: 'default' | 'error'
   /** Sin relleno, para tarjetas cuyo contenido (filtros, tabla) llega a los bordes. */
   padded?: boolean
   className?: string
@@ -25,7 +25,7 @@ export function AdminCard({
       className={cx(
         styles.card,
         padded && styles.padded,
-        tone === 'danger' && styles.danger,
+        tone === 'error' && styles.error,
         className,
       )}
     >

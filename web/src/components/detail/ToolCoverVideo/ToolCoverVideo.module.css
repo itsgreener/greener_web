@@ -14,7 +14,7 @@
      vídeos deben venir en uno de los 7 ratios del pin; el ABM avisa si no. */
   object-fit: cover;
   border-radius: var(--radius-media);
-  background: var(--color-surface-hover);
+  background: var(--color-surface);
 }
 
 /*

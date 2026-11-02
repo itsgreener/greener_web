@@ -136,10 +136,7 @@ export default async function AdminTalentPage({ searchParams }: Props) {
               <Link
                 key={value}
                 href={pageHref({ q, status: value, profile }, 1)}
-                className={cx(
-                  styles.chip,
-                  status === value && styles.chipActive,
-                )}
+                className={cx(styles.chip, status === value && styles.active)}
               >
                 {statusLabel(value)} <strong>{counts[value] ?? 0}</strong>
               </Link>

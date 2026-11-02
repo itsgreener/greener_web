@@ -14,7 +14,7 @@
   padding: var(--admin-space-12);
   border: 1px solid var(--color-border);
   border-radius: var(--admin-radius-md);
-  background: var(--admin-surface-subtle);
+  background: var(--color-surface);
 }
 
 .thumb {

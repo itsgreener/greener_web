@@ -5,7 +5,7 @@
   margin-bottom: var(--space-lg);
   border: 1px solid var(--color-border);
   border-radius: var(--admin-radius-md);
-  background: var(--admin-page-bg);
+  background: var(--color-surface);
 }
 
 .tab {

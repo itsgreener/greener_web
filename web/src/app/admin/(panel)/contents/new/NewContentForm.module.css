@@ -40,7 +40,7 @@
   justify-content: center;
   width: 28px;
   height: 28px;
-  border-radius: 50%;
+  border-radius: var(--admin-radius-pill);
   background: var(--admin-cta-soft);
   color: var(--color-cta);
   font-size: var(--admin-fs-sm);
@@ -76,7 +76,7 @@
   border: 1px solid var(--admin-border-control);
   border-right: 0;
   border-radius: var(--admin-radius-sm) 0 0 var(--admin-radius-sm);
-  background: var(--admin-surface-subtle);
+  background: var(--color-surface);
   color: var(--admin-text-muted);
   font-family: var(--admin-font-mono);
   font-size: var(--admin-fs-md);
@@ -105,8 +105,8 @@
   justify-content: center;
   width: 22px;
   height: 22px;
-  border-radius: 50%;
-  background: var(--color-surface-hover);
+  border-radius: var(--admin-radius-pill);
+  background: var(--color-surface);
   color: var(--admin-text-secondary);
   font-size: var(--admin-fs-sm);
   font-weight: 700;

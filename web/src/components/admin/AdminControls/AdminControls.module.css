@@ -24,7 +24,7 @@
   }
 
   &:disabled {
-    background: var(--admin-surface-subtle);
+    background: var(--color-surface);
     color: var(--admin-text-muted);
     cursor: not-allowed;
   }
@@ -41,7 +41,7 @@
     padding: var(--space-xs) var(--admin-space-12);
     border: 1px solid var(--admin-border-control);
     border-radius: var(--admin-radius-sm);
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
     color: var(--color-text);
     font: inherit;
     font-size: var(--admin-fs-sm);

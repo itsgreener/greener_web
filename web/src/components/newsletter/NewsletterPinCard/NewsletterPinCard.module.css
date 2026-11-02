@@ -1,19 +1,8 @@
 /* Proporciones basadas en la referencia 4:5. Sin imagen de fondo. Los colores
    salen de los tokens de globals.css; los dos tonos claros del diseño
-   (línea y enlace al pasar el ratón) y el del error se derivan de ellos. */
+   (línea y enlace al pasar el ratón) y el del error son los tokens
+   --color-cta-tint, --color-cta-tint-light y --color-error-tint. */
 .card {
-  --newsletter-tint: color-mix(in srgb, var(--color-cta) 55%, var(--color-bg));
-  --newsletter-tint-light: color-mix(
-    in srgb,
-    var(--color-cta) 25%,
-    var(--color-bg)
-  );
-  --newsletter-error: color-mix(
-    in srgb,
-    var(--color-error) 25%,
-    var(--color-bg)
-  );
-
   position: absolute;
   top: 0;
   left: 0;
@@ -59,7 +48,7 @@
   height: 8.7%;
   padding: 0 1% 0.75%;
   border: 0;
-  border-bottom: 1px solid var(--newsletter-tint);
+  border-bottom: 1px solid var(--color-cta-tint);
   border-radius: 0;
   outline: var(--focus-width) solid transparent; /* visible en contraste forzado */
   background: transparent;
@@ -77,7 +66,7 @@
   }
 
   &:focus-visible {
-    border-bottom: 2px solid var(--newsletter-tint);
+    border-bottom: 2px solid var(--color-cta-tint);
   }
 
   /* Evita el rectángulo claro de autocompletado de Chrome/Safari. */
@@ -123,7 +112,7 @@
   }
 
   & a:hover {
-    color: var(--newsletter-tint-light);
+    color: var(--color-cta-tint-light);
   }
 }
 
@@ -176,7 +165,7 @@
   left: 7.5%;
   right: 6%;
   margin: 0;
-  color: var(--newsletter-error);
+  color: var(--color-error-tint);
   background: var(--color-media-backdrop);
   font-size: 2.8cqw;
 }

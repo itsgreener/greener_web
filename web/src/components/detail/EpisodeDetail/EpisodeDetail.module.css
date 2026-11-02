@@ -41,7 +41,7 @@
   position: relative;
   flex-shrink: 0;
   overflow: hidden;
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   border-radius: var(--radius-media);
 }
 
@@ -75,7 +75,7 @@
   padding: 0;
   transform: translate(-50%, -50%);
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-pill);
   background: var(--color-cta);
   color: var(--color-cta-text);
   cursor: pointer;

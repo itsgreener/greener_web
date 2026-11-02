@@ -56,27 +56,27 @@
   color: var(--color-text);
 
   &:hover:not(:disabled) {
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
   }
 }
 
 /* Acción destructiva e irreversible (p. ej. eliminar un candidato). */
-.danger {
-  border-color: var(--admin-danger-border);
+.error {
+  border-color: var(--admin-error-border);
   background: var(--color-bg);
   color: var(--color-error);
 
   &:hover:not(:disabled) {
-    background: var(--admin-danger-bg);
+    background: var(--admin-error-bg);
   }
 }
 
 /* La misma, cuando es la acción principal de una zona peligrosa. */
-.dangerSolid {
+.errorSolid {
   background: var(--color-error);
   color: var(--color-cta-text);
 
   &:hover:not(:disabled) {
-    background: var(--admin-danger-hover);
+    background: var(--admin-error-hover);
   }
 }

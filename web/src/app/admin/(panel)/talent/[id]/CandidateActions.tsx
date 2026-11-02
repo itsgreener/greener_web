@@ -50,7 +50,7 @@ export default function CandidateActions({
       <AdminActionForm
         action={deleteCandidateAction}
         hidden={hidden}
-        variant="danger"
+        variant="error"
         label="Eliminar candidato"
         pendingLabel="Eliminando…"
         confirmText="¿Eliminar a este candidato? Se borran de forma definitiva sus datos, sus proyectos y sus ficheros del bucket. El CV que ya esté en Google Drive y la suscripción de Mailchimp hay que quitarlos a mano. No se puede deshacer."
