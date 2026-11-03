@@ -1,6 +1,6 @@
 # Historial — informes y planes cerrados (octubre de 2026)
 
-Archivo de los informes y planes del 8 al 21 de octubre de 2026 que dejaron de ser documentos vivos: sus hallazgos están aplicados o recogidos en otro sitio, y mantenerlos como ficheros sueltos dejaba en `docs/` instrucciones que ya no se cumplen. Se archivaron el 21 de octubre de 2026 (§2.98 de `historial-fase-5.md`) con su texto íntegro, solo con los encabezados bajados un nivel.
+Archivo de los informes y planes de octubre de 2026 que dejaron de ser documentos vivos (los seis primeros, del 8 al 21 de octubre, con su texto íntegro; los informes 7 a 9, las auditorías del 23 de octubre, solo como resumen, desde el 3 de noviembre): sus hallazgos están aplicados o recogidos en otro sitio, y mantenerlos como ficheros sueltos dejaba en `docs/` instrucciones que ya no se cumplen. Se archivaron el 21 de octubre de 2026 (§2.98 de `historial-fase-5.md`) con su texto íntegro, solo con los encabezados bajados un nivel.
 
 Cómo leerlo: cada apartado conserva su numeración interna («apartado 10», «H3», «O2»…), que se cita junto al número del informe («informe 1, apartado 10»). Las menciones a los ficheros originales y a la carpeta `docs/auditorias/` son las de la fecha de cada informe: esa carpeta ya no existe. Los dos scripts de simulación de la auditoría del feed (`auditoria-feed-2026-10-14-simulacion.ts.txt` y `…-simulacion-realista.ts.txt`) se retiraron: eran prototipos del algoritmo que hoy está en `src/modules/feed/domain/` con sus tests, y el método de medición está descrito en el apartado 9 del informe 1.
 
@@ -12,6 +12,9 @@ Cómo leerlo: cada apartado conserva su numeración interna («apartado 10», «
 | 4 | Auditoría de errores y código muerto | 16 oct 2026 | Cambios aplicados (§2.81) y puntos 1-3 resueltos (§2.82). El punto 4 (`cookie-audit-all/` y `tsconfig.tsbuildinfo` fuera del repositorio) pasa a `PROGRESO.md`. |
 | 5 | Simulación de la carga del vídeo en hover | 16 oct 2026 | Informó la decisión A3 del plan de pendientes (sin prefetch en hover), ya implementada. Los scripts siguen en `scripts/sim-video-hover/`. |
 | 6 | Auditoría de `src` del 8 de octubre | 8 oct 2026 | Las cinco fases se hicieron el 9 oct (§2.57 a §2.61 de `historial-fase-5.md`); no queda nada pendiente. |
+| 7 | Auditoría de componentes TSX (resumen) | 23 oct 2026 | 54 de 58 hallazgos aplicados entre el 26 y el 27 oct (§2.103 a §2.108), tres descartados; queda PUB-B6 lote 3 (`PROGRESO.md` §4.3). |
+| 8 | Auditoría de seguridad del backend (resumen) | 23 oct 2026 | Aplicada entre el 27 oct y el 2 nov (§2.109 a §2.121); quedan SEC-X-1d, SEC-ADM-C1 y SEC-PUB-A5 (`PROGRESO.md` §4.3). |
+| 9 | Auditoría de restos y olvidos en la build (resumen) | 23 oct 2026 | Aplicada el 29 oct (§2.121); quedan RES-D1 y RES-C3, de Greener (`PROGRESO.md` §4.1). |
 
 ---
 
@@ -828,3 +831,89 @@ Tras la fase 5: next build en verde, tsc/eslint/prettier limpios, 158 ficheros /
 
 ### Fases pendientes
 Ninguna. El plan de 5 fases de la auditoría está completo.
+
+---
+
+## 7. Auditoría de componentes TSX (resumen)
+
+*Ficheros originales: `docs/auditorías-pendientes/auditoria-tsx-oct-2026.md` (23 oct 2026; sustituía a los dos informes por zonas). Borrados el 3 de nov de 2026 (§2.139) a petición de Greener, que dio la auditoría por completada: aquí queda solo lo que el código y los historiales citan.* **Desenlace:** 54 de 58 hallazgos aplicados en seis tandas (§2.103 a §2.108), tres descartados por decisión de Greener (PUB-C2, ADM-A5, ADM-F3) y PUB-B6 en curso.
+
+**Qué buscaba.** Elementos repetidos que se pudieran extraer a un componente, lógica extraíble a un hook, componentes casi iguales fusionables y constantes duplicadas. Solo lectura. Alcance: 89 ficheros del admin (unas 9.600 líneas) y 79 de la web pública (unas 6.500).
+
+**Cómo se numeran los hallazgos.** Prefijo de zona: `TSX-ADM-` (backoffice), `TSX-PUB-` (web pública) y `TSX-X-` (transversales: X1 a X6). Dentro de cada zona, la letra es el bloque: A componentes a extraer, B hooks, C componentes casi iguales, D constantes y listas duplicadas, E estructura de páginas o ficheros y F convenciones y limpieza; el número es el hallazgo. Prioridad M (merece hacerse) o B (mejora menor): 14 M y 44 B.
+
+**Lo que más rindió** (aplicado en el §2.103): `AdminActionForm` en lugar del patrón «form + id oculto + confirmación + botón de pendiente» repetido en 13 ficheros (ADM-A1); los gestores de medios gemelos del admin (ADM-B1 con ADM-C1); las listas cerradas de tipos, estados e idiomas (ADM-D1 a D3, PUB-D1); y la tarjeta de pin y el texto legal del embed (PUB-B1, PUB-C1, PUB-A2 con PUB-B2 en el §2.106).
+
+**Decisiones de Greener que siguen vigentes.** Los textos de pendiente del ABM llevan `…` y un test lo vigila (ADM-A2). `useUploadQueue` extrae solo el núcleo común de las colas de pines y de CVs sin unificarlas (ADM-B2). `lib/forms/README.md` fija el reparto de los formularios: la lógica común sin textos en `lib/forms`, la presentación y su idioma en cada kit (TSX-X5). Un scope de feed desconocido ya no cae en `home`: falla y la API responde 400 (§2.103). Se escribieron los tests de guarda del apartado 8 del informe (listas cerradas, un solo `<img>` de Cloudinary, rutas de paquetes).
+
+**Lo que sigue abierto.** PUB-B6, lote 3: los reinicios al cambiar de prop de `usePinVideo`, `useToolCoverVideo` y `useRecommendationMasonry`. Los lotes 1 (`useVideoSlot` y el billete de `usePinVideo`, §2.107) y 2 (`useFeed` y las recomendaciones, §2.108) están hechos. El punto, con su receta, está en `PROGRESO.md` §4.0 bis y §4.3.
+
+---
+
+## 8. Auditoría de seguridad del backend (resumen)
+
+*Fichero original: `docs/auditorías-pendientes/auditoria-seguridad-backend-oct-2026.md` (23 oct 2026; actualizado el 27 y el 30 oct; sustituía a los informes del backend de `/admin` y del backend público). Borrado el 3 de nov de 2026 (§2.139) a petición de Greener.* **Desenlace:** aplicada entre el 27 oct y el 2 nov (§2.109 a §2.121); sin hallazgos de severidad Alta. Quedan SEC-X-1d, SEC-ADM-C1 y SEC-PUB-A5 (`PROGRESO.md` §4.3); SEC-PUB-A2 (barrera anti-spam en contacto) se acepta hasta ver tráfico real.
+
+**Qué buscaba.** Problemas de seguridad, vectores de ataque y código desorganizado o muerto, con pruebas empíricas contra el proxy y las rutas públicas. Conclusión: no había forma de leer ni escribir datos del ABM sin sesión de admin ni de leer datos personales de talent sin el enlace personal; lo que había eran huecos de defensa en profundidad, límites de abuso fáciles de esquivar, una frontera de origen más débil de lo documentado (los paquetes comparten origen con el ABM) y deuda de organización. 31 hallazgos: 10 Media y 21 Baja.
+
+**Cómo se numeran.** `SEC-ADM-` (backend del ABM), `SEC-PUB-` (backend público) y `SEC-X-` (transversales); la letra es el bloque de la zona (A autenticación o abuso, B entradas o paquetes, C subidas o talent, D tokens o código desorganizado, E cabeceras, F registro de actividad, G código muerto). Los tests propuestos eran `SEC-T`. Los 31 hallazgos, con la severidad del informe (los identificadores de B1, G1 y G4 del informe del admin pasaron a transversales como SEC-X-2, SEC-X-4 y SEC-X-3, por eso faltan en la zona admin):
+
+| Código | Sev. | Hallazgo |
+| --- | --- | --- |
+| SEC-ADM-A1 | Media | No hay cierre de sesión |
+| SEC-ADM-A2 | Media | Las páginas del ABM y las lecturas de talent dependen solo del proxy |
+| SEC-ADM-A3 | Media | El callback concede sesión a cualquier cuenta de Google |
+| SEC-ADM-A4 | Baja | `isAdminRoute` usa `startsWith('/admin')` |
+| SEC-ADM-A5 | Baja | Comprobaciones de sesión repetidas |
+| SEC-ADM-A6 | Baja | `createPinAction` es un endpoint vivo sin consumidor |
+| SEC-ADM-B2 | Baja | Dos acciones aceptan un id sin validar como uuid |
+| SEC-ADM-B3 | Baja | `externalCvUrl` redirige a cualquier http(s) guardado en `file_path` |
+| SEC-ADM-C1 | Baja | La subida a Cloudinary se verifica después, no antes |
+| SEC-ADM-C2 | Baja | `fetch` sin tiempo máximo en Cloudmersive y en la verificación de Cloudinary |
+| SEC-ADM-D1 | Media | `APP_SIGNING_SECRET` es opcional y cae a la clave de servicio |
+| SEC-ADM-D2 | Media | Enlaces de preview de 7 días, no revocables |
+| SEC-ADM-E1 | Baja | Faltan `Permissions-Policy`, `Cross-Origin-Opener-Policy` y `Cross-Origin-Resource-Policy` |
+| SEC-ADM-F1 | Media | El registro de actividad solo cubre talent |
+| SEC-ADM-G2 | Baja | La misma plomería en 35 acciones |
+| SEC-ADM-G3 | Baja | Comentario desactualizado en `serviceClient.ts` |
+| SEC-ADM-G5 | Baja | Registro de errores heterogéneo |
+| SEC-PUB-A1 | Media | Los límites del feed dependen de una cookie que fija el cliente |
+| SEC-PUB-A2 | Baja | El formulario de contacto escribe en la base de datos en cada intento |
+| SEC-PUB-A3 | Baja | El mensaje de error del SMTP se guarda en la base de datos |
+| SEC-PUB-A4 | Baja | Las defensas por IP suponen que el origen solo se alcanza por el proxy |
+| SEC-PUB-A5 | Baja | Cada visita a un paquete descarga el HTML y los assets de Storage |
+| SEC-PUB-B1 | Media | Los assets `.html`, `.htm` y `.svg` de un paquete se sirven sin CSP en el mismo origen |
+| SEC-PUB-B2 | Baja | La CSP del documento del paquete es incompleta y las cabeceras solo van en el 200 |
+| SEC-PUB-C1 | Baja | Los topes de tamaño de talent se comprueban después de leer el cuerpo |
+| SEC-PUB-C2 | Baja | El enlace personal de talent es un UUID en la URL sin caducidad |
+| SEC-PUB-D1 | Baja | Seis rutas gemelas para servir paquetes |
+| SEC-X-1 | Media | Los paquetes corren en el mismo origen que el ABM y las cookies de sesión se leen desde JavaScript |
+| SEC-X-2 | Media | Cuerpos de hasta 20–25 MB para cualquier POST anónimo |
+| SEC-X-3 | Baja | `process.env` leído fuera de `env.ts` |
+| SEC-X-4 | Baja | Exports sin consumidor en producción |
+
+**Medidas que se tomaron** (detalle en los §2.109 a §2.121): cierre de sesión y cookies de sesión `httpOnly` de 7 días; comprobación de admin en el callback de OAuth; `Permissions-Policy`, COOP y CORP; CSP y `nosniff` en los assets `.html`, `.htm` y `.svg` de los paquetes, rechazo de `.html` secundarios en el ZIP y `default-src 'none'; sandbox` en esos assets; previews de 24 h con revocación; `APP_SIGNING_SECRET` obligatorio; límites del feed y de `/api/health` en Upstash, con la cookie de visitante firmada; topes de cuerpo (el proxy a 6 MB) y de talent contados mientras se lee; caducidad del enlace de talent (el SQL está en `operaciones/talent-puesta-en-marcha.md` §4.6); `fetch` con tiempo máximo; registro de actividad ampliado; y las comprobaciones externas de S0, hechas con Greener y cerradas el 29 oct (RLS en todas las tablas, ninguna política de escritura abierta a `anon`, crons activos, `/ADMIN` da 404, cabeceras y cookies de la preview, Anonymous apagado, proveedor Email de Supabase Auth apagado).
+
+---
+
+## 9. Auditoría de restos y olvidos en la build (resumen)
+
+*Fichero original: `docs/auditorías-pendientes/auditoria-restos-build-oct-2026.md` (23 oct 2026; estado del 29 oct). Borrado el 3 de nov de 2026 (§2.139) a petición de Greener.* **Desenlace:** aplicada el 29 oct (§2.121). Quedan dos cosas de Greener (`PROGRESO.md` §4.1): la autenticación de los webhooks de n8n (RES-D1) y la imagen para compartir definitiva (RES-C3).
+
+**Qué buscaba.** Lo que acaba dentro de la build de producción (`next build`, salida `standalone`): restos (ficheros, rutas, configuración o código sin uso) y olvidos (lo que una web publicada debería tener y no está). De los 505 ficheros de `src/`, 470 eran alcanzables en ejecución, 33 eran solo tipos y solo sobraban un barrel y un README; no había `console.log`, `debugger`, `TODO`, duplicados ni dependencias de producción sin consumidor. Prefijo `RES-`; bloques A rutas, B ficheros, C contenido y metadatos y D provisionalidades.
+
+| Código | Sev. | Hallazgo |
+| --- | --- | --- |
+| RES-A1 | Baja | El optimizador de imágenes de Next está activo y nada lo usa |
+| RES-A2 | Info | `/work` está enlazada pero no está en el sitemap |
+| RES-A3 | Info | Entrada «Shop» oculta que apunta a una ruta que no existe |
+| RES-B1 | Baja | Un barrel que solo usan los tests |
+| RES-B2 | Info | Exports sin consumidor |
+| RES-C1 | Info | La carpeta `public/` no estaba en el zip |
+| RES-C2 | Baja | Cinco páginas indexables con el mismo título y descripción |
+| RES-C3 | Baja | Ninguna página pública tiene imagen para compartir |
+| RES-C4 | Info | Favicon solo en SVG |
+| RES-D1 | Baja | Los webhooks de n8n dependen solo de que su URL sea secreta |
+| RES-D2 | Info | Marcas de «por ahora» en lo que se publica |
+
+**Notas.** `/work` no duplica la home: es la subhome de casos. `sharp` sigue dentro del `standalone` (80 MB) aunque el optimizador esté apagado, porque Next lo traza como dependencia opcional; en Vercel no importa. RES-A3 (Shop oculto) y RES-D2 (textos «por ahora») no piden código.

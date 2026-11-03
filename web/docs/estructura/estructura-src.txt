@@ -125,6 +125,7 @@ src/app/admin/_lib/adminErrorMessage.ts
 src/app/admin/_lib/contentCapabilities.ts
 src/app/admin/_lib/formatAdminDateTime.ts
 src/app/admin/_lib/listHref.ts
+src/app/admin/_lib/pinLanguage.ts
 src/app/admin/_lib/pluralize.ts
 src/app/admin/_lib/safeSessionStorage.ts
 src/app/admin/_lib/usePersistedFilters.ts
@@ -183,6 +184,7 @@ src/components/admin/AdminMediaItem/AdminMediaItem.module.css
 src/components/admin/AdminMediaItem/index.tsx
 src/components/admin/AdminMessage/AdminMessage.module.css
 src/components/admin/AdminMessage/index.tsx
+src/components/admin/AdminNavLink/index.tsx
 src/components/admin/AdminOptions/index.tsx
 src/components/admin/AdminPage/AdminPage.module.css
 src/components/admin/AdminPage/index.tsx
@@ -264,6 +266,7 @@ src/components/pin/useVideoSlot/index.ts
 src/components/pin/videoPlaybackCoordinator.ts
 src/components/security/BotTrapLink.tsx
 src/components/security/Honeypot/index.tsx
+src/components/seo/JsonLd/index.tsx
 src/components/shell/Shell/Shell.module.css
 src/components/shell/Shell/index.tsx
 src/components/shell/Shell/navItems.ts
@@ -307,7 +310,9 @@ src/lib/rateLimit/upstashRest.ts
 src/lib/rateLimit/visitorCookie.ts
 src/lib/security/signedToken.ts
 src/lib/securityHeaders.ts
+src/lib/serializeJsonLd.ts
 src/lib/serverEnv.ts
+src/lib/structuredData.ts
 src/lib/supabase/browserCookies.ts
 src/lib/supabase/client.ts
 src/lib/supabase/database.ts
@@ -343,6 +348,7 @@ src/modules/consent/domain/consent.ts
 src/modules/consent/domain/copy.ts
 src/modules/contact/application/submitContactForm.ts
 src/modules/contact/container.ts
+src/modules/contact/domain/contactLimits.ts
 src/modules/contact/domain/contactPorts.ts
 src/modules/contact/domain/contactSchema.ts
 src/modules/contact/infrastructure/contactSubmissionLog.ts

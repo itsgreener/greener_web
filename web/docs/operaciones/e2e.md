@@ -56,15 +56,13 @@ Abrir la ejecución en Actions y mirar en qué paso se detuvo:
 
 Los avisos `❌ Variables de entorno inválidas… (Talent, Mailchimp…)` del arranque son normales: los E2E no definen esas integraciones y el resto de la web sigue en pie.
 
-## 5. Lo que no se ha podido comprobar
+## 5. Estado de la validación
 
-La primera ejecución real en GitHub es la prueba que falta. Se validó en un entorno sin Docker con un PostgreSQL 17 real, PostgREST 14.15 (la versión de producción) y las mismas variables, pero con los esquemas `auth` y `storage` y `pg_cron` simulados. Queda sin confirmar:
+**Confirmado en GitHub (3 nov):** el flujo con E1 a E8 se ejecutó dos veces sin errores. Con eso quedan comprobados, en la práctica, `supabase start` con las 58 migraciones y los dos seeds (con `pg_cron` y Storage reales), los nombres de variable de `supabase status -o json`, la acción `supabase/setup-cli` v3.2.0 con la CLI 3.0.0, `playwright install --with-deps chromium`, la subida y lectura de ficheros de E8 con la clave secreta nueva (`sb_secret_…`) y la estabilidad de E4 y E5 en el runner.
 
-- Que la imagen de Supabase aplique todo igual con `pg_cron` y Storage reales.
-- Que `supabase status -o json` imprima la URL y las claves con los nombres que busca `scripts/e2e-env.mjs`.
-- Que la acción `supabase/setup-cli` v3.2.0 acepte `version: 3.0.0`.
-- Que `npx playwright install --with-deps chromium` funcione sin ajustes en el runner.
-- Que la subida y la lectura de ficheros de E8 funcionen con el Storage real (aquí se probó contra un Storage simulado de la sonda: subir, leer con la clave secreta, 404 de un objeto que no existe) y que la clave secreta nueva (`sb_secret_…`) valga para `supabase-js` en Node.
+Antes de eso, todo se había validado en un entorno sin Docker (PostgreSQL 17 y PostgREST 14.15 reales, con los esquemas `auth` y `storage` y `pg_cron` simulados), y el receptor SMTP de E7 se prueba en cada `npm test` con el nodemailer real.
+
+**Sigue sin comprobarse:**
+
 - Que E6 no dependa de internet: las peticiones a `youtube-nocookie.com` se interceptan con una página mínima; si el reproductor pidiera otro dominio de Google, saldría a la red real.
-- La estabilidad de E4 y E5 en un runner lento (aquí, dos pasadas seguidas sin fallos; en el CI llevan un reintento).
 - Que la CSP con `upgrade-insecure-requests` y las cookies `Secure` no estorben en `http://localhost` con otro navegador distinto de Chromium (ahora solo se prueba Chromium).

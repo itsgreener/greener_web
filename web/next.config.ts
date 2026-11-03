@@ -1,12 +1,13 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Despliegue en Dinahosting con PM2 + un cron de vigilancia; el proxy inverso
-  // (Nginx) lo gestiona Dinahosting y no es configurable por nosotros
-  // (arquitectura §19.1, ADR-12). `next build` genera `.next/standalone` con
-  // un `server.js` que se ejecuta sin `node_modules` ni `next start`. Ese
-  // servidor NO copia `public/` ni `.next/static/` — hay que copiarlos a mano
-  // tras el build. Pasos exactos y verificados en `despliegue.md`.
+  // El destino actual es Vercel, que hace su propio empaquetado y donde `standalone` es inocuo.
+  // `standalone` se conserva porque es el plan B en Dinahosting con PM2
+  // (arquitectura §19.1, ADR-12; `despliegue.md`): `next build` genera
+  // `.next/standalone` con un `server.js` que se ejecuta sin `node_modules` ni
+  // `next start`, y ese servidor NO copia `public/` ni `.next/static/`, hay que
+  // copiarlos a mano tras el build. Al cerrar la migración (`PROGRESO.md` §4.0)
+  // se decide si se quita.
   output: 'standalone',
   typescript: {
     // La build solo comprueba tipos de `src/`: los tests y los E2E se comprueban

@@ -1,8 +1,10 @@
 # Plan de implementación: mejoras desde código (2 de noviembre de 2026)
 
-**Origen.** Greener pidió (2 nov) ampliar y planificar los puntos de `docs/PROGRESO.md` §4.0 bis que Claude puede hacer ya, sin depender de nadie: formulario de contacto, SEO, `lang`, movimiento reducido en el carrusel de caso, estado activo de la barra lateral del ABM, tests del login y de `?pin=`/`slide=`, CI en GitHub Actions, tests E2E con Playwright, y dos documentos (preguntas nuevas para el asesor y tabla DNS de D2). Este plan sale de leer el código de cada punto, no de la descripción de la checklist. **No hay cambios de código en esta entrega**: es solo el plan.
+**Origen.** Greener pidió (2 nov) ampliar y planificar los puntos de `docs/PROGRESO.md` §4.0 bis que Claude puede hacer ya, sin depender de nadie: formulario de contacto, SEO, `lang`, movimiento reducido en el carrusel de caso, estado activo de la barra lateral del ABM, tests del login y de `?pin=`/`slide=`, CI en GitHub Actions, tests E2E con Playwright, y dos documentos (preguntas nuevas para el asesor y tabla DNS de D2). Este plan sale de leer el código de cada punto, no de la descripción de la checklist. **La primera entrega era solo el plan**; desde entonces se ha implementado (ver el estado de abajo).
 
 **Cómo leerlo.** El §1 resume y propone un orden; del §2 al §10 hay un apartado por punto con lo que hay hoy, lo que se propone, los pasos, los tests, los riesgos y cómo se comprueba; el §11 reúne las decisiones que necesito de Greener y el §12 lo que no he podido verificar. Tamaños: **S** menos de una sesión, **M** una sesión, **L** varias sesiones.
+
+> **Estado a 3 de noviembre de 2026.** Implementado todo lo que no esperaba a nadie: contacto (§2.128), SEO (§2.129), `lang` y carrusel (§2.130), ABM y tests del login y de la portada de pin (§2.131), CI (§2.127), E2E, fases 1 a 3, con los casos E1 a E8 (§2.135 a §2.138), y los dos documentos (§2.127). Lo que queda de cada punto está en `PROGRESO.md` §4: la comprobación del SEO con la web desplegada, que Greener mire el estilo del ABM, el carrusel con un caso real y, opcional, el proyecto móvil y WebKit de los E2E. Los apartados del 2 al 10 conservan el plan tal y como se escribió, con notas de lo que cambió al hacerlo.
 
 ## 1. Resumen, hallazgos y orden propuesto
 
@@ -30,8 +32,8 @@ Además, dos hallazgos nuevos que no estaban en la checklist:
 | 5 | Carrusel de caso: `preload` | S | Bajo | Nada | **Hecho el 2 nov** (sin comprobar con un caso real) |
 | 6 | Barra lateral del ABM y contraste | S | Bajo | Nada | **Hecho el 3 nov** (falta que Greener vea el estilo) |
 | 7 | Tests del login y de la portada de pin | M | Bajo | Nada | **Hecho el 3 nov** |
-| 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (falta la primera ejecución real y la regla de rama) |
-| 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | **Fase 1 hecha el 3 nov** (falta la primera ejecución en GitHub) |
+| 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (rama `main`; el formato pasó a bloquear el 3 nov; falta la regla de protección de la rama) |
+| 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | **Fases 1 a 3 hechas el 3 nov** (E1 a E8; el flujo se ejecutó dos veces en GitHub sin errores; opcional: móvil y WebKit) |
 | 10 | Documento del asesor y tabla DNS | M y S | Ninguno (no es código) | Respuesta del asesor; exportación de D0 para la tabla | **Hecho el 2 nov** (consultas 30 a 34 y tabla DNS con plantilla) |
 
 ### 1.3 Orden propuesto
@@ -104,7 +106,7 @@ Pendiente: la prueba de resultados enriquecidos de Google y el validador de sche
 
 ### 3.3 Pasos
 
-1. Extraer `jsonLd(...)` de `renderPackageHead.ts` a `src/lib/jsonLd.ts` (ya escapa `</script>` y tiene test) y reutilizarlo.
+1. Extraer `jsonLd(...)` de `renderPackageHead.ts` y reutilizarlo. *Hecho: quedó en `src/lib/serializeJsonLd.ts` (escapa `</script>`), con las piezas en `src/lib/structuredData.ts` y el componente `src/components/seo/JsonLd/index.tsx`.*
 2. `path` en `buildPageMetadata` y canonical en las siete páginas, en `buildContentMetadata` y en `buildWorkMetadata`; `x-default`.
 3. Ampliar el lector público: `PublicContent` con fechas (`publish_at` si existe, si no `created_at`) y `PublicEpisode` con número, fecha y duración. Es una lectura más en el mismo `select`, sin migración.
 4. Piezas de JSON-LD y su inserción en los Server Components de la home, `work/[slug]` y `work/[slug]/[locale]`. El JSON-LD es un bloque de datos: no lo bloquea la CSP ni necesita nonce.
@@ -316,7 +318,7 @@ Servidor de pruebas: `next build` y servir la compilación, no `next dev`, para 
 | `supabase/seed_demo_data.sql` | Regenerado con el generador |
 | `@playwright/test` (misma versión que `playwright`, `1.64.1`) | El ejecutor de tests: hoy solo está la librería `playwright` |
 | `e2e/playwright.config.ts` | Servidor web (`webServer`), proyecto Chromium de escritorio, reintento y trazas en el CI |
-| `e2e/fixtures/` | Imagen mínima que sustituye a `res.cloudinary.com`, ayuda de consentimiento, paquete de tool (E8) |
+| `e2e/support/` | Ayudas: el feed (`feed.ts`), el consentimiento (`consent.ts`), el paquete de tool de E8 (`toolPackage.ts`), el receptor SMTP y `test.ts` con la imagen mínima que sustituye a `res.cloudinary.com` (no hay carpeta `fixtures/`) |
 | `e2e/specs/*.spec.ts` | Los casos E1 a E8 (§9.3) |
 | `e2e/support/smtpSink.ts` | Receptor SMTP mínimo en Node para E7, sin Docker (el contacto envía con `nodemailer`; se lee lo recibido). Evita depender del puerto SMTP de la CLI |
 | `scripts/e2e-env.mjs` | Lee `supabase status -o env` y compone las variables del build y del servidor |
@@ -371,20 +373,19 @@ En lugar de un documento aparte, se actualizó `docs/cookies-y-privacidad/consul
 
 Las del 2 de noviembre están contestadas en lo que toca a §8 y §10. Siguen abiertas:
 
-1. **Repositorio (§8):** ¿rama principal (el flujo vigila `main` y `master`)? ¿Bloquear uniones si el CI falla? ¿Se quiere que el formato pase a bloqueante y qué se ignora (§3 de `ci.md`)?
+1. **Repositorio (§8):** *contestado el 3 nov: la rama principal es `main`, el repositorio es privado y el formato pasa a bloquear (`/docs` y `/scripts` se ignoran, §3 de `ci.md`).* Sigue en manos de Greener proteger la rama para que el CI bloquee las uniones.
 2. **Contacto:** se mantuvo el fallo cerrado (mi propuesta); si prefieres el limitador compartido, es un cambio pequeño (§2).
 3. **JSON-LD:** ¿qué piezas, de `Organization`/`WebSite`, `PodcastEpisode` y casos? (§3.2). Mi propuesta: la primera sí; las otras dos, si quieres también esa señal.
 4. **Carrusel:** ¿te vale `preload="none"` en las diapositivas que no se ven? (§5). *Aplicado el 2 nov tal como se proponía; se revisa cuando haya un caso con vídeos.*
 5. **ABM:** el estilo de la ruta activa y oscurecer el gris atenuado a #686d7b (§6); lo ves tú. *Aplicado el 3 nov (decías que sí al gris); falta que mires la barra.*
-6. **E2E:** ¿Docker local en el CI, con los minutos que gasta? (§9). *Estudio hecho el 3 nov: lío medio, 4 a 5 sesiones, cinco preguntas concretas en §9.6.*
-7. **Región de Vercel:** ¿qué región de la UE? Conviene la más cercana a la del proyecto de Supabase, que no consta en la documentación; con ella se escribe `regions` en `vercel.json` (o se elige en Settings → Functions).
+6. **E2E:** ¿Docker local en el CI, con los minutos que gasta? (§9). *Contestado el 3 nov (§9.6): de noche y a mano, solo en el CI, con la imagen de PostgreSQL de Supabase y un repositorio privado; implementado.*
+7. **Región de Vercel:** *resuelta: `vercel.json` fija `regions: ["cdg1"]` (París), lo más cercano al proyecto de Supabase (Frankfurt).*
 
 ## 12. Lo que no he podido verificar
 
-- Que el flujo de CI funcione en GitHub (se validó ejecutando sus comandos en local y con `actionlint`).
+- Que el flujo de CI (`ci.yml`) haya corrido en GitHub: se validó con sus comandos en local y con `actionlint`; de `e2e.yml` sí consta que se ejecutó dos veces sin errores (3 nov).
 - Que «en menos de 30 días» siga siendo cierto si se contrata Observability Plus de Vercel (30 días exactos).
 - Que Supabase local arranque en el CI con las 58 migraciones y que `next start` sirva la salida `standalone` (primera fase de §9).
 - Que la conservación de los valores con `useActionState` de React 19 funcione con campos no controlados en el navegador: lo decide el test de integración (§2.2).
 - Si Google tendría en cuenta el JSON-LD de `PodcastEpisode` y de casos (§3.2), y si descartaría `VideoObject` por el consentimiento.
-- La región por defecto de las funciones de Vercel para este proyecto y la de Supabase: `vercel.json` no fija `regions` todavía.
 - El estilo visual de la ruta activa y del nuevo gris: lo juzga Greener a ojo.

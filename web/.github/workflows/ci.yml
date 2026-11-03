@@ -9,7 +9,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, master]
+    branches: [main]
   # Revisión semanal de dependencias de producción: una vulnerabilidad nueva
   # aparece aunque nadie haya tocado el código.
   schedule:
@@ -85,10 +85,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     if: github.event_name != 'schedule'
-    # Informativo mientras `npm run format:check` no pase limpio en todo el
-    # repositorio (hoy marca algunos scripts y tipos generados). Cuando pase,
-    # se quita esta línea y el trabajo pasa a bloquear.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
