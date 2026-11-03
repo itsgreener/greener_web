@@ -35,7 +35,18 @@ export function useSentinel(onVisible: () => void, recheckKey = 0) {
     )
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) onVisible()
+        // La entrada más reciente manda, y se confirma con la posición de
+        // AHORA: al volver de un detalle el contenedor aún mide 0 de alto en
+        // el primer fotograma, el sentinel queda arriba y el observer anota
+        // «a la vista»; cuando el aviso llega, el layout ya lo ha bajado al
+        // final y ese aviso es viejo (pedía un lote que nadie necesitaba).
+        if (!entries[entries.length - 1]?.isIntersecting) return
+        if (
+          sentinel.getBoundingClientRect().top >
+          window.innerHeight + marginPx
+        )
+          return
+        onVisible()
       },
       { rootMargin: `${marginPx}px` },
     )

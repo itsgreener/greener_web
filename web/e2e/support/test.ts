@@ -11,7 +11,7 @@ const PIXEL = Buffer.from(
  * los E2E no salen a internet: toda petición a `res.cloudinary.com` recibe un
  * PNG mínimo y se cuenta aparte.
  */
-async function stubCloudinary(page: Page) {
+export async function stubCloudinary(page: Page) {
   await page.route('https://res.cloudinary.com/**', (route) =>
     route.fulfill({ status: 200, contentType: 'image/png', body: PIXEL }),
   )

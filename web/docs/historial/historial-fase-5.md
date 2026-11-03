@@ -2546,3 +2546,23 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Qué había.** El `tsconfig.json` incluía `**/*.ts`, `**/*.tsx` y `**/*.mts`: `src/` (unos 500 ficheros), los 330 de `tests/`, `next.config.ts`, `vitest.config.ts` y, por importación, cuatro `.mjs` de `scripts/`. `docs/`, `supabase/` y `.github/` no tienen TypeScript, así que excluirlos no cambiaba nada. Lo que sí sobraba era `tests/`: la build de producción comprobaba los tipos de los tests y dependía de vitest.
 
 **Cambio.** `tsconfig.build.json` (extiende el de la raíz; incluye solo `src/` y `.next/types`; excluye `tests` y `e2e`; sin `incremental`) y `typescript.tsconfigPath` en `next.config.ts`. El `tsconfig.json` de la raíz no cambia, así que el editor y `npm run typecheck` siguen viendo los tests. Fase de tipos de la build: de unos 22 s a unos 10 s. Comprobado con mutaciones: un error de tipos en `src/` rompe la build; en `tests/` ya no. Test nuevo `tsconfigBuild.test.ts` (3 casos; 3975 tests, 326 ficheros). Documentado en `docs/operaciones/ci.md` §2.
+
+### 2.138 E2E, fases 2 y 3: casos E2 a E8 y un prefetch de más al volver de un detalle (3 nov 2026)
+
+**Petición.** La primera ejecución del flujo E2E en GitHub salió bien; seguir con el resto de casos.
+
+**Qué se añadió.** `e2e/specs/feed.spec.ts` (E2 a E5 junto a E1), `consent.spec.ts` (E6), `contact.spec.ts` (E7) y `toolPackage.spec.ts` (E8); ayudas en `e2e/support/`: `feed.ts`, `consent.ts`, `smtpSink.ts` (receptor SMTP de Node, sin Docker) y `toolPackage.ts` (monta la tool `e2e-fixture-tool` con la clave secreta: filas de `content`, `html_package` y `html_package_version` publicada y cuatro ficheros en el bucket `html-packages`; la borra al terminar). Detalle de cada caso en `docs/operaciones/e2e.md` §2.
+
+**Cómo se validó.** Con la sonda de la fase 1 (PostgreSQL 17 y PostgREST 14.15 reales, esquemas de Supabase simulados) más un Storage simulado en la pasarela: E1 a E8 pasan dos veces seguidas sin reintentos (unos 20 s en total) contra la compilación de producción. Mutaciones: sin la corrección del observer, E4 falla; con la virtualización recortada a dos lotes, E5 falla con los espaciadores a la vista.
+
+**Hallazgos.**
+1. *Un lote de más al volver de un detalle (corregido).* E4 vio una petición `GET /api/feed/<sesión>?cursor=…` al volver con «atrás». Causa: al volver, el contenedor del feed aún mide 0 de alto en el primer fotograma y el sentinel de prefetch queda arriba; el `IntersectionObserver` anota «a la vista» y, cuando el aviso llega, el layout ya lo ha bajado al final. `useSentinel` ahora toma la entrada más reciente y la confirma con `getBoundingClientRect()` antes de avisar. Test `tests/unit/masonry/useSentinel.test.tsx` (4 casos; sin la guarda, falla el de «aviso viejo»). Es lo que `FeedProvider` promete («sin volver a pedir nada al servidor»).
+2. *La ventana de cookies tapa el botón «Send» de `/contact` en 1280×720 (sin tocar, a decidir).* Medido: documento de 731 px, desplazamiento máximo de 11 px, botón entre 662 y 704 px y ventana entre 607 y 720 px. Quien llega por primera vez tiene que decidir sobre las cookies antes de enviar. Queda en la checklist de PROGRESO; el E2E cierra la ventana con «Reject» antes de rellenar.
+3. *El plan decía algo que el código no hace.* E2 hablaba de «dos `POST` con la misma cookie devuelven la misma sesión»; cada `POST` abre una sesión nueva (salvo al pasar el límite de 12 por minuto). Lo determinista es el lote de una misma sesión, y así quedó E2.
+4. *El receptor SMTP tenía un fallo que solo vio su test unitario:* un mensaje sin partes MIME (solo `text`) llega en quoted-printable por sus cabeceras de primer nivel y no se descodificaba. El caso real del contacto (`text` y `html`) no lo habría descubierto.
+
+**Detalles de diseño de los tests.** E4 espera a que el feed se quede quieto (sin peticiones en curso y el mismo número de elementos en tres observaciones) antes de entrar al detalle y antes de volver, para no confundir un lote en vuelo con uno nuevo. E5 avanza a pasos de 0,8 pantallas y mide los espaciadores tras dos fotogramas; compara además lo recibido con lo pintado (un elemento por pin) y exige cursores distintos y (ronda, tramo) crecientes. Los E2E no pasan por la clave `NEXT_PUBLIC_*` del puerto de SMTP: leen `CONTACT_SMTP_PORT` del entorno, el mismo que usa el servidor.
+
+**Cifras.** 328 ficheros y 3982 tests en verde (siete más); ESLint, `npm run typecheck` y Prettier limpios. Sin migraciones.
+
+**Sin comprobar.** Su primera ejecución en GitHub; Storage real en E8 (aquí simulado); `sb_secret_…` con `supabase-js` en Node; estabilidad en un runner lento. Detalle en `docs/operaciones/e2e.md` §5.

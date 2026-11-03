@@ -260,12 +260,12 @@ La web lee de Supabase, así que un E2E necesita una base con contenido. Opcione
 | Id | Caso | Cómo se comprueba |
 | --- | --- | --- |
 | E1 | Primera carga del feed | 40 pines (20 en móvil con `?size=20`); sin errores en consola |
-| E2 | Misma seed, misma secuencia | Dos peticiones a `/api/feed/sessions` con la misma cookie de visitante devuelven la misma sesión y los mismos lotes |
+| E2 | Misma seed, misma secuencia | Una sesión devuelve siempre los mismos lotes: el primero y el siguiente por cursor, pedidos dos veces. (Corregido al implementarlo: cada `POST /api/feed/sessions` abre una sesión nueva con su propia seed; lo determinista es el lote de una misma sesión) |
 | E3 | Recargar con otra seed | Un contexto de navegador nuevo ve otro orden en los primeros 20 pines |
 | E4 | Volver desde un detalle | Orden de los pines idéntico, scroll ±2 px y ninguna petición nueva al feed |
 | E5 | Scroll largo | Recorrer 12 o más lotes: 0 *spacers* visibles en todo el trayecto y claves de pin sin duplicar |
 | E6 | Consentimiento | Primera visita muestra la ventana; un episodio sin aceptar no hace ninguna petición a YouTube ni a Spotify; tras aceptar y pulsar play, el reproductor carga (con la petición interceptada) |
-| E7 | Contacto | Un error conserva lo escrito (§2); el envío correcto llega a Inbucket |
+| E7 | Contacto | Un error conserva lo escrito (§2); el envío correcto llega a un receptor SMTP propio de Node (no a Inbucket: `e2e/support/smtpSink.ts`) |
 | E8 | Paquete de tool | `/tools/{slug}/app` da 200 con su CSP; un `.svg` del paquete lleva la CSP `sandbox` |
 
 El ABM no se prueba en E2E (el acceso es OAuth de Google); queda en los tests unitarios.
@@ -288,6 +288,8 @@ Servidor de pruebas: `next build` y servir la compilación, no `next dev`, para 
 **Tamaño L** (de tres a cinco sesiones). Decisiones de Greener: aceptar Docker local en el CI y los minutos de GitHub Actions que consuma.
 
 ### 9.6 Estudio del montaje con Docker (3 nov 2026)
+
+**Fases 1 a 3 hechas el 3 nov (historial §2.135 y §2.138): la primera ejecución real en GitHub salió bien y E1 a E8 están escritos y pasan contra la sonda local.** Queda el paso 4 opcional (móvil y WebKit).
 
 **Fase 1 hecha el 3 nov (historial §2.135).** Se ha montado todo y se ha validado hasta donde se puede sin Docker: ver `docs/operaciones/e2e.md`. Lo que salió al montarlo está en el historial: el orden de las migraciones (`admin_allowed_domain`), el seed de demo (`show_as_carousel`, `alt` de `case_detail_media`), que `supabase/config.toml` se genera con la CLI y que E1 pasa contra PostgreSQL 17 y PostgREST 14.15 con la compilación de producción. Lo que sigue pendiente es la primera ejecución real en GitHub (paso 1 de la tabla) y los pasos 2 a 4.
 
@@ -343,7 +345,7 @@ Total: de **cuatro a cinco sesiones**, de acuerdo con la estimación L de la tab
 
 **Alternativas descartadas.** Montar a mano PostgreSQL y PostgREST en un `docker-compose`: más trabajo, y no reproduce Storage ni las funciones de `auth`. Simular Supabase con un servidor falso: las lecturas se hacen desde el servidor de Next, no desde el navegador, así que habría que reimplementar la API REST. Un proyecto de Supabase en la nube dedicado a pruebas: la opción B de §9.2, más simple pero con estado compartido y claves en el CI.
 
-**Decisiones de Greener (3 nov 2026)**, contestadas a las cinco preguntas de abajo: 1) los E2E corren **de noche y a mano**, no en `main` ni en pull request; 2) **solo en el CI**, sin ejecución en local; 3) la base de datos de producción es **PostgreSQL 17.6.1.155** (PostgREST 14.15, Auth 2.197.0), así que `major_version = 17`; 4) el repositorio es **privado** (unos 300 min al mes, dentro de los 2.000 del plan gratuito); 5) **hay tools reales** y aún no hay casos: E8 entra en esta tanda. Tampoco hace falta añadir `e2e/` al `include` de `tsconfig.json`: ya cubre `**/*.ts`.
+**Decisiones de Greener (3 nov 2026)**, contestadas a las cinco preguntas de abajo: 1) los E2E corren **de noche y a mano**, no en `main` ni en pull request; 2) **solo en el CI**, sin ejecución en local; 3) la base de datos de producción es **PostgreSQL 17.6.1.155** (PostgREST 14.15, Auth 2.197.0), así que `major_version = 17`; 4) el repositorio es **privado** (unos 300 min al mes, dentro de los 2.000 del plan gratuito); 5) **hay tools reales** y aún no hay casos: E8 entra en esta tanda. (Corregido después, §2.136: `e2e/` no entra en el `tsconfig.json` de la web, que lo comprobaba `next build`; tiene `e2e/tsconfig.json` propio y `npm run typecheck` lo pasa aparte.)
 
 **Preguntas originales**
 
