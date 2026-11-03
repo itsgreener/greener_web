@@ -240,6 +240,7 @@ for (let i = 1; i <= CASE_COUNT; i++) {
   const carousel = Array.from({ length: carouselCount }, (_, idx) => ({
     mediaAssetId: randomMediaAsset().id,
     sortOrder: idx,
+    alt: `Imagen ${idx + 1} del caso de ${client}`,
   }))
 
   cases.push({
@@ -356,7 +357,7 @@ for (const c of cases) {
 
   for (const item of c.carousel) {
     sqlLines.push(
-      `insert into case_detail_media (content_id, media_id, sort_order) values (${sqlStr(c.contentId)}, ${sqlStr(item.mediaAssetId)}, ${item.sortOrder});`,
+      `insert into case_detail_media (content_id, media_id, sort_order, alt) values (${sqlStr(c.contentId)}, ${sqlStr(item.mediaAssetId)}, ${item.sortOrder}, ${sqlStr(item.alt)});`,
     )
   }
   sqlLines.push('')

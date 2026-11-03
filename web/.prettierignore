@@ -1,6 +1,8 @@
 node_modules
 .next
 supabase/.temp
+test-results
+playwright-report
 package-lock.json
 tsconfig.tsbuildinfo
 data/demo/feed-snapshot.json

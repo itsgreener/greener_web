@@ -71,7 +71,7 @@ npm run build
 
 ## 5. Lo que el CI no cubre
 
-- No hay tests de integración contra Supabase ni E2E en navegador: son el plan del §9 de `especificaciones/plan-mejoras-codigo-nov-2026.md` (Playwright; pendiente de decidir si usa Supabase local en Docker).
+- No hay tests de integración contra Supabase. Los E2E en navegador están en su propio flujo, `.github/workflows/e2e.yml` (de noche y a mano, con Supabase local en Docker): `docs/operaciones/e2e.md`.
 - No ejecuta migraciones SQL; los tests de `tests/unit/supabase/` solo leen los ficheros `.sql`.
 - Vercel hace su propio build de la preview: el CI no lo sustituye, lo adelanta. Un build verde aquí no garantiza que las variables reales de Vercel sean válidas.
 - Los avisos de ESLint no hacen fallar el trabajo: solo los errores.

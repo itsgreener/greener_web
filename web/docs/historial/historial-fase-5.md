@@ -2509,3 +2509,24 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Cifras.** 324 ficheros y 3958 tests en verde (10 más); ESLint, `npm run typecheck` y Prettier limpios.
 
 **Pendiente.** Comprobar en la próxima PR de Dependabot que Vercel sale cancelado u omitido; las PR de ayer conservan su error hasta volver a lanzarlas o cerrarlas.
+
+### 2.135 E2E, fase 1: Supabase local, Playwright, flujo nocturno y caso E1 (3 nov 2026)
+
+**Petición.** Con las respuestas de Greener (E2E de noche y a mano, solo en el CI, PostgreSQL 17, repositorio privado, hay tools reales), ejecutar el paso 1 del plan §9.6: viabilidad.
+
+**Cómo se validó sin Docker.** En este entorno no hay demonio de Docker, pero la CLI de Supabase sí corre (generó el `config.toml`) y se montó una sonda desechable fuera del repositorio: un PostgreSQL 17.11 real (paquete `embedded-postgres`) con los esquemas `auth` y `storage`, los roles y `pg_cron` simulados, PostgREST 14.15 (la versión de producción) con un pasarela mínima que añade `/rest/v1`, las claves como JWT firmados, la compilación de producción con las variables de `scripts/e2e-env.mjs` y Chromium de Playwright. Con eso se aplicaron las 58 migraciones y los dos seeds, y se ejecutó E1 de principio a fin.
+
+**Hallazgos, todos arreglados.**
+1. *Las migraciones no aplicaban desde cero.* `20260806090700_rls_policies.sql` usa `admin_allowed_domain` en `is_admin()` y en sus políticas, y la tabla solo se creaba en `20260910083000_admin_allowed_domain_fix.sql`, posterior. Se añadió el mismo `create table if not exists` al final de `20260806090600_admin_access.sql`. En producción no hace nada (Supabase no recalcula migraciones aplicadas, y la de arreglo sigue valiendo por su `if not exists`); se editó una migración antigua en lugar de añadir otra con fecha anterior porque `supabase db push` rechaza migraciones anteriores a la última aplicada.
+2. *`seed_demo_data.sql` estaba desfasado:* 231 inserciones con `show_as_carousel` (borrada por `20261007120000`) y el carrusel de casos sin `alt` (obligatorio desde `20260914090000`). Se regeneró y se corrigió `generate-demo-data.mjs`. Resultado: 50 casos, 9 episodios y 231 pines publicados, legibles como `anon`.
+3. *El selector de pines:* las tarjetas del feed son enlaces a `/work/<slug>` y solo algunas llevan `?pin=`; E1 cuenta `a[href^="/work/"]`.
+
+**Qué se añadió.** `supabase/config.toml` (CLI 3.0.0; PostgreSQL 17; Studio, Realtime, funciones, analítica y correo local apagados; `sql_paths` con los dos seeds), `@playwright/test` 1.64.1 (misma versión que `playwright`), `e2e/playwright.config.ts` (Chromium, un solo trabajador, un reintento en el CI, servidor propio y espera a `/api/health`), `e2e/support/test.ts` (PNG de 1×1 en lugar de Cloudinary, errores de consola), `e2e/specs/feed.spec.ts` (E1: 40 pines sin errores de consola), `scripts/e2e-env.mjs` (URL y claves de `supabase status -o json`, valores de prueba del resto), `scripts/e2e-serve.mjs` (copia estáticos y arranca el servidor standalone), `npm run e2e`, `.github/workflows/e2e.yml` (23:07 UTC y a mano; acciones fijadas por SHA; informe y trazas como artefacto si falla), `docs/operaciones/e2e.md` y `.prettierignore` con las dos carpetas de salida.
+
+**Tests.** `e2eWorkflow.test.ts` (13): scripts del flujo, solo de noche y a mano, SHA de acciones, Node de `.nvmrc`, orden de pasos, misma versión de `playwright` y `@playwright/test`, variables de prueba válidas para producción, `major_version = 17`, seeds presentes y sin columnas borradas, y la tabla creada antes de su uso. Mutación sobre E1: con 41 pines en lugar de 40 falla. `actionlint` limpio.
+
+**Cifras.** 325 ficheros y 3971 tests en verde (13 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Sin comprobar.** La primera ejecución en GitHub: `pg_cron` y Storage reales, los nombres de variable de `supabase status -o json`, `supabase/setup-cli` v3.2.0 con la CLI 3.0.0 e `playwright install --with-deps` en el runner. Detalle en `e2e.md` §5.
+
+**Pendiente.** Copiar a mano `.github/workflows/e2e.yml` y añadir a `.gitignore` `/test-results/` y `/playwright-report/` (hay copia en la respuesta); lanzar el flujo y pasar el registro si falla; casos E2 a E8.

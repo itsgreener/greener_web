@@ -31,7 +31,7 @@ Además, dos hallazgos nuevos que no estaban en la checklist:
 | 6 | Barra lateral del ABM y contraste | S | Bajo | Nada | **Hecho el 3 nov** (falta que Greener vea el estilo) |
 | 7 | Tests del login y de la portada de pin | M | Bajo | Nada | **Hecho el 3 nov** |
 | 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (falta la primera ejecución real y la regla de rama) |
-| 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | Greener (infraestructura) |
+| 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | **Fase 1 hecha el 3 nov** (falta la primera ejecución en GitHub) |
 | 10 | Documento del asesor y tabla DNS | M y S | Ninguno (no es código) | Respuesta del asesor; exportación de D0 para la tabla | **Hecho el 2 nov** (consultas 30 a 34 y tabla DNS con plantilla) |
 
 ### 1.3 Orden propuesto
@@ -289,6 +289,8 @@ Servidor de pruebas: `next build` y servir la compilación, no `next dev`, para 
 
 ### 9.6 Estudio del montaje con Docker (3 nov 2026)
 
+**Fase 1 hecha el 3 nov (historial §2.135).** Se ha montado todo y se ha validado hasta donde se puede sin Docker: ver `docs/operaciones/e2e.md`. Lo que salió al montarlo está en el historial: el orden de las migraciones (`admin_allowed_domain`), el seed de demo (`show_as_carousel`, `alt` de `case_detail_media`), que `supabase/config.toml` se genera con la CLI y que E1 pasa contra PostgreSQL 17 y PostgREST 14.15 con la compilación de producción. Lo que sigue pendiente es la primera ejecución real en GitHub (paso 1 de la tabla) y los pasos 2 a 4.
+
 **Respuesta corta: lío medio, casi todo concentrado en la primera puesta en marcha.** «Con Docker» aquí solo significa que la CLI de Supabase levanta sus propios contenedores (base de datos, API, Storage, login): no hay que escribir ningún `Dockerfile` ni `docker-compose`, y los runners de GitHub ya traen Docker. Greener no necesita Docker en su máquina salvo que quiera lanzar los E2E en local. Una vez montado, el mantenimiento es bajo: lo que cuesta cada semana son los tests de scroll, no la infraestructura.
 
 **Lo que he comprobado en el código (3 nov), y que cambia el plan:**
@@ -341,7 +343,9 @@ Total: de **cuatro a cinco sesiones**, de acuerdo con la estimación L de la tab
 
 **Alternativas descartadas.** Montar a mano PostgreSQL y PostgREST en un `docker-compose`: más trabajo, y no reproduce Storage ni las funciones de `auth`. Simular Supabase con un servidor falso: las lecturas se hacen desde el servidor de Next, no desde el navegador, así que habría que reimplementar la API REST. Un proyecto de Supabase en la nube dedicado a pruebas: la opción B de §9.2, más simple pero con estado compartido y claves en el CI.
 
-**Decisiones que necesito de Greener**
+**Decisiones de Greener (3 nov 2026)**, contestadas a las cinco preguntas de abajo: 1) los E2E corren **de noche y a mano**, no en `main` ni en pull request; 2) **solo en el CI**, sin ejecución en local; 3) la base de datos de producción es **PostgreSQL 17.6.1.155** (PostgREST 14.15, Auth 2.197.0), así que `major_version = 17`; 4) el repositorio es **privado** (unos 300 min al mes, dentro de los 2.000 del plan gratuito); 5) **hay tools reales** y aún no hay casos: E8 entra en esta tanda. Tampoco hace falta añadir `e2e/` al `include` de `tsconfig.json`: ya cubre `**/*.ts`.
+
+**Preguntas originales**
 
 1. ¿Disparo en `main` y de noche (propuesto), o también en cada pull request?
 2. ¿Quieres poder ejecutarlos en tu máquina (Docker Desktop, unos 7 GB de RAM libres según la CLI) o basta con el CI?
