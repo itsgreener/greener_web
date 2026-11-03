@@ -54,6 +54,11 @@ npm run build
 
 `npm run typecheck` deja `.next`, `tsconfig.tsbuildinfo` y `next-env.d.ts`; los tres están en `.gitignore`.
 
+### Qué comprueba cada tsconfig
+
+- **`tsconfig.json`** (editor y `npm run typecheck`): todo lo que sea `.ts` o `.tsx` fuera de `node_modules`: `src/`, `tests/`, `next.config.ts`, `vitest.config.ts` y los `.mjs` de `scripts/` que importa algún test. `docs/`, `supabase/` y `.github/` no tienen TypeScript y no hace falta excluirlos. `e2e/` está excluido y tiene su propio `e2e/tsconfig.json`, que el mismo script pasa aparte.
+- **`tsconfig.build.json`** (solo `next build`, indicado en `next.config.ts`): únicamente `src/`. Así la compilación de producción no depende de vitest ni de Playwright y la fase de tipos baja de unos 22 s a unos 10 s. Los tipos de tests y E2E los vigila `npm run typecheck`, que corre en el CI junto al build.
+
 ## 3. Formato: por qué no bloquea todavía
 
 `npm run format:check` revisa todo el repositorio con la configuración de `.prettierrc` y hoy marca unos 25 ficheros (medido el 2 de noviembre con la configuración y el `.prettierignore` actuales): unos 17 documentos de `docs/`, cinco scripts de `scripts/` y los tipos generados `src/lib/supabase/database.types.ts`. Un trabajo que falla desde el primer día se acaba ignorando, así que va con `continue-on-error: true`: aparece en la PR con aviso, pero no impide fusionar. Para pasarlo a bloqueante:

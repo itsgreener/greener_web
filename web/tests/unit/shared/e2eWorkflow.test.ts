@@ -21,6 +21,15 @@ const pkg = JSON.parse(read('package.json')) as {
 }
 
 describe('flujo E2E', () => {
+  it('`e2e/` queda fuera del tsconfig de la web y tiene el suyo en `typecheck`', () => {
+    // Si next build compilara e2e/, el build fallaría en cualquier máquina sin
+    // @playwright/test instalado (devDependency).
+    const root = JSON.parse(read('tsconfig.json')) as { exclude: string[] }
+    expect(root.exclude).toContain('e2e')
+    expect(existsSync(join(process.cwd(), 'e2e/tsconfig.json'))).toBe(true)
+    expect(pkg.scripts.typecheck).toContain('tsc --noEmit -p e2e/tsconfig.json')
+  })
+
   it('cada `npm run <script>` del flujo existe en package.json', () => {
     const used = [...workflow.matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1])
     expect(used).toContain('e2e')

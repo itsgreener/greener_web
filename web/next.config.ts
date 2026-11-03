@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   // servidor NO copia `public/` ni `.next/static/` — hay que copiarlos a mano
   // tras el build. Pasos exactos y verificados en `despliegue.md`.
   output: 'standalone',
+  typescript: {
+    // La build solo comprueba tipos de `src/`: los tests y los E2E se comprueban
+    // en `npm run typecheck` (tsconfig.json), no hace falta repetirlo al compilar
+    // para producción ni que dependa de vitest o de Playwright.
+    tsconfigPath: 'tsconfig.build.json',
+  },
   images: {
     // El optimizador `/_next/image` está APAGADO a propósito (RES-A1): la web
     // no importa `next/image` en ningún sitio. Las imágenes ya llegan

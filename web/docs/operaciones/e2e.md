@@ -33,6 +33,7 @@ Abrir la ejecución en Actions y mirar en qué paso se detuvo:
 
 - **`supabase start`:** casi siempre una migración o un seed. El mensaje trae el fichero y la línea de SQL. Un fallo en `20260922090000` apuntaría a `pg_cron`.
 - **`e2e-env.mjs`:** «Faltan la URL o las claves»: la CLI imprime otros nombres de variable; el mensaje lista los recibidos y se ajusta `pick()` en el script.
+- **`npm run build` con un error de tipos en `e2e/`:** no debería pasar: `e2e/` está excluido del `tsconfig.json` de la web (se comprueba aparte con `e2e/tsconfig.json`, dentro de `npm run typecheck`), precisamente para que el build no dependa de `@playwright/test`. Tras actualizar el proyecto hay que ejecutar `npm install` para tener esa dependencia en local.
 - **`npm run build`:** una variable de `scripts/e2e-env.mjs` que `env.ts` o `serverEnv.ts` ya no acepta (el test `e2eWorkflow.test.ts` vigila las obligatorias).
 - **`npm run e2e` con «Timed out waiting from config.webServer»:** el servidor no llegó a responder 200 en `/api/health`; en el registro del paso salen sus mensajes (`[WebServer]`). Un 503 es que la web no llega a Supabase (URL o claves mal copiadas).
 - **Un test concreto:** descargar el artefacto `playwright-report` y abrir la traza (`npx playwright show-trace`).

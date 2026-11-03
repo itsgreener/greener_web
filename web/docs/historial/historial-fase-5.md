@@ -2530,3 +2530,19 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Sin comprobar.** La primera ejecución en GitHub: `pg_cron` y Storage reales, los nombres de variable de `supabase status -o json`, `supabase/setup-cli` v3.2.0 con la CLI 3.0.0 e `playwright install --with-deps` en el runner. Detalle en `e2e.md` §5.
 
 **Pendiente.** Copiar a mano `.github/workflows/e2e.yml` y añadir a `.gitignore` `/test-results/` y `/playwright-report/` (hay copia en la respuesta); lanzar el flujo y pasar el registro si falla; casos E2 a E8.
+
+### 2.136 El build ya no compila `e2e/` (3 nov 2026)
+
+**Aviso de Greener.** `npm run build` fallaba en la comprobación de tipos al intentar compilar los ficheros de E2E.
+
+**Causa.** El `tsconfig.json` de la web incluye `**/*.ts`, así que `next build` también comprobaba `e2e/`, que importa `@playwright/test`. Sin esa dependencia instalada (tras copiar el proyecto sin ejecutar `npm install`) salía «Cannot find module '@playwright/test'» y una cascada de `any` implícitos. Reproducido aquí quitando la carpeta de `node_modules`.
+
+**Arreglo.** `tsconfig.json` excluye `e2e`; `e2e/tsconfig.json` (extiende el de la raíz, sin `incremental`) lo comprueba aparte, y `npm run typecheck` ejecuta los dos. Así el build de producción no depende de una herramienta de pruebas. Comprobado: sin `@playwright/test`, `tsc --noEmit` de la raíz sale limpio; un error de tipos metido a propósito en `e2e/support/test.ts` lo detecta el tsconfig propio. Test nuevo en `e2eWorkflow.test.ts` (3972 tests). Documentado en `docs/operaciones/e2e.md` §4.
+
+### 2.137 La build comprueba solo los tipos de `src/` (3 nov 2026)
+
+**Pregunta de Greener.** Qué compila exactamente `next build` y si habría que excluir también `tests`, `docs`, `supabase`, `scripts` y `.github`.
+
+**Qué había.** El `tsconfig.json` incluía `**/*.ts`, `**/*.tsx` y `**/*.mts`: `src/` (unos 500 ficheros), los 330 de `tests/`, `next.config.ts`, `vitest.config.ts` y, por importación, cuatro `.mjs` de `scripts/`. `docs/`, `supabase/` y `.github/` no tienen TypeScript, así que excluirlos no cambiaba nada. Lo que sí sobraba era `tests/`: la build de producción comprobaba los tipos de los tests y dependía de vitest.
+
+**Cambio.** `tsconfig.build.json` (extiende el de la raíz; incluye solo `src/` y `.next/types`; excluye `tests` y `e2e`; sin `incremental`) y `typescript.tsconfigPath` en `next.config.ts`. El `tsconfig.json` de la raíz no cambia, así que el editor y `npm run typecheck` siguen viendo los tests. Fase de tipos de la build: de unos 22 s a unos 10 s. Comprobado con mutaciones: un error de tipos en `src/` rompe la build; en `tests/` ya no. Test nuevo `tsconfigBuild.test.ts` (3 casos; 3975 tests, 326 ficheros). Documentado en `docs/operaciones/ci.md` §2.
