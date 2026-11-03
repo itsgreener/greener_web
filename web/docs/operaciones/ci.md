@@ -68,7 +68,7 @@ Si falla, lo normal es ejecutar `npm run format` en local y subir el resultado; 
 ## 4. Lo que hay que hacer en GitHub (no se puede desde el código)
 
 1. **Subir `.github/`** al repositorio y abrir una PR de prueba para ver las cuatro marcas en verde.
-2. **Proteger la rama principal** (Settings → Branches → Add rule): exigir que pasen «Lint, tipos y tests», «Build de producción», «Dependencias de producción» y «Formato (Prettier)» antes de fusionar. Sin esto el CI avisa, pero no impide nada. Si se mantiene fusionar sin pasar por PR, la regla no sirve.
+2. **Protección de la rama principal: decidido no forzarla (3 nov).** Greener sube directamente a `main`, así que no se exige que el CI pase antes de fusionar: el CI corre en cada push y avisa por correo si falla, pero no impide nada. Si algún día se trabaja con PR, la regla sería (Settings → Branches → Add rule) exigir «Lint, tipos y tests», «Build de producción», «Dependencias de producción» y «Formato (Prettier)». Sin esto el CI avisa, pero no impide nada. Si se mantiene fusionar sin pasar por PR, la regla no sirve.
 3. **Activar Dependabot** (Settings → Code security): alertas y actualizaciones de seguridad. Las PR semanales de versión salen de `dependabot.yml`.
 4. **Nombre de la rama.** El flujo vigila `main`; si la rama principal cambia de nombre, cambiar `branches: [main]` en `ci.yml`.
 

@@ -2585,4 +2585,6 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 
 **Sin tocar a propósito.** El estado de la migración de infraestructura (§4.0 y los documentos de operaciones) sigue siendo el del 30 oct: no consta que se haya ejecutado ningún paso, y se deja anotado «revisado el 3 nov». El Project de Claude: se retiran los tres documentos de las auditorías y se actualiza «Archivos ocultos» con las copias actuales de `.prettierrc`, `.prettierignore`, `.gitignore`, `.github/**` y `.nvmrc`.
 
+**Aclaración de Greener (mismo día).** La migración de infraestructura está en pausa: Cloudflare (dominio y medios), Mux y Bunny. No hay prueba de Bunny esta semana. Se anota como pausa (no como cancelación) en `migracion-infraestructura.md` y en el §4.0 y el §4.0 bis de `PROGRESO.md`. La auditoría de CSS se da por completa (ya constaba cerrada el 2 nov, §2.123); su copia en el Project no se ha borrado. Rama principal `main` y `.gitignore` confirmados. CI: Greener sube directamente a `main` y no se fuerza la protección de rama (queda documentado en `ci.md` §4).
+
 **Cifras.** Ver `PROGRESO.md` §1. Sin cambios de código salvo el comentario de `next.config.ts`; el único cambio de comportamiento es del CI (el formato bloquea). Se regeneran también `docs/estructura/estructura-src.txt` y `estructura-migrations.txt`.

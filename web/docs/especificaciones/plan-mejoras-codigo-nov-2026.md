@@ -32,7 +32,7 @@ Además, dos hallazgos nuevos que no estaban en la checklist:
 | 5 | Carrusel de caso: `preload` | S | Bajo | Nada | **Hecho el 2 nov** (sin comprobar con un caso real) |
 | 6 | Barra lateral del ABM y contraste | S | Bajo | Nada | **Hecho el 3 nov** (falta que Greener vea el estilo) |
 | 7 | Tests del login y de la portada de pin | M | Bajo | Nada | **Hecho el 3 nov** |
-| 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (rama `main`; el formato pasó a bloquear el 3 nov; falta la regla de protección de la rama) |
+| 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (rama `main`; el formato pasó a bloquear el 3 nov; sin protección de rama, por decisión de Greener) |
 | 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | **Fases 1 a 3 hechas el 3 nov** (E1 a E8; el flujo se ejecutó dos veces en GitHub sin errores; opcional: móvil y WebKit) |
 | 10 | Documento del asesor y tabla DNS | M y S | Ninguno (no es código) | Respuesta del asesor; exportación de D0 para la tabla | **Hecho el 2 nov** (consultas 30 a 34 y tabla DNS con plantilla) |
 
@@ -373,7 +373,7 @@ En lugar de un documento aparte, se actualizó `docs/cookies-y-privacidad/consul
 
 Las del 2 de noviembre están contestadas en lo que toca a §8 y §10. Siguen abiertas:
 
-1. **Repositorio (§8):** *contestado el 3 nov: la rama principal es `main`, el repositorio es privado y el formato pasa a bloquear (`/docs` y `/scripts` se ignoran, §3 de `ci.md`).* Sigue en manos de Greener proteger la rama para que el CI bloquee las uniones.
+1. **Repositorio (§8):** *contestado el 3 nov: la rama principal es `main`, el repositorio es privado y el formato pasa a bloquear (`/docs` y `/scripts` se ignoran, §3 de `ci.md`).* *Decidido el 3 nov: Greener sube directamente a `main` y no se fuerza el CI; corre en cada push y avisa sin bloquear.*
 2. **Contacto:** se mantuvo el fallo cerrado (mi propuesta); si prefieres el limitador compartido, es un cambio pequeño (§2).
 3. **JSON-LD:** ¿qué piezas, de `Organization`/`WebSite`, `PodcastEpisode` y casos? (§3.2). Mi propuesta: la primera sí; las otras dos, si quieres también esa señal.
 4. **Carrusel:** ¿te vale `preload="none"` en las diapositivas que no se ven? (§5). *Aplicado el 2 nov tal como se proponía; se revisa cuando haya un caso con vídeos.*
