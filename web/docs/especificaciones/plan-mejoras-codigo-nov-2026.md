@@ -287,6 +287,68 @@ Servidor de pruebas: `next build` y servir la compilación, no `next dev`, para 
 
 **Tamaño L** (de tres a cinco sesiones). Decisiones de Greener: aceptar Docker local en el CI y los minutos de GitHub Actions que consuma.
 
+### 9.6 Estudio del montaje con Docker (3 nov 2026)
+
+**Respuesta corta: lío medio, casi todo concentrado en la primera puesta en marcha.** «Con Docker» aquí solo significa que la CLI de Supabase levanta sus propios contenedores (base de datos, API, Storage, login): no hay que escribir ningún `Dockerfile` ni `docker-compose`, y los runners de GitHub ya traen Docker. Greener no necesita Docker en su máquina salvo que quiera lanzar los E2E en local. Una vez montado, el mantenimiento es bajo: lo que cuesta cada semana son los tests de scroll, no la infraestructura.
+
+**Lo que he comprobado en el código (3 nov), y que cambia el plan:**
+
+1. **`supabase/seed_demo_data.sql` está desfasado.** Tiene 231 inserciones que usan `show_as_carousel`, una columna que borró la migración `20261007120000`; aplicarlo tal cual fallaría. El generador (`scripts/generate-demo-data.mjs`) sí está al día (inserta `pin` sin esa columna): basta volver a ejecutarlo (`node scripts/generate-demo-data.mjs`) y revisar el resultado. Lo que no puedo saber sin una base de datos es si el resto de columnas y restricciones encajan con las 58 migraciones: lo dirá la fase 1.
+2. **No existe `supabase/config.toml`.** La CLI lo exige (`supabase init` lo crea). Habrá que añadirlo con el proyecto, el puerto de la base de datos, la versión de PostgreSQL (la de producción: se mira en Settings → Infrastructure del proyecto de Supabase) y la lista de semillas (`seed.sql` y `seed_demo_data.sql`). El README ya habla de `supabase db reset`, que sin ese fichero no funciona.
+3. **El build de los E2E tiene que ser propio.** Las variables `NEXT_PUBLIC_*` (URL y clave pública de Supabase, host de Cloudinary, `NEXT_PUBLIC_SITE_URL`) se incrustan al compilar, así que el trabajo `build` de CI (con valores de relleno) no sirve: los E2E compilan otra vez apuntando a la Supabase local. Son unos dos o tres minutos más.
+4. **Variables que hacen falta** (`src/lib/env.ts`, `serverEnv.ts`): URL, clave pública y clave secreta de Supabase (las imprime `supabase status -o env`; el formato exacto de las claves de la CLI actual se confirma en la fase 1), `NEXT_PUBLIC_SITE_URL=http://localhost:3000`, las siete variables de SMTP del contacto (apuntando a un receptor de pruebas) y `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` con cualquier valor. Plausible y Upstash son opcionales y sin ellas la web funciona (los límites caen a memoria y `instrumentation.ts` lo avisa).
+5. **Servidor:** `output: 'standalone'` obliga a copiar `public/` y `.next/static/` junto a `.next/standalone/server.js` (como en `despliegue.md`). Hay que comprobar al empezar si `next start` sirve bien con esa opción; si no, se arranca el `server.js`.
+6. **Cookies `secure` en producción** (`visitorCookie.ts`, `sessionCookies.ts`): Chromium las acepta sobre `http://localhost`; WebKit puede no hacerlo. No afecta a la primera tanda (solo Chromium) pero sí al proyecto WebKit de la fase 4: se decide entonces (certificado local o una variable de prueba).
+7. **El seed solo tiene casos y episodios, no tools.** Para E8 hay que fabricar el paquete: el servidor lee la versión publicada (`html_package.current_version` con `storage_path`, `manifest` y `checksum`) y sirve los ficheros ya extraídos del bucket `html-packages`, así que el montaje es filas más ficheros subidos con la clave secreta, no solo un ZIP. Es la parte más laboriosa de los casos y por eso va la última.
+8. **`pg_cron`:** dos migraciones ejecutan `create extension pg_cron with schema extensions`. La imagen de PostgreSQL de Supabase lo incluye, así que debería aplicar; es el primer sospechoso si la fase 1 falla en la migración 20260922090000.
+9. **Login (GoTrue) se deja encendido** aunque el ABM no se pruebe: `auth.jwt()` aparece 84 veces en las migraciones (políticas y funciones) y no he comprobado si `updateSession` llama a GoTrue en visitas anónimas; apagarlo ahorraría poco y arriesga un falso fallo.
+10. **El test `ciWorkflow.test.ts` solo lee `ci.yml`.** El flujo nuevo (`e2e.yml`) necesita su propia comprobación equivalente (acciones fijadas por SHA, sin `secrets.`, permisos de solo lectura) o se amplía ese test a `.github/workflows/*.yml`.
+
+**Qué se añade al repositorio**
+
+| Pieza | Para qué |
+| --- | --- |
+| `supabase/config.toml` | Configuración de la CLI (puntos 2 y 1) |
+| `supabase/seed_demo_data.sql` | Regenerado con el generador |
+| `@playwright/test` (misma versión que `playwright`, `1.64.1`) | El ejecutor de tests: hoy solo está la librería `playwright` |
+| `e2e/playwright.config.ts` | Servidor web (`webServer`), proyecto Chromium de escritorio, reintento y trazas en el CI |
+| `e2e/fixtures/` | Imagen mínima que sustituye a `res.cloudinary.com`, ayuda de consentimiento, paquete de tool (E8) |
+| `e2e/specs/*.spec.ts` | Los casos E1 a E8 (§9.3) |
+| `e2e/support/smtpSink.ts` | Receptor SMTP mínimo en Node para E7, sin Docker (el contacto envía con `nodemailer`; se lee lo recibido). Evita depender del puerto SMTP de la CLI |
+| `scripts/e2e-env.mjs` | Lee `supabase status -o env` y compone las variables del build y del servidor |
+| `scripts/e2e-serve.mjs` | Copia `public/` y los estáticos y arranca el servidor |
+| `package.json` | Scripts `e2e:db` (arranca y siembra), `e2e:build`, `e2e` y `e2e:down`; la CLI se usa con `npx supabase` y versión fija (ya es como la usa el README) |
+| `.github/workflows/e2e.yml` | El trabajo de CI (abajo) |
+| `docs/operaciones/e2e.md` | Cómo ejecutarlos en local y qué hacer cuando fallan |
+
+Vitest solo recoge `tests/**` y `tsconfig.json`, ESLint y Prettier ya cubren carpetas nuevas, así que `e2e/` no choca con lo existente; hay que añadir `e2e/` al `include` de `tsconfig.json` para que `npm run typecheck` también lo revise.
+
+**Trabajo de CI (`e2e.yml`).** Se lanza en las subidas a `main`, cada noche y a mano (`workflow_dispatch`), no en cada pull request. Pasos: `checkout`, Node desde `.nvmrc`, `npm ci`, instalar la CLI de Supabase (acción oficial fijada por SHA), `supabase start` excluyendo lo que no se usa (`studio`, `realtime`, `edge-runtime`, `logflare`, `vector`, `imgproxy`, `postgres-meta`, `mailpit`, `supavisor`; la CLI admite `-x`), exportar las variables, `npm run build` con ellas, instalar Chromium de Playwright (con caché), `npx playwright test`, subir el informe y las trazas si algo falla y `supabase stop`. Tiempo estimado: de 8 a 12 minutos por ejecución (arranque de Supabase 2-3, build 2-3, Chromium 1, tests 3-5).
+
+**Pasos y tamaños**
+
+| # | Paso | Tamaño | Qué lo hace arriesgado |
+| --- | --- | --- | --- |
+| 1 | Viabilidad: `config.toml`, seed regenerado, scripts, `e2e.yml` solo manual, un test (E1) | 1 sesión + 2 a 4 vueltas de CI | Es donde salen las sorpresas (puntos 1, 8, 5). **No puedo ejecutarlo aquí** (sin demonio de Docker): cada intento es una ejecución manual en GitHub o una en tu máquina con Docker, y me pegas el registro |
+| 2 | Feed: E1 a E5 | 1 sesión | Falsos fallos del scroll: esperas sobre estado, no sobre tiempo, y un reintento |
+| 3 | E6 (consentimiento) y E7 (contacto) | 1 sesión | Interceptar YouTube y Spotify sin red real; el receptor SMTP |
+| 4 | E8 (paquete de tool) y activar `e2e.yml` en `main` y de noche | 1 sesión | El montaje de filas y ficheros (punto 7) |
+| 5 (opcional) | Móvil, WebKit y nocturna ampliada | 1 sesión | Cookies `secure` (punto 6) |
+
+Total: de **cuatro a cinco sesiones**, de acuerdo con la estimación L de la tabla del §1.2; la incertidumbre está en el paso 1.
+
+**Coste en minutos de GitHub Actions.** Con unas 10 min por ejecución y entre 30 y 60 ejecuciones al mes (subidas a `main` más la nocturna), son de 300 a 600 min al mes. Si el repositorio es público no cuenta; si es privado, el plan gratuito incluye 2.000 min al mes en Linux (conviene mirarlo en Settings → Billing). Los E2E no restan nada al CI normal, que sigue por separado.
+
+**Alternativas descartadas.** Montar a mano PostgreSQL y PostgREST en un `docker-compose`: más trabajo, y no reproduce Storage ni las funciones de `auth`. Simular Supabase con un servidor falso: las lecturas se hacen desde el servidor de Next, no desde el navegador, así que habría que reimplementar la API REST. Un proyecto de Supabase en la nube dedicado a pruebas: la opción B de §9.2, más simple pero con estado compartido y claves en el CI.
+
+**Decisiones que necesito de Greener**
+
+1. ¿Disparo en `main` y de noche (propuesto), o también en cada pull request?
+2. ¿Quieres poder ejecutarlos en tu máquina (Docker Desktop, unos 7 GB de RAM libres según la CLI) o basta con el CI?
+3. ¿Qué versión de PostgreSQL tiene el proyecto de Supabase en producción?
+4. ¿El repositorio es público o privado (para los minutos)?
+5. ¿E8 (paquete de tool) en esta tanda o se aparca hasta que haya tools reales?
+
 ## 10. Documentación: asesor y DNS
 
 **Hecho el 2 de noviembre de 2026**, con estas decisiones de Greener: Vercel se configurará para desplegar dentro de la UE; los archivos se siguen gestionando íntegramente en Cloudinary y Cloudflare solo gestiona el dominio (si eso cambia, se vuelve a preguntar); los subdominios `tools.` e `insight.` se apagan; no se mencionan proveedores de vídeo ni de almacenamiento nuevos; la foto de los DNS la hace Greener.
@@ -308,7 +370,7 @@ Las del 2 de noviembre están contestadas en lo que toca a §8 y §10. Siguen ab
 3. **JSON-LD:** ¿qué piezas, de `Organization`/`WebSite`, `PodcastEpisode` y casos? (§3.2). Mi propuesta: la primera sí; las otras dos, si quieres también esa señal.
 4. **Carrusel:** ¿te vale `preload="none"` en las diapositivas que no se ven? (§5). *Aplicado el 2 nov tal como se proponía; se revisa cuando haya un caso con vídeos.*
 5. **ABM:** el estilo de la ruta activa y oscurecer el gris atenuado a #686d7b (§6); lo ves tú. *Aplicado el 3 nov (decías que sí al gris); falta que mires la barra.*
-6. **E2E:** ¿Docker local en el CI, con los minutos que gasta? (§9).
+6. **E2E:** ¿Docker local en el CI, con los minutos que gasta? (§9). *Estudio hecho el 3 nov: lío medio, 4 a 5 sesiones, cinco preguntas concretas en §9.6.*
 7. **Región de Vercel:** ¿qué región de la UE? Conviene la más cercana a la del proyecto de Supabase, que no consta en la documentación; con ella se escribe `regions` en `vercel.json` (o se elige en Settings → Functions).
 
 ## 12. Lo que no he podido verificar

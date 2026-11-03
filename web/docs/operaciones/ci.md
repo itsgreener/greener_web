@@ -25,7 +25,8 @@ Qué se vigila además:
 - **Duplicados.** Si se hace un push nuevo a la misma rama mientras corre la ejecución anterior, la anterior se cancela.
 - **Permisos.** El flujo solo puede leer el repositorio (`contents: read`).
 - **Acciones fijadas por SHA.** `actions/checkout` y `actions/setup-node` van por el SHA exacto de su commit, con la versión en un comentario. Una etiqueta como `v7` se puede mover; un SHA no. Dependabot propone las subidas cada semana, agrupadas.
-- **Dependabot de npm.** Una PR semanal con las subidas menores y de parche agrupadas. Las mayores de Next, React, React DOM y TypeScript no las propone: se suben a mano.
+- **Dependabot de npm.** Una PR semanal con las subidas menores y de parche agrupadas. Las mayores de Next, React, React DOM y TypeScript no las propone: se suben a mano. Tampoco las mayores de `@types/node`: los tipos deben ser los del Node del proyecto (`.nvmrc` y `engines`), no los de la última versión que exista. Las mayores del resto (ESLint, Vitest…) sí llegan, cada una en su PR, y el CI dice si encajan o no.
+- **Vercel no compila las ramas de Dependabot.** `vercel.json` lleva un `ignoreCommand` que salta el despliegue de toda rama `dependabot/*`: esas PR ya pasan por el CI de GitHub (instalación, lint, tipos, tests y build) y una preview rota en Vercel solo añadía un error rojo sin información nueva. El test `tests/unit/shared/vercelConfig.test.ts` ejecuta el comando con distintos nombres de rama. En la PR de Dependabot, Vercel aparece como cancelado u omitido, no como error.
 
 ## 2. Reproducirlo en local
 

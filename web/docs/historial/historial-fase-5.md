@@ -2485,3 +2485,27 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Cifras.** 323 ficheros y 3948 tests en verde (11 más); ESLint, `npm run typecheck` y Prettier limpios.
 
 **Pendiente.** Que Greener lo mire en un insight real.
+
+### 2.133 Estudio del montaje de los E2E con Docker (3 nov 2026)
+
+**Petición.** Cuánto lío es hacer los E2E con Docker; estudiar los pasos y planificar la implementación. Sin código.
+
+**Resultado.** Nuevo apartado 9.6 del plan (`plan-mejoras-codigo-nov-2026.md`). Conclusión: lío medio y concentrado en la primera puesta en marcha; «Docker» es la CLI de Supabase levantando sus contenedores, sin `Dockerfile` ni `docker-compose`. Hallazgos que cambian el plan: `supabase/seed_demo_data.sql` está desfasado (231 usos de `show_as_carousel`, columna borrada por `20261007120000`; el generador está al día y basta regenerarlo), no existe `supabase/config.toml`, el build de los E2E debe ser propio porque las `NEXT_PUBLIC_*` se incrustan al compilar, el seed no tiene tools (E8 exige filas más ficheros en el bucket `html-packages`), `pg_cron` es el primer sospechoso si fallan las migraciones y `ciWorkflow.test.ts` solo vigila `ci.yml`. Cinco pasos (viabilidad, feed, consentimiento y contacto, paquete de tool, móvil y WebKit), de 4 a 5 sesiones; de 8 a 12 minutos de CI por ejecución, disparo en `main` y de noche.
+
+**Límites.** No he podido ejecutar nada: en este entorno hay cliente de Docker pero no demonio. El formato de las claves que imprime la CLI actual y si `next start` sirve con `output: 'standalone'` se confirman en la fase 1.
+
+**Pendiente.** Cinco respuestas de Greener (plan §9.6): disparo en CI, ejecución en local, versión de PostgreSQL de producción, repositorio público o privado y E8 ahora o después.
+
+### 2.134 Vercel y las ramas de Dependabot (3 nov 2026)
+
+**Petición.** Greener vio en Vercel varios despliegues en error de ramas `dependabot/…` (de 16 s a 1 min 9 s) mientras que en GitHub el CI de `main` estaba verde: sospecha de que Vercel despliega una rama que no debe.
+
+**Diagnóstico.** Es cierto que Vercel compila por defecto todas las ramas y que no aporta nada en las de Dependabot, porque sus PR ya pasan por el CI de GitHub. La causa concreta del error no se ha podido ver (no hay acceso a los registros de Vercel): por la duración (16 a 34 s en la mayoría) lo más probable es un fallo de `npm install` por subidas mayores incompatibles (`eslint` 10, `vitest` 5, `@types/node` 26 frente a Node 24), que el CI de esas PR en GitHub tendría que mostrar igualmente; con el registro de una de ellas se confirmaría.
+
+**Cambio.** `vercel.json`: `ignoreCommand` con un `case` sobre `VERCEL_GIT_COMMIT_REF` que sale con 0 (salta el despliegue) para `dependabot/*` y con 1 (despliega) en el resto, también sin rama. Se prefirió a `git.deploymentEnabled` con patrones porque la documentación de Vercel solo confirma el comodín `*` y las ramas de Dependabot llevan dos barras (`dependabot/npm_and_yarn/…`); en un `case` de shell el `*` sí cruza barras. `dependabot.yml`: ignora la mayor de `@types/node` (Greener fija Node 24 y los tipos deben coincidir).
+
+**Tests.** `vercelConfig.test.ts` ejecuta el comando real con `bash` para tres ramas de Dependabot (salta) y cinco ramas normales (despliega, incluidas `feature/dependabot-config` y `dependabotx/rama`), más sin rama. Mutación: cambiando el patrón a `dependabotx/*` fallan cuatro.
+
+**Cifras.** 324 ficheros y 3958 tests en verde (10 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Pendiente.** Comprobar en la próxima PR de Dependabot que Vercel sale cancelado u omitido; las PR de ayer conservan su error hasta volver a lanzarlas o cerrarlas.
