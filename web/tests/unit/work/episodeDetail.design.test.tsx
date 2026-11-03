@@ -34,6 +34,8 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
     defaultLocale: 'es',
     locale: 'es',
     availableLocales: ['es'],
+    publishedAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-15T10:00:00.000Z',
     title: 'Brand the future',
     seoTitle: null,
     seoDescription: null,
@@ -53,6 +55,10 @@ function episode(
     provider,
     embedId,
     episodeKind: 'podcast',
+    language: 'es',
+    number: null,
+    episodeDate: null,
+    durationSeconds: null,
   }
 }
 

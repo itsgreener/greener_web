@@ -3,9 +3,13 @@ import { notFound, redirect } from 'next/navigation'
 import { publicContent } from '@/modules/content/container'
 import { workLocalePath } from '@/modules/content/domain/contentPath'
 import { CaseDetail } from '@/components/detail/CaseDetail'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { env } from '@/lib/env'
+import { caseJsonLd } from '@/lib/structuredData'
 import {
   getWorkContent,
   buildWorkMetadata,
+  firstCarouselImageUrl,
 } from '@/app/(public)/(detail)/work/[slug]/workContent'
 
 import { localeSchema } from '@/modules/shared/domain/locale'
@@ -60,6 +64,19 @@ export default async function WorkLocalePage({ params }: Props) {
   ])
 
   return (
-    <CaseDetail content={content} caseDetail={caseDetail} carousel={carousel} />
+    <>
+      <JsonLd
+        data={caseJsonLd({
+          siteUrl: env.NEXT_PUBLIC_SITE_URL,
+          content,
+          imageUrl: firstCarouselImageUrl(carousel),
+        })}
+      />
+      <CaseDetail
+        content={content}
+        caseDetail={caseDetail}
+        carousel={carousel}
+      />
+    </>
   )
 }

@@ -114,8 +114,19 @@ describe('buildOpenGraph', () => {
 describe('buildPageMetadata', () => {
   it('con absoluteTitle ignora la plantilla del layout', () => {
     expect(
-      buildPageMetadata({ title: 'X', description: 'Y', absoluteTitle: true })
-        .title,
+      buildPageMetadata({
+        title: 'X',
+        description: 'Y',
+        path: '/',
+        absoluteTitle: true,
+      }).title,
     ).toEqual({ absolute: 'X' })
+  })
+
+  it('declara la ruta recibida como canónica', () => {
+    expect(
+      buildPageMetadata({ title: 'X', description: 'Y', path: '/work' })
+        .alternates,
+    ).toEqual({ canonical: '/work' })
   })
 })

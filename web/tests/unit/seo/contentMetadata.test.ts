@@ -13,6 +13,8 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
     defaultLocale: 'es',
     locale: 'es',
     availableLocales: ['es'],
+    publishedAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-15T10:00:00.000Z',
     title: 'Tool',
     seoTitle: null,
     seoDescription: null,
@@ -25,6 +27,20 @@ function content(overrides: Partial<PublicContent> = {}): PublicContent {
 
 const images = (m: ReturnType<typeof buildContentMetadata>) =>
   (m.openGraph as { images?: unknown[] } | null | undefined)?.images
+
+describe('canónica de la ficha (tool)', () => {
+  it('apunta a su ruta pública, sin parámetros', () => {
+    expect(
+      buildContentMetadata(content({ slug: 'mi-tool' })).alternates,
+    ).toEqual({ canonical: '/tools/mi-tool' })
+  })
+
+  it('en preview no declara canónica (el borrador no tiene URL pública)', () => {
+    expect(
+      buildContentMetadata(content(), { noindex: true }).alternates,
+    ).toBeUndefined()
+  })
+})
 
 describe('imagen de OG sin portada (tool/insight)', () => {
   it('sin portada ni medio de respaldo usa la imagen de marca por defecto (RES-C3)', () => {

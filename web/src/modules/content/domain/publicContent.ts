@@ -37,6 +37,11 @@ export interface PublicContent {
   summary: string | null
   highlight: string | null
   body: string | null
+  // Fechas para los datos estructurados (JSON-LD). `publishedAt` es la de
+  // publicación programada si la hay y, si no, la de creación; `updatedAt` es
+  // la última modificación de la fila. ISO 8601.
+  publishedAt: string
+  updatedAt: string
 }
 
 /**
@@ -70,4 +75,11 @@ export interface PublicEpisode {
   provider: EpisodeProvider
   embedId: string
   episodeKind: EpisodeKind
+  // Para los datos estructurados (PodcastEpisode). Un episodio no se traduce:
+  // `language` es su único idioma.
+  language: Locale
+  number: number | null
+  // Fecha de emisión (YYYY-MM-DD), si se ha rellenado en el ABM.
+  episodeDate: string | null
+  durationSeconds: number | null
 }

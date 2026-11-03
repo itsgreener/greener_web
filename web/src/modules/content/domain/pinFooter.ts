@@ -33,21 +33,32 @@ export interface PinFooterText {
   displaySecondary: string | null
 }
 
+/**
+ * La traducción del contenido que se muestra en un pin: la del idioma del pin
+ * y, si no existe, la del idioma por defecto o la primera. De ahí salen tanto
+ * el texto como su idioma real (que puede no ser el del pin).
+ */
+function resolveContentTranslation(
+  content: PinFooterContent,
+  pinLanguage: string,
+): { locale: string; title: string } | null {
+  const { translations } = content
+
+  return (
+    translations.find((translation) => translation.locale === pinLanguage) ??
+    translations.find(
+      (translation) => translation.locale === content.defaultLocale,
+    ) ??
+    translations[0] ??
+    null
+  )
+}
+
 function resolveContentTitle(
   content: PinFooterContent,
   pinLanguage: string,
 ): string | null {
-  const { translations } = content
-
-  return (
-    translations.find((translation) => translation.locale === pinLanguage)
-      ?.title ??
-    translations.find(
-      (translation) => translation.locale === content.defaultLocale,
-    )?.title ??
-    translations[0]?.title ??
-    null
-  )
+  return resolveContentTranslation(content, pinLanguage)?.title ?? null
 }
 
 /**
@@ -113,5 +124,43 @@ export function derivedFeedText(
         displayTitle: null,
         displaySecondary: null,
       }
+  }
+}
+
+/**
+ * Idioma de cada texto del pie, para marcarlo con `lang` (WCAG 3.1.2). Solo
+ * los textos que son contenido: el cliente, el programa y «Insights by
+ * Greener» son nombres o interfaz y no se marcan (`null`). Ojo: el título de
+ * un contenido sin traducción en el idioma del pin cae a otro idioma, y es el
+ * de ese texto el que se declara, no el del pin.
+ */
+export interface PinFooterLanguages {
+  title: string | null
+  secondary: string | null
+}
+
+export function derivedFeedLanguages(
+  pin: PinFooterPin,
+  content: PinFooterContent,
+): PinFooterLanguages {
+  const titleLocale =
+    resolveContentTranslation(content, pin.language)?.locale ?? null
+
+  switch (content.type) {
+    case 'case':
+    case 'insight':
+    case 'episode':
+      return { title: titleLocale, secondary: null }
+
+    case 'tool':
+      // La descripción la escribe el admin en el idioma del pin; el nombre de
+      // la tool es el título del contenido.
+      return {
+        title: pin.label?.trim() ? pin.language : null,
+        secondary: titleLocale,
+      }
+
+    case 'other':
+      return { title: pin.label?.trim() ? pin.language : null, secondary: null }
   }
 }

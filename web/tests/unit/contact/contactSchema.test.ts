@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { contactFormSchema } from '@/modules/contact/domain/contactSchema'
+import { CONTACT_LIMITS } from '@/modules/contact/domain/contactLimits'
 
 describe('contactFormSchema', () => {
   const base = {
@@ -35,6 +36,39 @@ describe('contactFormSchema', () => {
       message: 'a'.repeat(5001),
     })
     expect(result.success).toBe(false)
+  })
+
+  it.each(['name', 'phone', 'email', 'message'] as const)(
+    'acepta %s con su longitud máxima exacta y rechaza una más, con un aviso de longitud',
+    (field) => {
+      const filler = (n: number) =>
+        field === 'email' ? `${'a'.repeat(n - 12)}@example.com` : 'a'.repeat(n)
+      const max = CONTACT_LIMITS[field]
+
+      expect(
+        contactFormSchema.safeParse({ ...base, [field]: filler(max) }).success,
+      ).toBe(true)
+
+      const tooLong = contactFormSchema.safeParse({
+        ...base,
+        [field]: filler(max + 1),
+      })
+      expect(tooLong.success).toBe(false)
+      if (!tooLong.success) {
+        expect(tooLong.error.issues[0].message).toContain(
+          `can't be longer than ${max} characters`,
+        )
+      }
+    },
+  )
+
+  it('el HTML y el esquema comparten las mismas longitudes máximas', () => {
+    expect(CONTACT_LIMITS).toEqual({
+      name: 200,
+      phone: 40,
+      email: 254,
+      message: 5000,
+    })
   })
 
   it('no exige ninguna casilla de privacidad: la casilla del formulario es solo informativa', () => {

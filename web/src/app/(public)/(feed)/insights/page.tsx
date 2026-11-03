@@ -6,6 +6,7 @@ export const metadata = buildPageMetadata({
   title: SECTION_LABELS.insights,
   description:
     'Research and insight pieces from Greener on branding, agro and sustainability.',
+  path: '/insights',
 })
 
 /**

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { buildOpenGraph } from '@/lib/pageMetadata'
+import { publicContentPath } from '@/modules/content/domain/contentPath'
 import {
   buildImageUrl,
   buildVideoPosterUrl,
@@ -25,11 +26,15 @@ export function buildContentMetadata(
   const title = content.seoTitle ?? content.title
   const description = content.seoDescription ?? content.summary ?? undefined
 
-  const ogImage = buildOgImage(options?.shareMedia)
+  const ogImage = buildShareImageUrl(options?.shareMedia)
 
   return {
     title,
     description,
+    // Una ficha en preview no tiene URL pública a la que apuntar.
+    alternates: options?.noindex
+      ? undefined
+      : { canonical: publicContentPath(content.type, content.slug) },
     // Preview (arquitectura §15.3): "noindex" — un borrador no debe
     // aparecer nunca en buscadores, aunque el link llegue a filtrarse.
     robots: options?.noindex ? { index: false, follow: false } : undefined,
@@ -42,7 +47,10 @@ export function buildContentMetadata(
   }
 }
 
-function buildOgImage(media: PublicContentMedia | null | undefined) {
+/** URL absoluta de la imagen para compartir de un medio (póster si es vídeo). */
+export function buildShareImageUrl(
+  media: PublicContentMedia | null | undefined,
+) {
   if (!media) return undefined
   return media.kind === 'image'
     ? buildImageUrl(media.cloudinaryPublicId, 'detail', 1200)

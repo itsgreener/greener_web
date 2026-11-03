@@ -8,10 +8,20 @@ export interface ContactMailer {
 export type ContactSubmissionStatus =
   'sent' | 'failed' | 'rate_limited' | 'honeypot'
 
+/**
+ * Resultado de comprobar el límite de envíos de una IP:
+ * - `allowed`: puede enviar.
+ * - `limited`: ha agotado su cupo.
+ * - `unavailable`: no se ha podido comprobar (Supabase no responde). No se
+ *   envía nada, igual que con `limited` (el formulario falla cerrado), pero
+ *   el mensaje que ve la persona es otro: no ha hecho nada mal.
+ */
+export type RateLimitCheck = 'allowed' | 'limited' | 'unavailable'
+
 /** Registro de envíos por IP (hash), para el límite y la trazabilidad. */
 export interface ContactSubmissionLog {
-  /** ¿Ha agotado esta IP su cupo de envíos? Si no se puede comprobar, true. */
-  isRateLimited(ipHash: string): Promise<boolean>
+  /** Nunca lanza: si no puede comprobarlo, devuelve `unavailable`. */
+  checkRateLimit(ipHash: string): Promise<RateLimitCheck>
 
   /** Anota un intento. Nunca lanza: que falle el registro no tumba el envío. */
   record(

@@ -30,9 +30,14 @@ export interface PinDirectoryEntry {
   // en Insight.
   displaySecondary?: string | null
   alt: string
-  // Idioma del pin (`pin.language`: es, en o ca). Hoy solo decide el CTA de
-  // los pines de página satélite (`other`). Ausente = se trata como inglés.
+  // Idioma del pin (`pin.language`: es, en o ca). Decide el CTA de los pines
+  // de página satélite (`other`) y la traducción del título. Ausente = se
+  // trata como inglés.
   language?: string
+  // Idioma real de cada texto de la tarjeta (el título puede caer a otro
+  // idioma si no hay traducción), para marcarlo con `lang`. Ausente = se
+  // desconoce y no se marca.
+  textLanguages?: { title: string | null; secondary: string | null }
   // Solo tiene efecto real en un pin de vídeo (§9.1): 'viewport' lo
   // reproduce vía IntersectionObserver (compite por el hueco global del
   // feed, videoPlaybackCoordinator.ts), 'hover' solo mientras el puntero
@@ -60,6 +65,13 @@ export interface FeedPinItem {
   displayTitle?: string | null
   displaySecondary?: string | null
   cta: string | null
+  // Idioma de cada texto de la tarjeta; `null` = interfaz o un nombre propio,
+  // que no se marca (la página es `en`). Ver `derivedFeedLanguages`.
+  languages?: {
+    title: string | null
+    secondary: string | null
+    cta: string | null
+  }
   alt: string
   autoplayMode: 'viewport' | 'hover' | null
   media: FeedItemMedia[]

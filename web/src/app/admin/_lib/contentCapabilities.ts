@@ -8,7 +8,11 @@ import type { ContentType } from '@/modules/shared/domain/contentType'
  * necesita esta tabla.
  */
 export interface ContentCapabilities {
-  /** Se traduce a todos los idiomas (no solo al principal). */
+  /**
+   * Se traduce a todos los idiomas. Si no, el editor de traducciones solo
+   * ofrece el idioma principal, que se fija en el ABM (episodio, insight y
+   * other son de un solo idioma).
+   */
   allLocales: boolean
 
   /** La traducción lleva `highlight` y `body` (formato de detalle tipo B). */
@@ -22,6 +26,14 @@ export interface ContentCapabilities {
 
   /** Paquete HTML sin portada: tipo A (tool, insight) y página satélite. */
   hasPackage: boolean
+
+  /**
+   * Los pines toman el idioma del contenido y el ABM no lo pregunta: el
+   * contenido es de un solo idioma (episodio e insight). En un caso, una tool
+   * y un other cada pin elige idioma: en una página satélite decide el idioma
+   * del botón del pin (talent: «Upload your CV», «Sube tu portfolio»…).
+   */
+  pinLanguageFromContent: boolean
 
   /** Tiene pines en el feed (una newsletter no). */
   hasPins: boolean
@@ -39,9 +51,11 @@ export function contentCapabilities(
   otherKind: OtherKind | null,
 ): ContentCapabilities {
   return {
-    // Episodio y other se muestran en un solo idioma: el principal. Un other
-    // no tiene versión por idioma en el feed (plan de other, §3).
-    allLocales: type !== 'episode' && type !== 'other',
+    // Episodio, insight y other se muestran en un solo idioma: el principal,
+    // que se pone en el ABM (no se autodetecta). Un other no tiene versión
+    // por idioma en el feed (plan de other, §3) y la web pública de un insight
+    // solo sirve su idioma principal.
+    allLocales: type === 'case' || type === 'tool',
     // especificacion-final-formato-detalle.md §3: son campos propios del
     // formato de detalle tipo B (caso y episodio).
     hasHighlightAndBody: type === 'case' || type === 'episode',
@@ -53,6 +67,7 @@ export function contentCapabilities(
     hasSeo: type !== 'other',
     // Una newsletter no tiene página; una página satélite sí tiene paquete.
     hasPackage: type === 'tool' || type === 'insight' || otherKind === 'page',
+    pinLanguageFromContent: type === 'episode' || type === 'insight',
     hasPins: otherKind !== 'newsletter',
     hasPreview: type === 'case' || type === 'episode',
   }

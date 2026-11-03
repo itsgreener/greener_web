@@ -145,7 +145,12 @@ describe('PinList — botón «Borrar todos los pines»', () => {
       await import('@/app/admin/(panel)/contents/[id]/edit/PinList')
 
     render(
-      <PinList contentId={CONTENT_ID} contentType={contentType} pins={pins} />,
+      <PinList
+        contentId={CONTENT_ID}
+        contentType={contentType}
+        pins={pins}
+        fixedLanguage={null}
+      />,
     )
   }
 

@@ -28,9 +28,9 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-describe('isRateLimited', () => {
-  it('por debajo del límite (RATE_LIMIT_MAX_SUBMISSIONS), no está limitado', async () => {
-    const { isRateLimited, RATE_LIMIT_MAX_SUBMISSIONS } =
+describe('checkRateLimit', () => {
+  it('por debajo del límite (RATE_LIMIT_MAX_SUBMISSIONS), permite el envío', async () => {
+    const { checkRateLimit, RATE_LIMIT_MAX_SUBMISSIONS } =
       await import('@/modules/contact/infrastructure/contactSubmissionLog')
     const { createServiceClient } = await import('@/lib/supabase/serviceClient')
 
@@ -40,11 +40,11 @@ describe('isRateLimited', () => {
     })
     vi.mocked(createServiceClient).mockReturnValue({ from } as never)
 
-    expect(await isRateLimited('hash-1')).toBe(false)
+    expect(await checkRateLimit('hash-1')).toBe('allowed')
   })
 
-  it('al llegar al límite, sí está limitado', async () => {
-    const { isRateLimited, RATE_LIMIT_MAX_SUBMISSIONS } =
+  it('al llegar al límite, está limitado', async () => {
+    const { checkRateLimit, RATE_LIMIT_MAX_SUBMISSIONS } =
       await import('@/modules/contact/infrastructure/contactSubmissionLog')
     const { createServiceClient } = await import('@/lib/supabase/serviceClient')
 
@@ -54,11 +54,12 @@ describe('isRateLimited', () => {
     })
     vi.mocked(createServiceClient).mockReturnValue({ from } as never)
 
-    expect(await isRateLimited('hash-1')).toBe(true)
+    expect(await checkRateLimit('hash-1')).toBe('limited')
   })
 
-  it('si Supabase falla al comprobar el límite, falla cerrado (fail closed) — se trata como limitado', async () => {
-    const { isRateLimited } =
+  it('si Supabase falla al comprobar el límite, devuelve «unavailable» (el formulario no envía) y lo deja en el log', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { checkRateLimit } =
       await import('@/modules/contact/infrastructure/contactSubmissionLog')
     const { createServiceClient } = await import('@/lib/supabase/serviceClient')
 
@@ -68,7 +69,23 @@ describe('isRateLimited', () => {
     })
     vi.mocked(createServiceClient).mockReturnValue({ from } as never)
 
-    expect(await isRateLimited('hash-1')).toBe(true)
+    expect(await checkRateLimit('hash-1')).toBe('unavailable')
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
+  })
+
+  it('si ni siquiera se puede crear el cliente (falta configuración), tampoco lanza: «unavailable»', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { checkRateLimit } =
+      await import('@/modules/contact/infrastructure/contactSubmissionLog')
+    const { createServiceClient } = await import('@/lib/supabase/serviceClient')
+
+    vi.mocked(createServiceClient).mockImplementation(() => {
+      throw new Error('falta SUPABASE_SECRET_KEY')
+    })
+
+    await expect(checkRateLimit('hash-1')).resolves.toBe('unavailable')
+    consoleError.mockRestore()
   })
 })
 

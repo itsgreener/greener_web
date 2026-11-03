@@ -39,6 +39,7 @@
 }
 
 .link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--admin-space-12);
@@ -61,6 +62,26 @@
   &:focus-visible {
     outline: var(--focus-width) solid var(--color-cta);
     outline-offset: var(--focus-offset-inset);
+  }
+
+  /* Sección actual: fondo del gris único, texto pleno e indicador azul a la
+     izquierda (abajo cuando la barra pasa a fila). */
+  &[aria-current='page'] {
+    background: var(--color-surface);
+    color: var(--color-text);
+
+    &::before {
+      content: '';
+      position: absolute;
+      inset: var(--space-sm) auto var(--space-sm) 0;
+      width: 3px;
+      border-radius: var(--radius-pill);
+      background: var(--color-cta);
+    }
+
+    .icon {
+      color: var(--color-cta);
+    }
   }
 }
 
@@ -113,6 +134,12 @@
   .nav {
     flex-direction: row;
     overflow-x: auto;
+  }
+
+  .link[aria-current='page']::before {
+    inset: auto var(--admin-space-12) 0;
+    width: auto;
+    height: 3px;
   }
 
   .bottom {

@@ -64,6 +64,8 @@ function content(type: 'tool'): PublicContent {
     defaultLocale: 'es',
     locale: 'es',
     availableLocales: ['es'],
+    publishedAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-15T10:00:00.000Z',
     title: 'Contenido',
     seoTitle: null,
     seoDescription: null,

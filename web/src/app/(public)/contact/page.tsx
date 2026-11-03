@@ -20,6 +20,7 @@ export const metadata = buildPageMetadata({
   title: 'Contact',
   description:
     'Get in touch with Greener: a new website, a new brand, a product launch or a campaign.',
+  path: '/contact',
 })
 
 export default function ContactPage() {

@@ -37,11 +37,19 @@ function labelFromFilename(filename: string): string {
   return filename.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
 }
 
+export type RowDefaults = {
+  ratio: string
+  language: string
+  // Idioma impuesto por el contenido (un solo idioma): gana al CSV y al valor
+  // por defecto.
+  fixedLanguage?: string | null
+}
+
 function buildRow(
   file: File,
   index: number,
   csvRow: PinCsvRow | undefined,
-  defaults: { ratio: string; language: string },
+  defaults: RowDefaults,
 ): Row {
   // Prioridad: CSV > nombre del archivo > ratio por defecto. Si el nombre no
   // trae una proporción legible no se aplica nada (queda el valor por defecto).
@@ -62,7 +70,7 @@ function buildRow(
     label: csvRow?.label || labelFromFilename(file.name),
     ratio,
     ratioSource,
-    language: csvRow?.language || defaults.language,
+    language: defaults.fixedLanguage || csvRow?.language || defaults.language,
     alt: csvRow?.alt || labelFromFilename(file.name),
     status: 'pending',
   }
@@ -79,7 +87,7 @@ export function regenerateRows(
   current: Row[],
   files: File[],
   csvRows: PinCsvRow[],
-  defaults: { ratio: string; language: string },
+  defaults: RowDefaults,
 ): Row[] {
   return files.map((file, index) => {
     const existing = current.find((row) => row.file === file)

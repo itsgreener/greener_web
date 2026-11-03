@@ -38,6 +38,8 @@ function content(type: PublicContent['type']): PublicContent {
     defaultLocale: 'es',
     locale: 'es',
     availableLocales: ['es'],
+    publishedAt: '2026-10-01T10:00:00.000Z',
+    updatedAt: '2026-10-15T10:00:00.000Z',
     title: 'Mi contenido',
     seoTitle: null,
     seoDescription: null,
@@ -52,6 +54,10 @@ const EPISODE: PublicEpisode = {
   provider: 'youtube',
   embedId: 'abc123',
   episodeKind: 'podcast',
+  language: 'es',
+  number: null,
+  episodeDate: null,
+  durationSeconds: null,
 }
 
 function fakeBatch(count: number): FeedBatchResult {

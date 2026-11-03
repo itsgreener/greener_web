@@ -8,12 +8,15 @@ import type { Row } from './rows'
 export function BulkPinRow({
   row,
   derivedLabel,
+  showLanguage,
   disabled,
   onChange,
   onRemove,
 }: {
   row: Row
   derivedLabel: boolean
+  // false en un contenido de un solo idioma: el idioma no se pregunta.
+  showLanguage: boolean
   disabled: boolean
   onChange: (patch: Partial<Row>) => void
   onRemove: () => void
@@ -53,17 +56,19 @@ export function BulkPinRow({
         )}
       </td>
 
-      <td>
-        <AdminSelect
-          compact
-          aria-label={`Idioma de ${row.file.name}`}
-          value={row.language}
-          disabled={disabled}
-          onChange={(event) => onChange({ language: event.target.value })}
-        >
-          <LocaleOptions display="value" />
-        </AdminSelect>
-      </td>
+      {showLanguage && (
+        <td>
+          <AdminSelect
+            compact
+            aria-label={`Idioma de ${row.file.name}`}
+            value={row.language}
+            disabled={disabled}
+            onChange={(event) => onChange({ language: event.target.value })}
+          >
+            <LocaleOptions display="value" />
+          </AdminSelect>
+        </td>
+      )}
 
       <td>
         <AdminInput

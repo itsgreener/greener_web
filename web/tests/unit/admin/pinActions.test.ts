@@ -14,6 +14,10 @@ vi.mock('next/cache', () => ({
   updateTag: vi.fn(),
 }))
 
+vi.mock('@/modules/content/container', () => ({
+  contents: { getById: vi.fn() },
+}))
+
 vi.mock('@/modules/pin/container', () => ({
   attachPinImage: vi.fn(),
   attachPinVideo: vi.fn(),
@@ -48,6 +52,7 @@ import {
   updatePin,
 } from '@/modules/pin/container'
 import { CreatePinWithMediaError } from '@/modules/pin/domain/createPinWithMediaError'
+import { contents } from '@/modules/content/container'
 
 const CONTENT_ID = '11111111-1111-4111-8111-111111111111'
 
@@ -463,5 +468,76 @@ describe('detachPinMediaAction', () => {
 
     expect(result.ok).toBe(false)
     expect(detachPinMedia).not.toHaveBeenCalled()
+  })
+})
+
+describe('idioma del pin en contenidos de un solo idioma', () => {
+  const content = (type: string, defaultLocale: string) =>
+    ({
+      id: CONTENT_ID,
+      type,
+      defaultLocale,
+    }) as Awaited<ReturnType<typeof contents.getById>>
+
+  it('crear un pin de imagen en un episodio guarda el idioma del contenido aunque se pida otro', async () => {
+    vi.mocked(contents.getById).mockResolvedValue(content('episode', 'ca'))
+
+    await createPinWithImageAction(VALID_PIN_WITH_IMAGE)
+
+    expect(createPinWithImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pin: expect.objectContaining({ language: 'ca' }),
+      }),
+    )
+  })
+
+  it('crear un pin de vídeo en un insight guarda el idioma del contenido', async () => {
+    vi.mocked(contents.getById).mockResolvedValue(content('insight', 'en'))
+
+    await createPinWithVideoAction(VALID_PIN_WITH_VIDEO)
+
+    expect(createPinWithVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pin: expect.objectContaining({ language: 'en' }),
+      }),
+    )
+  })
+
+  it('editar un pin antiguo de un episodio lo corrige al idioma del contenido', async () => {
+    vi.mocked(contents.getById).mockResolvedValue(content('episode', 'en'))
+
+    await updatePinAction(PIN_ID, CONTENT_ID, {}, createValidFormData())
+
+    expect(updatePin).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'en' }),
+    )
+  })
+
+  it.each(['case', 'tool'])(
+    'un %s respeta el idioma elegido en el pin',
+    async (type) => {
+      vi.mocked(contents.getById).mockResolvedValue(content(type, 'en'))
+
+      await createPinWithImageAction(VALID_PIN_WITH_IMAGE)
+
+      expect(createPinWithImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pin: expect.objectContaining({ language: 'es' }),
+        }),
+      )
+    },
+  )
+
+  it('si no se puede leer el contenido, guarda el idioma pedido en vez de fallar', async () => {
+    vi.mocked(contents.getById).mockRejectedValue(new Error('caída'))
+
+    const result = await createPinWithImageAction(VALID_PIN_WITH_IMAGE)
+
+    expect(result.ok).toBe(true)
+    expect(createPinWithImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pin: expect.objectContaining({ language: 'es' }),
+      }),
+    )
   })
 })

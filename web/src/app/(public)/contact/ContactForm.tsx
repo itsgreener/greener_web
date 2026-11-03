@@ -1,10 +1,11 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { CtaButton } from '@/components/cta/Cta'
 import { PublicField } from '@/components/form/PublicField'
 import { Honeypot } from '@/components/security/Honeypot'
+import { CONTACT_LIMITS } from '@/modules/contact/domain/contactLimits'
 import { submitContactAction, type ContactActionState } from './contactActions'
 import styles from './ContactForm.module.css'
 
@@ -15,10 +16,29 @@ export function ContactForm() {
     submitContactAction,
     initialState,
   )
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Tras un fallo de validación, el foco va al primer campo con error: el
+  // envío recarga el formulario y, si no, el foco se queda en el botón.
+  useEffect(() => {
+    if (!state.fieldErrors) return
+
+    formRef.current
+      ?.querySelector<HTMLElement>('[aria-invalid="true"]')
+      ?.focus()
+  }, [state])
 
   if (state.success) {
+    // El formulario desaparece al enviarse: sin mover el foco al mensaje, se
+    // perdería (se queda en un botón que ya no existe) y quien usa lector de
+    // pantalla no se enteraría de que el envío salió bien.
     return (
-      <p className={styles.success}>
+      <p
+        className={styles.success}
+        role="status"
+        tabIndex={-1}
+        ref={(node) => node?.focus()}
+      >
         Thanks for writing to us — we&apos;ll get back to you as soon as
         possible.
       </p>
@@ -26,7 +46,7 @@ export function ContactForm() {
   }
 
   return (
-    <form action={formAction} className={styles.form}>
+    <form ref={formRef} action={formAction} className={styles.form}>
       <Honeypot
         name="reference_code"
         id="reference_code"
@@ -37,6 +57,9 @@ export function ContactForm() {
         name="name"
         label="Name"
         required
+        autoComplete="name"
+        maxLength={CONTACT_LIMITS.name}
+        defaultValue={state.values?.name}
         error={state.fieldErrors?.name?.[0]}
       />
       <PublicField
@@ -44,6 +67,9 @@ export function ContactForm() {
         label="Phone"
         type="tel"
         required
+        autoComplete="tel"
+        maxLength={CONTACT_LIMITS.phone}
+        defaultValue={state.values?.phone}
         error={state.fieldErrors?.phone?.[0]}
       />
       <PublicField
@@ -51,6 +77,9 @@ export function ContactForm() {
         label="Email"
         type="email"
         required
+        autoComplete="email"
+        maxLength={CONTACT_LIMITS.email}
+        defaultValue={state.values?.email}
         error={state.fieldErrors?.email?.[0]}
       />
       <PublicField
@@ -58,6 +87,9 @@ export function ContactForm() {
         label="Message"
         rows={6}
         required
+        autoComplete="off"
+        maxLength={CONTACT_LIMITS.message}
+        defaultValue={state.values?.message}
         error={state.fieldErrors?.message?.[0]}
       />
 
@@ -81,7 +113,11 @@ export function ContactForm() {
         </CtaButton>
       </div>
 
-      {state.formError && <p className={styles.formError}>{state.formError}</p>}
+      {state.formError && (
+        <p className={styles.formError} role="alert">
+          {state.formError}
+        </p>
+      )}
     </form>
   )
 }

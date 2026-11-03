@@ -16,6 +16,7 @@ import {
   DETAIL_IMAGE_SIZES,
 } from '@/components/media/CloudinaryImage'
 import { useRecommendationMasonry } from '@/components/detail/useRecommendationMasonry'
+import { useMotionPreferences } from '@/lib/useMotionPreferences'
 import { workLocalePath } from '@/modules/content/domain/contentPath'
 import type { PublicContent } from '@/modules/content/domain/publicContent'
 import { localeCode } from '@/modules/shared/domain/locale'
@@ -34,13 +35,28 @@ const FALLBACK_RATIO = '16:9' as const
  * Vídeo del carrusel de un caso (contrato de medios §4.2): escalón M del
  * ratio PROPIO del vídeo, dos fuentes explícitas (WebM/VP9 y MP4/H.264) y
  * el audio conservado (lleva controles).
+ *
+ * `preload`: solo la primera diapositiva pide los metadatos (duración y
+ * dimensiones) y solo si el visitante no ha pedido ahorrar datos ni tiene una
+ * conexión lenta. El resto no se ve hasta que se desliza, y con póster y
+ * controles `none` no deja ningún hueco: el vídeo se pide al pulsar play.
  */
-function CarouselVideo({ item }: { item: PublicCaseCarouselItem }) {
+function CarouselVideo({
+  item,
+  isFirstSlide,
+}: {
+  item: PublicCaseCarouselItem
+  isFirstSlide: boolean
+}) {
   const size = detailVideoRungM(caseVideoRatio(item.width, item.height))
+  const { saveData, slowConnection } = useMotionPreferences()
+  const preload =
+    isFirstSlide && !saveData && !slowConnection ? 'metadata' : 'none'
 
   return (
     <video
       poster={buildVideoPosterUrl(item.cloudinaryPublicId, size, 'detail')}
+      preload={preload}
       controls
       aria-label={item.alt}
       className={styles.media}
@@ -112,7 +128,7 @@ export function CaseDetail({
                     className={styles.media}
                   />
                 ) : (
-                  <CarouselVideo item={item} />
+                  <CarouselVideo item={item} isFirstSlide={index === 0} />
                 )}
               </div>
             ))}
@@ -145,11 +161,21 @@ export function CaseDetail({
           {caseDetail?.client && (
             <p className={styles.client}>{caseDetail.client}</p>
           )}
-          <h1 className={`${styles.title} text-display`}>{content.title}</h1>
+          {/* `lang` del texto del caso (su traducción): la interfaz de la
+              página sigue en inglés (WCAG 3.1.2). */}
+          <h1 className={`${styles.title} text-display`} lang={content.locale}>
+            {content.title}
+          </h1>
           {content.highlight && (
-            <p className={styles.highlight}>{content.highlight}</p>
+            <p className={styles.highlight} lang={content.locale}>
+              {content.highlight}
+            </p>
           )}
-          {content.body && <p className={styles.body}>{content.body}</p>}
+          {content.body && (
+            <p className={styles.body} lang={content.locale}>
+              {content.body}
+            </p>
+          )}
         </div>
       </div>
 

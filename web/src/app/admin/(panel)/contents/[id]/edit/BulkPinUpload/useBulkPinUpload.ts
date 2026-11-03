@@ -15,6 +15,7 @@ import {
 } from '@/modules/media/client/videoUploadChecks'
 
 import type { ContentType } from '@/modules/shared/domain/contentType'
+import type { Locale } from '@/modules/shared/domain/locale'
 
 import {
   createPinWithImageAction,
@@ -27,23 +28,24 @@ import {
 
 import { useUploadQueue } from '@/app/admin/_lib/useUploadQueue'
 
-import { regenerateRows, type Row } from './rows'
+import { regenerateRows, type Row, type RowDefaults } from './rows'
 
 function rowKey(row: Row) {
   return row.key
 }
 
-type Defaults = { ratio: string; language: string }
-
 export function useBulkPinUpload({
   contentId,
   contentType,
   availableSlots,
+  fixedLanguage,
 }: {
   contentId: string
   contentType: ContentType
   // Huecos de pin que quedan en el contenido (máximo 8 por contenido).
   availableSlots: number
+  // Idioma que toman todos los pines si el contenido es de un solo idioma.
+  fixedLanguage: Locale | null
 }) {
   const derivedLabel = hasDerivedPinLabel(contentType)
 
@@ -71,11 +73,12 @@ export function useBulkPinUpload({
     nextCsvRows: PinCsvRow[],
     // El valor recién elegido: el estado de React aún no se ha actualizado
     // cuando se llama desde el onChange de los selects por defecto.
-    overrides: Partial<Defaults> = {},
+    overrides: Partial<RowDefaults> = {},
   ) {
-    const defaults: Defaults = {
+    const defaults: RowDefaults = {
       ratio: overrides.ratio ?? defaultRatio,
       language: overrides.language ?? defaultLanguage,
+      fixedLanguage,
     }
 
     setRows((current) =>

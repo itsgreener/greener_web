@@ -1,3 +1,4 @@
+import { serializeJsonLd } from '@/lib/serializeJsonLd'
 import type {
   PackageManifest,
   PackageMetadata,
@@ -89,10 +90,9 @@ function jsonLd(
             applicationCategory: 'WebApplication',
           }
 
-  // «<» escapado: un título con «</script>» no puede cerrar la etiqueta.
-  const serialized = JSON.stringify(data).replace(/</g, '\\u003c')
-
-  return `<script type="application/ld+json">${serialized}</script>`
+  // `serializeJsonLd` escapa «<»: un título con «</script>» no puede cerrar
+  // la etiqueta.
+  return `<script type="application/ld+json">${serializeJsonLd(data)}</script>`
 }
 
 /**

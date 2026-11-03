@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { invalidateFeedCache } from '@/lib/cache/feedCache'
 
 import { adminErrorMessage } from '@/app/admin/_lib/adminErrorMessage'
+import { resolvePinLanguage } from '@/app/admin/_lib/pinLanguage'
 import { ADMIN_REQUIRED_MESSAGE, isAdminRequest } from '@/lib/auth/adminSession'
 import { fieldErrorsOf } from '@/lib/forms/formActionState'
 
@@ -104,7 +105,10 @@ export async function updatePinAction(
   }
 
   try {
-    await updatePin(result.data)
+    await updatePin({
+      ...result.data,
+      language: await resolvePinLanguage(contentId, result.data.language),
+    })
   } catch (error) {
     console.error('Admin · updatePinAction:', error)
 
@@ -279,8 +283,16 @@ export async function createPinWithImageAction(
   }
 
   try {
+    const pin = {
+      ...pinResult.data,
+      language: await resolvePinLanguage(
+        pinResult.data.contentId,
+        pinResult.data.language,
+      ),
+    }
+
     const created = await createPinWithImage({
-      pin: pinResult.data,
+      pin,
       cloudinaryPublicId: imageInput.cloudinaryPublicId,
     })
 
@@ -474,8 +486,16 @@ export async function createPinWithVideoAction(
   }
 
   try {
+    const pin = {
+      ...pinResult.data,
+      language: await resolvePinLanguage(
+        pinResult.data.contentId,
+        pinResult.data.language,
+      ),
+    }
+
     const created = await createPinWithVideo({
-      pin: pinResult.data,
+      pin,
       video: clientVideo.data,
     })
 

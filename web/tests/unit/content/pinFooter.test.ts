@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  derivedFeedLanguages,
   derivedFeedText,
   INSIGHT_PIN_SECONDARY_TEXT,
   type PinFooterContent,
@@ -97,5 +98,60 @@ describe('derivedFeedText — pie del pin en el feed', () => {
         base({ type: 'insight', translations: [] }),
       ).displayTitle,
     ).toBeNull()
+  })
+})
+
+describe('derivedFeedLanguages — idioma real de cada texto del pie', () => {
+  it('case, insight y episode: el título lleva el idioma de la traducción elegida', () => {
+    for (const type of ['case', 'insight', 'episode'] as const) {
+      expect(derivedFeedLanguages(pin, base({ type }))).toEqual({
+        title: 'en',
+        secondary: null,
+      })
+    }
+  })
+
+  it('si no hay traducción en el idioma del pin, declara el idioma al que cae, no el del pin', () => {
+    expect(
+      derivedFeedLanguages(
+        { ...pin, language: 'ca' },
+        base({ type: 'case', defaultLocale: 'es' }),
+      ),
+    ).toEqual({ title: 'es', secondary: null })
+  })
+
+  it('tool: la descripción va en el idioma del pin y el nombre en el de la traducción', () => {
+    expect(derivedFeedLanguages(pin, base({ type: 'tool' }))).toEqual({
+      title: 'en',
+      secondary: 'en',
+    })
+  })
+
+  it('tool sin descripción: no hay título que marcar', () => {
+    expect(
+      derivedFeedLanguages(
+        { label: '  ', language: 'es' },
+        base({ type: 'tool' }),
+      ).title,
+    ).toBeNull()
+  })
+
+  it('other: el gancho lleva el idioma del pin; sin gancho, nada', () => {
+    expect(derivedFeedLanguages(pin, base({ type: 'other' }))).toEqual({
+      title: 'en',
+      secondary: null,
+    })
+    expect(
+      derivedFeedLanguages(
+        { label: null, language: 'es' },
+        base({ type: 'other' }),
+      ).title,
+    ).toBeNull()
+  })
+
+  it('sin ninguna traducción, no inventa un idioma', () => {
+    expect(
+      derivedFeedLanguages(pin, base({ type: 'case', translations: [] })),
+    ).toEqual({ title: null, secondary: null })
   })
 })

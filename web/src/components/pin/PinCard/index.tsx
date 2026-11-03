@@ -180,6 +180,7 @@ export function PinCard({
         ratio={pin.ratio}
         alt={pin.alt}
         cta={pin.cta}
+        ctaLanguage={pin.languages?.cta}
         media={current}
         width={style.width}
         video={video}
@@ -190,6 +191,7 @@ export function PinCard({
         displayTitle={pin.displayTitle}
         displaySecondary={pin.displaySecondary}
         label={pin.label}
+        languages={pin.languages}
       />
     </CardLink>
   )

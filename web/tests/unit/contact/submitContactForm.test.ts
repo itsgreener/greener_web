@@ -16,7 +16,9 @@ const VALID_INPUT = {
 function setup() {
   const mailer = { send: vi.fn<(input: unknown) => Promise<void>>() }
   const log = {
-    isRateLimited: vi.fn(async () => false),
+    checkRateLimit: vi.fn(
+      async (): Promise<'allowed' | 'limited' | 'unavailable'> => 'allowed',
+    ),
     record: vi.fn(async () => {}),
   }
   const submitContactForm = makeSubmitContactForm({
@@ -67,12 +69,12 @@ describe('submitContactForm', () => {
       expect('fieldErrors' in result).toBe(true)
     }
     expect(mailer.send).not.toHaveBeenCalled()
-    expect(log.isRateLimited).not.toHaveBeenCalled()
+    expect(log.checkRateLimit).not.toHaveBeenCalled()
   })
 
-  it('si isRateLimited devuelve true, no envía nada y registra "rate_limited"', async () => {
+  it('si el límite está agotado, no envía nada y registra "rate_limited"', async () => {
     const { submitContactForm, mailer, log } = setup()
-    log.isRateLimited.mockResolvedValueOnce(true)
+    log.checkRateLimit.mockResolvedValueOnce('limited')
 
     const result = await submitContactForm(VALID_INPUT, '')
 
@@ -82,6 +84,26 @@ describe('submitContactForm', () => {
     }
     expect(mailer.send).not.toHaveBeenCalled()
     expect(log.record).toHaveBeenCalledWith('hash-1', 'rate_limited')
+  })
+
+  it('si no se puede comprobar el límite (Supabase caído), no envía, no lo anota como "rate_limited" y avisa con otro mensaje', async () => {
+    const { submitContactForm, mailer, log } = setup()
+    log.checkRateLimit.mockResolvedValueOnce('unavailable')
+
+    const result = await submitContactForm(VALID_INPUT, '')
+
+    expect(result).toEqual({
+      ok: false,
+      formError:
+        "We couldn't send your message right now. Please try again in a few minutes.",
+    })
+    // El formulario sigue fallando cerrado…
+    expect(mailer.send).not.toHaveBeenCalled()
+    // …pero la persona no ha enviado demasiado, y no se anota como tal.
+    expect(log.record).not.toHaveBeenCalled()
+    if (!result.ok && 'formError' in result) {
+      expect(result.formError).not.toContain('too many messages')
+    }
   })
 
   it('si el envío SMTP falla, devuelve un formError y registra "failed" con el motivo', async () => {

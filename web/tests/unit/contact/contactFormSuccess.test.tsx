@@ -27,6 +27,16 @@ describe('ContactForm — mensaje de éxito', () => {
     expect(screen.queryByText(/Gracias/)).not.toBeInTheDocument()
   })
 
+  it('se anuncia como estado y recibe el foco, porque el formulario desaparece y el foco se perdería', () => {
+    render(<ContactForm />)
+
+    const status = screen.getByRole('status')
+
+    expect(status).toHaveTextContent('Thanks for writing to us')
+    expect(status).toHaveAttribute('tabindex', '-1')
+    expect(status).toHaveFocus()
+  })
+
   it('en éxito ya no se pinta el formulario', () => {
     render(<ContactForm />)
 

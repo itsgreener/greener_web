@@ -2,6 +2,7 @@ import Link from 'next/link'
 
 import { signOutAction } from '@/app/admin/(panel)/authActions'
 import { AdminBrand } from '@/components/admin/AdminBrand'
+import { AdminNavLink } from '@/components/admin/AdminNavLink'
 
 import styles from './AdminShell.module.css'
 
@@ -23,11 +24,15 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
         <nav className={styles.nav} aria-label="Administración">
           {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href} className={styles.link}>
+            <AdminNavLink
+              key={item.href}
+              href={item.href}
+              className={styles.link}
+            >
               <span className={styles.icon}>{item.icon}</span>
 
               {item.label}
-            </Link>
+            </AdminNavLink>
           ))}
         </nav>
 

@@ -54,3 +54,29 @@ describe('EditPinForm — autoplay solo para vídeos', () => {
     expect(screen.queryByLabelText('Autoplay')).not.toBeInTheDocument()
   })
 })
+
+describe('EditPinForm — idioma del pin', () => {
+  it('en un caso o una tool (cada pin elige idioma) ofrece el selector con el idioma actual', () => {
+    renderForm(pin({ language: 'ca' }))
+
+    expect(screen.getByLabelText('Idioma')).toHaveValue('ca')
+  })
+
+  it('en un contenido de un solo idioma no pregunta el idioma y envía el del contenido', () => {
+    const { container } = render(
+      <EditPinForm
+        pin={pin({ language: 'es' })}
+        contentId="c1"
+        derivedLabel={false}
+        fixedLanguage="en"
+      />,
+    )
+
+    expect(screen.queryByLabelText('Idioma')).not.toBeInTheDocument()
+    // Aunque el pin guardado tenga otro idioma, el formulario manda el del contenido.
+    expect(
+      container.querySelector<HTMLInputElement>('input[name="language"]')
+        ?.value,
+    ).toBe('en')
+  })
+})

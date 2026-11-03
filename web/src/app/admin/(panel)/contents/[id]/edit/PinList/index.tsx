@@ -3,6 +3,7 @@
 import { useState } from 'react'
 
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
+import type { Locale } from '@/modules/shared/domain/locale'
 import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
 import { hasDerivedPinLabel } from '@/modules/pin/domain/derivedPinLabel'
 
@@ -19,9 +20,17 @@ type Props = {
   contentId: string
   contentType: string
   pins: PinListItem[]
+  // Idioma que toman los pines cuando el contenido es de un solo idioma; null
+  // si cada pin elige el suyo (caso, tool).
+  fixedLanguage: Locale | null
 }
 
-export default function PinList({ contentId, contentType, pins }: Props) {
+export default function PinList({
+  contentId,
+  contentType,
+  pins,
+  fixedLanguage,
+}: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const derivedLabel = hasDerivedPinLabel(contentType)
 
@@ -80,6 +89,7 @@ export default function PinList({ contentId, contentType, pins }: Props) {
               pin={pin}
               contentId={contentId}
               derivedLabel={derivedLabel}
+              fixedLanguage={fixedLanguage}
             />
 
             <PinMediaManager

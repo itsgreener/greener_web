@@ -39,6 +39,9 @@ export async function getContentBySlug(
       type,
       slug,
       default_locale,
+      created_at,
+      updated_at,
+      publish_at,
       translations:content_translation (
         locale,
         title,
@@ -80,5 +83,7 @@ export async function getContentBySlug(
     summary: translation.summary,
     highlight: translation.highlight,
     body: translation.body,
+    publishedAt: row.publish_at ?? row.created_at,
+    updatedAt: row.updated_at,
   }
 }

@@ -65,6 +65,21 @@ function ctaFor(
   }
 }
 
+/**
+ * Idioma del CTA: solo el de una página satélite es texto de contenido (en el
+ * idioma del pin); «Use», «Read» y «Watch» son interfaz y no se marcan.
+ */
+function ctaLanguageFor(
+  contentType: ContentType,
+  language: string | undefined,
+): string | null {
+  if (contentType !== 'other') return null
+
+  return language && language in PAGE_CTA_BY_LANGUAGE
+    ? language
+    : PAGE_CTA_FALLBACK_LANGUAGE
+}
+
 /** El pin tal como lo recibe el navegador, a partir de su ficha del directorio. */
 export function toFeedBatchItem(
   unitId: string,
@@ -80,6 +95,11 @@ export function toFeedBatchItem(
     displayTitle: meta.displayTitle ?? null,
     displaySecondary: meta.displaySecondary ?? null,
     cta: ctaFor(meta.contentType, meta.language),
+    languages: {
+      title: meta.textLanguages?.title ?? null,
+      secondary: meta.textLanguages?.secondary ?? null,
+      cta: ctaLanguageFor(meta.contentType, meta.language),
+    },
     alt: meta.alt,
     autoplayMode: meta.autoplayMode,
     media: meta.media,

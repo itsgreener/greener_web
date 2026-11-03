@@ -19,6 +19,13 @@ export interface PinCardData {
   displayTitle?: string | null
   displaySecondary?: string | null
   cta: string | null
+  // Idioma real de cada texto (`lang` de WCAG 3.1.2). `null` o ausente: es
+  // interfaz o un nombre propio y hereda el idioma de la página.
+  languages?: {
+    title: string | null
+    secondary: string | null
+    cta: string | null
+  }
   alt: string
   // Solo tiene efecto en un pin de vídeo — ver más abajo.
   autoplayMode: 'viewport' | 'hover' | null

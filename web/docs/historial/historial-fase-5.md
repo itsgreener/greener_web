@@ -2417,3 +2417,71 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Cifras.** 312 ficheros y 3778 tests en verde (6 más: `ciWorkflow`); ESLint y `npm run typecheck` limpios; `next build` con las cinco variables de relleno termina bien; `npm audit --omit=dev` sin vulnerabilidades.
 
 **Sin resolver.** Región de las funciones de Vercel (`vercel.json` no fija `regions`: la región de Supabase no consta en la documentación), nombre de la rama principal y regla de protección en GitHub, valores actuales de la tabla DNS (exportación de D0).
+
+### 2.128 Formulario de contacto (2 nov 2026)
+
+**Petición.** Implementar el §2 del plan de mejoras desde código.
+
+**Qué se hizo.** `FormActionState` admite `values` y `PublicField` pasa `defaultValue`, `autoComplete` y `maxLength`; la acción `submitContactAction` devuelve lo escrito (recortado a cada longitud máxima) cuando el envío falla y `ContactForm` lo usa como `defaultValue`, de modo que el reinicio de formularios de React 19 ya no lo vacía. El puerto `ContactSubmissionLog.isRateLimited` pasa a `checkRateLimit` con tres resultados (`allowed`, `limited`, `unavailable`); el adaptador no lanza nunca (también atrapa la falta de configuración de Supabase) y el caso de uso responde «We couldn't send your message right now…» sin anotar `rate_limited` cuando no se pudo comprobar. `contactLimits.ts` (200, 40, 254 y 5000) es la fuente única de esquema, HTML y recorte; avisos propios para nombre y email largos. `ContactForm`: `autocomplete` (`name`, `tel`, `email`, `off`), `role="status"` con foco en el éxito, `role="alert"` en el error general y foco en el primer campo con error. `.success:focus` sin anillo de foco (recibe el foco por código).
+
+**Verificación.** El test `contactFormState.test.tsx` usa el `useActionState` real: lo escrito sobrevive al reinicio, el foco va al primer campo con error, el error general se anuncia, un segundo intento correcto lleva el foco al aviso. Prueba de mutación: sin `defaultValue` fallan tres de sus cinco comprobaciones. Tests nuevos o ampliados en el esquema, el adaptador, el caso de uso, la acción, `PublicField`, la prueba de humo y el éxito. Un primer fallo del test nuevo fue del propio test (un `beforeEach` devolvía el mock y Vitest lo llamó como limpieza).
+
+**Cifras.** 313 ficheros y 3798 tests en verde (20 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Decisión.** Se mantuvo el fallo cerrado cuando Supabase no responde (propuesta del plan).
+
+
+### 2.129 SEO: canonical, `x-default` y JSON-LD (2 nov 2026)
+
+**Petición.** Implementar el §3 del plan de mejoras: el JSON-LD de las tres piezas (sin `VideoObject` para YouTube) con el dominio definitivo en `NEXT_PUBLIC_SITE_URL`.
+
+**Qué se hizo.** `buildPageMetadata` exige `path` y devuelve `alternates.canonical`; las siete páginas fijas lo pasan. `buildContentMetadata` (tool) y `buildWorkMetadata` (caso y episodio) emiten canonical autorreferente por idioma; en preview no emiten canonical ni alternativas. `x-default` aparece solo con más de un idioma; un caso de un solo idioma deja de emitir hreflang. El lector público trae fechas (`PublicContent.publishedAt`, `updatedAt`) y datos del episodio (`language`, `number`, `episodeDate`, `durationSeconds`) con el mismo `select` ampliado. `src/lib/structuredData.ts` construye `Organization` + `WebSite` (home, `@graph`, logo PNG de 180 px, `sameAs` con las tres redes), `CreativeWork` (caso, también la variante de idioma) y `PodcastEpisode` (número, duración ISO 8601, serie por programa, idioma); `<JsonLd>` los pinta. `serializeJsonLd` se comparte con `renderPackageHead`. Sin JSON-LD en preview y sin `VideoObject`.
+
+**Verificación.** 56 tests nuevos: canonical por página y variante, `x-default` y autorreferencia, preview, estructura y escape del JSON-LD (`</script>`, U+2028/9), duración ISO, ausencia de `VideoObject` y del identificador del reproductor, dominios de `sameAs` frente al menú lateral, qué página emite qué (mutación: sin la guarda de preview falla el test), y el test estructural de las páginas públicas. `next build` y `next start` con variables de relleno: canonical correcto en `/`, `/work`, `/contact` y `/privacy` aun pidiéndolas con parámetros, y `@graph` en el HTML de la home.
+
+**Cifras.** 317 ficheros y 3854 tests en verde (56 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Pendiente.** Validar con la web desplegada (resultados enriquecidos de Google, validador de schema.org, Search Console tras D3).
+
+
+### 2.130 Idioma de los pines en el ABM, `lang` y `preload` (2 nov 2026)
+
+**Petición.** Los pines de un episodio o un insight pedían idioma en el ABM aunque el contenido es de un solo idioma: que lo asuman del contenido. Después, aplicar el `lang` y el `preload` del plan (§4 y §5); el carrusel de caso no se puede comprobar aún por falta de un caso real.
+
+**Idioma de los pines.** Capacidad nueva `pinLanguageFromContent` (episodio e insight) en `contentCapabilities`. `EditPinForm` envía el idioma del contenido en un campo oculto, `BulkPinUpload` quita el idioma por defecto, la columna y la columna `language` de la plantilla CSV, y avisa de qué idioma toman; el idioma del contenido gana a un CSV que traiga otro. El servidor lo impone además (`resolvePinLanguage`, en `createPinWithImageAction`, `createPinWithVideoAction` y `updatePinAction`): un pin antiguo con otro idioma se corrige al guardarlo, y si la lectura del contenido falla se respeta el idioma pedido en vez de impedir guardar. Se dejó fuera `other` a propósito: en una página satélite el idioma del pin decide el idioma del botón («Upload your CV», «Sube tu portfolio»…) y talent usa un pin por idioma (el primer borrador lo incluía y se corrigió al repasar `talent-puesta-en-marcha.md`). Queda abierto que el editor de traducciones de un insight siga ofreciendo los tres idiomas (`allLocales`), cuando la web pública solo muestra el idioma por defecto.
+
+**`lang`.** `<html lang="en">` se mantiene. Título, destacado y cuerpo de caso y episodio y título y resumen de tool llevan el idioma de su traducción. En el feed, `derivedFeedLanguages` calcula el idioma REAL de cada texto (si falta la traducción en el idioma del pin el título cae a otro idioma y se declara ese) y llega a la tarjeta en `FeedPinItem.languages`; el CTA de una página satélite lleva el idioma del pin. La interfaz y los nombres propios no se marcan.
+
+**`preload`.** `CarouselVideo` pone `metadata` solo en la primera diapositiva y `none` en el resto y siempre con `save-data`, 2G o conexión lenta.
+
+**Verificación.** Tests nuevos: capacidades, `EditPinForm`, `BulkPinUpload` (idioma fijo, CSV que no gana, regresión del `es` por defecto; prueba de mutación: con el CSV por delante falla), acciones del servidor (imagen, vídeo, edición, caso/tool intactos, lectura caída), `pinFooter`, `feedDomain`, `contentLang`, `pinCardLang` y `caseCarouselPreload`. ESLint, `npm run typecheck` y Prettier limpios.
+
+**Cifras.** 320 ficheros y 3902 tests en verde (48 más).
+
+**Pendiente.** Comprobar el carrusel con un caso real; el editor de traducciones de un insight se limitó a un idioma en §2.132.
+
+### 2.131 Barra lateral del ABM, contraste y tests del login y de la portada de pin (3 nov 2026)
+
+**Petición.** Aplicar los apartados 6 y 7 del plan de mejoras (`plan-mejoras-codigo-nov-2026.md`) y oscurecer un poco el gris atenuado para mejorar el contraste.
+
+**Ruta activa.** `AdminNavLink` (`src/components/admin/AdminNavLink/`) es un componente cliente mínimo con `usePathname()` que pone `aria-current="page"`; `AdminShell` sigue siendo de servidor y le pasa la clase. La regla vive en `isActiveAdminRoute`: `/admin` (Panel) solo coincide exacto y el resto por prefijo con límite de segmento (`/admin/contents/123` sí, `/admin/contents-old` no). El estilo cuelga de `&[aria-current='page']`: fondo `--color-surface`, texto `--color-text`, icono e indicador de 3 px con `--color-cta`; a 900 px o menos el indicador pasa abajo. El indicador usa `--radius-pill` porque `cssConventions` no admite radios en píxeles. «Ver web» y «Cerrar sesión» no son `AdminNavLink` y nunca se marcan.
+
+**Contraste.** `--admin-text-muted` pasa de #6b7180 a #686d7b (4,70:1 sobre #f4f4f4, 5,17:1 sobre blanco). Nuevo `tests/unit/shared/adminContrast.test.ts`: lee los colores de `globals.css` y `admin.css`, calcula la razón WCAG de cada token de texto (`--color-text`, `--admin-text-secondary`, `--admin-text-muted`, `--color-cta`) contra `--color-bg` y `--color-surface` y falla por debajo de 4,5, más `--color-error` sobre blanco. Mutación: con #6b7180 falla solo el par del gris atenuado sobre el gris. No se ha tocado la caja gris de «Estado» del editor.
+
+**Tests de §7.** `adminLoginPage.test.tsx` (RTL; `createClient` y `useSearchParams` simulados): título y botón, `signInWithOAuth` con `provider: 'google'` y `redirectTo` `…/auth/callback?next=/admin`, botón desactivado con «Conectando con Google…», error con mensaje, `console.error` silenciado y botón reactivado, un segundo intento limpia el error previo, `?error=unauthorized` y `?error=oauth` con `role="alert"` y un código desconocido sin nada. `publicPinCover.test.ts` con cliente falso: consulta por `id` y `content_id`, sin fila o con error → `null`, primer medio por `slide_order` saltando los nulos, pin sin medios y pin con todos los medios nulos → `null`. Mutaciones sobre el código probado (quitar el filtro por `content_id`, invertir el orden, no saltar los nulos, no reactivar el botón, no limpiar el error, no registrar el error): cada una rompe al menos un test. `adminShell.test.tsx` simula `next/navigation` y comprueba que solo hay un `aria-current` (también con mutación del límite de segmento). Sin hallazgos nuevos.
+
+**Cifras.** 323 ficheros y 3937 tests en verde (35 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Pendiente.** Que Greener mire el estilo de la ruta activa y el gris nuevo en el ABM, y la caja gris de «Estado».
+
+### 2.132 Insight de un solo idioma en el editor de traducciones (3 nov 2026)
+
+**Petición.** Decidido por Greener: el editor de traducciones de un insight se limita a un idioma, el del propio insight, que se fija a mano desde el ABM (no hace falta detectarlo).
+
+**Cambio.** `contentCapabilities`: `allLocales` pasa a `type === 'case' || type === 'tool'`; episodio, insight y other quedan en su idioma principal (el campo «Idioma principal»). Es lo que ya hacían los pines desde §2.130 y lo que muestra la web pública, que de un insight solo sirve su idioma principal; no hay comprobaciones de «todos los idiomas» al publicar. Las traducciones de un insight en otros idiomas que ya existieran siguen en la base, sin mostrarse ni borrarse. Si se cambia el «Idioma principal» de un insight que ya tiene texto, el editor muestra el formulario de ese idioma vacío (igual que un episodio).
+
+**Tests.** `contentCapabilities.test.ts` (tabla de `allLocales` por tipo) y `translationFormSummary.test.tsx` (un insight sin pestañas y con un único formulario en su idioma; tool y caso con tres pestañas; episodio sin pestañas).
+
+**Cifras.** 323 ficheros y 3948 tests en verde (11 más); ESLint, `npm run typecheck` y Prettier limpios.
+
+**Pendiente.** Que Greener lo mire en un insight real.

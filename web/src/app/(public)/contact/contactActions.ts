@@ -3,8 +3,32 @@
 import { submitContactForm } from '@/modules/contact/container'
 import { toFormState, type FormActionState } from '@/lib/forms/formActionState'
 import { readHoneypot } from '@/lib/forms/honeypot'
+import {
+  CONTACT_LIMITS,
+  type ContactField,
+} from '@/modules/contact/domain/contactLimits'
 
-export type ContactActionState = FormActionState
+export type ContactActionState = FormActionState<ContactField>
+
+const CONTACT_FIELDS = Object.keys(CONTACT_LIMITS) as ContactField[]
+
+/**
+ * Lo que la persona escribió, para devolvérselo cuando el envío falla: React
+ * 19 reinicia el formulario al terminar la acción y, sin esto, perdería el
+ * mensaje. Se recorta a la longitud máxima de cada campo para no devolver
+ * una carga mayor que la que el formulario admite.
+ */
+function submittedValues(formData: FormData): Record<ContactField, string> {
+  const values = {} as Record<ContactField, string>
+
+  for (const field of CONTACT_FIELDS) {
+    const raw = formData.get(field)
+    values[field] =
+      typeof raw === 'string' ? raw.slice(0, CONTACT_LIMITS[field]) : ''
+  }
+
+  return values
+}
 
 /**
  * El campo honeypot vive en el propio <input> del formulario con el
@@ -30,7 +54,9 @@ export async function submitContactAction(
     honeypot,
   )
 
-  if (!result.ok) return toFormState(result)
+  if (!result.ok) {
+    return { ...toFormState(result), values: submittedValues(formData) }
+  }
 
   return { success: true }
 }

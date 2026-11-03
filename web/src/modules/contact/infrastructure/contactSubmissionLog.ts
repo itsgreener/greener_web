@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/serviceClient'
 import type {
   ContactSubmissionLog,
   ContactSubmissionStatus,
+  RateLimitCheck,
 } from '@/modules/contact/domain/contactPorts'
 
 /**
@@ -19,27 +20,30 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hora
  * para sí mismos, si no una IP ya bloqueada se quedaría bloqueada para
  * siempre en cuanto tocara el límite una vez.
  */
-export async function isRateLimited(ipHash: string): Promise<boolean> {
-  const client = createServiceClient()
-  const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString()
+export async function checkRateLimit(ipHash: string): Promise<RateLimitCheck> {
+  try {
+    const client = createServiceClient()
+    const since = new Date(Date.now() - RATE_LIMIT_WINDOW_MS).toISOString()
 
-  const { count, error } = await client
-    .from('contact_submission')
-    .select('id', { count: 'exact', head: true })
-    .eq('ip_hash', ipHash)
-    .eq('status', 'sent')
-    .gte('created_at', since)
+    const { count, error } = await client
+      .from('contact_submission')
+      .select('id', { count: 'exact', head: true })
+      .eq('ip_hash', ipHash)
+      .eq('status', 'sent')
+      .gte('created_at', since)
 
-  if (error) {
-    // Si no se puede comprobar el límite, es más seguro asumir que SÍ
-    // está limitado (fail closed) que dejar pasar sin control — un
-    // formulario de contacto que falla cerrado durante un rato es mejor
-    // que uno que se convierte en spam abierto por un fallo de Supabase.
+    if (error) throw error
+
+    return (count ?? 0) >= RATE_LIMIT_MAX_SUBMISSIONS ? 'limited' : 'allowed'
+  } catch (error) {
+    // Si no se puede comprobar el límite (Supabase no responde o falta su
+    // configuración), el formulario NO envía: falla cerrado, porque uno que
+    // se convierte en spam abierto por un fallo de Supabase es peor que uno
+    // que deja de funcionar un rato. El caso de uso lo distingue de
+    // `limited` para no decirle a quien escribe que ha enviado demasiado.
     console.error('No se pudo comprobar el límite de envíos:', error)
-    return true
+    return 'unavailable'
   }
-
-  return (count ?? 0) >= RATE_LIMIT_MAX_SUBMISSIONS
 }
 
 export async function logContactSubmission(
@@ -66,6 +70,6 @@ export async function logContactSubmission(
 }
 
 export const supabaseContactSubmissionLog: ContactSubmissionLog = {
-  isRateLimited,
+  checkRateLimit,
   record: logContactSubmission,
 }

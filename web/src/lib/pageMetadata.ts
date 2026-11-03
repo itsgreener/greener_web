@@ -50,15 +50,22 @@ export function buildOpenGraph(input: {
  * Metadatos de una página fija (subhomes, contacto, privacidad). El título
  * lleva el sufijo « · Greener» de la plantilla del layout raíz, salvo con
  * `absoluteTitle` (la home, que lo lleva ya dentro).
+ *
+ * `path` es la ruta de la página (`/`, `/work`…) y es obligatoria: sale como
+ * `<link rel="canonical">`, resuelta contra `metadataBase`. Así una URL con
+ * parámetros (`/?utm_source=…`, `/work?x=1`) declara siempre la limpia, y
+ * olvidarla es un error de tipos, no un hueco que nadie ve.
  */
 export function buildPageMetadata(input: {
   title: string
   description: string
+  path: string
   absoluteTitle?: boolean
 }): Metadata {
   return {
     title: input.absoluteTitle ? { absolute: input.title } : input.title,
     description: input.description,
+    alternates: { canonical: input.path },
     openGraph: buildOpenGraph({
       title: input.title,
       description: input.description,

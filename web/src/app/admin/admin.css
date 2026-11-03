@@ -18,7 +18,7 @@
 
   /* Texto: tres niveles por debajo de --color-text. */
   --admin-text-secondary: #575d6b;
-  --admin-text-muted: #6b7180;
+  --admin-text-muted: #686d7b;
 
   /* Bordes: los estructurales (tarjetas, divisores, tablas) son
      --color-border; los de los controles de formulario, estos. */

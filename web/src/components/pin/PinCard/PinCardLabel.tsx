@@ -8,10 +8,13 @@ export function PinCardLabel({
   displayTitle,
   displaySecondary,
   label,
+  languages,
 }: {
   displayTitle?: string | null
   displaySecondary?: string | null
   label: string | null
+  // Idioma de cada texto, para `lang`. La interfaz del feed está en inglés.
+  languages?: { title: string | null; secondary: string | null }
 }) {
   if (!displayTitle && !label) return null
 
@@ -19,16 +22,26 @@ export function PinCardLabel({
     <div className={styles.label}>
       {displayTitle ? (
         <>
-          <span className={styles.labelPrimary}>{displayTitle}</span>
+          <span
+            className={styles.labelPrimary}
+            lang={languages?.title ?? undefined}
+          >
+            {displayTitle}
+          </span>
 
           {displaySecondary && (
-            <strong className={styles.labelSecondary}>
+            <strong
+              className={styles.labelSecondary}
+              lang={languages?.secondary ?? undefined}
+            >
               {displaySecondary}
             </strong>
           )}
         </>
       ) : (
-        <span className={styles.labelHook}>{label}</span>
+        <span className={styles.labelHook} lang={languages?.title ?? undefined}>
+          {label}
+        </span>
       )}
     </div>
   )

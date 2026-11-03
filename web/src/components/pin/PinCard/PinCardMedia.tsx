@@ -24,6 +24,7 @@ export function PinCardMedia({
   ratio,
   alt,
   cta,
+  ctaLanguage,
   media,
   width,
   video,
@@ -34,6 +35,8 @@ export function PinCardMedia({
   ratio: string
   alt: string
   cta: string | null
+  // Idioma del CTA si es texto de contenido (página satélite); si no, ausente.
+  ctaLanguage?: string | null
   media: PinMediaData
   /** Ancho de la tarjeta en px: decide el escalón de imagen. */
   width: number
@@ -89,7 +92,11 @@ export function PinCardMedia({
           ))}
         </video>
       )}
-      {cta && <CtaLabel className={styles.cta}>{cta}</CtaLabel>}
+      {cta && (
+        <CtaLabel className={styles.cta} lang={ctaLanguage ?? undefined}>
+          {cta}
+        </CtaLabel>
+      )}
     </div>
   )
 }

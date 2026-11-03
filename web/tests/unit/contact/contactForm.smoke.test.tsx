@@ -64,6 +64,23 @@ describe('ContactForm — prueba de humo', () => {
     expect(checkbox).not.toHaveAttribute('name')
   })
 
+  it('cada campo lleva su autocomplete y el maxlength del esquema (una sola fuente)', () => {
+    render(<ContactForm />)
+
+    const expected = [
+      ['Name', 'name', '200'],
+      ['Phone', 'tel', '40'],
+      ['Email', 'email', '254'],
+      ['Message', 'off', '5000'],
+    ]
+
+    for (const [label, autocomplete, maxlength] of expected) {
+      const control = screen.getByLabelText(label)
+      expect(control, label).toHaveAttribute('autocomplete', autocomplete)
+      expect(control, label).toHaveAttribute('maxlength', maxlength)
+    }
+  })
+
   it('el honeypot existe en el DOM (para que un bot lo rellene) pero no es alcanzable por teclado', () => {
     const { container } = render(<ContactForm />)
 

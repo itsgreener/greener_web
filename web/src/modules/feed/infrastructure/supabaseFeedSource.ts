@@ -1,6 +1,9 @@
 import type { AppSupabaseClient } from '@/lib/supabase/database'
 import { createPublicReadClient } from '@/lib/supabase/publicReadClient'
-import { derivedFeedText } from '@/modules/content/domain/pinFooter'
+import {
+  derivedFeedLanguages,
+  derivedFeedText,
+} from '@/modules/content/domain/pinFooter'
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import { feedRatiosSchema } from '@/modules/feed/domain/feedConfigSchema'
 import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
@@ -97,17 +100,16 @@ export function buildFeedUnitsForPin(
     durationSeconds: first.media_asset!.duration_seconds ?? null,
   }
 
-  const text = derivedFeedText(
-    { label: pin.label, language: pin.language },
-    {
-      type: content.type,
-      defaultLocale: content.default_locale,
-      translations: content.content_translation ?? [],
-      caseClient: content.case_detail?.client,
-      episodeProgram: content.episode?.program,
-      episodeKind: content.episode?.episode_kind,
-    },
-  )
+  const pinFooter = { label: pin.label, language: pin.language }
+  const footerContent = {
+    type: content.type,
+    defaultLocale: content.default_locale,
+    translations: content.content_translation ?? [],
+    caseClient: content.case_detail?.client,
+    episodeProgram: content.episode?.program,
+    episodeKind: content.episode?.episode_kind,
+  }
+  const text = derivedFeedText(pinFooter, footerContent)
 
   return [
     {
@@ -122,6 +124,7 @@ export function buildFeedUnitsForPin(
         displaySecondary: text.displaySecondary,
         alt: pin.alt,
         language: pin.language,
+        textLanguages: derivedFeedLanguages(pinFooter, footerContent),
         autoplayMode: pin.autoplay_mode,
         media: [toFeedItemMedia(media)],
       },

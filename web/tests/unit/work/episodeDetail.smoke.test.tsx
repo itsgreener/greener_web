@@ -32,6 +32,8 @@ const CONTENT: PublicContent = {
   defaultLocale: 'es',
   locale: 'es',
   availableLocales: ['es'],
+  publishedAt: '2026-10-01T10:00:00.000Z',
+  updatedAt: '2026-10-15T10:00:00.000Z',
   title: 'Mi episodio',
   seoTitle: null,
   seoDescription: null,
@@ -148,6 +150,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'abc123',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -186,6 +192,10 @@ describe('EpisodeDetail — prueba de humo', () => {
             provider,
             embedId: 'abc123',
             episodeKind: 'podcast',
+            language: 'es',
+            number: null,
+            episodeDate: null,
+            durationSeconds: null,
           }}
         />,
       )
@@ -214,6 +224,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -244,6 +258,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'abc123',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -270,6 +288,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'spotify',
           embedId: 'ep456',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -304,6 +326,10 @@ describe('EpisodeDetail — prueba de humo', () => {
             provider: 'youtube',
             embedId: 'xyz789',
             episodeKind: 'podcast',
+            language: 'es',
+            number: null,
+            episodeDate: null,
+            durationSeconds: null,
           }}
         />
       </>,
@@ -328,6 +354,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'video-1',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -348,6 +378,10 @@ describe('EpisodeDetail — prueba de humo', () => {
             provider: 'spotify',
             embedId: 'episode-2',
             episodeKind: 'podcast',
+            language: 'es',
+            number: null,
+            episodeDate: null,
+            durationSeconds: null,
           }}
         />
       </ConsentProvider>,
@@ -374,6 +408,10 @@ describe('EpisodeDetail — prueba de humo', () => {
             provider,
             embedId: 'x',
             episodeKind: 'podcast',
+            language: 'es',
+            number: null,
+            episodeDate: null,
+            durationSeconds: null,
           }}
         />,
       )
@@ -414,6 +452,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -436,6 +478,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -464,6 +510,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'spotify',
           embedId: 'ep456',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -488,6 +538,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'xyz789',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -517,6 +571,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'abc123',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )
@@ -548,6 +606,10 @@ describe('EpisodeDetail — prueba de humo', () => {
           provider: 'youtube',
           embedId: 'abc123',
           episodeKind: 'podcast',
+          language: 'es',
+          number: null,
+          episodeDate: null,
+          durationSeconds: null,
         }}
       />,
     )

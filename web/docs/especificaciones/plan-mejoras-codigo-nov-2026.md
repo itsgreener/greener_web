@@ -24,12 +24,12 @@ Además, dos hallazgos nuevos que no estaban en la checklist:
 
 | § | Punto | Tamaño | Riesgo | Depende de | Decide |
 | --- | --- | --- | --- | --- | --- |
-| 2 | Formulario de contacto | M | Bajo | Nada | Greener (un punto) |
-| 3 | SEO: canonical, `x-default`, JSON-LD | M | Bajo (canonical) a medio (JSON-LD) | Host canónico (`www` o apex, D2) | Greener (alcance del JSON-LD) |
-| 4 | `lang` por texto | S | Bajo | Nada | — |
-| 5 | Carrusel de caso: `preload` | S | Bajo | Nada | — |
-| 6 | Barra lateral del ABM y contraste | S | Bajo | Nada | Greener (ver el estilo) |
-| 7 | Tests del login y de la portada de pin | M | Bajo | Nada | — |
+| 2 | Formulario de contacto | M | Bajo | Nada | **Hecho el 2 nov** (fallo cerrado mantenido) |
+| 3 | SEO: canonical, `x-default`, JSON-LD | M | Bajo (canonical) a medio (JSON-LD) | Host canónico (`www` o apex, D2) | **Hecho el 2 nov** (sin `VideoObject`; falta validarlo con la web desplegada) |
+| 4 | `lang` por texto | S | Bajo | Nada | **Hecho el 2 nov** |
+| 5 | Carrusel de caso: `preload` | S | Bajo | Nada | **Hecho el 2 nov** (sin comprobar con un caso real) |
+| 6 | Barra lateral del ABM y contraste | S | Bajo | Nada | **Hecho el 3 nov** (falta que Greener vea el estilo) |
+| 7 | Tests del login y de la portada de pin | M | Bajo | Nada | **Hecho el 3 nov** |
 | 8 | CI en GitHub Actions | S | Bajo | Que el repositorio esté en GitHub | **Hecho el 2 nov** (falta la primera ejecución real y la regla de rama) |
 | 9 | E2E con Playwright | L | Medio | CI (§8) y formulario (§2) | Greener (infraestructura) |
 | 10 | Documento del asesor y tabla DNS | M y S | Ninguno (no es código) | Respuesta del asesor; exportación de D0 para la tabla | **Hecho el 2 nov** (consultas 30 a 34 y tabla DNS con plantilla) |
@@ -38,50 +38,41 @@ Además, dos hallazgos nuevos que no estaban en la checklist:
 
 1. **CI (§8). Hecho el 2 nov.** Una hora de trabajo y protege todo lo demás: cada cambio posterior pasa por lint, `tsc`, tests y build en cada subida.
 2. **Documentos (§10), en paralelo. Hechos el 2 nov.** No son código y el asesor tarda en contestar; cuanto antes salgan las preguntas, antes se cierra el texto legal. La tabla DNS se rellena con la exportación de D0.
-3. **Contacto (§2).** Es lo que un visitante real nota.
-4. **`lang` y `preload` (§4 y §5),** en la misma sesión: son pequeños y tocan los mismos componentes de detalle.
-5. **ABM y tests (§6 y §7),** en una sesión.
-6. **SEO (§3).** Se puede escribir ya; el valor del canonical depende de que `NEXT_PUBLIC_SITE_URL` sea el host definitivo, así que se comprueba al cerrar D2.
+3. **Contacto (§2). Hecho el 2 nov.** Es lo que un visitante real nota.
+4. **`lang` y `preload` (§4 y §5). Hechos el 2 nov,** en la misma sesión: son pequeños y tocan los mismos componentes de detalle.
+5. **ABM y tests (§6 y §7). Hechos el 3 nov,** en una sesión.
+6. **SEO (§3). Hecho el 2 nov.** Se escribió antes de cerrar D2; el valor del canonical depende de que `NEXT_PUBLIC_SITE_URL` sea el host definitivo, así que se comprueba al cerrar D2.
 7. **E2E (§9),** al final: se apoya en el CI, en el formulario corregido y en un entorno de datos que hay que montar.
 
 Cada entrega incluye código, tests, documentación (`PROGRESO.md`, historial) y el zip del proyecto, y se verifica como en las anteriores: Vitest, `tsc`, ESLint, Prettier con la configuración del proyecto y el test de convenciones de CSS.
 
 ## 2. Formulario de contacto
 
-### 2.1 Qué hay hoy
+**Hecho el 2 de noviembre de 2026** (historial §2.128). Se implementó lo propuesto, con estos detalles:
 
-- `ContactForm.tsx` (cliente) usa `useActionState` con `submitContactAction`. Los campos son no controlados.
-- **Se vacía tras un error** porque React 19 reinicia el formulario cuando termina la acción, y el estado devuelto solo lleva `fieldErrors` o `formError`, no lo escrito.
-- **«Too many messages» cuando falla Supabase:** `isRateLimited` devuelve `true` si la consulta falla (falla cerrado, a propósito), y `submitContactForm` no distingue «límite alcanzado» de «no se ha podido comprobar»; en los dos casos responde «You have sent too many messages».
-- `PublicField` no pasa `autoComplete` ni `maxLength`. El esquema fija 200 (nombre), 40 (teléfono) y 5000 (mensaje); el email no tiene máximo, y el nombre largo no tiene mensaje propio (sale el de zod por defecto).
-- El mensaje de éxito sustituye al formulario sin `role` ni foco; el `formError` tampoco lleva `role="alert"`.
-- Ya hecho: textos en inglés y errores de campo accesibles.
+- **Conservar lo escrito.** `FormActionState` gana `values` (aditivo) y `PublicField` acepta `defaultValue`, `autoComplete` y `maxLength`. La acción devuelve lo escrito solo cuando falla, recortado a la longitud máxima de cada campo. **El plan A funcionó**: el test de integración con el `useActionState` real de React 19 confirma que los valores sobreviven al reinicio, y falla si se quita el `defaultValue`; no hizo falta pasar a campos controlados.
+- **Límite frente a no disponible.** `isRateLimited(): boolean` pasó a `checkRateLimit(): 'allowed' | 'limited' | 'unavailable'`. Además deja de lanzar si falta la configuración de Supabase. `unavailable` no envía (fallo cerrado), muestra «We couldn't send your message right now…» y no se anota como `rate_limited`; el motivo queda en el log del servidor.
+- **Longitudes.** `contactLimits.ts` (sin zod, para que el cliente no arrastre el esquema) alimenta el esquema, el `maxLength` y el recorte. Email con máximo de 254 y mensaje de longitud propio para nombre y email.
+- **Accesibilidad.** Éxito con `role="status"`, `tabIndex={-1}` y foco; error general con `role="alert"`; foco en el primer campo con error tras un fallo de validación.
+- **Decisión de Greener:** se mantuvo el fallo cerrado. Cambiar al limitador compartido de Upstash sería modificar `checkRateLimit` para que, ante un error de Supabase, consulte ese limitador en vez de devolver `unavailable`.
 
-### 2.2 Qué se propone
-
-1. **Conservar lo escrito.** La acción devuelve en el estado `values` con lo recibido (solo cuando falla) y `ContactForm` lo usa como `defaultValue`. Se añade `values?: Partial<Record<TField, string>>` a `FormActionState` (cambio aditivo: las ~12 acciones restantes no se enteran). El test de integración con el `useActionState` real decide: si en jsdom el reinicio de React 19 pisa los valores, plan B con campos controlados.
-2. **Distinguir «límite» de «no disponible».** El puerto `isRateLimited(): boolean` pasa a `checkRateLimit(): 'allowed' | 'limited' | 'unavailable'`. `unavailable` **sigue sin enviar** (se mantiene la decisión de fallar cerrado), pero el mensaje es «We couldn't send your message right now. Please try again in a few minutes.», no se anota como `rate_limited` y sí se registra en el log del servidor.
-3. **Atributos del formulario.** `autoComplete` (`name`, `tel`, `email`; `off` en el mensaje), `maxLength` leído de constantes exportadas por `contactSchema.ts` (una sola fuente para el esquema y el HTML), máximo de 254 para el email y mensaje propio para el nombre largo.
-4. **Accesibilidad.** El éxito con `role="status"` y foco programático (`tabIndex={-1}` y `focus()` en un efecto, porque el formulario desaparece y el foco se perdería); `formError` con `role="alert"`; tras un fallo, el foco va al primer campo con error. El botón mantiene `aria-busy` mientras envía.
-
-### 2.3 Pasos
-
-1. Constantes y mensajes en `contactSchema.ts`; test del esquema.
-2. Puerto, adaptador (`contactSubmissionLog.ts`) y caso de uso con el nuevo tipo de resultado; tests de `submitContactForm` (nuevo caso: Supabase caído).
-3. `FormActionState.values`, `contactActions.ts` y `ContactForm.tsx`; `PublicField` con `autoComplete`, `maxLength` y `defaultValue`.
-4. Tests de `ContactForm` con el `useActionState` real (RTL): valores conservados, foco en el éxito y en el primer error, roles ARIA.
-5. Documentación: PROGRESO §4.3 (el punto pasa a hecho) e historial.
-
-### 2.4 Tests y comprobación
-
-Nuevos en `tests/unit/contact/`: valores conservados tras un error, límite frente a no disponible (mensajes distintos y sin envío en ambos), `autocomplete` y `maxlength` presentes, foco y roles. Los existentes (`contactFormSuccess`, `contactForm.smoke`, `contactActionHoneypot`, `publicField`, `submitContactForm`) se adaptan al puerto nuevo. A mano, una vez desplegado: enviar con un campo mal, ver que lo escrito se queda; corta la conexión a Supabase (variable errónea en una preview) y comprobar el mensaje.
-
-### 2.5 Riesgos y decisión
-
-- **Riesgo:** el reinicio de formularios de React 19 es el punto delicado; por eso el test usa el `useActionState` real y no un simulacro.
-- **Decisión para Greener (opcional):** mantener el fallo cerrado, o dejar que, si Supabase falla, mande el limitador compartido de Upstash que ya usan el feed, talent y la newsletter (con respaldo en memoria). El primero no cambia el comportamiento de seguridad; el segundo evita perder mensajes legítimos cuando Supabase cae, a costa de un límite menos exacto. Mi propuesta es mantener el fallo cerrado y revisar si se ve algún caso en producción.
+Pendiente a mano, en una preview: enviar con un campo mal y ver que lo escrito se queda; cortar la conexión a Supabase (variable errónea) y comprobar el mensaje.
 
 ## 3. SEO: canonical, `x-default` y JSON-LD
+
+**Hecho el 2 de noviembre de 2026** (historial §2.129). Los apartados 3.1 a 3.5 son el plan tal y como se escribió; esto es lo que cambió al implementarlo:
+
+- **Alcance del JSON-LD.** Greener pidió las tres piezas y **sin `VideoObject`** para YouTube. `NEXT_PUBLIC_SITE_URL` ya lleva el dominio definitivo (`https://`, sin barra final), así que el canonical sale correcto desde el primer despliegue.
+- **Propiedades de schema.org.** El plan decía `timeRequired` y `partOf`; el código usa `duration` (propiedad de `Episode`, en ISO 8601) y `partOfSeries` (`PodcastSeries` con el nombre del programa), que son las que define el tipo `PodcastEpisode`. El caso es un `CreativeWork` con `creator` y `publisher` `Organization` en línea; no lleva el cliente, porque schema.org no tiene una propiedad que lo describa sin forzarla.
+- **Fechas.** `publishedAt` es `publish_at` si existe y, si no, `created_at`; `dateModified` es `updated_at` de la fila de contenido. Un episodio usa su fecha de emisión (`episode_date`) como `datePublished` si la tiene.
+- **Un solo idioma.** Como proponía el plan, un caso o episodio con un único idioma ya **no emite hreflang** (antes emitía una entrada suelta). `x-default` solo aparece con más de un idioma y apunta a la URL en el idioma por defecto.
+- **En preview** no hay canonical, ni alternativas, ni JSON-LD (la ficha es `noindex`).
+- **Raíz.** Next escribe el canonical de la home como `https://<dominio>` (sin barra final) y el sitemap lo lista con barra; para el dominio raíz son la misma URL.
+- **Serializador compartido.** `serializeJsonLd` (escapa `<`, U+2028 y U+2029) se extrajo a `src/lib/serializeJsonLd.ts` y lo usan `<JsonLd>` y `renderPackageHead`. Se hizo ahí y no en `jsonLd.ts` porque el `<head>` de los paquetes solo necesita la función, no el componente.
+- **Test estructural.** `pagesUseMetadataBuilders.test.ts` exige que toda `page.tsx` pública con `metadata` o `generateMetadata` use un constructor y que las fijas pasen `path`. `pagesJsonLd.test.tsx` llama a las páginas del servidor y comprueba qué JSON-LD devuelven, incluido que no hay ninguno en preview (comprobado con una mutación).
+- **Comprobado con el build.** `next build` con las variables de relleno y `next start`: la home, `/work`, `/contact` y `/privacy` devuelven su canonical sin parámetros aunque se pida con `?utm_source=`, y la home lleva el `@graph` de Organization y WebSite. Los casos y episodios no se pudieron servir en local (necesitan Supabase).
+
+Pendiente: la prueba de resultados enriquecidos de Google y el validador de schema.org sobre una home, un caso y un episodio con la web desplegada.
 
 ### 3.1 Qué hay hoy
 
@@ -132,6 +123,13 @@ Nuevos en `tests/unit/contact/`: valores conservados tras un error, límite fren
 
 ## 4. `lang` por texto en lugar de `<html lang>`
 
+**Hecho el 2 de noviembre de 2026** (historial §2.130). Los apartados 4.1 a 4.3 son el plan tal y como se escribió; esto es lo que cambió al implementarlo:
+
+- **El idioma que se declara es el real, no el del pin.** El título de un pin de caso, episodio o insight sale de la traducción del idioma del pin y, si no existe, cae a la del idioma por defecto. Marcar `lang` con `pin.language` habría declarado un idioma falso en ese caso, así que `derivedFeedLanguages` devuelve el idioma de la traducción que se muestra y el feed lo lleva en `FeedPinItem.languages`.
+- **Qué se marca y qué no.** Título, destacado y cuerpo de caso y episodio; título y resumen de la tool; título de cada tarjeta del feed; el nombre de la tool (traducción) y su descripción (idioma del pin); el gancho y el botón de una página satélite (idioma del pin). No se marcan el cliente, el programa, «Insights by Greener», «Use», «Read», «Watch» ni el selector de idiomas.
+- **Fuera de alcance.** El `alt` de los medios y el `title` del iframe del episodio: HTML no permite un `lang` distinto en un atributo. La tarjeta de newsletter ya no pinta el titular del contenido (lleva un texto fijo en inglés).
+- **Test.** `contentLang.test.tsx` (fichas, selector sin `lang`, `<html lang="en">`), `pinCardLang.test.tsx` y casos nuevos en `pinFooter.test.ts` y `feedDomain.test.ts`.
+
 ### 4.1 Qué hay hoy
 
 `<html lang="en">` fijo en `app/layout.tsx`. El idioma de un contenido está en `PublicContent.locale` y el de cada pin en `pin.language` (`es`, `en` o `ca`), pero ningún elemento lo declara.
@@ -155,6 +153,8 @@ Mantener `<html lang="en">` (la interfaz) y añadir `lang` a los elementos con t
 
 ## 5. Carrusel de la ficha de caso: `preload` de los vídeos
 
+**Hecho el 2 de noviembre de 2026** (historial §2.130), tal y como se proponía, con dos precisiones: «primera diapositiva» es la primera del carrusel, no el primer vídeo (si abre con una imagen, ningún vídeo precarga), y el valor se calcula con `useMotionPreferences` (`save-data`, 2G o `downlink` bajo → `none`); `prefers-reduced-motion` no interviene. Con el renderizado en servidor el `preload` sale como `metadata` en la primera diapositiva y se corrige a `none` justo tras hidratar si el visitante ahorra datos: puede que el navegador haya pedido ya los metadatos de ese primer vídeo. **Sin comprobar con un caso real**: Greener aún no tiene ninguno; `caseCarouselPreload.test.tsx` cubre los casos con `matchMedia` y `navigator.connection` simulados.
+
 ### 5.1 Qué hay hoy
 
 `.carousel` es un `overflow-x: auto` con `scroll-snap`. Sin autoplay, sin `scroll-behavior: smooth`, sin transiciones propias (y las del sitio ya pasan a 0 ms con `prefers-reduced-motion`, `--transition` en `globals.css`). Los vídeos (`CarouselVideo`) llevan `controls` y `poster`, sin atributo `preload`: lo decide el navegador.
@@ -172,6 +172,8 @@ Dejar claro que `prefers-reduced-motion` no aplica aquí (se documenta y se cier
 **Tamaño S.** Riesgo bajo; lo único notable es que quien pulse play en una diapositiva posterior espera un instante más con el póster visible.
 
 ## 6. Barra lateral del ABM: ruta activa y contraste
+
+**Hecho el 3 de noviembre de 2026** (historial §2.131). Los apartados 6.1 a 6.3 son el plan tal y como se escribió; esto es lo que cambió al implementarlo: `AdminNavLink` vive en `src/components/admin/AdminNavLink/` y recibe la clase desde `AdminShell` (que sigue siendo de servidor); la regla de coincidencia es una función exportada, `isActiveAdminRoute`, para probarla sola. El indicador es una barra de 3 px con `--color-cta` (a la izquierda; abajo a 900 px o menos) y el icono de la ruta activa también se pinta con `--color-cta`; el radio usa `--radius-pill` porque `cssConventions` no admite radios en píxeles. `--admin-text-muted` pasa a #686d7b. El test de contraste lee los colores de `globals.css` y `admin.css` (no los copia) y cruza los cuatro tokens de texto con los dos fondos, más `--color-error` sobre blanco. Queda a ojo de Greener el estilo de la ruta activa, que #686d7b no desentone y la caja gris de «Estado».
 
 ### 6.1 Qué hay hoy
 
@@ -203,6 +205,8 @@ Propuesta: oscurecer `--admin-text-muted` a **#686d7b** (4,70:1 sobre el gris, 5
 **Tamaño S.** Riesgo bajo. **Comprobación a ojo (Greener):** el estilo de la ruta activa y que #686d7b no desentona.
 
 ## 7. Tests del login del ABM y de la portada de pin
+
+**Hecho el 3 de noviembre de 2026** (historial §2.131), tal y como se proponía, sin cambiar el código probado y sin hallazgos que anotar. Se añadió, por encima de lo previsto, que un segundo intento limpia el error anterior, y para `getPublicPinCover` un caso de pin cuyos medios son todos nulos. Con mutaciones sobre el código (quitar el filtro por `content_id`, invertir el orden de `slide_order`, no saltar los medios nulos, no reactivar el botón, no limpiar el error previo, no registrar con `console.error`) cada una hace fallar un test.
 
 ### 7.1 Estado real
 
@@ -300,10 +304,10 @@ En lugar de un documento aparte, se actualizó `docs/cookies-y-privacidad/consul
 Las del 2 de noviembre están contestadas en lo que toca a §8 y §10. Siguen abiertas:
 
 1. **Repositorio (§8):** ¿rama principal (el flujo vigila `main` y `master`)? ¿Bloquear uniones si el CI falla? ¿Se quiere que el formato pase a bloqueante y qué se ignora (§3 de `ci.md`)?
-2. **Contacto:** ¿se mantiene el fallo cerrado cuando Supabase no responde (mi propuesta) o se usa el limitador compartido? (§2.5).
+2. **Contacto:** se mantuvo el fallo cerrado (mi propuesta); si prefieres el limitador compartido, es un cambio pequeño (§2).
 3. **JSON-LD:** ¿qué piezas, de `Organization`/`WebSite`, `PodcastEpisode` y casos? (§3.2). Mi propuesta: la primera sí; las otras dos, si quieres también esa señal.
-4. **Carrusel:** ¿te vale `preload="none"` en las diapositivas que no se ven? (§5).
-5. **ABM:** el estilo de la ruta activa y oscurecer el gris atenuado a #686d7b (§6); lo ves tú.
+4. **Carrusel:** ¿te vale `preload="none"` en las diapositivas que no se ven? (§5). *Aplicado el 2 nov tal como se proponía; se revisa cuando haya un caso con vídeos.*
+5. **ABM:** el estilo de la ruta activa y oscurecer el gris atenuado a #686d7b (§6); lo ves tú. *Aplicado el 3 nov (decías que sí al gris); falta que mires la barra.*
 6. **E2E:** ¿Docker local en el CI, con los minutos que gasta? (§9).
 7. **Región de Vercel:** ¿qué región de la UE? Conviene la más cercana a la del proyecto de Supabase, que no consta en la documentación; con ella se escribe `regions` en `vercel.json` (o se elige en Settings → Functions).
 

@@ -103,9 +103,14 @@ export function ToolInsightDetail({
                 : undefined
             }
           >
-            <h1 className={styles.title}>{content.title}</h1>
+            {/* `lang` del texto de la ficha; el CTA y el resto son interfaz. */}
+            <h1 className={styles.title} lang={content.locale}>
+              {content.title}
+            </h1>
             {content.summary && (
-              <p className={styles.summary}>{content.summary}</p>
+              <p className={styles.summary} lang={content.locale}>
+                {content.summary}
+              </p>
             )}
             {ctaLabel && appHref && (
               <CtaLink href={appHref} className={styles.cta}>

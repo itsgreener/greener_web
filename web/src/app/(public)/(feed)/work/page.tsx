@@ -6,6 +6,7 @@ export const metadata = buildPageMetadata({
   title: SECTION_LABELS.work,
   description:
     'Brand and campaign cases by Greener, a Barcelona-based brand strategy and insights agency.',
+  path: '/work',
 })
 
 /**

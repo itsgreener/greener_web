@@ -8,8 +8,9 @@ import type { PublicEpisode } from '@/modules/content/domain/publicContent'
  * caso — especificacion-final-formato-detalle.md §7). Solo trae lo que
  * pinta la plantilla de detalle: el vídeo embebido (provider + embedId),
  * episodeKind (el equivalente a «client» en un caso, §3) y program (lo
- * necesita el evento «Episode Play», §18.2). number/guest/role/company/
- * duration existen en la tabla pero no forman parte del detalle.
+ * necesita el evento «Episode Play», §18.2). number, fecha, duración e idioma
+ * no se pintan: son para los datos estructurados (PodcastEpisode). guest/role/
+ * company existen en la tabla pero no forman parte del detalle.
  */
 
 export async function getPublicEpisode(
@@ -18,7 +19,9 @@ export async function getPublicEpisode(
 ): Promise<PublicEpisode | null> {
   const { data, error } = await client
     .from('episode')
-    .select('program, provider, embed_id, episode_kind')
+    .select(
+      'program, provider, embed_id, episode_kind, language, number, episode_date, duration_seconds',
+    )
     .eq('content_id', contentId)
     .maybeSingle()
 
@@ -39,5 +42,9 @@ export async function getPublicEpisode(
     provider: provider.data,
     embedId: data.embed_id,
     episodeKind: data.episode_kind,
+    language: data.language,
+    number: data.number,
+    episodeDate: data.episode_date,
+    durationSeconds: data.duration_seconds,
   }
 }

@@ -65,11 +65,25 @@ export function makeSubmitContactForm({
 
     const ipHash = await clientKey()
 
-    if (await log.isRateLimited(ipHash)) {
+    const rateLimit = await log.checkRateLimit(ipHash)
+
+    if (rateLimit === 'limited') {
       await log.record(ipHash, 'rate_limited')
       return {
         ok: false,
         formError: 'You have sent too many messages. Please try again later.',
+      }
+    }
+
+    // No se pudo comprobar el límite: no se envía (falla cerrado) y no se
+    // anota nada como `rate_limited`, porque no lo es. El adaptador ya dejó
+    // el motivo en el log del servidor; anotar aquí también en la tabla
+    // fallaría con el mismo Supabase.
+    if (rateLimit === 'unavailable') {
+      return {
+        ok: false,
+        formError:
+          "We couldn't send your message right now. Please try again in a few minutes.",
       }
     }
 

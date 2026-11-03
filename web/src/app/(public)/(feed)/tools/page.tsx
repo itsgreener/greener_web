@@ -5,6 +5,7 @@ import { buildPageMetadata } from '@/lib/pageMetadata'
 export const metadata = buildPageMetadata({
   title: SECTION_LABELS.tools,
   description: 'Interactive tools by Greener for brands and marketing teams.',
+  path: '/tools',
 })
 
 /**

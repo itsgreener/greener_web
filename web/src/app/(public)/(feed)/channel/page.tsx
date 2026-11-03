@@ -6,6 +6,7 @@ export const metadata = buildPageMetadata({
   title: SECTION_LABELS.channel,
   description:
     "Episodes of Greener's podcast programs: Brand the Future, Brand into Europe and Brand Founders & Leaders.",
+  path: '/channel',
 })
 
 /**

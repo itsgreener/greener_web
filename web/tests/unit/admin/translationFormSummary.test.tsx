@@ -22,6 +22,44 @@ function renderFor(contentType: 'episode' | 'case' | 'tool') {
   )
 }
 
+describe('idiomas del editor de traducciones según el tipo', () => {
+  function renderLocales(
+    contentType: 'insight' | 'tool' | 'case' | 'episode',
+    defaultLocale: 'es' | 'en' | 'ca' = 'es',
+  ) {
+    render(
+      <ContentTranslations
+        contentId="11111111-1111-4111-8111-111111111111"
+        contentType={contentType}
+        defaultLocale={defaultLocale}
+        translations={[]}
+      />,
+    )
+  }
+
+  it('un insight solo ofrece su idioma principal, sin pestañas', () => {
+    renderLocales('insight', 'en')
+
+    expect(screen.queryByRole('tablist')).toBeNull()
+    expect(screen.getAllByLabelText('Summary')).toHaveLength(1)
+  })
+
+  it.each(['tool', 'case'] as const)(
+    'una %s sigue ofreciendo los tres idiomas',
+    (type) => {
+      renderLocales(type)
+
+      expect(screen.getAllByRole('tab')).toHaveLength(3)
+    },
+  )
+
+  it('un episodio solo ofrece su idioma principal', () => {
+    renderLocales('episode')
+
+    expect(screen.queryByRole('tablist')).toBeNull()
+  })
+})
+
 describe('campo Summary del ABM según el tipo', () => {
   it('un case no lo muestra, pero sí Highlight y Body', () => {
     renderFor('case')

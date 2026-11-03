@@ -13,6 +13,8 @@ const CONTENT: PublicContent = {
   defaultLocale: 'es',
   locale: 'es',
   availableLocales: ['es'],
+  publishedAt: '2026-10-01T10:00:00.000Z',
+  updatedAt: '2026-10-15T10:00:00.000Z',
   title: 'Mi caso',
   seoTitle: null,
   seoDescription: null,
@@ -284,6 +286,8 @@ describe('CaseDetail — prueba de humo', () => {
         content={{
           ...CONTENT,
           availableLocales: ['es', 'en'],
+          publishedAt: '2026-10-01T10:00:00.000Z',
+          updatedAt: '2026-10-15T10:00:00.000Z',
           locale: 'en',
         }}
         caseDetail={null}

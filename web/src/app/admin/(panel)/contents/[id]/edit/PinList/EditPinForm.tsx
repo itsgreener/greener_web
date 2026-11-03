@@ -3,6 +3,7 @@
 import { useActionState } from 'react'
 
 import type { PinListItem } from '@/modules/pin/domain/pinRepository'
+import type { Locale } from '@/modules/shared/domain/locale'
 
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
 import { AdminField } from '@/components/admin/AdminField'
@@ -25,10 +26,14 @@ export function EditPinForm({
   pin,
   contentId,
   derivedLabel,
+  fixedLanguage = null,
 }: {
   pin: PinListItem
   contentId: string
   derivedLabel: boolean
+  // Idioma del contenido cuando es de un solo idioma: no se pregunta, se
+  // envía tal cual (y el servidor lo vuelve a imponer).
+  fixedLanguage?: Locale | null
 }) {
   const [state, formAction, pending] = useActionState(
     updatePinAction.bind(null, pin.id, contentId),
@@ -49,16 +54,20 @@ export function EditPinForm({
           </AdminSelect>
         </AdminField>
 
-        <AdminField label="Idioma" htmlFor={`language-${pin.id}`}>
-          <AdminSelect
-            id={`language-${pin.id}`}
-            name="language"
-            defaultValue={pin.language}
-            required
-          >
-            <LocaleOptions />
-          </AdminSelect>
-        </AdminField>
+        {fixedLanguage ? (
+          <input name="language" type="hidden" value={fixedLanguage} />
+        ) : (
+          <AdminField label="Idioma" htmlFor={`language-${pin.id}`}>
+            <AdminSelect
+              id={`language-${pin.id}`}
+              name="language"
+              defaultValue={pin.language}
+              required
+            >
+              <LocaleOptions />
+            </AdminSelect>
+          </AdminField>
+        )}
 
         {/* El autoplay solo existe para vídeos: en una imagen (o un pin aún
             sin medio) no se ofrece, y al guardar queda sin modo (null). */}

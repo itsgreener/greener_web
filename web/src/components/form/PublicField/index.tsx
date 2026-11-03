@@ -11,6 +11,19 @@ type Props = {
   rows?: number
   required?: boolean
 
+  /** Valor `autocomplete` del navegador (`name`, `tel`, `email`, `off`…). */
+  autoComplete?: string
+
+  /** Longitud máxima que admite el control. */
+  maxLength?: number
+
+  /**
+   * Valor inicial. Los campos son no controlados: un formulario cuya acción
+   * devuelve lo escrito lo pasa aquí para no perderlo cuando React 19
+   * reinicia el formulario tras un error.
+   */
+  defaultValue?: string
+
   /** Primer error de validación del campo, si lo hay. */
   error?: string
 }
@@ -28,6 +41,9 @@ export function PublicField({
   type = 'text',
   rows,
   required,
+  autoComplete,
+  maxLength,
+  defaultValue,
   error,
 }: Props) {
   const errorId = `${id}-error`
@@ -35,6 +51,9 @@ export function PublicField({
     id,
     name,
     required,
+    autoComplete,
+    maxLength,
+    defaultValue,
     'aria-invalid': error ? true : undefined,
     'aria-describedby': error ? errorId : undefined,
   }

@@ -8,6 +8,11 @@ import { z } from 'zod'
  *
  * `TField` lista los campos del formulario para que `fieldErrors.slug` esté
  * tipado y `fieldErrors.slg` no compile.
+ *
+ * `values` es opcional: un formulario público que no quiere perder lo escrito
+ * cuando falla lo devuelve aquí y lo usa como `defaultValue`. React 19
+ * reinicia el formulario al terminar la acción, y sin esto los campos no
+ * controlados se vacían.
  */
 export type FormActionState<TField extends string = string> = {
   fieldErrors?: Partial<Record<TField, string[]>>
@@ -15,6 +20,8 @@ export type FormActionState<TField extends string = string> = {
   formError?: string
 
   success?: boolean
+
+  values?: Partial<Record<TField, string>>
 }
 
 /**

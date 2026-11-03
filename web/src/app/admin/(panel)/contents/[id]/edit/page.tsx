@@ -79,6 +79,12 @@ export default async function EditContentPage({ params }: Props) {
     otherKind ? ` · ${otherKindLabel(otherKind)}` : ''
   }`
 
+  // Contenido de un solo idioma (episodio, insight, other): sus pines no
+  // preguntan idioma, toman el del contenido.
+  const pinFixedLanguage = capabilities.pinLanguageFromContent
+    ? content.defaultLocale
+    : null
+
   return (
     <AdminPage>
       <AdminBackLink href="/admin/contents">
@@ -224,6 +230,7 @@ export default async function EditContentPage({ params }: Props) {
                 contentId={content.id}
                 contentType={content.type}
                 pins={pins}
+                fixedLanguage={pinFixedLanguage}
               />
             </AdminCardSection>
 
@@ -244,6 +251,7 @@ export default async function EditContentPage({ params }: Props) {
                   contentId={content.id}
                   contentType={content.type}
                   availableSlots={remainingPinSlots(pins.length)}
+                  fixedLanguage={pinFixedLanguage}
                 />
               )}
             </AdminCardSection>

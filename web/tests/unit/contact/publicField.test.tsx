@@ -44,6 +44,47 @@ describe('PublicField', () => {
     expect(area).toBeRequired()
   })
 
+  it('pasa autoComplete, maxLength y defaultValue al input y al textarea', () => {
+    render(
+      <>
+        <PublicField
+          name="email"
+          label="Email"
+          autoComplete="email"
+          maxLength={254}
+          defaultValue="ada@example.com"
+        />
+        <PublicField
+          name="message"
+          label="Message"
+          rows={3}
+          autoComplete="off"
+          maxLength={5000}
+          defaultValue="Hola"
+        />
+      </>,
+    )
+
+    const input = screen.getByLabelText('Email')
+    expect(input).toHaveAttribute('autocomplete', 'email')
+    expect(input).toHaveAttribute('maxlength', '254')
+    expect(input).toHaveValue('ada@example.com')
+
+    const area = screen.getByLabelText('Message')
+    expect(area).toHaveAttribute('autocomplete', 'off')
+    expect(area).toHaveAttribute('maxlength', '5000')
+    expect(area).toHaveValue('Hola')
+  })
+
+  it('sin esas props no añade los atributos', () => {
+    render(<PublicField name="name" label="Name" />)
+
+    const input = screen.getByLabelText('Name')
+    expect(input).not.toHaveAttribute('autocomplete')
+    expect(input).not.toHaveAttribute('maxlength')
+    expect(input).toHaveValue('')
+  })
+
   it('sin error no pinta alerta ni atributos aria de error', () => {
     render(<PublicField name="name" label="Name" />)
 

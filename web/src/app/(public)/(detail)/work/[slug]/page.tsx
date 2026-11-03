@@ -4,7 +4,11 @@ import { resolvePreviewOfType } from '@/modules/content/container'
 import { ContentOpenTracker } from '@/modules/analytics/ContentOpenTracker'
 import { CaseDetail } from '@/components/detail/CaseDetail'
 import { EpisodeDetail } from '@/components/detail/EpisodeDetail'
-import { buildWorkMetadata } from './workContent'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { env } from '@/lib/env'
+import { buildShareImageUrl } from '@/lib/contentMetadata'
+import { caseJsonLd, episodeJsonLd } from '@/lib/structuredData'
+import { buildWorkMetadata, firstCarouselImageUrl } from './workContent'
 
 type Props = {
   params: Promise<{ slug: string }>
@@ -65,6 +69,16 @@ export default async function WorkPage({ params, searchParams }: Props) {
         {!isPreview && (
           <ContentOpenTracker type="case" contentId={content.id} />
         )}
+        {/* Sin datos estructurados en preview: un borrador no se indexa. */}
+        {!isPreview && (
+          <JsonLd
+            data={caseJsonLd({
+              siteUrl: env.NEXT_PUBLIC_SITE_URL,
+              content,
+              imageUrl: firstCarouselImageUrl(carousel),
+            })}
+          />
+        )}
         <CaseDetail
           content={content}
           caseDetail={caseDetail}
@@ -86,5 +100,20 @@ export default async function WorkPage({ params, searchParams }: Props) {
     notFound()
   }
 
-  return <EpisodeDetail content={content} episode={episode} poster={poster} />
+  return (
+    <>
+      {/* PodcastEpisode, sin VideoObject: el vídeo lo publica YouTube. */}
+      {!isPreview && (
+        <JsonLd
+          data={episodeJsonLd({
+            siteUrl: env.NEXT_PUBLIC_SITE_URL,
+            content,
+            episode,
+            imageUrl: buildShareImageUrl(poster),
+          })}
+        />
+      )}
+      <EpisodeDetail content={content} episode={episode} poster={poster} />
+    </>
+  )
 }

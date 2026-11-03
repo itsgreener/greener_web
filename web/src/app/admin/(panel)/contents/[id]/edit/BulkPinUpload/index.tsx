@@ -1,6 +1,7 @@
 'use client'
 
 import type { ContentType } from '@/modules/shared/domain/contentType'
+import { localeLabel, type Locale } from '@/modules/shared/domain/locale'
 
 import { AdminButton } from '@/components/admin/AdminButton'
 import { AdminInput, AdminSelect } from '@/components/admin/AdminControls'
@@ -18,10 +19,27 @@ type Props = {
   availableSlots: number
   contentId: string
   contentType: ContentType
+  // Idioma que toman los pines si el contenido es de un solo idioma (episodio,
+  // insight, other); null si cada pin elige el suyo (caso, tool).
+  fixedLanguage: Locale | null
+}
+
+/** Cabecera de la plantilla CSV según lo que se pregunta en este contenido. */
+function csvColumns(derivedLabel: boolean, showLanguage: boolean) {
+  return [
+    'filename',
+    derivedLabel ? null : 'label',
+    'ratio',
+    showLanguage ? 'language' : null,
+    'alt',
+  ]
+    .filter(Boolean)
+    .join(',')
 }
 
 export default function BulkPinUpload(props: Props) {
-  const { contentType } = props
+  const { contentType, fixedLanguage } = props
+  const showLanguage = fixedLanguage === null
 
   const {
     derivedLabel,
@@ -58,6 +76,13 @@ export default function BulkPinUpload(props: Props) {
         </AdminMessage>
       )}
 
+      {fixedLanguage && (
+        <AdminMessage>
+          Los pines de este contenido toman su idioma:{' '}
+          {localeLabel(fixedLanguage)}.
+        </AdminMessage>
+      )}
+
       <AdminField label="Imágenes y vídeos (varios)" htmlFor="bulk-files">
         <AdminInput
           id="bulk-files"
@@ -70,11 +95,7 @@ export default function BulkPinUpload(props: Props) {
       </AdminField>
 
       <AdminField
-        label={`Plantilla CSV (opcional): ${
-          derivedLabel
-            ? 'filename,ratio,language,alt'
-            : 'filename,label,ratio,language,alt'
-        }`}
+        label={`Plantilla CSV (opcional): ${csvColumns(derivedLabel, showLanguage)}`}
         htmlFor="bulk-csv"
       >
         <AdminInput
@@ -104,15 +125,20 @@ export default function BulkPinUpload(props: Props) {
           </AdminSelect>
         </AdminField>
 
-        <AdminField label="Idioma por defecto" htmlFor="bulk-default-language">
-          <AdminSelect
-            id="bulk-default-language"
-            value={defaultLanguage}
-            onChange={(event) => changeDefaultLanguage(event.target.value)}
+        {showLanguage && (
+          <AdminField
+            label="Idioma por defecto"
+            htmlFor="bulk-default-language"
           >
-            <LocaleOptions display="value" />
-          </AdminSelect>
-        </AdminField>
+            <AdminSelect
+              id="bulk-default-language"
+              value={defaultLanguage}
+              onChange={(event) => changeDefaultLanguage(event.target.value)}
+            >
+              <LocaleOptions display="value" />
+            </AdminSelect>
+          </AdminField>
+        )}
 
         {/* Solo hace falta si el lote trae algún vídeo: las imágenes no se animan. */}
         {hasVideo && (
@@ -141,7 +167,7 @@ export default function BulkPinUpload(props: Props) {
               <th>Archivo</th>
               <th>{derivedLabel ? 'Texto del feed' : 'Frase gancho'}</th>
               <th>Ratio</th>
-              <th>Idioma</th>
+              {showLanguage && <th>Idioma</th>}
               <th>Alt</th>
               <th>Estado</th>
               <th>Quitar</th>
@@ -154,6 +180,7 @@ export default function BulkPinUpload(props: Props) {
                 key={row.key}
                 row={row}
                 derivedLabel={derivedLabel}
+                showLanguage={showLanguage}
                 disabled={uploading}
                 onChange={(patch) => updateRow(row.key, patch)}
                 onRemove={() => removeRow(row.key)}

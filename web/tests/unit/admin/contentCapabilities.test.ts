@@ -6,6 +6,7 @@ describe('contentCapabilities', () => {
   it('un caso: ficha con destacado y cuerpo, SEO, pines y vista previa, sin paquete', () => {
     expect(contentCapabilities('case', null)).toEqual({
       allLocales: true,
+      pinLanguageFromContent: false,
       hasHighlightAndBody: true,
       hasSummary: false,
       hasSeo: true,
@@ -18,6 +19,7 @@ describe('contentCapabilities', () => {
   it('un episodio: un solo idioma, destacado y cuerpo, sin resumen ni paquete', () => {
     expect(contentCapabilities('episode', null)).toEqual({
       allLocales: false,
+      pinLanguageFromContent: true,
       hasHighlightAndBody: true,
       hasSummary: false,
       hasSeo: true,
@@ -31,7 +33,6 @@ describe('contentCapabilities', () => {
     '%s: resumen, SEO y paquete HTML, sin vista previa',
     (type) => {
       expect(contentCapabilities(type, null)).toMatchObject({
-        allLocales: true,
         hasHighlightAndBody: false,
         hasSummary: true,
         hasSeo: true,
@@ -39,6 +40,21 @@ describe('contentCapabilities', () => {
         hasPins: true,
         hasPreview: false,
       })
+    },
+  )
+
+  it.each([
+    ['case', null, true],
+    ['tool', null, true],
+    ['episode', null, false],
+    ['insight', null, false],
+    ['other', 'page', false],
+    ['other', 'newsletter', false],
+    ['other', null, false],
+  ] as const)(
+    '%s (%s): se traduce a todos los idiomas = %s',
+    (type, otherKind, expected) => {
+      expect(contentCapabilities(type, otherKind).allLocales).toBe(expected)
     },
   )
 
@@ -68,4 +84,23 @@ describe('contentCapabilities', () => {
       hasSeo: false,
     })
   })
+})
+
+describe('contentCapabilities — idioma de los pines', () => {
+  it.each([
+    ['case', null, false],
+    ['tool', null, false],
+    ['episode', null, true],
+    ['insight', null, true],
+    // Un other elige idioma por pin: decide el CTA de la página satélite.
+    ['other', 'page', false],
+    ['other', null, false],
+  ] as const)(
+    '%s (%s): los pines toman el idioma del contenido = %s',
+    (type, otherKind, expected) => {
+      expect(contentCapabilities(type, otherKind).pinLanguageFromContent).toBe(
+        expected,
+      )
+    },
+  )
 })

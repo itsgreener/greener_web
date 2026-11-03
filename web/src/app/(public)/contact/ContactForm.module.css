@@ -39,4 +39,10 @@
 
 .success {
   font-size: var(--fs-base);
+
+  /* Recibe el foco por código al enviarse (ContactForm.tsx); no es un control
+     al que se llegue con el teclado, así que no lleva el anillo de foco. */
+  &:focus {
+    outline: none;
+  }
 }

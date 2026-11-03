@@ -168,15 +168,28 @@ export function EpisodeDetail({
             <p className={styles.kind}>
               {episodeKindLabel(episode.episodeKind)}
             </p>
-            <h1 className={`${styles.title} text-display`}>{content.title}</h1>
+            {/* `lang` del texto del episodio; el tipo («Podcast») y el resto
+                de la página son interfaz en inglés (WCAG 3.1.2). */}
+            <h1
+              className={`${styles.title} text-display`}
+              lang={content.locale}
+            >
+              {content.title}
+            </h1>
           </div>
 
           {(content.highlight || content.body) && (
             <div className={styles.details}>
               {content.highlight && (
-                <p className={styles.highlight}>{content.highlight}</p>
+                <p className={styles.highlight} lang={content.locale}>
+                  {content.highlight}
+                </p>
               )}
-              {content.body && <p className={styles.body}>{content.body}</p>}
+              {content.body && (
+                <p className={styles.body} lang={content.locale}>
+                  {content.body}
+                </p>
+              )}
             </div>
           )}
 

@@ -125,7 +125,12 @@ describe('borrados simultáneos en el editor', () => {
     render(
       <>
         <CaseCarouselManager contentId={CONTENT_ID} items={ITEMS} />
-        <PinList contentId={CONTENT_ID} contentType="case" pins={PINS} />
+        <PinList
+          contentId={CONTENT_ID}
+          contentType="case"
+          pins={PINS}
+          fixedLanguage={null}
+        />
       </>,
     )
   }

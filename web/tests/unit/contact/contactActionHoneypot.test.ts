@@ -24,6 +24,53 @@ const base = {
 
 beforeEach(() => vi.clearAllMocks())
 
+describe('submitContactAction · valores devueltos', () => {
+  it('si el envío falla, devuelve lo escrito para que el formulario no se vacíe', async () => {
+    mockSubmit.mockResolvedValueOnce({
+      ok: false,
+      formError: "We couldn't send your message. Please try again.",
+    })
+
+    const state = await submitContactAction({}, form(base))
+
+    expect(state.formError).toBeDefined()
+    expect(state.values).toEqual(base)
+  })
+
+  it('con errores de campo, también devuelve lo escrito', async () => {
+    mockSubmit.mockResolvedValueOnce({
+      ok: false,
+      fieldErrors: { email: ["Email isn't valid"] },
+    })
+
+    const state = await submitContactAction(
+      {},
+      form({ ...base, email: 'no-es-un-email' }),
+    )
+
+    expect(state.fieldErrors?.email).toEqual(["Email isn't valid"])
+    expect(state.values?.email).toBe('no-es-un-email')
+    expect(state.values?.message).toBe(base.message)
+  })
+
+  it('en éxito no devuelve nada de lo escrito', async () => {
+    mockSubmit.mockResolvedValueOnce({ ok: true })
+
+    expect(await submitContactAction({}, form(base))).toEqual({ success: true })
+  })
+
+  it('recorta lo devuelto a la longitud máxima de cada campo y trata un campo ausente como vacío', async () => {
+    mockSubmit.mockResolvedValueOnce({ ok: false, formError: 'x' })
+    const data = form({ ...base, message: 'a'.repeat(9000) })
+    data.delete('phone')
+
+    const state = await submitContactAction({}, data)
+
+    expect(state.values?.message).toHaveLength(5000)
+    expect(state.values?.phone).toBe('')
+  })
+})
+
 describe('submitContactAction · honeypot', () => {
   it('lee el señuelo del campo «reference_code»', async () => {
     mockSubmit.mockResolvedValueOnce({ ok: true })

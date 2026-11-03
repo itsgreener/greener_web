@@ -14,6 +14,7 @@ export const metadata = buildPageMetadata({
   title: 'Privacy & Cookies',
   description:
     'How Greener handles personal data and cookies on itsgreener.com.',
+  path: '/privacy',
 })
 
 export default function PrivacyPage() {

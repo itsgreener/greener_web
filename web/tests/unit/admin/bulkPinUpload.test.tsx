@@ -85,12 +85,14 @@ function image(name = 'foto.webp') {
 function renderBulk(
   contentType: 'tool' | 'case' | 'insight' | 'episode' | 'other' = 'tool',
   availableSlots = 8,
+  fixedLanguage: 'es' | 'en' | 'ca' | null = null,
 ) {
   render(
     <BulkPinUpload
       contentId="11111111-1111-4111-8111-111111111111"
       contentType={contentType as never}
       availableSlots={availableSlots}
+      fixedLanguage={fixedLanguage}
     />,
   )
 }
@@ -774,5 +776,86 @@ describe('BulkPinUpload — quitar una fila tras una subida parcial', () => {
 
     expect(screen.getAllByText('Hecho')).toHaveLength(2)
     expect(screen.queryByText('Pendiente')).toBeNull()
+  })
+})
+
+describe('BulkPinUpload — idioma de los pines', () => {
+  it.each(['case', 'tool', 'other'] as const)(
+    '%s: pregunta el idioma por defecto y por fila, y lo pone en la plantilla CSV (en una página satélite decide el CTA del pin)',
+    (type) => {
+      renderBulk(type)
+      selectFiles([image('a.webp')])
+
+      expect(screen.getByLabelText('Idioma por defecto')).toBeInTheDocument()
+      expect(screen.getByLabelText('Idioma de a.webp')).toBeInTheDocument()
+      expect(screen.getByText(/filename,.*language,alt/)).toBeInTheDocument()
+    },
+  )
+
+  it.each(['episode', 'insight'] as const)(
+    '%s: no pregunta el idioma en ningún sitio y lo explica',
+    (type) => {
+      renderBulk(type, 8, 'ca')
+      selectFiles([image('a.webp')])
+
+      expect(screen.queryByLabelText('Idioma por defecto')).toBeNull()
+      expect(screen.queryByLabelText('Idioma de a.webp')).toBeNull()
+      expect(screen.queryByRole('columnheader', { name: 'Idioma' })).toBeNull()
+      expect(screen.getByText(/toman su idioma: Català/)).toBeInTheDocument()
+      expect(screen.queryByText(/language/)).toBeNull()
+    },
+  )
+
+  it('REGRESIÓN: en un episodio los pines se crean con el idioma del contenido, no con «es» por defecto', async () => {
+    renderBulk('episode', 8, 'en')
+    selectFiles([image('a.webp')])
+
+    clickUpload(1)
+
+    await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+    expect(createPinWithImageAction).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'en' }),
+    )
+  })
+
+  it('el idioma del contenido gana a una columna language del CSV, también en vídeo', async () => {
+    renderBulk('insight', 8, 'ca')
+
+    // El CSV también cambia el ratio: así se sabe cuándo ya se ha leído.
+    const csv = new File(
+      ['filename,ratio,language\nclip.mp4,9:16,en\n'],
+      'plantilla.csv',
+      { type: 'text/csv' },
+    )
+
+    selectFiles([video('clip.mp4')])
+    fireEvent.change(document.getElementById('bulk-csv') as HTMLInputElement, {
+      target: { files: [csv] },
+    })
+    await waitFor(() =>
+      expect(screen.getByLabelText('Ratio de clip.mp4')).toHaveValue('9:16'),
+    )
+
+    clickUpload(1)
+
+    await waitFor(() => expect(createPinWithVideoAction).toHaveBeenCalled())
+    expect(createPinWithVideoAction).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'ca', ratio: '9:16' }),
+    )
+  })
+
+  it('con idioma elegible, el idioma de la fila se sigue enviando tal cual', async () => {
+    renderBulk('case')
+    selectFiles([image('a.webp')])
+    fireEvent.change(screen.getByLabelText('Idioma de a.webp'), {
+      target: { value: 'ca' },
+    })
+
+    clickUpload(1)
+
+    await waitFor(() => expect(createPinWithImageAction).toHaveBeenCalled())
+    expect(createPinWithImageAction).toHaveBeenCalledWith(
+      expect.objectContaining({ language: 'ca' }),
+    )
   })
 })

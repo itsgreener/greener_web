@@ -93,11 +93,37 @@ describe('toFeedBatchItem', () => {
       displayTitle: 'Título',
       displaySecondary: 'Cliente',
       cta: 'Watch',
+      languages: { title: null, secondary: null, cta: null },
       alt: 'alt',
       autoplayMode: null,
       media: [{ kind: 'image', cloudinaryPublicId: 'greener/content/a' }],
     })
   })
+
+  it('lleva el idioma real de cada texto; «Watch» (interfaz) no lleva ninguno', () => {
+    const item = toFeedBatchItem(
+      'pin-1',
+      entry({ textLanguages: { title: 'ca', secondary: null } }),
+    )
+
+    expect(item.languages).toEqual({ title: 'ca', secondary: null, cta: null })
+  })
+
+  it.each([
+    ['es', 'es'],
+    ['ca', 'ca'],
+    ['en', 'en'],
+  ])(
+    'una página satélite en %s: el CTA va en ese idioma y se marca como tal',
+    (language, expected) => {
+      const item = toFeedBatchItem(
+        'pin-1',
+        entry({ contentType: 'other', language }),
+      )
+
+      expect(item.languages?.cta).toBe(expected)
+    },
+  )
 
   it('tool: el destino lleva el pin de origen codificado y el CTA es Use', () => {
     const item = toFeedBatchItem(
