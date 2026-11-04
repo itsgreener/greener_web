@@ -22,7 +22,7 @@ Este documento (`docs/PROGRESO.md`) sigue siendo el único sitio a mirar para sa
 
 Sustituye a las versiones anteriores de `docs/PROGRESO.md` y `CHECKLIST.md`. Actualízalo cuando cierres un bloque de trabajo real, no en cada commit menor; si algo que documenta deja de ser cierto, corrígelo aquí mismo en vez de dejarlo desactualizado.
 
-Última revisión: 3 de noviembre de 2026 (revisión general de la documentación y borrado de las auditorías cerradas, §2.139). El detalle de cada cambio, más reciente primero, está en el registro del §6 y en el índice del §2.
+Última revisión: 4 de noviembre de 2026 (la web antigua de talent lanza el procesado de CVs, §2.140). El detalle de cada cambio, más reciente primero, está en el registro del §6 y en el índice del §2.
 
 ---
 
@@ -36,7 +36,7 @@ Desde el 21 oct, además: el CSS del ABM reorganizado en tokens y componentes co
 
 Lo que queda está en §4: la migración de infraestructura (§4.0), la puesta en producción (§4.1), las comprobaciones que solo se ven con el sitio desplegado (feed, cookies, bots, medios), la carga real de contenido, la calidad pendiente (§4.3) y, con el asesor, las 34 consultas de `docs/cookies-y-privacidad/consultas-asesor-legal.md`.
 
-**Cifras actuales:** 328 ficheros y **3982 tests en verde** (comprobado el 3 de noviembre) (`npm test`), `tsc` y ESLint limpios, `next build` compila (la recogida de páginas exige las variables de entorno reales); `npm audit --omit=dev` con **0 vulnerabilidades** (comprobado el 23 de octubre) (el audit completo da 8 más, todas de herramientas de desarrollo, §4.3) y **58 migraciones SQL** en `supabase/migrations`. Next.js 16.4.2, Node 24.22.1 (`engines` y `.nvmrc`).
+**Cifras actuales:** 331 ficheros y **4029 tests en verde** (comprobado el 4 de noviembre) (`npm test`), `tsc` y ESLint limpios, `next build` compila (la recogida de páginas exige las variables de entorno reales); `npm audit --omit=dev` con **0 vulnerabilidades** (comprobado el 23 de octubre) (el audit completo da 8 más, todas de herramientas de desarrollo, §4.3) y **58 migraciones SQL** en `supabase/migrations`. Next.js 16.4.2, Node 24.22.1 (`engines` y `.nvmrc`).
 
 ---
 
@@ -176,6 +176,7 @@ Una fila por sección. **El detalle completo (qué, por qué, cómo se verificó
 | 2.128 | 2 nov    | Formulario de contacto (plan §2): conserva lo escrito tras un error, distingue límite agotado de comprobación imposible, `autocomplete`, `maxlength` compartido con el esquema, mensaje del nombre y del email largos, `role` y foco en éxito y error; 20 tests nuevos |
 | 2.129 | 2 nov    | SEO (plan §3): `rel="canonical"` en las siete páginas fijas, la ficha de tool, los casos (por idioma) y los episodios; `x-default` en casos con varios idiomas; JSON-LD de `Organization` y `WebSite` (home), `CreativeWork` (caso) y `PodcastEpisode` (episodio), sin `VideoObject` y sin nada en preview; serializador compartido con los paquetes; 56 tests nuevos |
 | 2.130 | 2 nov    | ABM: los pines de un episodio o un insight ya no piden idioma (toman el del contenido, también impuesto en el servidor); `lang` en el texto de las fichas y de las tarjetas del feed; `preload` de los vídeos del carrusel de caso (plan §4 y §5) |
+| 2.140 | 4 nov    | La web antigua de talent (transitoria) lanza el procesado de CVs: `POST /api/talent/process-pending`, con sesión de Google de Supabase-talent, lista de correos y orígenes permitidos (`talent-puesta-en-marcha.md` §8) |
 | 2.139 | 3 nov    | Revisión general de la documentación: se borran las tres auditorías del 23 oct (resumidas en el archivo de informes cerrados), `ci.md` y el CI al día (rama `main`, formato bloqueante), región `cdg1` documentada, estados de los planes y comentario obsoleto de `next.config.ts` |
 | 2.138 | 3 nov    | E2E fases 2 y 3: casos E2 a E8; el aviso viejo del observer del feed pedía un lote al volver de un detalle (corregido) |
 | 2.137 | 3 nov    | `next build` comprueba tipos solo de `src/` (`tsconfig.build.json`); tests y E2E los vigila `npm run typecheck` |
@@ -465,6 +466,7 @@ Decisiones ya cerradas: ver `docs/historial/historial-fases-0-2.md`, `docs/histo
 
 Más reciente primero. El registro anterior (22 sep – 2 oct, ~15 KB) está archivado en `docs/historial/historial-fase-5.md`, sección «Historial de correcciones de `docs/PROGRESO.md`».
 
+- **4 nov 2026 (web antigua de talent)**: §2.140. Ruta `POST /api/talent/process-pending` para que la web antigua (React, sin servidor) lance `Procesar nuevo CV` sin llevar el secreto de n8n: origen permitido, sesión de Google de Supabase-talent validada con `auth.getUser`, correo en `TALENT_LEGACY_STAFF_EMAILS`, límites por IP y persona y sin forzar. Variables nuevas `TALENT_LEGACY_ALLOWED_ORIGINS` y `TALENT_LEGACY_STAFF_EMAILS` (`.env.local.example`, `serverEnv.ts`, `talent-puesta-en-marcha.md` §1 y §8). Transitoria: se retira con la web antigua. 331 ficheros y 4029 tests.
 - **3 nov 2026 (revisión general de la documentación)**: §2.139. Greener aclara que la migración (Cloudflare, medios, Bunny o Mux) está en pausa: se anota arriba del §4.0, en el §4.0 bis (A y D) y en `migracion-infraestructura.md`. Se borra `docs/auditorías-pendientes/` (componentes TSX, seguridad del backend y restos de la build, completadas): lo abierto estaba ya en §4 y queda un resumen con el significado de sus códigos en `historial/historial-informes-cerrados-oct-2026.md` (informes 7 a 9). `ci.md` y el CI al día: rama `main`, repositorio privado, E2E ejecutado en GitHub y formato bloqueante (`prettier --check` pasa limpio; se quita el `continue-on-error`). La región `cdg1` de `vercel.json` se documenta (`despliegue.md`, `migracion-infraestructura.md`); el plan de mejoras recibe su estado y sus rutas reales; `contrato-medios-fase-1.md` corrige una ruta; el comentario de `next.config.ts` deja de hablar de Dinahosting como destino. Las estructuras de `docs/estructura/` se regeneran. §1 (dónde está cada cosa), §3 (typecheck, build y E2E), la checklist (CI y E2E) y el README de `docs/` al día. Sin cambios de código (solo ese comentario y el CI).
 - **3 nov 2026 (E2E, fases 2 y 3)**: §2.138. `e2e/specs/` (`feed`, `consent`, `contact`, `toolPackage`), `e2e/support/` (`feed.ts`, `consent.ts`, `smtpSink.ts`, `toolPackage.ts`); `useSentinel` confirma con la posición actual (`getBoundingClientRect`) antes de pedir un lote; tests `useSentinel.test.tsx` y `smtpSink.test.ts`; `docs/operaciones/e2e.md`.
 - **3 nov 2026 (tsconfig de la build)**: §2.137. `tsconfig.build.json` nuevo (solo `src/`), `typescript.tsconfigPath` en `next.config.ts`, test `tsconfigBuild.test.ts`, `docs/operaciones/ci.md` §2 «Qué comprueba cada tsconfig».

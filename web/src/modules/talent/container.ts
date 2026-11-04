@@ -3,12 +3,14 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 
 import { createSharedRateLimiter } from '@/lib/rateLimit/sharedRateLimiter'
+import { getTalentLegacyEnv } from '@/lib/serverEnv'
 
 import { recordSystemAuditEvent } from '@/modules/audit/container'
 
 import { makeDeleteCandidate } from './application/deleteCandidate'
 import { makeDeleteCandidateFile } from './application/deleteCandidateFile'
 import { makeGetCandidateForm } from './application/getCandidateForm'
+import { makeLaunchLegacyProcessing } from './application/launchLegacyProcessing'
 import { makeProcessPendingCvs } from './application/processPendingCvs'
 import { makePurgeExpiredCandidates } from './application/purgeExpiredCandidates'
 import { makeRegisterCandidate } from './application/registerCandidate'
@@ -18,12 +20,14 @@ import { makeResolveCvLink } from './application/resolveCvLink'
 import { makeSaveCandidateForm } from './application/saveCandidateForm'
 import { makeTalentAdminQueries } from './application/talentAdminQueries'
 import {
+  LEGACY_PROCESSING_LIMITS,
   TALENT_LIMITS,
   type TalentLimiters,
 } from './application/talentLimiters'
 import { makeUploadCandidateFile } from './application/uploadCandidateFile'
 import { makeUploadStaffCv } from './application/uploadStaffCv'
 import { n8nTalentWorkflows } from './infrastructure/n8nTalentWorkflows'
+import { supabaseStaffSessionVerifier } from './infrastructure/supabaseStaffSessionVerifier'
 import { supabaseTalentAdminRepository } from './infrastructure/supabaseTalentAdminRepository'
 import { supabaseTalentRepository } from './infrastructure/supabaseTalentRepository'
 import { supabaseTalentStorage } from './infrastructure/supabaseTalentStorage'
@@ -129,6 +133,34 @@ export const uploadStaffCv = makeUploadStaffCv({
 export const processPendingCvs = makeProcessPendingCvs({
   admin: supabaseTalentAdminRepository,
   workflows: n8nTalentWorkflows,
+})
+
+/**
+ * Procesado de CVs a petición de la web antigua de talent
+ * (`/api/talent/process-pending`). Transitorio: se retira con la web antigua.
+ */
+export const launchLegacyProcessing = makeLaunchLegacyProcessing({
+  verifier: supabaseStaffSessionVerifier,
+  allowedEmails: () => getTalentLegacyEnv().staffEmails,
+  processPendingCvs: () => processPendingCvs(),
+  limiters: {
+    byIp: createSharedRateLimiter({
+      name: 'talent-legacyProcessByIp',
+      ...LEGACY_PROCESSING_LIMITS.byIp,
+    }),
+    byStaff: createSharedRateLimiter({
+      name: 'talent-legacyProcessByStaff',
+      ...LEGACY_PROCESSING_LIMITS.byStaff,
+    }),
+  },
+  recordAudit: ({ actorEmail, pending }) =>
+    recordSystemAuditEvent({
+      actorEmail,
+      action: 'talent.process_launch',
+      entity: 'talent_candidate',
+      entityId: null,
+      payload: { pending, forced: false, source: 'legacy_web' },
+    }),
 })
 
 export const reprocessCandidate = makeReprocessCandidate({

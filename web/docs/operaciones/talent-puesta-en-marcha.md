@@ -17,6 +17,8 @@ Se añaden al `.env.local` de producción (junto a `server.js`, ver `despliegue.
 | `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` | sí, para la subida del personal (fase 3) | Webhook de `Procesar nuevo CV`; lo llama el ABM tras subir CVs o al reprocesar. Sin ella, las filas quedan en `pending` y el ABM avisa de que el procesado no está configurado. |
 | `TALENT_N8N_WEBHOOK_AUTH_HEADER_NAME` y `TALENT_N8N_WEBHOOK_AUTH_HEADER_VALUE` | no (fase 4) | Cabecera de autenticación de los tres webhooks. Van las dos o ninguna. Ver §3.4. |
 | `TALENT_PURGE_SECRET` | no (hasta activar la purga, §7) | Credencial con la que n8n llama a `POST /api/talent/purge`. Mínimo 32 caracteres (`openssl rand -base64 48`). Sin ella la ruta responde 503 `not_configured` y no hace nada. Se valida en su propio ámbito, `Talent (purga)`: si es más corta, el log del arranque lo avisa y solo se cierra la purga; el formulario y el ABM de talent no se ven afectados. |
+| `TALENT_LEGACY_ALLOWED_ORIGINS` | no (solo mientras siga la web antigua, §8) | Orígenes desde los que la web antigua de talent puede llamar a `POST /api/talent/process-pending`: `https://dominio`, sin barra final ni ruta, separados por comas. Va con la siguiente: las dos o ninguna. |
+| `TALENT_LEGACY_STAFF_EMAILS` | no (§8) | Correos de Google autorizados a lanzar el procesado desde la web antigua, separados por comas (se comparan en minúsculas). Se valida en su propio ámbito, `Talent (web antigua)`: un error solo cierra esa ruta. Sin ellas la ruta responde 503 `not_configured`. |
 | `TALENT_MAILCHIMP_AUDIENCE_ID` | sí | Identificador de la audiencia de talent. La clave de API y el prefijo (`us13`) son los de la newsletter (`MAILCHIMP_API_KEY`, `MAILCHIMP_SERVER_PREFIX`). |
 
 Bloque para añadir a `.env.local` y a `.env.local.example` (este último es un fichero oculto que no viaja en el zip):
@@ -39,6 +41,11 @@ TALENT_N8N_PROCESS_CV_WEBHOOK_URL=https://your-n8n.example/webhook/xxxxxxxx
 
 # Opcional: credencial de la purga por plazo (n8n llama a la web, §7).
 # TALENT_PURGE_SECRET=un-secreto-largo-y-aleatorio-de-32-caracteres-o-mas
+
+# Opcional y transitorio: la web antigua de talent lanza el procesado de CVs (§8).
+# Las dos o ninguna.
+# TALENT_LEGACY_ALLOWED_ORIGINS=https://talent.example.com
+# TALENT_LEGACY_STAFF_EMAILS=ana@example.com,luis@example.com
 
 # Audiencia de Mailchimp de talent (misma cuenta que la newsletter).
 TALENT_MAILCHIMP_AUDIENCE_ID=xxxxxxxxxx
@@ -356,3 +363,26 @@ Cuatro puntos a tener en cuenta:
 - La suscripción de Mailchimp (audiencia de talent) no se toca desde aquí: sigue siendo manual, o un nodo de Mailchimp aparte si Greener lo quiere (la ruta no devuelve emails a propósito).
 
 **Prueba.** Con la ruta activada, `curl -X POST …/api/talent/purge -H 'authorization: Bearer <secreto>' -H 'content-type: application/json' -d '{"mode":"list"}'` debe devolver `expired: []` mientras no haya filas de más de 2 años. Para ver un borrado real hace falta una fila antigua (p. ej. una de prueba con `created_at` de hace más de 2 años en Supabase-talent); entonces `list` la devuelve, `delete` la quita y aparece `talent.candidate_purge` en Actividad.
+
+## 8. Web antigua de talent: `POST /api/talent/process-pending` (transitorio)
+
+La web antigua de talent (React, sin servidor) sigue en uso un tiempo solo para que el personal suba CVs desde `/private`. Su navegador no puede guardar el secreto de los webhooks de n8n (§3.4), así que, tras subir, pide a esta ruta que lance `Procesar nuevo CV`. Se retira con la web antigua (su repositorio lleva un `LEEME-web-antigua.md` y un SQL temporal que devuelve el acceso mínimo que necesita `/private`; al apagarla se deshace, y las dos comprobaciones de §4.3 vuelven a dar cero filas).
+
+**Cómo se protege.** No es de la misma web, así que no usa la comprobación de sitio del resto de `/api/talent`:
+
+1. Solo responde a los orígenes de `TALENT_LEGACY_ALLOWED_ORIGINS` (comprueba `Origin` y contesta el preflight de CORS); a otro origen, 403 sin cabeceras CORS.
+2. Exige `Authorization: Bearer <access_token>` de la sesión de Google de Supabase-talent. La web valida el token preguntando a Supabase Auth (`auth.getUser`) y exige correo confirmado.
+3. El correo de la sesión tiene que estar en `TALENT_LEGACY_STAFF_EMAILS` (la misma lista que el SQL temporal de la web antigua; mantenlas iguales).
+4. Límites: 60 por hora y IP (antes de preguntar a Supabase) y 30 por hora y persona. Sin cookie de visitante.
+5. Lanza como la acción «Procesar pendientes» del ABM, **sin forzar**: si ya hay filas en `started` o se lanzó hace poco, no vuelve a lanzar y las `pending` esperan al siguiente lanzamiento (o al botón del ABM). Varias subidas seguidas no procesan dos veces.
+
+**Respuestas.** 200 `{ ok, status }` con `status` `triggered`, `nothing_pending` o `busy` (con `reason`: `in_progress` o `cooldown`); 401 `unauthorized`; 403 `forbidden`; 429 `rate_limited`; 503 `not_configured` o `unavailable`. Un lanzamiento deja `talent.process_launch` en Actividad con el correo de quien subió y `source: legacy_web` en el detalle.
+
+**Activarla.** Rellena las dos variables de §1 y redespliega. `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` y la cabecera de n8n tienen que estar ya puestas (las usa también el ABM). **Retirarla:** vacía las dos variables (la ruta vuelve a responder 503) y, con la web antigua apagada, borra la ruta, `launchLegacyProcessing`, `supabaseStaffSessionVerifier` y `getTalentLegacyEnv`.
+
+**Probar a mano.** Lo normal es subir un PDF desde `/private` y ver en `/admin/talent` que pasa de `pending` a `started`. Para probar la ruta sola hace falta el `access_token` de la sesión abierta de la web antigua; sin token, o con uno de otro correo, debe dar 401 o 403:
+
+```
+curl -i -X POST https://itsgreener.com/api/talent/process-pending \
+  -H "Origin: https://<web-antigua>" -H "Authorization: Bearer <access_token>"
+```

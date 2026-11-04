@@ -147,6 +147,7 @@ src/app/api/talent/_lib/talentRequest.ts
 src/app/api/talent/candidates/route.ts
 src/app/api/talent/form/[token]/files/route.ts
 src/app/api/talent/form/[token]/route.ts
+src/app/api/talent/process-pending/route.ts
 src/app/api/talent/purge/route.ts
 src/app/auth/callback/route.ts
 src/app/error.tsx
@@ -542,6 +543,7 @@ src/modules/shared/domain/ratio.ts
 src/modules/talent/application/deleteCandidate.ts
 src/modules/talent/application/deleteCandidateFile.ts
 src/modules/talent/application/getCandidateForm.ts
+src/modules/talent/application/launchLegacyProcessing.ts
 src/modules/talent/application/processPendingCvs.ts
 src/modules/talent/application/purgeExpiredCandidates.ts
 src/modules/talent/application/registerCandidate.ts
@@ -567,6 +569,7 @@ src/modules/talent/domain/talentRows.ts
 src/modules/talent/domain/talentSchemas.ts
 src/modules/talent/domain/talentSearchQuery.ts
 src/modules/talent/infrastructure/n8nTalentWorkflows.ts
+src/modules/talent/infrastructure/supabaseStaffSessionVerifier.ts
 src/modules/talent/infrastructure/supabaseTalentAdminRepository.ts
 src/modules/talent/infrastructure/supabaseTalentRepository.ts
 src/modules/talent/infrastructure/supabaseTalentStorage.ts

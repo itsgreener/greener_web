@@ -109,6 +109,84 @@ describe('getTalentPurgeEnv', () => {
   })
 })
 
+describe('getTalentLegacyEnv', () => {
+  const ORIGINS = 'TALENT_LEGACY_ALLOWED_ORIGINS'
+  const EMAILS = 'TALENT_LEGACY_STAFF_EMAILS'
+
+  it('es opcional: sin ninguna de las dos la ruta queda cerrada', async () => {
+    delete process.env[ORIGINS]
+    delete process.env[EMAILS]
+    const { getTalentLegacyEnv, validateServerEnv } = await env()
+
+    expect(getTalentLegacyEnv()).toEqual({
+      allowedOrigins: [],
+      staffEmails: [],
+    })
+    expect(validateServerEnv()).toEqual([])
+  })
+
+  it('trata los valores vacíos como ausentes', async () => {
+    vi.stubEnv(ORIGINS, '')
+    vi.stubEnv(EMAILS, '  ')
+    const { getTalentLegacyEnv } = await env()
+
+    expect(getTalentLegacyEnv().allowedOrigins).toEqual([])
+    expect(getTalentLegacyEnv().staffEmails).toEqual([])
+  })
+
+  it('lee listas separadas por comas, con espacios y correos en minúsculas', async () => {
+    vi.stubEnv(ORIGINS, 'https://talent.itsgreener.com, http://localhost:5173')
+    vi.stubEnv(EMAILS, 'Ana@ItsGreener.com ,luis@itsgreener.com,')
+    const { getTalentLegacyEnv } = await env()
+
+    expect(getTalentLegacyEnv()).toEqual({
+      allowedOrigins: [
+        'https://talent.itsgreener.com',
+        'http://localhost:5173',
+      ],
+      staffEmails: ['ana@itsgreener.com', 'luis@itsgreener.com'],
+    })
+  })
+
+  it.each([
+    'https://talent.itsgreener.com/',
+    'https://talent.itsgreener.com/private',
+    'http://talent.itsgreener.com',
+    'talent.itsgreener.com',
+  ])('rechaza el origen %s', async (origin) => {
+    vi.stubEnv(ORIGINS, origin)
+    vi.stubEnv(EMAILS, 'ana@itsgreener.com')
+    const { getTalentLegacyEnv } = await env()
+
+    expect(() => getTalentLegacyEnv()).toThrow(/web antigua/)
+  })
+
+  it('rechaza un correo mal escrito', async () => {
+    vi.stubEnv(ORIGINS, 'https://talent.itsgreener.com')
+    vi.stubEnv(EMAILS, 'ana@')
+    const { getTalentLegacyEnv } = await env()
+
+    expect(() => getTalentLegacyEnv()).toThrow(/web antigua/)
+  })
+
+  it('los orígenes y los correos van juntos', async () => {
+    vi.stubEnv(ORIGINS, 'https://talent.itsgreener.com')
+    delete process.env[EMAILS]
+    const { getTalentLegacyEnv } = await env()
+
+    expect(() => getTalentLegacyEnv()).toThrow(/web antigua/)
+  })
+
+  it('un fallo aquí no tumba el resto de talent', async () => {
+    vi.stubEnv(ORIGINS, 'mal')
+    vi.stubEnv(EMAILS, 'ana@itsgreener.com')
+    const serverEnv = await env()
+
+    expect(serverEnv.validateServerEnv()).toEqual(['Talent (web antigua)'])
+    expect(serverEnv.getTalentEnv().TALENT_SUPABASE_URL).toBeTruthy()
+  })
+})
+
 describe('getTalentMailchimpEnv', () => {
   it('exige el identificador de la audiencia de talent', async () => {
     vi.stubEnv('TALENT_MAILCHIMP_AUDIENCE_ID', '')

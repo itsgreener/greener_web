@@ -30,3 +30,14 @@ export const TALENT_LIMITS = {
   uploadByIp: { max: 60, windowMs: HOUR },
   uploadByToken: { max: 30, windowMs: HOUR },
 } as const
+
+/**
+ * Límites de la ruta que usa la web antigua para lanzar el procesado de CVs.
+ * Aparte de `TalentLimiters`: no los usan los casos de uso del formulario.
+ * Por IP ANTES de preguntar a Supabase por la sesión (no se le puede mandar
+ * basura sin freno) y por persona después.
+ */
+export const LEGACY_PROCESSING_LIMITS = {
+  byIp: { max: 60, windowMs: HOUR },
+  byStaff: { max: 30, windowMs: HOUR },
+} as const

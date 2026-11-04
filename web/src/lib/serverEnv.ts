@@ -220,6 +220,71 @@ export const getTalentPurgeEnv = createScopedEnv('Talent (purga)', () =>
 )
 
 /**
+ * Web antigua de talent (transitoria): su `/private` sube CVs desde el
+ * navegador y, como el secreto de n8n no puede ir en un navegador, pide a
+ * `POST /api/talent/process-pending` que lance el procesado. Dos listas, en su
+ * PROPIO ámbito (como la purga): si están mal, solo se cierra esa ruta.
+ *
+ * - `TALENT_LEGACY_ALLOWED_ORIGINS`: orígenes (`https://dominio`, sin barra ni
+ *   ruta) desde los que se acepta la llamada; separados por comas.
+ * - `TALENT_LEGACY_STAFF_EMAILS`: correos de Google autorizados; separados por
+ *   comas. Se comparan en minúsculas con el de la sesión de Supabase-talent.
+ *
+ * Van las dos o ninguna. Sin ellas la ruta responde `not_configured`.
+ */
+function commaList(value: unknown): unknown {
+  if (typeof value !== 'string') return undefined
+
+  const items = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+  return items.length > 0 ? items : undefined
+}
+
+const legacyOrigin = z.string().refine((value) => {
+  try {
+    const url = new URL(value)
+
+    return (
+      url.origin === value &&
+      (url.protocol === 'https:' || url.hostname === 'localhost')
+    )
+  } catch {
+    return false
+  }
+}, 'Cada origen debe ser https://dominio, sin barra final ni ruta')
+
+export const getTalentLegacyEnv = createScopedEnv('Talent (web antigua)', () =>
+  z
+    .object({
+      TALENT_LEGACY_ALLOWED_ORIGINS: z.preprocess(
+        commaList,
+        z.array(legacyOrigin).optional(),
+      ),
+      TALENT_LEGACY_STAFF_EMAILS: z.preprocess(
+        commaList,
+        z.array(z.email().transform((email) => email.toLowerCase())).optional(),
+      ),
+    })
+    .refine(
+      (env) =>
+        Boolean(env.TALENT_LEGACY_ALLOWED_ORIGINS) ===
+        Boolean(env.TALENT_LEGACY_STAFF_EMAILS),
+      {
+        message:
+          'Los orígenes y los correos de la web antigua van juntos (o ninguno de los dos)',
+        path: ['TALENT_LEGACY_STAFF_EMAILS'],
+      },
+    )
+    .transform((env) => ({
+      allowedOrigins: env.TALENT_LEGACY_ALLOWED_ORIGINS ?? [],
+      staffEmails: env.TALENT_LEGACY_STAFF_EMAILS ?? [],
+    })),
+)
+
+/**
  * Credencial de las tareas programadas (`/api/cron/*`; Vercel Cron la envía
  * como `Authorization: Bearer`). Opcional y en su PROPIO ámbito, como la de la
  * purga: si falta o es corta solo se cierran esas rutas y la web sigue
@@ -323,6 +388,7 @@ const SCOPES: ReadonlyArray<readonly [string, () => unknown]> = [
   ['Mailchimp', getMailchimpEnv],
   ['Talent', getTalentEnv],
   ['Talent (purga)', getTalentPurgeEnv],
+  ['Talent (web antigua)', getTalentLegacyEnv],
   ['Tareas programadas', getCronEnv],
   ['Mailchimp (talent)', getTalentMailchimpEnv],
 ]

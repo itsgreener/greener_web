@@ -2588,3 +2588,23 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Aclaración de Greener (mismo día).** La migración de infraestructura está en pausa: Cloudflare (dominio y medios), Mux y Bunny. No hay prueba de Bunny esta semana. Se anota como pausa (no como cancelación) en `migracion-infraestructura.md` y en el §4.0 y el §4.0 bis de `PROGRESO.md`. La auditoría de CSS se da por completa (ya constaba cerrada el 2 nov, §2.123); su copia en el Project no se ha borrado. Rama principal `main` y `.gitignore` confirmados. CI: Greener sube directamente a `main` y no se fuerza la protección de rama (queda documentado en `ci.md` §4).
 
 **Cifras.** Ver `PROGRESO.md` §1. Sin cambios de código salvo el comentario de `next.config.ts`; el único cambio de comportamiento es del CI (el formato bloquea). Se regeneran también `docs/estructura/estructura-src.txt` y `estructura-migrations.txt`.
+
+### 2.140 La web antigua de talent lanza el procesado de CVs (4 nov 2026)
+
+**Origen.** Greener necesita que la web antigua de talent (React + Vite, sin servidor) siga en uso un tiempo, y el cierre del acceso anónimo (`talent-puesta-en-marcha.md` §4.3) y la autenticación por cabecera de los webhooks (§3.4) la dejaron sin poder subir CVs ni avisar a n8n. Lo primero se arregla en esa web (SQL temporal acotado a los correos del personal, ver su `LEEME-web-antigua.md`); lo segundo exige un servidor que guarde el secreto, y ese servidor es esta web. Decisión de Greener: que el envío del correo al candidato no tenga prisa, así que basta con lanzar el procesado sin forzar.
+
+**Qué se añade.**
+
+1. `POST /api/talent/process-pending` (`src/app/api/talent/process-pending/route.ts`, con `OPTIONS` para el preflight de CORS). Solo contesta a los orígenes de `TALENT_LEGACY_ALLOWED_ORIGINS` y exige `Authorization: Bearer <access_token>` de la sesión de Google de Supabase-talent.
+2. `launchLegacyProcessing` (`application/`): tope por IP, sesión, correo en la lista, tope por persona y `processPendingCvs` **sin forzar** (conserva «no lanzar si hay filas en `started`» y el enfriamiento). Anota `talent.process_launch` en Actividad con el correo de quien subió y `source: legacy_web`.
+3. `supabaseStaffSessionVerifier` (`infrastructure/`): valida el token con `auth.getUser` de Supabase-talent y exige correo confirmado; el puerto `StaffSessionVerifier` está en `talentPorts.ts`.
+4. `getTalentLegacyEnv` (`serverEnv.ts`): ámbito propio `Talent (web antigua)` con `TALENT_LEGACY_ALLOWED_ORIGINS` y `TALENT_LEGACY_STAFF_EMAILS` (las dos o ninguna; sin ellas la ruta responde 503). Un error ahí no tumba el resto de talent.
+5. `LEGACY_PROCESSING_LIMITS` (`talentLimiters.ts`): 60 por hora y IP, 30 por hora y persona, aparte de `TalentLimiters`.
+
+**Por qué así y no de otra forma.** El secreto de n8n no puede ir en un navegador; convertir la web antigua a Next no lo cambia (seguiría necesitando una ruta de servidor). Se descartó una función de borde en Supabase-talent porque duplicaría la lógica y perdería las cautelas contra el doble procesado. La ruta es de otro origen a propósito, así que no usa `rejectCrossSite`: la protegen el origen permitido, la sesión de Google y la lista de correos.
+
+**Tests.** `launchLegacyProcessing.test.ts`, `legacyProcessRoute.test.ts`, `supabaseStaffSessionVerifier.test.ts` y un bloque nuevo en `talentEnv.test.ts`. Pendiente de comprobar con el proyecto real: que `auth.getUser(<token de usuario>)` con la clave secreta de talent responde como se espera y que n8n recibe el lanzamiento.
+
+**Cifras.** 331 ficheros y 4029 tests en verde; `tsc`, ESLint y Prettier limpios. Sin migraciones.
+
+**Retirada.** Con la web antigua apagada: vaciar las dos variables y borrar la ruta, el caso de uso, el verificador, `getTalentLegacyEnv` y sus tests.

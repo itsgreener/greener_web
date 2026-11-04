@@ -138,6 +138,14 @@ export interface TalentVirusScanner {
   scan(bytes: Uint8Array, fileName: string): Promise<void>
 }
 
+/**
+ * Comprueba la sesión de Supabase-talent (Google) de quien llama desde la web
+ * antigua. Devuelve su correo, o `null` si el token no es válido.
+ */
+export interface StaffSessionVerifier {
+  verify(accessToken: string): Promise<{ email: string } | null>
+}
+
 /** Límite de intentos por clave. */
 export interface AttemptLimiter {
   /** true si el intento cabe en el cupo (y ya cuenta). Hay que esperarla: el cupo puede ser compartido. */
