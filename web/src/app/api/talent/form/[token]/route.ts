@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server'
 
 import { getCandidateForm, saveCandidateForm } from '@/modules/talent/container'
 
+import { legacyPreflight } from '@/app/api/talent/_lib/legacyOrigin'
+
 import {
   failureResponse,
   honeypotOf,
@@ -11,6 +13,11 @@ import {
 } from '@/app/api/talent/_lib/talentRequest'
 
 type RouteContext = { params: Promise<{ token: string }> }
+
+/** Preflight de la web antigua de talent (otro origen); ver `legacyOrigin.ts`. */
+export function OPTIONS(request: NextRequest) {
+  return legacyPreflight(request, 'GET, PUT')
+}
 
 /** GET /api/talent/form/[token] — los datos que necesita el formulario. */
 export async function GET(request: NextRequest, { params }: RouteContext) {

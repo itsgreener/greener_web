@@ -7,6 +7,8 @@ import {
 import { TALENT_FILE_LIMITS } from '@/modules/talent/domain/talentConstants'
 import { isUuid } from '@/lib/validation/uuid'
 
+import { legacyPreflight } from '@/app/api/talent/_lib/legacyOrigin'
+
 import { readBodyWithLimit } from '@/app/api/talent/_lib/boundedBody'
 import {
   failureResponse,
@@ -18,6 +20,11 @@ type RouteContext = { params: Promise<{ token: string }> }
 
 /** Margen para la cabecera multipart sobre el tope del fichero. */
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024
+
+/** Preflight de la web antigua de talent (otro origen); ver `legacyOrigin.ts`. */
+export function OPTIONS(request: NextRequest) {
+  return legacyPreflight(request, 'POST, DELETE')
+}
 
 /**
  * POST /api/talent/form/[token]/files — un fichero por petición, campo

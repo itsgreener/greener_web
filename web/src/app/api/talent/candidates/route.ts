@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server'
 
 import { registerCandidate } from '@/modules/talent/container'
 
+import { legacyPreflight } from '@/app/api/talent/_lib/legacyOrigin'
+
 import {
   failureResponse,
   honeypotOf,
@@ -9,6 +11,11 @@ import {
   rejectCrossSite,
   talentRequest,
 } from '@/app/api/talent/_lib/talentRequest'
+
+/** Preflight de la web antigua de talent (otro origen); ver `legacyOrigin.ts`. */
+export function OPTIONS(request: NextRequest) {
+  return legacyPreflight(request, 'POST')
+}
 
 /**
  * POST /api/talent/candidates — alta por email. Cuerpo: `{ email, website? }`

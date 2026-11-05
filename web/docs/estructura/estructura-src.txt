@@ -142,6 +142,7 @@ src/app/api/feed/[sessionId]/route.ts
 src/app/api/feed/sessions/route.ts
 src/app/api/health/route.ts
 src/app/api/talent/_lib/boundedBody.ts
+src/app/api/talent/_lib/legacyOrigin.ts
 src/app/api/talent/_lib/purgeAuth.ts
 src/app/api/talent/_lib/talentRequest.ts
 src/app/api/talent/candidates/route.ts

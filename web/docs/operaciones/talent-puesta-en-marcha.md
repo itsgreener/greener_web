@@ -366,9 +366,11 @@ Cuatro puntos a tener en cuenta:
 
 ## 8. Web antigua de talent: `POST /api/talent/process-pending` (transitorio)
 
-La web antigua de talent (React, sin servidor) sigue en uso un tiempo solo para que el personal suba CVs desde `/private`. Su navegador no puede guardar el secreto de los webhooks de n8n (§3.4), así que, tras subir, pide a esta ruta que lance `Procesar nuevo CV`. Se retira con la web antigua (su repositorio lleva un `LEEME-web-antigua.md` y un SQL temporal que devuelve el acceso mínimo que necesita `/private`; al apagarla se deshace, y las dos comprobaciones de §4.3 vuelven a dar cero filas).
+La web antigua de talent (React, sin servidor) sigue en uso un tiempo en `https://talent.itsgreener.com`: el personal sube CVs desde `/private` y los candidatos abren allí su enlace `/form/<token>` (el del correo) y se apuntan desde `/`. Su navegador no puede guardar el secreto de los webhooks de n8n (§3.4), así que, tras subir, pide a esta ruta que lance `Procesar nuevo CV`; y el formulario y el alta de candidatos ya no tocan la base de datos (§4.3 la cerró): hablan con la API de esta web. Se retira con la web antigua (su repositorio lleva un `LEEME-web-antigua.md` y un SQL temporal que devuelve el acceso mínimo que necesita `/private`; al apagarla se deshace, y las dos comprobaciones de §4.3 vuelven a dar cero filas).
 
-**Cómo se protege.** No es de la misma web, así que no usa la comprobación de sitio del resto de `/api/talent`:
+**Qué API usa la web antigua.** `POST /api/talent/process-pending` (solo personal, lo de abajo) y, para candidatos, las rutas públicas de siempre: `POST /api/talent/candidates` (alta por email), `GET` y `PUT /api/talent/form/<token>` y `POST`/`DELETE /api/talent/form/<token>/files` (un archivo por petición). Estas cuatro admiten además el origen de `TALENT_LEGACY_ALLOWED_ORIGINS` (CORS y comprobación de sitio); el resto de reglas (límites, antivirus, honeypot, Mailchimp, n8n) no cambian. Un origen no listado sigue sin poder usarlas desde otro sitio. El cuerpo que envía el formulario antiguo está fijado por `legacyFormPayload.test.ts`: si cambia `candidateFormSchema` y ese test falla, el formulario antiguo se rompe.
+
+**Cómo se protege `process-pending`.** No es de la misma web, así que no usa la comprobación de sitio del resto de `/api/talent`:
 
 1. Solo responde a los orígenes de `TALENT_LEGACY_ALLOWED_ORIGINS` (comprueba `Origin` y contesta el preflight de CORS); a otro origen, 403 sin cabeceras CORS.
 2. Exige `Authorization: Bearer <access_token>` de la sesión de Google de Supabase-talent. La web valida el token preguntando a Supabase Auth (`auth.getUser`) y exige correo confirmado.
@@ -378,7 +380,7 @@ La web antigua de talent (React, sin servidor) sigue en uso un tiempo solo para 
 
 **Respuestas.** 200 `{ ok, status }` con `status` `triggered`, `nothing_pending` o `busy` (con `reason`: `in_progress` o `cooldown`); 401 `unauthorized`; 403 `forbidden`; 429 `rate_limited`; 503 `not_configured` o `unavailable`. Un lanzamiento deja `talent.process_launch` en Actividad con el correo de quien subió y `source: legacy_web` en el detalle.
 
-**Activarla.** Rellena las dos variables de §1 y redespliega. `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` y la cabecera de n8n tienen que estar ya puestas (las usa también el ABM). **Retirarla:** vacía las dos variables (la ruta vuelve a responder 503) y, con la web antigua apagada, borra la ruta, `launchLegacyProcessing`, `supabaseStaffSessionVerifier` y `getTalentLegacyEnv`.
+**Activarla.** Rellena las dos variables de §1 en el entorno de Vercel que sirva la URL a la que apunta la web antigua (`VITE_TALENT_API_URL`; los entornos de Vercel tienen variables separadas) y redespliega. Esa URL tiene que ser pública: una vista previa con Vercel Authentication activada devuelve 401 al navegador del candidato. `TALENT_N8N_PROCESS_CV_WEBHOOK_URL` y la cabecera de n8n tienen que estar ya puestas (las usa también el ABM). **Retirarla:** vacía las dos variables (la ruta vuelve a responder 503) y, con la web antigua apagada, borra la ruta, `launchLegacyProcessing`, `supabaseStaffSessionVerifier` y `getTalentLegacyEnv`.
 
 **Probar a mano.** Lo normal es subir un PDF desde `/private` y ver en `/admin/talent` que pasa de `pending` a `started`. Para probar la ruta sola hace falta el `access_token` de la sesión abierta de la web antigua; sin token, o con uno de otro correo, debe dar 401 o 403:
 

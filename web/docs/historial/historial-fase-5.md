@@ -2600,11 +2600,12 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 3. `supabaseStaffSessionVerifier` (`infrastructure/`): valida el token con `auth.getUser` de Supabase-talent y exige correo confirmado; el puerto `StaffSessionVerifier` está en `talentPorts.ts`.
 4. `getTalentLegacyEnv` (`serverEnv.ts`): ámbito propio `Talent (web antigua)` con `TALENT_LEGACY_ALLOWED_ORIGINS` y `TALENT_LEGACY_STAFF_EMAILS` (las dos o ninguna; sin ellas la ruta responde 503). Un error ahí no tumba el resto de talent.
 5. `LEGACY_PROCESSING_LIMITS` (`talentLimiters.ts`): 60 por hora y IP, 30 por hora y persona, aparte de `TalentLimiters`.
+6. Formulario y alta de candidatos de la web antigua. El enlace del correo apunta a `talent.itsgreener.com/form/<token>` y no hay formulario nuevo en ese dominio, así que la web antigua deja de redirigir y vuelve a servir su formulario, ahora contra la API de esta web. `_lib/legacyOrigin.ts` (origen permitido, cabeceras CORS, preflight) y `talentRequest.ts` (`legacyOrigin` en la petición; con origen permitido no se aplica `rejectCrossSite`) se aplican a `candidates`, `form/[token]` y `form/[token]/files`, que ganan `OPTIONS`.
 
 **Por qué así y no de otra forma.** El secreto de n8n no puede ir en un navegador; convertir la web antigua a Next no lo cambia (seguiría necesitando una ruta de servidor). Se descartó una función de borde en Supabase-talent porque duplicaría la lógica y perdería las cautelas contra el doble procesado. La ruta es de otro origen a propósito, así que no usa `rejectCrossSite`: la protegen el origen permitido, la sesión de Google y la lista de correos.
 
-**Tests.** `launchLegacyProcessing.test.ts`, `legacyProcessRoute.test.ts`, `supabaseStaffSessionVerifier.test.ts` y un bloque nuevo en `talentEnv.test.ts`. Pendiente de comprobar con el proyecto real: que `auth.getUser(<token de usuario>)` con la clave secreta de talent responde como se espera y que n8n recibe el lanzamiento.
+**Tests.** `launchLegacyProcessing.test.ts`, `legacyProcessRoute.test.ts`, `supabaseStaffSessionVerifier.test.ts`, `legacyFormCors.test.ts`, `legacyFormPayload.test.ts` (el cuerpo real que envía el formulario antiguo, capturado en navegador, valida con `candidateFormSchema`) y un bloque nuevo en `talentEnv.test.ts`. Pendiente de comprobar con el proyecto real: que `auth.getUser(<token de usuario>)` con la clave secreta de talent responde como se espera y que n8n recibe el lanzamiento.
 
-**Cifras.** 331 ficheros y 4029 tests en verde; `tsc`, ESLint y Prettier limpios. Sin migraciones.
+**Cifras.** 333 ficheros y 4040 tests en verde; `tsc`, ESLint y Prettier limpios. Sin migraciones.
 
-**Retirada.** Con la web antigua apagada: vaciar las dos variables y borrar la ruta, el caso de uso, el verificador, `getTalentLegacyEnv` y sus tests.
+**Retirada.** Con la web antigua apagada: vaciar las dos variables y borrar la ruta, el caso de uso, el verificador, `getTalentLegacyEnv`, `_lib/legacyOrigin.ts`, los `OPTIONS` de las otras tres rutas y sus tests.

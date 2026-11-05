@@ -1,6 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 
 import { readBodyWithLimit } from '@/app/api/talent/_lib/boundedBody'
+import {
+  legacyCorsHeaders,
+  legacyOriginOf,
+} from '@/app/api/talent/_lib/legacyOrigin'
 import { clientIpFromHeaders, hashClientIp } from '@/lib/http/clientIp'
 import {
   attachVisitorCookie,
@@ -20,6 +24,9 @@ import type {
  *
  * Los errores son códigos (`error: 'rate_limited'`…) y no frases: el paquete
  * `variety` tiene el texto en es/ca/en y elige el suyo.
+ *
+ * Excepción transitoria: la web antigua de talent (otro origen) también las
+ * llama; ver `legacyOrigin.ts`.
  */
 
 const STATUS_BY_FAILURE = {
@@ -41,13 +48,17 @@ const STATUS_BY_REJECTION: Record<FileRejection, number> = {
 export type TalentRequest = {
   context: TalentRequestContext
   respond: (payload: unknown, init?: ResponseInit) => NextResponse
+  /** Origen de la web antigua si la petición viene de uno permitido. */
+  legacyOrigin?: string | null
 }
 
 /** Contexto de límites + respuestas que llevan la cookie de visitante. */
 export function talentRequest(request: NextRequest): TalentRequest {
   const visitorId = getOrCreateVisitorId(request)
+  const legacyOrigin = legacyOriginOf(request)
 
   return {
+    legacyOrigin,
     context: {
       visitorKey: visitorId,
       ipKey: hashClientIp(clientIpFromHeaders(request.headers)),
@@ -55,7 +66,11 @@ export function talentRequest(request: NextRequest): TalentRequest {
     respond(payload, init = {}) {
       const response = NextResponse.json(payload, {
         ...init,
-        headers: { 'Cache-Control': 'no-store', ...init.headers },
+        headers: {
+          'Cache-Control': 'no-store',
+          ...(legacyOrigin ? legacyCorsHeaders(legacyOrigin) : {}),
+          ...init.headers,
+        },
       })
 
       attachVisitorCookie(response, visitorId)
@@ -68,12 +83,15 @@ export function talentRequest(request: NextRequest): TalentRequest {
 /**
  * Solo peticiones del propio sitio. `sec-fetch-site` lo manda todo navegador y
  * no lo puede falsear una página ajena; sin la cabecera (un script, no un
- * navegador) la petición sigue, y la frenan los límites.
+ * navegador) la petición sigue, y la frenan los límites. Un origen de la web
+ * antigua (`TALENT_LEGACY_ALLOWED_ORIGINS`) también pasa.
  */
 export function rejectCrossSite(
   request: NextRequest,
-  { respond }: TalentRequest,
+  { respond, legacyOrigin }: TalentRequest,
 ): NextResponse | null {
+  if (legacyOrigin) return null
+
   const site = request.headers.get('sec-fetch-site')
 
   if (site && site !== 'same-origin') {
