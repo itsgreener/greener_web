@@ -158,6 +158,50 @@ describe('Permissions-Policy', () => {
     },
   )
 
+  it('extraSupabaseUrls abre el origen de Supabase-talent en connect-src (subida directa de CVs), sin ruta ni query', () => {
+    const csp = buildContentSecurityPolicy({
+      ...INPUT,
+      extraSupabaseUrls: ['https://talent123.supabase.co/rest/v1/?x=1'],
+    })
+
+    expect(csp).toContain(
+      `connect-src 'self' https://abcxyz.supabase.co https://talent123.supabase.co https://api.cloudinary.com`,
+    )
+    expect(csp).not.toContain('/rest/v1')
+  })
+
+  it('sin URL configurada, vacía, inválida o repetida, connect-src queda como estaba', () => {
+    const base = buildContentSecurityPolicy(INPUT)
+
+    for (const extra of [
+      undefined,
+      [],
+      [undefined],
+      [''],
+      ['no es una url'],
+      ['https://abcxyz.supabase.co'],
+    ]) {
+      expect(
+        buildContentSecurityPolicy({ ...INPUT, extraSupabaseUrls: extra }),
+      ).toBe(base)
+    }
+  })
+
+  it('abrir Supabase-talent no toca ninguna otra directiva', () => {
+    const base = buildContentSecurityPolicy(INPUT)
+    const withTalent = buildContentSecurityPolicy({
+      ...INPUT,
+      extraSupabaseUrls: ['https://talent123.supabase.co'],
+    })
+
+    const directive = (csp: string, name: string) =>
+      csp.split('; ').find((d) => d.startsWith(`${name} `))
+
+    for (const name of ['script-src', 'img-src', 'frame-src', 'default-src']) {
+      expect(directive(withTalent, name)).toBe(directive(base, name))
+    }
+  })
+
   it('el aislamiento de ventana del ABM es same-origin', () => {
     expect(ADMIN_OPENER_POLICY).toBe('same-origin')
   })

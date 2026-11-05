@@ -57,6 +57,9 @@ export async function proxy(request: NextRequest) {
     supabaseUrl: env.NEXT_PUBLIC_SUPABASE_URL!,
     isDev: process.env.NODE_ENV === 'development',
     analyticsEnabled: Boolean(env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN),
+    // Subida directa de CVs del personal a Supabase-talent (solo servidor: la
+    // URL se lee de aquí, no se expone como variable pública).
+    extraSupabaseUrls: [process.env.TALENT_SUPABASE_URL],
   })
 
   // El propio Next.js busca el nonce en la cabecera Content-Security-

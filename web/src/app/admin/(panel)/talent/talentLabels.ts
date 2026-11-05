@@ -1,4 +1,5 @@
 import type { CvLocationKind } from '@/modules/talent/domain/talentAdminModels'
+import { TALENT_STAFF_UPLOAD } from '@/modules/talent/domain/talentConstants'
 
 import type { ProcessPendingResult } from '@/modules/talent/application/processPendingCvs'
 import type { FileRejection } from '@/modules/talent/application/talentResults'
@@ -73,7 +74,7 @@ export const CV_KIND_LABELS: Readonly<Record<CvLocationKind, string>> = {
 
 export const REJECTION_MESSAGES: Readonly<Record<FileRejection, string>> = {
   file_empty: 'el fichero está vacío.',
-  file_too_large: 'supera los 3,5 MB.',
+  file_too_large: `supera los ${TALENT_STAFF_UPLOAD.maxFileBytes / 1_000_000} MB.`,
   file_type:
     'no es un PDF, Word o imagen (png, jpg, webp) válido; el contenido no coincide con la extensión.',
   too_many_files: 'hay demasiados ficheros.',

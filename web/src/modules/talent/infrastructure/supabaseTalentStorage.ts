@@ -38,4 +38,32 @@ export const supabaseTalentStorage: TalentFileStorage = {
 
     return data.signedUrl
   },
+
+  async createSignedUploadUrl(path) {
+    const { data, error } = await getTalentClient()
+      .storage.from(CV_BUCKET)
+      .createSignedUploadUrl(path)
+
+    if (error || !data?.signedUrl) {
+      throw new Error(
+        `Supabase-talent (storage.createSignedUploadUrl): ${error?.message ?? 'sin URL'}`,
+      )
+    }
+
+    return data.signedUrl
+  },
+
+  async download(path) {
+    const { data, error } = await getTalentClient()
+      .storage.from(CV_BUCKET)
+      .download(path)
+
+    if (error || !data) {
+      throw new Error(
+        `Supabase-talent (storage.download): ${error?.message ?? 'sin datos'}`,
+      )
+    }
+
+    return new Uint8Array(await data.arrayBuffer())
+  },
 }

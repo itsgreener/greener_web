@@ -257,16 +257,43 @@ export function fakeNewsletter() {
   return { newsletter, subscribe }
 }
 
-export function fakeStorage() {
+/**
+ * `objects`: lo que ya hay en el bucket (ruta → bytes), para `download`. Sin
+ * objeto, `download` falla como Storage cuando el fichero no existe.
+ */
+export function fakeStorage(objects: Record<string, Uint8Array> = {}) {
   const upload = vi.fn<TalentFileStorage['upload']>(async () => {})
   const remove = vi.fn<TalentFileStorage['remove']>(async () => {})
   const createSignedUrl = vi.fn<TalentFileStorage['createSignedUrl']>(
     async (path, seconds) =>
       `https://signed.example/${path}?expires=${seconds}`,
   )
-  const storage: TalentFileStorage = { upload, remove, createSignedUrl }
+  const createSignedUploadUrl = vi.fn<
+    TalentFileStorage['createSignedUploadUrl']
+  >(async (path) => `https://signed.example/upload/${path}?token=t`)
+  const download = vi.fn<TalentFileStorage['download']>(async (path) => {
+    const bytes = objects[path]
 
-  return { storage, upload, remove, createSignedUrl }
+    if (!bytes) throw new Error(`Supabase-talent (storage.download): ${path}`)
+
+    return bytes
+  })
+  const storage: TalentFileStorage = {
+    upload,
+    remove,
+    createSignedUrl,
+    createSignedUploadUrl,
+    download,
+  }
+
+  return {
+    storage,
+    upload,
+    remove,
+    createSignedUrl,
+    createSignedUploadUrl,
+    download,
+  }
 }
 
 export function fakeScanner() {

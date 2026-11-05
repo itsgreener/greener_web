@@ -11,9 +11,11 @@ import { makeDeleteCandidate } from './application/deleteCandidate'
 import { makeDeleteCandidateFile } from './application/deleteCandidateFile'
 import { makeGetCandidateForm } from './application/getCandidateForm'
 import { makeLaunchLegacyProcessing } from './application/launchLegacyProcessing'
+import { makePrepareStaffCvUpload } from './application/prepareStaffCvUpload'
 import { makeProcessPendingCvs } from './application/processPendingCvs'
 import { makePurgeExpiredCandidates } from './application/purgeExpiredCandidates'
 import { makeRegisterCandidate } from './application/registerCandidate'
+import { makeRegisterStaffCv } from './application/registerStaffCv'
 import { makeReprocessCandidate } from './application/reprocessCandidate'
 import { makeResendFormLink } from './application/resendFormLink'
 import { makeResolveCvLink } from './application/resolveCvLink'
@@ -25,7 +27,6 @@ import {
   type TalentLimiters,
 } from './application/talentLimiters'
 import { makeUploadCandidateFile } from './application/uploadCandidateFile'
-import { makeUploadStaffCv } from './application/uploadStaffCv'
 import { n8nTalentWorkflows } from './infrastructure/n8nTalentWorkflows'
 import { supabaseStaffSessionVerifier } from './infrastructure/supabaseStaffSessionVerifier'
 import { supabaseTalentAdminRepository } from './infrastructure/supabaseTalentAdminRepository'
@@ -123,11 +124,14 @@ export const resolveCvLink = makeResolveCvLink({
   storage: supabaseTalentStorage,
 })
 
-export const uploadStaffCv = makeUploadStaffCv({
+export const prepareStaffCvUpload = makePrepareStaffCvUpload({
+  storage: supabaseTalentStorage,
+  newId: randomUUID,
+})
+
+export const registerStaffCv = makeRegisterStaffCv({
   admin: supabaseTalentAdminRepository,
   storage: supabaseTalentStorage,
-  scanner: cloudmersiveTalentScanner,
-  newId: randomUUID,
 })
 
 export const processPendingCvs = makeProcessPendingCvs({

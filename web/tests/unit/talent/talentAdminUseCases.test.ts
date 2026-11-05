@@ -1,19 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { makePrepareStaffCvUpload } from '@/modules/talent/application/prepareStaffCvUpload'
 import { makeProcessPendingCvs } from '@/modules/talent/application/processPendingCvs'
+import { makeRegisterStaffCv } from '@/modules/talent/application/registerStaffCv'
 import { makeReprocessCandidate } from '@/modules/talent/application/reprocessCandidate'
 import { makeResendFormLink } from '@/modules/talent/application/resendFormLink'
 import { makeResolveCvLink } from '@/modules/talent/application/resolveCvLink'
-import { makeUploadStaffCv } from '@/modules/talent/application/uploadStaffCv'
-import {
-  FileScanRejectedError,
-  WebhookNotConfiguredError,
-} from '@/modules/talent/domain/talentErrors'
+import { WebhookNotConfiguredError } from '@/modules/talent/domain/talentErrors'
 import {
   CANDIDATE_ID,
   FILE_BYTES,
   fakeAdminRepository,
-  fakeScanner,
   fakeStorage,
   fakeWorkflows,
 } from '@tests/helpers/talentFakes'
@@ -104,114 +101,192 @@ describe('resolveCvLink', () => {
   })
 })
 
-describe('uploadStaffCv', () => {
+describe('prepareStaffCvUpload', () => {
   function setup() {
-    const repo = fakeAdminRepository()
-    const { storage, upload, remove } = fakeStorage()
-    const { scanner, scan } = fakeScanner()
-    const uploadStaffCv = makeUploadStaffCv({
-      admin: repo.admin,
+    const { storage, createSignedUploadUrl } = fakeStorage()
+    const prepareStaffCvUpload = makePrepareStaffCvUpload({
       storage,
-      scanner,
       newId: () => UUID,
     })
 
-    return { ...repo, upload, remove, scan, uploadStaffCv }
+    return { createSignedUploadUrl, prepareStaffCvUpload }
   }
 
-  it('guarda uploads/<uuid>.<ext> y crea una fila pending con quien la sube', async () => {
-    const { uploadStaffCv, upload, scan, staffRows } = setup()
+  it('da una URL firmada para uploads/<uuid>.<ext> y el tipo de la extensión', async () => {
+    const { prepareStaffCvUpload, createSignedUploadUrl } = setup()
 
-    const result = await uploadStaffCv(
-      { name: 'Mi CV (final).PDF', bytes: FILE_BYTES.pdf },
-      'ana@itsgreener.com',
-    )
-
-    expect(result.ok).toBe(true)
-    expect(scan).toHaveBeenCalledOnce()
-    expect(upload).toHaveBeenCalledWith(
-      `uploads/${UUID}.pdf`,
-      FILE_BYTES.pdf,
-      'application/pdf',
-    )
-    expect(staffRows).toEqual([
-      {
-        status: 'pending',
-        file_path: `uploads/${UUID}.pdf`,
-        uploaded_by: 'ana@itsgreener.com',
-      },
-    ])
+    expect(
+      await prepareStaffCvUpload({
+        name: 'Mi CV (final).PDF',
+        size: 4_000_000,
+      }),
+    ).toEqual({
+      ok: true,
+      path: `uploads/${UUID}.pdf`,
+      signedUrl: `https://signed.example/upload/uploads/${UUID}.pdf?token=t`,
+      contentType: 'application/pdf',
+    })
+    expect(createSignedUploadUrl).toHaveBeenCalledWith(`uploads/${UUID}.pdf`)
   })
 
-  it('el nombre del fichero no llega al bucket ni a la base', async () => {
-    const { uploadStaffCv, upload, staffRows } = setup()
+  it('el nombre del fichero no llega a Storage', async () => {
+    const { prepareStaffCvUpload, createSignedUploadUrl } = setup()
 
-    await uploadStaffCv(
-      { name: 'Ñandú ../ con espacios.pdf', bytes: FILE_BYTES.pdf },
-      'ana@itsgreener.com',
-    )
+    await prepareStaffCvUpload({
+      name: 'Ñandú ../ con espacios.pdf',
+      size: 10,
+    })
 
-    expect(upload.mock.calls[0][0]).toBe(`uploads/${UUID}.pdf`)
-    expect(JSON.stringify(staffRows)).not.toContain('Ñandú')
+    expect(createSignedUploadUrl.mock.calls[0][0]).toBe(`uploads/${UUID}.pdf`)
+  })
+
+  it('admite justo 10 MB, el tope del personal (más que los 3,5 MB del formulario público)', async () => {
+    const { prepareStaffCvUpload } = setup()
+
+    expect(
+      (await prepareStaffCvUpload({ name: 'a.pdf', size: 10_000_000 })).ok,
+    ).toBe(true)
+    expect(
+      await prepareStaffCvUpload({ name: 'a.pdf', size: 10_000_001 }),
+    ).toEqual({
+      ok: false,
+      reason: 'file_rejected',
+      rejection: 'file_too_large',
+    })
   })
 
   it.each([
-    ['vacío', new Uint8Array(), 'cv.pdf', 'file_empty'],
-    ['más de 3,5 MB', new Uint8Array(3_500_001), 'cv.pdf', 'file_too_large'],
-    ['extensión no admitida', FILE_BYTES.pdf, 'cv.exe', 'file_type'],
-    [
-      'contenido que no es lo que dice la extensión',
-      FILE_BYTES.text,
-      'cv.pdf',
-      'file_type',
-    ],
-    ['un pdf con extensión png', FILE_BYTES.pdf, 'cv.png', 'file_type'],
+    ['vacío', 'cv.pdf', 0, 'file_empty'],
+    ['de tamaño no válido', 'cv.pdf', Number.NaN, 'file_empty'],
+    ['con extensión no admitida', 'cv.exe', 10, 'file_type'],
+    ['sin extensión', 'cv', 10, 'file_type'],
   ])(
-    'rechaza un fichero %s antes de tocar nada',
-    async (_name, bytes, name, rejection) => {
-      const { uploadStaffCv, upload, scan, calls } = setup()
+    'rechaza un fichero %s sin pedir URL',
+    async (_name, name, size, rejection) => {
+      const { prepareStaffCvUpload, createSignedUploadUrl } = setup()
 
-      expect(
-        await uploadStaffCv({ name, bytes }, 'ana@itsgreener.com'),
-      ).toEqual({
+      expect(await prepareStaffCvUpload({ name, size })).toEqual({
         ok: false,
         reason: 'file_rejected',
         rejection,
       })
-      expect(scan).not.toHaveBeenCalled()
-      expect(upload).not.toHaveBeenCalled()
+      expect(createSignedUploadUrl).not.toHaveBeenCalled()
+    },
+  )
+
+  it('si Storage no da la URL, devuelve unavailable y lo registra', async () => {
+    const log = silence()
+    const { prepareStaffCvUpload, createSignedUploadUrl } = setup()
+
+    createSignedUploadUrl.mockRejectedValueOnce(new Error('caído'))
+
+    expect(await prepareStaffCvUpload({ name: 'cv.pdf', size: 10 })).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    })
+    expect(log).toHaveBeenCalled()
+  })
+})
+
+describe('registerStaffCv', () => {
+  const PATH = `uploads/${UUID}.pdf`
+
+  function setup(
+    objects: Record<string, Uint8Array> = { [PATH]: FILE_BYTES.pdf },
+  ) {
+    const repo = fakeAdminRepository()
+    const { storage, remove, download } = fakeStorage(objects)
+    const registerStaffCv = makeRegisterStaffCv({ admin: repo.admin, storage })
+
+    return { ...repo, remove, download, registerStaffCv }
+  }
+
+  it('lee el objeto y crea una fila pending con la ruta y quien la sube', async () => {
+    const { registerStaffCv, remove, download, staffRows } = setup()
+
+    expect(await registerStaffCv(PATH, 'ana@itsgreener.com')).toEqual({
+      ok: true,
+      candidateId: expect.any(String),
+      bytes: FILE_BYTES.pdf.byteLength,
+    })
+    expect(download).toHaveBeenCalledWith(PATH)
+    expect(remove).not.toHaveBeenCalled()
+    expect(staffRows).toEqual([
+      { status: 'pending', file_path: PATH, uploaded_by: 'ana@itsgreener.com' },
+    ])
+  })
+
+  it.each([
+    ['vacío', new Uint8Array(), 'file_empty'],
+    ['de más de 10 MB', new Uint8Array(10_000_001), 'file_too_large'],
+    [
+      'con contenido que no es lo que dice la extensión',
+      FILE_BYTES.text,
+      'file_type',
+    ],
+    ['un png con extensión pdf', FILE_BYTES.png, 'file_type'],
+  ])(
+    'un fichero %s se rechaza y se borra del bucket',
+    async (_name, bytes, rejection) => {
+      const { registerStaffCv, remove, calls } = setup({ [PATH]: bytes })
+
+      expect(await registerStaffCv(PATH, 'ana@itsgreener.com')).toEqual({
+        ok: false,
+        reason: 'file_rejected',
+        rejection,
+      })
+      expect(remove).toHaveBeenCalledWith(PATH)
       expect(calls).toEqual([])
     },
   )
 
-  it('si el antivirus no lo da por limpio, no se sube ni se crea la fila', async () => {
-    const { uploadStaffCv, upload, scan, calls } = setup()
+  it.each([
+    'uploads/../otro.pdf',
+    'uploads/otra-carpeta/11111111-2222-4333-8444-555555555555.pdf',
+    `otro/${UUID}.pdf`,
+    `uploads/${UUID}.exe`,
+    `uploads/${UUID}.pdf/../../x.pdf`,
+    'uploads/no-es-un-uuid.pdf',
+    '',
+  ])(
+    'una ruta con forma ajena (%s) no toca nada: ni lee, ni borra, ni crea fila',
+    async (path) => {
+      const { registerStaffCv, remove, download, calls } = setup()
 
-    scan.mockRejectedValueOnce(new FileScanRejectedError())
+      expect(await registerStaffCv(path, 'ana@itsgreener.com')).toEqual({
+        ok: false,
+        reason: 'file_rejected',
+        rejection: 'file_type',
+      })
+      expect(download).not.toHaveBeenCalled()
+      expect(remove).not.toHaveBeenCalled()
+      expect(calls).toEqual([])
+    },
+  )
 
-    expect(
-      await uploadStaffCv(
-        { name: 'cv.pdf', bytes: FILE_BYTES.pdf },
-        'ana@itsgreener.com',
-      ),
-    ).toEqual({ ok: false, reason: 'file_rejected', rejection: 'file_scan' })
-    expect(upload).not.toHaveBeenCalled()
+  it('si el objeto no está en el bucket (la subida falló), unavailable y sin fila', async () => {
+    const log = silence()
+    const { registerStaffCv, calls } = setup({})
+
+    expect(await registerStaffCv(PATH, 'ana@itsgreener.com')).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    })
     expect(calls).toEqual([])
+    expect(log).toHaveBeenCalled()
   })
 
   it('si falla la fila, borra el objeto del bucket (no deja CVs huérfanos)', async () => {
     const log = silence()
-    const { uploadStaffCv, remove, failOn } = setup()
+    const { registerStaffCv, remove, failOn } = setup()
 
     failOn.add('insertStaffCandidate')
 
-    expect(
-      await uploadStaffCv(
-        { name: 'cv.pdf', bytes: FILE_BYTES.pdf },
-        'ana@itsgreener.com',
-      ),
-    ).toEqual({ ok: false, reason: 'unavailable' })
-    expect(remove).toHaveBeenCalledWith(`uploads/${UUID}.pdf`)
+    expect(await registerStaffCv(PATH, 'ana@itsgreener.com')).toEqual({
+      ok: false,
+      reason: 'unavailable',
+    })
+    expect(remove).toHaveBeenCalledWith(PATH)
     expect(log).toHaveBeenCalled()
   })
 })

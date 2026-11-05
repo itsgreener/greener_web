@@ -4,7 +4,8 @@ const CANDIDATE = '0b1f1a52-3b8e-4a0e-9c1d-5d4e6f7a8b9c'
 
 const getAdminActor = vi.fn()
 const recordAuditEvent = vi.fn()
-const uploadStaffCv = vi.fn()
+const prepareStaffCvUpload = vi.fn()
+const registerStaffCv = vi.fn()
 const processPendingCvs = vi.fn()
 const reprocessCandidate = vi.fn()
 const deleteCandidate = vi.fn()
@@ -32,7 +33,8 @@ vi.mock('@/modules/audit/container', () => ({
 }))
 
 vi.mock('@/modules/talent/container', () => ({
-  uploadStaffCv: (...args: unknown[]) => uploadStaffCv(...args),
+  prepareStaffCvUpload: (...args: unknown[]) => prepareStaffCvUpload(...args),
+  registerStaffCv: (...args: unknown[]) => registerStaffCv(...args),
   processPendingCvs: (...args: unknown[]) => processPendingCvs(...args),
   reprocessCandidate: (...args: unknown[]) => reprocessCandidate(...args),
   deleteCandidate: (...args: unknown[]) => deleteCandidate(...args),
@@ -49,16 +51,15 @@ function form(entries: Record<string, string | File>) {
   return data
 }
 
-const pdf = () =>
-  new File([Uint8Array.from([0x25, 0x50, 0x44, 0x46, 0x2d])], 'cv.pdf', {
-    type: 'application/pdf',
-  })
+const FILE = { name: 'cv.pdf', size: 5_000_000 }
+const PATH = 'uploads/11111111-2222-4333-8444-555555555555.pdf'
 
 beforeEach(() => {
   for (const mock of [
     getAdminActor,
     recordAuditEvent,
-    uploadStaffCv,
+    prepareStaffCvUpload,
+    registerStaffCv,
     processPendingCvs,
     reprocessCandidate,
     deleteCandidate,
@@ -76,12 +77,20 @@ beforeEach(() => {
 describe('sin sesión de admin, ninguna acción hace nada', () => {
   beforeEach(() => getAdminActor.mockResolvedValue(null))
 
-  it('uploadStaffCvAction', async () => {
-    expect(await actions.uploadStaffCvAction(form({ file: pdf() }))).toEqual({
+  it('prepareStaffCvUploadAction', async () => {
+    expect(await actions.prepareStaffCvUploadAction(FILE)).toEqual({
       ok: false,
       error: 'sesión caducada',
     })
-    expect(uploadStaffCv).not.toHaveBeenCalled()
+    expect(prepareStaffCvUpload).not.toHaveBeenCalled()
+  })
+
+  it('registerStaffCvAction', async () => {
+    expect(await actions.registerStaffCvAction(PATH)).toEqual({
+      ok: false,
+      error: 'sesión caducada',
+    })
+    expect(registerStaffCv).not.toHaveBeenCalled()
   })
 
   it('processPendingCvsAction', async () => {
@@ -182,14 +191,71 @@ describe('deleteCandidateAction', () => {
   })
 })
 
-describe('uploadStaffCvAction', () => {
-  it('sube con el email del admin y lo anota en la actividad', async () => {
-    uploadStaffCv.mockResolvedValue({ ok: true, candidateId: CANDIDATE })
-
-    expect(await actions.uploadStaffCvAction(form({ file: pdf() }))).toEqual({
+describe('prepareStaffCvUploadAction', () => {
+  it('devuelve la URL firmada y NO crea nada ni anota nada todavía', async () => {
+    prepareStaffCvUpload.mockResolvedValue({
       ok: true,
+      path: PATH,
+      signedUrl: 'https://signed.example/x',
+      contentType: 'application/pdf',
     })
-    expect(uploadStaffCv.mock.calls[0][1]).toBe('ana@itsgreener.com')
+
+    expect(await actions.prepareStaffCvUploadAction(FILE)).toEqual({
+      ok: true,
+      path: PATH,
+      signedUrl: 'https://signed.example/x',
+      contentType: 'application/pdf',
+    })
+    expect(prepareStaffCvUpload).toHaveBeenCalledWith(FILE)
+    expect(registerStaffCv).not.toHaveBeenCalled()
+    expect(recordAuditEvent).not.toHaveBeenCalled()
+  })
+
+  it('explica el rechazo de un fichero con una frase (10 MB, no 3,5)', async () => {
+    prepareStaffCvUpload.mockResolvedValue({
+      ok: false,
+      reason: 'file_rejected',
+      rejection: 'file_too_large',
+    })
+
+    expect(await actions.prepareStaffCvUploadAction(FILE)).toEqual({
+      ok: false,
+      error: 'supera los 10 MB.',
+    })
+  })
+
+  it('si Storage falla, dice que se reintente', async () => {
+    prepareStaffCvUpload.mockResolvedValue({
+      ok: false,
+      reason: 'unavailable',
+    })
+
+    const result = await actions.prepareStaffCvUploadAction(FILE)
+
+    expect(result.ok).toBe(false)
+  })
+
+  it('un argumento que no es {name, size} no llega al caso de uso', async () => {
+    expect(
+      (await actions.prepareStaffCvUploadAction({ name: 3 } as never)).ok,
+    ).toBe(false)
+    expect((await actions.prepareStaffCvUploadAction(null as never)).ok).toBe(
+      false,
+    )
+    expect(prepareStaffCvUpload).not.toHaveBeenCalled()
+  })
+})
+
+describe('registerStaffCvAction', () => {
+  it('registra con el email del admin y lo anota en la actividad', async () => {
+    registerStaffCv.mockResolvedValue({
+      ok: true,
+      candidateId: CANDIDATE,
+      bytes: 5,
+    })
+
+    expect(await actions.registerStaffCvAction(PATH)).toEqual({ ok: true })
+    expect(registerStaffCv).toHaveBeenCalledWith(PATH, 'ana@itsgreener.com')
     expect(recordAuditEvent).toHaveBeenCalledWith({
       actorEmail: 'ana@itsgreener.com',
       action: 'talent.cv_upload',
@@ -197,49 +263,51 @@ describe('uploadStaffCvAction', () => {
       entityId: CANDIDATE,
       payload: { bytes: 5 },
     })
+    expect(revalidatePath).toHaveBeenCalledWith('/admin/talent')
   })
 
   it('no lanza el procesado: eso se hace una vez por lote', async () => {
-    uploadStaffCv.mockResolvedValue({ ok: true, candidateId: CANDIDATE })
+    registerStaffCv.mockResolvedValue({
+      ok: true,
+      candidateId: CANDIDATE,
+      bytes: 5,
+    })
 
-    await actions.uploadStaffCvAction(form({ file: pdf() }))
+    await actions.registerStaffCvAction(PATH)
 
     expect(processPendingCvs).not.toHaveBeenCalled()
   })
 
   it('explica el rechazo de un fichero con una frase', async () => {
-    uploadStaffCv.mockResolvedValue({
+    registerStaffCv.mockResolvedValue({
       ok: false,
       reason: 'file_rejected',
-      rejection: 'file_scan',
+      rejection: 'file_type',
     })
 
-    expect(await actions.uploadStaffCvAction(form({ file: pdf() }))).toEqual({
-      ok: false,
-      error: 'el antivirus no lo ha dado por limpio.',
-    })
+    const result = await actions.registerStaffCvAction(PATH)
+
+    expect(result.ok).toBe(false)
     expect(recordAuditEvent).not.toHaveBeenCalled()
   })
 
-  it('sin fichero o con un fichero vacío no llama al caso de uso', async () => {
-    expect((await actions.uploadStaffCvAction(form({}))).ok).toBe(false)
-    expect(
-      (
-        await actions.uploadStaffCvAction(
-          form({ file: new File([], 'vacio.pdf') }),
-        )
-      ).ok,
-    ).toBe(false)
-    expect(uploadStaffCv).not.toHaveBeenCalled()
+  it('sin ruta no llama al caso de uso', async () => {
+    expect((await actions.registerStaffCvAction('')).ok).toBe(false)
+    expect((await actions.registerStaffCvAction(undefined as never)).ok).toBe(
+      false,
+    )
+    expect(registerStaffCv).not.toHaveBeenCalled()
   })
 
-  it('si falla la anotación, la subida ya hecha no se da por perdida', async () => {
-    uploadStaffCv.mockResolvedValue({ ok: true, candidateId: CANDIDATE })
+  it('si falla la anotación, lo registrado no se da por perdido', async () => {
+    registerStaffCv.mockResolvedValue({
+      ok: true,
+      candidateId: CANDIDATE,
+      bytes: 5,
+    })
     recordAuditEvent.mockResolvedValue(false)
 
-    expect((await actions.uploadStaffCvAction(form({ file: pdf() }))).ok).toBe(
-      true,
-    )
+    expect((await actions.registerStaffCvAction(PATH)).ok).toBe(true)
   })
 })
 

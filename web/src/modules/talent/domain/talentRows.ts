@@ -1,4 +1,5 @@
 import {
+  ALLOWED_FILE_EXTENSIONS,
   CANDIDATE_STATUS,
   CV_UPLOAD_PREFIX,
   TALENT_ACCESS_TTL_DAYS,
@@ -176,6 +177,24 @@ export function buildStoragePath(
   extension: AllowedFileExtension,
 ): string {
   return `${CV_UPLOAD_PREFIX}${id}.${extension}`
+}
+
+/**
+ * Inverso de `buildStoragePath`: la extensión de una ruta `uploads/<uuid>.<ext>`
+ * generada por el servidor, o `null` si la ruta tiene cualquier otra forma.
+ * El navegador devuelve la ruta tras subir directo a Storage: no se fía, se
+ * exige la forma exacta (sin `..`, sin subcarpetas, sin otros prefijos).
+ */
+export function extensionOfStoragePath(
+  path: string,
+): AllowedFileExtension | null {
+  const match = new RegExp(
+    `^${CV_UPLOAD_PREFIX}[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.([a-z]+)$`,
+  ).exec(path)
+
+  return (
+    ALLOWED_FILE_EXTENSIONS.find((allowed) => allowed === match?.[1]) ?? null
+  )
 }
 
 /**

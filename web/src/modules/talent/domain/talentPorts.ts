@@ -111,6 +111,16 @@ export interface TalentFileStorage {
 
   /** URL de lectura que caduca a los `expiresInSeconds`. */
   createSignedUrl(path: string, expiresInSeconds: number): Promise<string>
+
+  /**
+   * URL de ESCRITURA para esa ruta (un solo uso, sin sobrescribir, caduca a las
+   * 2 horas): el navegador sube con ella directamente a Storage, sin pasar por
+   * una función (Vercel limita el cuerpo a ~4,5 MB).
+   */
+  createSignedUploadUrl(path: string): Promise<string>
+
+  /** Lee el objeto entero (para comprobar su contenido tras la subida directa). */
+  download(path: string): Promise<Uint8Array>
 }
 
 /** Los workflows de n8n a los que llama el servidor. */

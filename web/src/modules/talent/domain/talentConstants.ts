@@ -193,11 +193,21 @@ export const TALENT_TEXT_LIMITS = {
 } as const
 
 /**
- * Subida del personal (ABM). El navegador manda un fichero por llamada, así que
- * el tope es de cada lote: el ABM no deja elegir más de 10 de una vez.
+ * Subida del personal (ABM). El navegador sube un fichero cada vez, así que el
+ * tope de lote es de cada tanda: el ABM no deja elegir más de 50 de una vez
+ * (eran 10 hasta el 5 nov 2026).
+ *
+ * `maxFileBytes`: 10 MB decimales (desde el 5 nov 2026; para portfolios). Es
+ * MAYOR que `TALENT_FILE_LIMITS.maxFileBytes` (3,5 MB, el del formulario
+ * público) porque aquí no hay antivirus que limite, pero entonces el fichero
+ * NO puede viajar por una Server Action (Vercel corta las peticiones a una
+ * función a ~4,5 MB): sube directo al bucket `cvs` con una URL firmada y la
+ * acción solo registra la ruta. Es el mismo `file_size_limit` que tiene el
+ * bucket (`talent-puesta-en-marcha.md` §4.4), así que Storage lo respalda.
  */
 export const TALENT_STAFF_UPLOAD = {
-  maxFilesPerBatch: 10,
+  maxFilesPerBatch: 50,
+  maxFileBytes: 10_000_000,
 } as const
 
 /** Vida de la URL firmada de un CV que aún está en el bucket. */

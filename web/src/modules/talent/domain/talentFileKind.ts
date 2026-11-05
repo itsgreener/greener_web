@@ -84,6 +84,23 @@ export function contentTypeOf(kind: FileKind): string {
   return MIME_BY_KIND[kind]
 }
 
+/**
+ * Tipo MIME que corresponde a una extensión admitida. Lo usa la subida directa
+ * del personal, donde el servidor aún no ha visto los bytes: el navegador sube
+ * con ESTE tipo (no con el suyo, que puede venir vacío) y después se comprueba
+ * que el contenido coincide (`registerStaffCv`).
+ */
+export function contentTypeOfExtension(
+  extension: AllowedFileExtension,
+): string {
+  const kind = (Object.keys(EXTENSIONS_BY_KIND) as FileKind[]).find((item) =>
+    EXTENSIONS_BY_KIND[item].includes(extension),
+  )
+
+  // Todas las extensiones admitidas pertenecen a un tipo (lo fija un test).
+  return MIME_BY_KIND[kind!]
+}
+
 /** ¿La extensión que declara el nombre es coherente con el contenido? */
 export function extensionMatchesKind(
   extension: AllowedFileExtension,

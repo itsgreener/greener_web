@@ -33,6 +33,13 @@ export interface SecurityHeadersInput {
   // silencio y NINGÚN evento llega. Solo se abre si hay analítica
   // configurada: sin ella, ese origen no hace falta.
   analyticsEnabled?: boolean
+  // Otros proyectos de Supabase a los que el NAVEGADOR sube ficheros con una URL
+  // firmada: hoy solo Supabase-talent (`TALENT_SUPABASE_URL`), a donde sube sus
+  // CVs el personal desde `/admin/talent/upload` (hasta 10 MB, no caben en una
+  // petición a una función). Sin su origen en `connect-src`, el navegador
+  // bloquea la subida en silencio. Solo se abre si está configurado; se
+  // reduce a `origin` (sin ruta ni query).
+  extraSupabaseUrls?: readonly (string | undefined)[]
 }
 
 // Endpoint de eventos del tracker de Plausible (su valor por defecto, que es el
@@ -60,12 +67,26 @@ export function buildContentSecurityPolicy({
   supabaseUrl,
   isDev,
   analyticsEnabled = false,
+  extraSupabaseUrls = [],
 }: SecurityHeadersInput): string {
   const supabaseOrigin = new URL(supabaseUrl).origin
+
+  const extraOrigins = extraSupabaseUrls.flatMap((url) => {
+    if (!url) return []
+
+    try {
+      const origin = new URL(url).origin
+
+      return origin === supabaseOrigin ? [] : [origin]
+    } catch {
+      return []
+    }
+  })
 
   const connectSources = [
     `'self'`,
     supabaseOrigin,
+    ...extraOrigins,
     CLOUDINARY_UPLOAD_ORIGIN,
     ...(analyticsEnabled ? [PLAUSIBLE_EVENTS_ORIGIN] : []),
   ]

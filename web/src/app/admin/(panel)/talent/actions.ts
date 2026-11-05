@@ -9,10 +9,11 @@ import { ADMIN_REQUIRED_MESSAGE, getAdminActor } from '@/lib/auth/adminSession'
 import { recordAuditEvent } from '@/modules/audit/container'
 import {
   deleteCandidate,
+  prepareStaffCvUpload,
   processPendingCvs,
+  registerStaffCv,
   reprocessCandidate,
   resendFormLink,
-  uploadStaffCv,
 } from '@/modules/talent/container'
 
 import {
@@ -24,7 +25,11 @@ const TALENT_AUDIT_ENTITY = 'talent_candidate'
 
 const candidateIdSchema = z.uuid()
 
-export type UploadStaffCvActionResult =
+export type PrepareStaffCvUploadActionResult =
+  | { ok: true; path: string; signedUrl: string; contentType: string }
+  | { ok: false; error: string }
+
+export type RegisterStaffCvActionResult =
   { ok: true } | { ok: false; error: string }
 
 export type TalentActionState = {
@@ -35,25 +40,64 @@ export type TalentActionState = {
 }
 
 /**
- * Sube UN CV (el navegador llama una vez por fichero para no mandar 100 MB en
- * una petición). No lanza el procesado: lo hace `processPendingCvsAction` al
- * final del lote, porque el workflow procesa todas las filas `pending`.
+ * Primer paso de la subida de UN CV: entrega al navegador una URL firmada para
+ * que suba el fichero directo al bucket (hasta 10 MB). El fichero no pasa por
+ * esta función: Vercel limita el cuerpo de una petición a ~4,5 MB. Solo viajan
+ * el nombre y el tamaño que declara el navegador.
  */
-export async function uploadStaffCvAction(
-  formData: FormData,
-): Promise<UploadStaffCvActionResult> {
+export async function prepareStaffCvUploadAction(file: {
+  name: string
+  size: number
+}): Promise<PrepareStaffCvUploadActionResult> {
   const actor = await getAdminActor()
 
   if (!actor) return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
 
-  const file = formData.get('file')
-
-  if (!(file instanceof File) || file.size === 0) {
-    return { ok: false, error: 'el fichero está vacío.' }
+  if (typeof file?.name !== 'string' || typeof file?.size !== 'number') {
+    return { ok: false, error: 'el fichero no es válido.' }
   }
 
-  const bytes = new Uint8Array(await file.arrayBuffer())
-  const result = await uploadStaffCv({ name: file.name, bytes }, actor.email)
+  const result = await prepareStaffCvUpload({
+    name: file.name,
+    size: file.size,
+  })
+
+  if (!result.ok) {
+    return {
+      ok: false,
+      error:
+        result.reason === 'file_rejected'
+          ? REJECTION_MESSAGES[result.rejection]
+          : 'no se ha podido preparar la subida. Inténtalo de nuevo.',
+    }
+  }
+
+  return {
+    ok: true,
+    path: result.path,
+    signedUrl: result.signedUrl,
+    contentType: result.contentType,
+  }
+}
+
+/**
+ * Segundo paso: el fichero ya está en el bucket (`path`); se lee desde allí, se
+ * comprueba y se crea la fila `pending`. No lanza el procesado: lo hace
+ * `processPendingCvsAction` al final del lote, porque el workflow procesa todas
+ * las filas `pending`.
+ */
+export async function registerStaffCvAction(
+  path: string,
+): Promise<RegisterStaffCvActionResult> {
+  const actor = await getAdminActor()
+
+  if (!actor) return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  if (typeof path !== 'string' || path === '') {
+    return { ok: false, error: 'el fichero no es válido.' }
+  }
+
+  const result = await registerStaffCv(path, actor.email)
 
   if (!result.ok) {
     return {
@@ -70,7 +114,7 @@ export async function uploadStaffCvAction(
     action: 'talent.cv_upload',
     entity: TALENT_AUDIT_ENTITY,
     entityId: result.candidateId,
-    payload: { bytes: bytes.byteLength },
+    payload: { bytes: result.bytes },
   })
 
   revalidatePath('/admin/talent')

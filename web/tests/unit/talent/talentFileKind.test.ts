@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest'
 import {
   allowedExtensionOf,
   contentTypeOf,
+  contentTypeOfExtension,
   detectFileKind,
   extensionMatchesKind,
 } from '@/modules/talent/domain/talentFileKind'
+import { ALLOWED_FILE_EXTENSIONS } from '@/modules/talent/domain/talentConstants'
 import { FILE_BYTES } from '@tests/helpers/talentFakes'
 
 describe('detectFileKind', () => {
@@ -71,5 +73,23 @@ describe('extensionMatchesKind / contentTypeOf', () => {
     expect(contentTypeOf('pdf')).toBe('application/pdf')
     expect(contentTypeOf('docx')).toContain('wordprocessingml')
     expect(contentTypeOf('webp')).toBe('image/webp')
+  })
+})
+
+describe('contentTypeOfExtension', () => {
+  it('cada extensión admitida tiene tipo MIME (la subida directa del personal lo necesita)', () => {
+    for (const extension of ALLOWED_FILE_EXTENSIONS) {
+      expect(contentTypeOfExtension(extension)).toMatch(
+        /^(application|image)\//,
+      )
+    }
+  })
+
+  it('jpg y jpeg dan image/jpeg, y los tipos coinciden con los del contenido', () => {
+    expect(contentTypeOfExtension('jpg')).toBe('image/jpeg')
+    expect(contentTypeOfExtension('jpeg')).toBe('image/jpeg')
+    expect(contentTypeOfExtension('pdf')).toBe(contentTypeOf('pdf'))
+    expect(contentTypeOfExtension('docx')).toBe(contentTypeOf('docx'))
+    expect(contentTypeOfExtension('png')).toBe(contentTypeOf('png'))
   })
 })

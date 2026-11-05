@@ -12,6 +12,7 @@ import {
   buildProjectRows,
   buildSignupRow,
   buildStoragePath,
+  extensionOfStoragePath,
 } from '@/modules/talent/domain/talentRows'
 import {
   candidateFormSchema,
@@ -248,6 +249,40 @@ describe('subida de ficheros → bucket y fila de files', () => {
       /^uploads\/[0-9a-f-]{36}\.(pdf|doc|docx|png|jpg|jpeg|webp)$/,
     )
     expect(path).not.toMatch(/[^\x21-\x7e]/)
+  })
+
+  it('extensionOfStoragePath es el inverso de buildStoragePath y solo acepta esa forma', () => {
+    const id = '7c9e6679-7425-40de-944b-e07fc1f90ae7'
+
+    for (const extension of [
+      'pdf',
+      'doc',
+      'docx',
+      'png',
+      'jpg',
+      'jpeg',
+      'webp',
+    ] as const) {
+      expect(extensionOfStoragePath(buildStoragePath(id, extension))).toBe(
+        extension,
+      )
+    }
+
+    for (const path of [
+      '',
+      `uploads/${id}`,
+      `uploads/${id}.exe`,
+      `uploads/${id}.PDF`,
+      `uploads/${id}.pdf.exe`,
+      `uploads/../${id}.pdf`,
+      `uploads/sub/${id}.pdf`,
+      `/uploads/${id}.pdf`,
+      `other/${id}.pdf`,
+      `uploads/${id}.pdf\n`,
+      'uploads/x.pdf',
+    ]) {
+      expect(extensionOfStoragePath(path)).toBeNull()
+    }
   })
 
   it('la fila de files lleva candidato, ruta y token; type y status los pone n8n', () => {

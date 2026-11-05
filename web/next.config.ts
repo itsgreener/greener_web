@@ -29,16 +29,16 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      // Por defecto 1 MB — insuficiente para subir un CV (un archivo por
-      // petición, máximo 3,5 MB, talentConstants.ts). Tiene que ser IGUAL O
-      // MAYOR que ese máximo (y que PACKAGE_LIMITS.maxZipSizeBytes, el mismo
-      // 3,5 MB): el cuerpo lleva el archivo más los campos del formulario.
-      // El ZIP de tool/insight ya NO viaja por una Server Action (va directo
-      // a Storage, packageActions.ts), así que no hace falta el margen de
-      // 20 MB de antes: cuanto más bajo es el tope, menos cuerpo puede
-      // obligar a Next a leer y copiar un POST anónimo (SEC-X-2). 5 MB es
-      // también más o menos lo que admite Vercel (4,5 MB) en cualquier caso.
-      // Un test (packageSizeLimits.test.ts) falla si baja de 3,5 MB.
+      // Por defecto 1 MB. Tiene que ser IGUAL O MAYOR que
+      // PACKAGE_LIMITS.maxZipSizeBytes (3,5 MB): el cuerpo lleva el archivo más
+      // los campos del formulario. Ni el ZIP de tool/insight (packageActions.ts)
+      // ni los CV del personal (talent, hasta 10 MB: `prepareStaffCvUpload`)
+      // viajan ya por una Server Action: suben directo a Storage con una URL
+      // firmada, por lo que no hace falta ningún margen grande y cuanto más
+      // bajo es el tope, menos cuerpo puede obligar a Next a leer y copiar un
+      // POST anónimo (SEC-X-2). 5 MB es también más o menos lo que admite
+      // Vercel (4,5 MB) en cualquier caso. Un test (packageSizeLimits.test.ts)
+      // falla si baja de 3,5 MB.
       bodySizeLimit: '5mb',
     },
     // OJO, no es opcional: como existe `src/proxy.ts` y su matcher cubre los

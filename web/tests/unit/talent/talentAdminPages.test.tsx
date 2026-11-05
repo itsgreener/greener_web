@@ -13,7 +13,8 @@ const notFound = vi.hoisted(() =>
     throw new Error('NEXT_NOT_FOUND')
   }),
 )
-const uploadStaffCvAction = vi.hoisted(() => vi.fn())
+const prepareStaffCvUploadAction = vi.hoisted(() => vi.fn())
+const registerStaffCvAction = vi.hoisted(() => vi.fn())
 const processPendingCvsAction = vi.hoisted(() => vi.fn())
 
 vi.mock('next/navigation', () => ({ notFound, redirect: vi.fn() }))
@@ -27,7 +28,8 @@ vi.mock('@/modules/talent/container', () => ({
 }))
 
 vi.mock('@/app/admin/(panel)/talent/actions', () => ({
-  uploadStaffCvAction,
+  prepareStaffCvUploadAction,
+  registerStaffCvAction,
   processPendingCvsAction,
   reprocessCandidateAction: vi.fn(),
   resendFormLinkAction: vi.fn(),
@@ -405,8 +407,20 @@ function choose(files: File[]) {
 }
 
 describe('subida de CVs — navegador', () => {
+  const fetchMock = vi.fn()
+
   beforeEach(() => {
-    uploadStaffCvAction.mockReset().mockResolvedValue({ ok: true })
+    prepareStaffCvUploadAction
+      .mockReset()
+      .mockImplementation(async (file: { name: string }) => ({
+        ok: true,
+        path: `uploads/${file.name}`,
+        signedUrl: `https://talent.example/upload/${file.name}?token=t`,
+        contentType: 'application/pdf',
+      }))
+    fetchMock.mockReset().mockResolvedValue({ ok: true, status: 200 })
+    vi.stubGlobal('fetch', fetchMock)
+    registerStaffCvAction.mockReset().mockResolvedValue({ ok: true })
     processPendingCvsAction
       .mockReset()
       .mockResolvedValue({ message: 'Procesado lanzado para 2 CVs.' })
@@ -418,7 +432,7 @@ describe('subida de CVs — navegador', () => {
     choose([
       pdf('bueno.pdf'),
       pdf('virus.exe'),
-      pdf('grande.pdf', 3_500_001),
+      pdf('grande.pdf', 10_000_001),
       pdf('vacio.pdf', 0),
     ])
 
@@ -427,19 +441,17 @@ describe('subida de CVs — navegador', () => {
     expect(
       screen.getByText(/virus.exe: formato no admitido/),
     ).toBeInTheDocument()
-    expect(
-      screen.getByText(/grande.pdf: supera los 3,5 MB/),
-    ).toBeInTheDocument()
+    expect(screen.getByText(/grande.pdf: supera los 10 MB/)).toBeInTheDocument()
     expect(screen.getByText(/vacio.pdf: está vacío/)).toBeInTheDocument()
   })
 
-  it('no admite más de 10 por lote', () => {
+  it('no admite más de 50 por lote', () => {
     render(<UploadCvs />)
 
-    choose(Array.from({ length: 12 }, (_, index) => pdf(`cv-${index}.pdf`)))
+    choose(Array.from({ length: 52 }, (_, index) => pdf(`cv-${index}.pdf`)))
 
-    expect(screen.getAllByText(/ MB · listo/)).toHaveLength(10)
-    expect(screen.getByText(/Solo caben 10 CVs por vez/)).toBeInTheDocument()
+    expect(screen.getAllByText(/ MB · listo/)).toHaveLength(50)
+    expect(screen.getByText(/Solo caben 50 CVs por vez/)).toBeInTheDocument()
   })
 
   it('sube un fichero por llamada y lanza el procesado UNA vez al final', async () => {
@@ -455,9 +467,11 @@ describe('subida de CVs — navegador', () => {
 
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
 
-    expect(uploadStaffCvAction).toHaveBeenCalledTimes(3)
+    expect(prepareStaffCvUploadAction).toHaveBeenCalledTimes(3)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(registerStaffCvAction).toHaveBeenCalledTimes(3)
     expect(processPendingCvsAction).toHaveBeenCalledTimes(1)
-    expect(uploadStaffCvAction.mock.invocationCallOrder[2]).toBeLessThan(
+    expect(registerStaffCvAction.mock.invocationCallOrder[2]).toBeLessThan(
       processPendingCvsAction.mock.invocationCallOrder[0],
     )
     expect(screen.getByText('3 subidos.')).toBeInTheDocument()
@@ -467,7 +481,7 @@ describe('subida de CVs — navegador', () => {
   })
 
   it('si uno falla, se dice cuál y por qué, y el resto sigue', async () => {
-    uploadStaffCvAction
+    registerStaffCvAction
       .mockResolvedValueOnce({ ok: true })
       .mockResolvedValueOnce({
         ok: false,
@@ -496,7 +510,7 @@ describe('subida de CVs — navegador', () => {
   })
 
   it('si no se sube ninguno, no se lanza el procesado', async () => {
-    uploadStaffCvAction.mockResolvedValue({ ok: false, error: 'no.' })
+    registerStaffCvAction.mockResolvedValue({ ok: false, error: 'no.' })
 
     render(<UploadCvs />)
 
@@ -515,7 +529,7 @@ describe('subida de CVs — navegador', () => {
   })
 
   it('una conexión cortada cuenta como error de ese fichero, no rompe el lote', async () => {
-    uploadStaffCvAction.mockRejectedValueOnce(new Error('network'))
+    registerStaffCvAction.mockRejectedValueOnce(new Error('network'))
 
     render(<UploadCvs />)
 
@@ -530,7 +544,7 @@ describe('subida de CVs — navegador', () => {
     await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
 
     expect(screen.getByText(/se ha cortado la conexión/)).toBeInTheDocument()
-    expect(uploadStaffCvAction).toHaveBeenCalledTimes(2)
+    expect(registerStaffCvAction).toHaveBeenCalledTimes(2)
   })
 
   it('sin ficheros el botón está desactivado', () => {
@@ -539,5 +553,164 @@ describe('subida de CVs — navegador', () => {
     expect(
       screen.getByRole('button', { name: 'Subir y procesar' }),
     ).toBeDisabled()
+  })
+
+  it('los CVs subidos salen de la lista y se puede cargar otro lote sin recargar', async () => {
+    render(<UploadCvs />)
+
+    choose(Array.from({ length: 50 }, (_, index) => pdf(`cv-${index}.pdf`)))
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 50' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    expect(screen.getByText('50 subidos.')).toBeInTheDocument()
+    expect(screen.queryByText('cv-0.pdf')).toBeNull()
+    expect(screen.queryAllByText(/ MB · subido/)).toHaveLength(0)
+
+    // Antes de la corrección las filas «ok» ocupaban todo el tope del lote.
+    choose([pdf('nuevo.pdf')])
+
+    expect(screen.getByText('nuevo.pdf')).toBeInTheDocument()
+    expect(screen.queryByText(/Solo caben 50 CVs por vez/)).toBeNull()
+    expect(
+      screen.getByRole('button', { name: 'Subir y procesar 1' }),
+    ).toBeEnabled()
+  })
+
+  it('los CVs con error se quedan en la lista para reintentarlos', async () => {
+    registerStaffCvAction
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, error: 'no.' })
+
+    render(<UploadCvs />)
+
+    choose([pdf('a.pdf'), pdf('b.pdf')])
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 2' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    expect(screen.queryByText('a.pdf')).toBeNull()
+    expect(screen.getByText('b.pdf')).toBeInTheDocument()
+    expect(screen.getByText(/no se ha subido: no\./)).toBeInTheDocument()
+  })
+
+  it('admite hasta 10 MB y lo sube directo a la URL firmada, sin pasar por una acción', async () => {
+    render(<UploadCvs />)
+
+    choose([pdf('portfolio.pdf', 10_000_000)])
+
+    expect(screen.getByText('portfolio.pdf')).toBeInTheDocument()
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 1' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    // Solo viajan el nombre y el tamaño: el fichero no entra en una Server Action.
+    expect(prepareStaffCvUploadAction).toHaveBeenCalledWith({
+      name: 'portfolio.pdf',
+      size: 10_000_000,
+    })
+    expect(registerStaffCvAction).toHaveBeenCalledWith('uploads/portfolio.pdf')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    const body = init.body as FormData
+    const sent = body.get('') as Blob
+
+    expect(url).toBe('https://talent.example/upload/portfolio.pdf?token=t')
+    expect(init.method).toBe('PUT')
+    expect(init.headers).toEqual({ 'x-upsert': 'false' })
+    expect(sent.size).toBe(10_000_000)
+    // El tipo sale del servidor (de la extensión), no del navegador.
+    expect(sent.type).toBe('application/pdf')
+
+    // Orden: preparar → subir → registrar.
+    expect(prepareStaffCvUploadAction.mock.invocationCallOrder[0]).toBeLessThan(
+      fetchMock.mock.invocationCallOrder[0],
+    )
+    expect(fetchMock.mock.invocationCallOrder[0]).toBeLessThan(
+      registerStaffCvAction.mock.invocationCallOrder[0],
+    )
+  })
+
+  it('si el servidor no prepara la subida, no se sube ni se registra', async () => {
+    prepareStaffCvUploadAction.mockResolvedValueOnce({
+      ok: false,
+      error: 'supera los 10 MB.',
+    })
+
+    render(<UploadCvs />)
+
+    choose([pdf('a.pdf')])
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 1' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(registerStaffCvAction).not.toHaveBeenCalled()
+    expect(
+      screen.getByText(/no se ha subido: supera los 10 MB\./),
+    ).toBeInTheDocument()
+  })
+
+  it('si Storage rechaza la subida, dice el código y no registra el fichero', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    fetchMock.mockResolvedValueOnce({ ok: false, status: 413 })
+
+    render(<UploadCvs />)
+
+    choose([pdf('a.pdf')])
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 1' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    expect(registerStaffCvAction).not.toHaveBeenCalled()
+    expect(screen.getByText(/\(error 413\)/)).toBeInTheDocument()
+    expect(log).toHaveBeenCalled()
+
+    log.mockRestore()
+  })
+
+  it('si se corta la conexión al subir a Storage, cuenta como error de ese fichero', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    render(<UploadCvs />)
+
+    choose([pdf('a.pdf'), pdf('b.pdf')])
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Subir y procesar 2' }),
+      )
+    })
+
+    await waitFor(() => expect(screen.getByRole('status')).toBeInTheDocument())
+
+    expect(screen.getByText(/se ha cortado la conexión/)).toBeInTheDocument()
+    expect(registerStaffCvAction).toHaveBeenCalledTimes(1)
   })
 })
