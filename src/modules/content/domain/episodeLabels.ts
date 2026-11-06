@@ -14,6 +14,7 @@ export const EPISODE_PROGRAM_LABEL: Record<EpisodeProgram, string> = {
   brand_the_future: 'Brand the Future',
   brand_into_europe: 'Brand into Europe',
   brand_to_table: 'Brand to Table',
+  brand_founders_leaders: 'Brand Founders & Leaders',
 }
 
 export const EPISODE_KIND_LABEL: Record<EpisodeKind, string> = {

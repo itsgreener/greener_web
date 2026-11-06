@@ -2609,3 +2609,19 @@ Greener respondió a lo que quedaba de la auditoría de CSS (ADM-D3 y ADM-D4, el
 **Cifras.** 333 ficheros y 4040 tests en verde; `tsc`, ESLint y Prettier limpios. Sin migraciones.
 
 **Retirada.** Con la web antigua apagada: vaciar las dos variables y borrar la ruta, el caso de uso, el verificador, `getTalentLegacyEnv`, `_lib/legacyOrigin.ts`, los `OPTIONS` de las otras tres rutas y sus tests.
+
+### 2.143 Nuevo programa del podcast: «Brand Founders & Leaders» (6 nov 2026)
+
+Petición de Greener: añadir la categoría «Brand Founders & Leaders» al selector de programa y a la base de datos.
+
+**Qué cambia.**
+- `supabase/migrations/20261106140000_episode_program_brand_founders_leaders.sql`: `alter type episode_program add value if not exists 'brand_founders_leaders'`. Va en un fichero propio y no usa el valor, porque Postgres no permite usar un valor de enumerado recién añadido en la misma transacción (mismo patrón que `pin_ratio_add_4_3` y `html_package_kind_variety`). `upsert_episode` y `episode.program` usan el tipo, así que no hay que tocar nada más en SQL.
+- `episodeSchema.ts`: `brand_founders_leaders` al final de `episodeProgramSchema`; el valor por defecto del desplegable (`options[0]`) no cambia.
+- `episodeLabels.ts`: «Brand Founders & Leaders» en `EPISODE_PROGRAM_LABEL`. De aquí salen el desplegable «Programa» del ABM, la ficha del episodio, el pin del feed («Brand Founders & Leaders Podcast») y el `PodcastSeries` del JSON-LD.
+- `database.types.ts`: añadido a mano en los dos sitios del enumerado, en el mismo orden que Postgres; `npm run db:types` lo dejará igual.
+
+**Decisión.** Se añade como cuarto valor y `brand_to_table` se conserva (quitar un valor de un enumerado exige recrear el tipo y las funciones que lo usan). El texto de `/channel` ya nombraba «Brand Founders & Leaders» y no «Brand to Table»; si Greener da «Brand to Table» por retirado, se deja de ofrecer sacándolo de `episodeProgramSchema` y de las etiquetas, sin tocar la base de datos.
+
+**Tests.** `episodeLabels.test.ts` y `episodeSchema.test.ts` cubren el valor nuevo. Los datos de demo (`generate-demo-data.mjs`, `seed_demo_data.sql`) no se tocan.
+
+**Pendiente de Greener.** Ejecutar la migración en Supabase y, si el filtro del Channel se hace con etiquetas, crear la etiqueta «Brand Founders & Leaders» en la sección Channel.

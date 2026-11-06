@@ -25,6 +25,9 @@ describe('etiquetas de episodio', () => {
     expect(episodeProgramLabel('brand_the_future')).toBe('Brand the Future')
     expect(episodeProgramLabel('brand_into_europe')).toBe('Brand into Europe')
     expect(episodeProgramLabel('brand_to_table')).toBe('Brand to Table')
+    expect(episodeProgramLabel('brand_founders_leaders')).toBe(
+      'Brand Founders & Leaders',
+    )
     expect(episodeKindLabel('podcast')).toBe('Podcast')
   })
 
@@ -43,6 +46,9 @@ describe('episodePinSecondaryText — segunda línea del pin de episodio', () =>
     )
     expect(episodePinSecondaryText('brand_into_europe', 'podcast')).toBe(
       'Brand into Europe Podcast',
+    )
+    expect(episodePinSecondaryText('brand_founders_leaders', 'podcast')).toBe(
+      'Brand Founders & Leaders Podcast',
     )
   })
 

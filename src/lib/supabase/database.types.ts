@@ -912,6 +912,7 @@ export type Database = {
         | "brand_the_future"
         | "brand_into_europe"
         | "brand_to_table"
+        | "brand_founders_leaders"
       episode_provider: "youtube" | "vimeo" | "spotify"
       html_package_kind: "insight" | "tool" | "variety"
       html_package_version_status: "draft" | "published" | "rolled_back"
@@ -1056,6 +1057,7 @@ export const Constants = {
         "brand_the_future",
         "brand_into_europe",
         "brand_to_table",
+        "brand_founders_leaders",
       ],
       episode_provider: ["youtube", "vimeo", "spotify"],
       html_package_kind: ["insight", "tool", "variety"],

@@ -23,7 +23,12 @@ describe('episodeSchema — campos obligatorios (arquitectura §7.3)', () => {
     expect(episodeSchema.safeParse(base).success).toBe(true)
   })
 
-  it.each(['brand_the_future', 'brand_into_europe', 'brand_to_table'])(
+  it.each([
+    'brand_the_future',
+    'brand_into_europe',
+    'brand_to_table',
+    'brand_founders_leaders',
+  ])(
     'acepta cada programa de la lista cerrada: %s',
     (program) => {
       expect(episodeSchema.safeParse({ ...base, program }).success).toBe(true)

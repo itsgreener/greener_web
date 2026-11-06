@@ -11,6 +11,7 @@ export const episodeProgramSchema = z.enum([
   'brand_the_future',
   'brand_into_europe',
   'brand_to_table',
+  'brand_founders_leaders',
 ])
 
 // Vimeo se retiró el 13 oct 2026 (su reproductor bloqueaba la reproducción por
