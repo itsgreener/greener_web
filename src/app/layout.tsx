@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { headers } from 'next/headers'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import { env } from '@/lib/env'
 import { helveticaNeue, kinder } from '@/lib/fonts'
 import { buildOpenGraph } from '@/lib/pageMetadata'
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={`${helveticaNeue.variable} ${kinder.variable}`}>
       <body>{children}</body>
+      <SpeedInsights />
     </html>
   )
 }
