@@ -146,7 +146,7 @@
   --lines: 4;
   font-size: var(--fs-2xl); /* respaldo si el navegador no soporta cqw */
   font-size: clamp(var(--fs-2xl), 16cqw, 3.75rem);
-  line-height: 1.2;
+  line-height: 0.9;
   overflow-wrap: anywhere;
 }
 

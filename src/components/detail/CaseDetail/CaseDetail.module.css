@@ -78,9 +78,9 @@
    además escala con la tipografía final aunque hoy sea placeholder. */
 .title {
   composes: lineClamp from '../../text/lineClamp.module.css';
-  --lines: 2;
+  --lines: 3;
   font-size: var(--fs-3xl);
-  line-height: 1.2;
+  line-height: 0.9;
   max-width: 40ch;
 }
 
@@ -89,15 +89,17 @@
   margin: 10px 0;
   font-weight: 700;
   max-width: 55ch;
+  line-height: 1.1;
 }
 
 .body {
   composes: lineClamp from '../../text/lineClamp.module.css';
-  --lines: 16;
+  --lines: 20;
   font-size: var(--fs-md);
   opacity: 0.7;
   white-space: pre-wrap;
   max-width: 70ch;
+  line-height: 1.1;
 }
 
 .client {
