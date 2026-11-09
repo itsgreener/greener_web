@@ -2625,3 +2625,15 @@ Petición de Greener: añadir la categoría «Brand Founders & Leaders» al sele
 **Tests.** `episodeLabels.test.ts` y `episodeSchema.test.ts` cubren el valor nuevo. Los datos de demo (`generate-demo-data.mjs`, `seed_demo_data.sql`) no se tocan.
 
 **Pendiente de Greener.** Ejecutar la migración en Supabase y, si el filtro del Channel se hace con etiquetas, crear la etiqueta «Brand Founders & Leaders» en la sección Channel.
+
+### 2.144 E2E en GitHub: Speed Insights rompía cuatro casos (9 nov 2026)
+
+**Qué pasó.** El flujo `E2E` falló con 4 casos en rojo (E1, E5, E6 y E7) y, encima, un registro lleno de líneas `❌ Variables de entorno inválidas o incompletas (Cloudinary, Cloudmersive, Mailchimp, Talent…)`. Esas líneas son avisos del arranque (`validateServerEnv()` en `instrumentation.ts`), documentados como normales en `e2e.md` §4: los E2E no definen esas integraciones a propósito. Los cuatro fallos tenían la misma causa, en la última línea de cada caso (`expect(consoleProblems).toEqual([])`): `Failed to load resource: 404` y `Refused to execute script from '…/_vercel/speed-insights/script.js' because its MIME type ('text/plain') is not executable`. Todo lo demás de esos casos (40 pines, 12 lotes de scroll, el reproductor, el correo en el receptor SMTP) llegó a pasar. E2, E3, E4 y E8, que no afirman nada sobre la consola, pasaron.
+
+**Causa.** `src/app/layout.tsx` monta `<SpeedInsights />` (`@vercel/speed-insights`), que inyecta un `<script>` a `/_vercel/speed-insights/script.js` del propio origen. Esa ruta la sirve la plataforma de Vercel; el servidor standalone del CI no la conoce, responde 404 y el navegador anota los dos errores. No consta en `PROGRESO.md` ni en el inventario de cookies cuándo entró el componente; sí que las ejecuciones del 3 nov pasaron limpias.
+
+**Qué cambia.** `e2e/support/test.ts`: `stubVercelPlatform` responde 200 con un script vacío a `**/_vercel/**` y `stubExternalRequests` junta ese stub con el de Cloudinary; el `page` de todos los casos lo usa, y E3 (que abre su propio contexto) también. `tests/unit/shared/e2eWorkflow.test.ts`: si el layout carga algo de `@vercel/`, el stub tiene que seguir en `support/test.ts`. `src/` no se toca.
+
+**Comprobación.** Build de producción con las variables de `scripts/e2e-env.mjs` (Supabase falso) y Node 24.22.1, servidor standalone y Chrome sobre `/privacy`: sin el stub, los dos errores del registro de GitHub; con él, la consola queda vacía. Tipos de `e2e/`, ESLint y Prettier limpios y el test de guarda comprobado a la inversa (falla si se quita el stub). **No se pudo ejecutar la suite completa** (no hay Docker en este entorno): la primera ejecución en GitHub es la prueba definitiva.
+
+**Para Greener, fuera del código.** Si el plan B de Dinahosting llegara a usarse, `<SpeedInsights />` pediría ese script en cada página y daría 404 (en producción en Vercel funciona). Y Speed Insights no aparece en `/privacy` ni en el inventario de cookies: conviene decidir si se menciona y preguntárselo al asesor (no escribe cookies, pero es un tratamiento de datos de visita por un tercero, como Plausible).

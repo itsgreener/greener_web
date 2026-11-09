@@ -164,3 +164,18 @@ describe('Supabase local de los E2E', () => {
     }
   })
 })
+
+describe('lo que sirve la plataforma, no la aplicación', () => {
+  it('si el layout carga algo de Vercel, los E2E sustituyen `/_vercel/`', () => {
+    // `<SpeedInsights />` pide /_vercel/speed-insights/script.js al propio
+    // origen. Fuera de Vercel (el servidor standalone del CI) da 404 y la
+    // consola registra dos errores que rompen E1, E5, E6 y E7.
+    const layout = read('src/app/layout.tsx')
+    const support = read('e2e/support/test.ts')
+
+    if (layout.includes('@vercel/')) {
+      expect(support).toContain('**/_vercel/**')
+      expect(support).toMatch(/stubVercelPlatform\(page\)/)
+    }
+  })
+})

@@ -1,4 +1,4 @@
-import { expect, stubCloudinary, test } from '../support/test'
+import { expect, stubExternalRequests, test } from '../support/test'
 import {
   feedChildCount,
   nextFrames,
@@ -79,7 +79,7 @@ test.describe('Feed', () => {
     const context = await browser.newContext({ locale: 'en' })
     try {
       const other = await context.newPage()
-      await stubCloudinary(other)
+      await stubExternalRequests(other)
       await other.goto('/')
       const stranger = (await pinHrefs(other, DESKTOP_BATCH)).slice(0, 20)
       expect(stranger).not.toEqual(original)

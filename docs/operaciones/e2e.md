@@ -25,7 +25,7 @@ Pendiente (plan §9.4, paso 4 opcional): proyecto móvil (los casos de `?size=20
 
 Dos diferencias con el plan original: E2 comprueba la misma *sesión* (cada `POST /api/feed/sessions` abre una sesión nueva con su propia seed, que es lo que prueba E3), y E8 no usa ningún ZIP: monta las filas y los ficheros ya extraídos.
 
-**Datos y ayudas.** `e2e/support/test.ts` (imágenes de Cloudinary sustituidas por un PNG de 1×1 y errores de consola), `feed.ts` (pines, espaciadores, lotes recibidos y tráfico al feed), `consent.ts` (ventana de cookies), `smtpSink.ts` (receptor SMTP de Node, sin Docker: escucha en el `CONTACT_SMTP_PORT` que `e2e-env.mjs` le da al servidor; `tests/unit/shared/smtpSink.test.ts` lo prueba con el nodemailer real en cada `npm test`) y `toolPackage.ts` (publica la tool `e2e-fixture-tool` con la clave secreta: contenido, paquete, versión publicada y cuatro ficheros en el bucket `html-packages`; la borra al terminar). Los datos de demo no tienen tools ni pines de tool.
+**Datos y ayudas.** `e2e/support/test.ts` (imágenes de Cloudinary sustituidas por un PNG de 1×1, `/_vercel/` sustituido por un script vacío y errores de consola), `feed.ts` (pines, espaciadores, lotes recibidos y tráfico al feed), `consent.ts` (ventana de cookies), `smtpSink.ts` (receptor SMTP de Node, sin Docker: escucha en el `CONTACT_SMTP_PORT` que `e2e-env.mjs` le da al servidor; `tests/unit/shared/smtpSink.test.ts` lo prueba con el nodemailer real en cada `npm test`) y `toolPackage.ts` (publica la tool `e2e-fixture-tool` con la clave secreta: contenido, paquete, versión publicada y cuatro ficheros en el bucket `html-packages`; la borra al terminar). Los datos de demo no tienen tools ni pines de tool.
 
 Las imágenes de demo apuntan a identificadores de Cloudinary que no existen: el test intercepta `res.cloudinary.com` y responde un PNG de 1×1 píxel. Los E2E no salen a internet.
 
@@ -53,14 +53,21 @@ Abrir la ejecución en Actions y mirar en qué paso se detuvo:
 - **E7 sin mensaje en el receptor:** la web no llegó al SMTP (puerto de `CONTACT_SMTP_PORT`) o falló el envío; el registro del servidor trae el error.
 - **E8 «Montaje de la tool de prueba, …»:** el paso que falla (crear el contenido, el paquete o la versión, o subir un fichero) y el mensaje de Supabase. Casi siempre es una migración que cambió una columna o una política de Storage.
 - **Un test concreto:** descargar el artefacto `playwright-report` y abrir la traza (`npx playwright show-trace`).
+- **Varios casos con «console: Failed to load resource… 404» o «Refused to execute script…»:** una petición a algo que solo existe en producción. El mensaje trae la URL: si cuelga de `/_vercel/` ya está cubierta; si es de otro origen, hay que interceptarla en `e2e/support/test.ts` como `res.cloudinary.com`. Es lo que pasó con Speed Insights (9 nov).
 
-Los avisos `❌ Variables de entorno inválidas… (Talent, Mailchimp…)` del arranque son normales: los E2E no definen esas integraciones y el resto de la web sigue en pie.
+**Cómo leer el registro de GitHub.** Lo primero que se ve, con muchas líneas rojas, son los avisos de `instrumentation.ts`, y no tienen nada que ver con los fallos de los tests:
+
+- Los avisos `❌ Variables de entorno inválidas o incompletas (Cloudinary, Cloudmersive, Mailchimp, Talent…)` y `⚠ Sin almacén compartido de límites` del arranque son normales. Son **avisos, no errores**: `validateServerEnv()` recorre todos los ámbitos al arrancar y deja uno por cada integración sin configurar (el propio texto acaba con «el resto de la web sigue en pie»). Los E2E no definen esas integraciones **a propósito**: el repositorio no guarda secretos y `scripts/e2e-env.mjs` solo pone los valores de prueba de lo que la web necesita para servir páginas, contactar con el Supabase local y enviar al receptor SMTP.
+- El fallo de verdad está más abajo, en el bloque `1) [chromium] › e2e/specs/…` (línea del `expect` que falla, con el diff) y en el resumen final (`4 failed`).
+- No se definen valores falsos para esas integraciones para acallar el aviso: la web las daría por configuradas y un caso futuro que las tocara intentaría hablar con un servicio inexistente en lugar de fallar claramente.
 
 ## 5. Estado de la validación
 
 **Confirmado en GitHub (3 nov):** el flujo con E1 a E8 se ejecutó dos veces sin errores. Con eso quedan comprobados, en la práctica, `supabase start` con las 58 migraciones y los dos seeds (con `pg_cron` y Storage reales), los nombres de variable de `supabase status -o json`, la acción `supabase/setup-cli` v3.2.0 con la CLI 3.0.0, `playwright install --with-deps chromium`, la subida y lectura de ficheros de E8 con la clave secreta nueva (`sb_secret_…`) y la estabilidad de E4 y E5 en el runner.
 
 Antes de eso, todo se había validado en un entorno sin Docker (PostgreSQL 17 y PostgREST 14.15 reales, con los esquemas `auth` y `storage` y `pg_cron` simulados), y el receptor SMTP de E7 se prueba en cada `npm test` con el nodemailer real.
+
+**9 nov:** E1, E5, E6 y E7 fallaron en GitHub por Speed Insights (arriba) y se corrigió con el stub de `/_vercel/`. El arreglo se comprobó contra un build real con Node 24.22.1 (sin el stub, los dos errores de consola; con él, ninguno), pero **no se ha ejecutado la suite completa** (sin Docker no hay Supabase local): la primera ejecución real en GitHub es la prueba definitiva.
 
 **Sigue sin comprobarse:**
 
