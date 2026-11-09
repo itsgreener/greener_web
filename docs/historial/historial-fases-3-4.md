@@ -12,7 +12,7 @@ Las referencias `§X` sin más contexto siguen apuntando al documento de arquite
 
 **Implementado el 10 de septiembre: migraciones SQL + capa domain/application/infrastructure + ABM + motor de feed.** El editor de bloques (`content_block`) construido en agosto ya no existe: tabla, funciones RPC y toda la UI del ABM que dependía de él se borraron (no se dejó como código muerto).
 
-**Los dos documentos de referencia siguen viviendo en la raíz del repo** (`docs/especificaciones/especificacion-final-formato-detalle.md`, `docs/especificaciones/contrato-zip-tools-insights.md`) — son la fuente de verdad del diseño; este apartado resume qué se implementó a partir de ellos.
+**Los dos documentos de referencia siguen viviendo en la raíz del repo** (`docs/contratos/especificacion-final-formato-detalle.md`, `docs/contratos/contrato-zip-tools-insights.md`) — son la fuente de verdad del diseño; este apartado resume qué se implementó a partir de ellos.
 
 **Resumen de lo implementado:**
 
@@ -88,7 +88,7 @@ Esto es la lista completa. Cuando se retome, empezar por aquí:
 
 - ~~Falta el panel de recomendaciones por completo~~ — **cerrado el 21 sep, ver §3.7**: el modelo de columnas (altura fija 66,7vh, ancho = altura × ratio, tope 83% del ancho útil) está construido y sirve también a tipo B y `other`, no solo a tipo A.
 - ~~El CTA no comprueba antes si existe un paquete HTML publicado — si no lo hay, se deja que `/app` devuelva su propio 404 al hacer clic, en vez de ocultar o deshabilitar el botón~~ — **resuelto el 22 sep, pero no así**: en vez de parchear el CTA en cliente, se bloqueó en el origen — `publish_content`/`schedule_content` rechazan publicar/programar una tool/insight sin `html_package.current_version_id`. Con esto, el escenario que el CTA tendría que comprobar ya no puede darse nunca en producción (una tool/insight publicada siempre tiene paquete) — la comprobación en cliente queda sin sentido, no una mejora pendiente aparte.
-- ~~`/tools|insights/[slug]/app` sigue sirviendo un viewport fijo hardcodeado (`1136×800`) en vez del tamaño real de pantalla~~ — **cerrado el 21 sep**: `composeToolDocument.ts` recibe ahora `calc(100dvw - 64px)`/`100dvh` en vez de números fijos; el `64px` coincide con `--sidebar-width` del `Shell` público (`globals.css`). Sin cambios en el contrato del ZIP — sigue prohibido construir contra `100vw`/`100vh`/`window.innerWidth` (`docs/especificaciones/contrato-zip-tools-insights.md` §6), solo cambia qué valor recibe la variable CSS.
+- ~~`/tools|insights/[slug]/app` sigue sirviendo un viewport fijo hardcodeado (`1136×800`) en vez del tamaño real de pantalla~~ — **cerrado el 21 sep**: `composeToolDocument.ts` recibe ahora `calc(100dvw - 64px)`/`100dvh` en vez de números fijos; el `64px` coincide con `--sidebar-width` del `Shell` público (`globals.css`). Sin cambios en el contrato del ZIP — sigue prohibido construir contra `100vw`/`100vh`/`window.innerWidth` (`docs/contratos/contrato-zip-tools-insights.md` §6), solo cambia qué valor recibe la variable CSS.
 
 **Shell:**
 

@@ -17,6 +17,27 @@
   background: var(--color-surface);
 }
 
+.active {
+  border-color: var(--color-cta);
+  box-shadow: var(--admin-focus-ring);
+}
+
+.badge {
+  margin: 0;
+  color: var(--admin-text-muted);
+  font-size: var(--admin-fs-xs);
+  font-weight: 700;
+  letter-spacing: var(--admin-tracking-caps);
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
 .thumb {
   width: 100px;
   height: 100px;

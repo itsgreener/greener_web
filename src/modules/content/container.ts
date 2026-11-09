@@ -28,6 +28,11 @@ import {
   makeRemoveAllCaseCarouselMedia,
   makeRemoveCaseCarouselMedia,
 } from './application/removeCaseCarouselMedia'
+import { makeReorderCaseCarousel } from './application/reorderCaseCarousel'
+import {
+  makeReplaceCaseCarouselImage,
+  makeReplaceCaseCarouselVideo,
+} from './application/replaceCaseCarouselMedia'
 import {
   makeResolvePreviewContext,
   previewOfType,
@@ -35,6 +40,7 @@ import {
 import { resolveDetailCover } from './application/resolveDetailCover'
 import { makeRevokePreviewLinks } from './application/revokePreviewLinks'
 import { makeUnpublishContent } from './application/unpublishContent'
+import { makeUpdateCaseCarouselAlt } from './application/updateCaseCarouselAlt'
 import { makeUpdateContent } from './application/updateContent'
 import { makeUpdateOtherFrequency } from './application/updateOtherFrequency'
 import { makeUpsertCaseDetail } from './application/upsertCaseDetail'
@@ -132,6 +138,27 @@ export const removeAllCaseCarouselMedia = makeRemoveAllCaseCarouselMedia({
   carousels: caseCarousels,
   media: mediaAssets,
   cleanup: mediaCleanup,
+})
+
+export const reorderCaseCarousel = makeReorderCaseCarousel({
+  media: mediaAssets,
+})
+
+export const updateCaseCarouselAlt = makeUpdateCaseCarouselAlt({
+  media: mediaAssets,
+})
+
+export const replaceCaseCarouselImage = makeReplaceCaseCarouselImage({
+  media: mediaAssets,
+  verifier: mediaVerifier,
+  cleanup: mediaCleanup,
+})
+
+export const replaceCaseCarouselVideo = makeReplaceCaseCarouselVideo({
+  media: mediaAssets,
+  verifier: mediaVerifier,
+  cleanup: mediaCleanup,
+  warm: warmScheduler,
 })
 
 /**

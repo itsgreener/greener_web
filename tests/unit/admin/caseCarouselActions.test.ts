@@ -21,6 +21,10 @@ vi.mock('@/modules/content/container', () => ({
   addCaseCarouselVideo: vi.fn(),
   removeCaseCarouselMedia: vi.fn(),
   removeAllCaseCarouselMedia: vi.fn(),
+  reorderCaseCarousel: vi.fn(),
+  updateCaseCarouselAlt: vi.fn(),
+  replaceCaseCarouselImage: vi.fn(),
+  replaceCaseCarouselVideo: vi.fn(),
 }))
 
 import {
@@ -28,12 +32,20 @@ import {
   addCaseCarouselVideoAction,
   removeAllCaseCarouselMediaAction,
   removeCaseCarouselMediaAction,
+  reorderCaseCarouselAction,
+  replaceCaseCarouselImageAction,
+  replaceCaseCarouselVideoAction,
+  updateCaseCarouselAltAction,
 } from '@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions'
 import {
   addCaseCarouselImage,
   addCaseCarouselVideo,
   removeAllCaseCarouselMedia,
   removeCaseCarouselMedia,
+  reorderCaseCarousel,
+  replaceCaseCarouselImage,
+  replaceCaseCarouselVideo,
+  updateCaseCarouselAlt,
 } from '@/modules/content/container'
 import {
   ImageVerificationError,
@@ -261,5 +273,178 @@ describe('removeAllCaseCarouselMediaAction', () => {
 
     expect(result.ok).toBe(false)
     expect(removeAllCaseCarouselMedia).not.toHaveBeenCalled()
+  })
+})
+
+const NEW_MEDIA_ID = '33333333-3333-4333-8333-333333333333'
+
+describe('reorderCaseCarouselAction', () => {
+  const input = { contentId: CONTENT_ID, mediaIds: [NEW_MEDIA_ID, MEDIA_ID] }
+
+  it('guarda el orden con el caso de uso', async () => {
+    vi.mocked(reorderCaseCarousel).mockResolvedValue(2)
+
+    expect(await reorderCaseCarouselAction(input)).toEqual({ ok: true })
+    expect(reorderCaseCarousel).toHaveBeenCalledWith(input)
+  })
+
+  it('si el carrusel cambió en otra pestaña (ZG014), explica que no se guardó', async () => {
+    vi.mocked(reorderCaseCarousel).mockRejectedValueOnce(
+      dbError('ZG014', 'El carrusel ha cambiado desde otra pestaña'),
+    )
+
+    const result = await reorderCaseCarouselAction(input)
+
+    expect(result.ok).toBe(false)
+
+    if (!result.ok) {
+      expect(result.error).toContain('otra pestaña')
+      expect(result.error).toContain('no se ha guardado')
+    }
+  })
+
+  it('con una lista vacía o ids inválidos no llega al caso de uso', async () => {
+    expect(
+      (await reorderCaseCarouselAction({ ...input, mediaIds: [] })).ok,
+    ).toBe(false)
+    expect(
+      (await reorderCaseCarouselAction({ ...input, mediaIds: ['x'] })).ok,
+    ).toBe(false)
+    expect(reorderCaseCarousel).not.toHaveBeenCalled()
+  })
+})
+
+describe('updateCaseCarouselAltAction', () => {
+  const input = { contentId: CONTENT_ID, mediaId: MEDIA_ID, alt: 'New alt' }
+
+  it('guarda el alt con el caso de uso', async () => {
+    vi.mocked(updateCaseCarouselAlt).mockResolvedValue(MEDIA_ID)
+
+    expect(await updateCaseCarouselAltAction(input)).toEqual({ ok: true })
+    expect(updateCaseCarouselAlt).toHaveBeenCalledWith(input)
+  })
+
+  it('si la diapositiva ya no existe (ZG014), lo dice con claridad', async () => {
+    vi.mocked(updateCaseCarouselAlt).mockRejectedValueOnce(
+      dbError('ZG014', 'no pertenece'),
+    )
+
+    const result = await updateCaseCarouselAltAction(input)
+
+    expect(result.ok).toBe(false)
+
+    if (!result.ok) expect(result.error).toContain('ya no está en el carrusel')
+  })
+
+  it('con un alt en blanco no llega al caso de uso', async () => {
+    expect(
+      (await updateCaseCarouselAltAction({ ...input, alt: '  ' })).ok,
+    ).toBe(false)
+    expect(updateCaseCarouselAlt).not.toHaveBeenCalled()
+  })
+})
+
+describe('replaceCaseCarouselImageAction', () => {
+  const input = {
+    contentId: CONTENT_ID,
+    mediaId: MEDIA_ID,
+    cloudinaryPublicId: 'greener/content/nueva',
+    format: 'jpg',
+    width: 10,
+    height: 10,
+    bytes: 10,
+    alt: 'Replaced image',
+  }
+
+  it('sustituye la imagen y devuelve ok si el archivo anterior se borró', async () => {
+    vi.mocked(replaceCaseCarouselImage).mockResolvedValue({
+      mediaId: NEW_MEDIA_ID,
+      purge: { purged: 1, failed: 0 },
+    })
+
+    expect(await replaceCaseCarouselImageAction(input)).toEqual({ ok: true })
+    expect(replaceCaseCarouselImage).toHaveBeenCalledWith(input)
+  })
+
+  it('si el archivo anterior no se pudo borrar, devuelve aviso pero ok', async () => {
+    vi.mocked(replaceCaseCarouselImage).mockResolvedValue({
+      mediaId: NEW_MEDIA_ID,
+      purge: { purged: 0, failed: 1 },
+    })
+
+    const result = await replaceCaseCarouselImageAction(input)
+
+    expect(result.ok).toBe(true)
+
+    if (result.ok) expect(result.warning).toContain('Cloudinary')
+  })
+
+  it('si el archivo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(replaceCaseCarouselImage).mockRejectedValueOnce(
+      new ImageVerificationError('No se permiten imágenes animadas.'),
+    )
+
+    expect(await replaceCaseCarouselImageAction(input)).toEqual({
+      ok: false,
+      error: 'No se permiten imágenes animadas.',
+    })
+  })
+
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await replaceCaseCarouselImageAction({
+      ...input,
+      mediaId: 'nope',
+    })
+
+    expect(result.ok).toBe(false)
+    expect(replaceCaseCarouselImage).not.toHaveBeenCalled()
+  })
+})
+
+describe('replaceCaseCarouselVideoAction', () => {
+  const input = {
+    contentId: CONTENT_ID,
+    mediaId: MEDIA_ID,
+    cloudinaryPublicId: 'greener/content/videos/nuevo',
+    format: 'mp4',
+    width: 10,
+    height: 10,
+    durationSeconds: 1,
+    bytes: 10,
+    alt: 'Replaced video',
+  }
+
+  it('sustituye el vídeo y avisa si el archivo anterior sigue en Cloudinary', async () => {
+    vi.mocked(replaceCaseCarouselVideo).mockResolvedValue({
+      mediaId: NEW_MEDIA_ID,
+      purge: { purged: 0, failed: 1 },
+    })
+
+    const result = await replaceCaseCarouselVideoAction(input)
+
+    expect(result.ok).toBe(true)
+
+    if (result.ok) expect(result.warning).toContain('Cloudinary')
+  })
+
+  it('si el vídeo no verifica, devuelve el mensaje de la verificación', async () => {
+    vi.mocked(replaceCaseCarouselVideo).mockRejectedValueOnce(
+      new VideoVerificationError('No se ha podido verificar el vídeo.'),
+    )
+
+    expect(await replaceCaseCarouselVideoAction(input)).toEqual({
+      ok: false,
+      error: 'No se ha podido verificar el vídeo.',
+    })
+  })
+
+  it('con datos inválidos no llega al caso de uso', async () => {
+    const result = await replaceCaseCarouselVideoAction({
+      ...input,
+      durationSeconds: 0,
+    })
+
+    expect(result.ok).toBe(false)
+    expect(replaceCaseCarouselVideo).not.toHaveBeenCalled()
   })
 })

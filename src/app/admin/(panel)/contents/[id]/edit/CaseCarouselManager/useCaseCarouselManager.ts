@@ -2,77 +2,44 @@
 
 import { useState } from 'react'
 
-import { contentVideoRules } from '@/modules/media/client/videoUploadChecks'
-
 import {
-  addCaseCarouselImageAction,
-  addCaseCarouselVideoAction,
   removeAllCaseCarouselMediaAction,
   removeCaseCarouselMediaAction,
 } from '@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions'
-
-import { useMediaUpload } from '@/app/admin/(panel)/contents/[id]/edit/useMediaUpload'
+import { useEditorOperation } from '@/app/admin/(panel)/contents/[id]/edit/useEditorOperation'
 
 import type { CarouselItem, CaseCarouselManagerProps } from './types'
-
-const VIDEO_RULES = contentVideoRules(
-  'el archivo subido se ha descartado y no se ha guardado en el caso',
-)
+import { useCarouselBulkUpload } from './useCarouselBulkUpload'
+import { useCarouselOrder } from './useCarouselOrder'
+import { useCarouselSlideEditor } from './useCarouselSlideEditor'
 
 export function useCaseCarouselManager({
   contentId,
   items,
 }: CaseCarouselManagerProps) {
   const [removingAll, setRemovingAll] = useState(false)
-  const [alt, setAlt] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
 
-  const sorted = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
+  const saved = [...items].sort((a, b) => a.sortOrder - b.sortOrder)
 
-  const nextSortOrder = sorted.length
-
-  const {
-    upload,
+  const operation = useEditorOperation({ setError, setWarning })
+  const upload = useCarouselBulkUpload({ contentId, items })
+  const order = useCarouselOrder({ contentId, sorted: saved, operation })
+  const editor = useCarouselSlideEditor({
+    contentId,
+    sorted: saved,
     operation,
-    file,
-    kind,
-    inputKey,
-    selectKind,
-    selectFile,
-    handleUpload,
-  } = useMediaUpload({
-    videoRules: VIDEO_RULES,
-    // Cada diapositiva lleva su alt: sin él no se sube nada.
-    precheck: (mediaKind) =>
-      alt.trim()
-        ? null
-        : `El alt es obligatorio antes de subir ${
-            mediaKind === 'image' ? 'la imagen' : 'el vídeo'
-          }.`,
-    registerImage: (image) =>
-      addCaseCarouselImageAction({
-        contentId,
-        cloudinaryPublicId: image.public_id,
-        format: image.format,
-        width: image.width,
-        height: image.height,
-        bytes: image.bytes,
-        sortOrder: nextSortOrder,
-        alt: alt.trim(),
-      }),
-    registerVideo: (video) =>
-      addCaseCarouselVideoAction({
-        contentId,
-        cloudinaryPublicId: video.public_id,
-        format: video.format,
-        width: video.width,
-        height: video.height,
-        durationSeconds: video.duration,
-        bytes: video.bytes,
-        sortOrder: nextSortOrder,
-        alt: alt.trim(),
-      }),
-    onFinish: () => setAlt(''),
+    feedback: { setError, setWarning },
   })
+
+  // Lo que se ve es el orden en curso (el borrador, si lo hay).
+  const sorted = order.ordered
+
+  // Con un orden sin guardar, editar, quitar o añadir dejaría el borrador
+  // apuntando a un carrusel que ya no es el que se ve: primero se guarda o
+  // se descarta.
+  const locked = order.dirty
 
   function handleRemove(item: CarouselItem) {
     return operation.run(
@@ -113,20 +80,15 @@ export function useCaseCarouselManager({
 
   return {
     sorted,
-    kind,
-    alt,
-    setAlt,
-    inputKey,
-    file,
-    uploading: upload.uploading,
+    upload,
+    order,
+    editor,
+    locked,
     removingAll,
     busy: operation.busy,
-    error: upload.error,
-    warning: upload.warning,
-    selectKind,
-    selectFile,
+    error,
+    warning,
     handleRemove,
     handleRemoveAll,
-    handleUpload,
   }
 }

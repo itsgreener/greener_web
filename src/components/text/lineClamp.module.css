@@ -8,6 +8,12 @@
 */
 .lineClamp {
   display: -webkit-box;
+  /* El overflow oculto es lo que hace que el recorte a N líneas no deje ver
+     la siguiente. Con un `line-height` apretado también corta los rabillos
+     (g, p, y…) de la última línea: los títulos en Kinder llevan por eso un
+     interlineado de 1.2 como mínimo (comprobado en Chrome: a 1.05 o
+     `normal` se cortan, a 1.2 no). Un `padding-bottom` o `overflow-clip-margin`
+     no sirven: dejan ver un trozo de la línea siguiente. */
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: var(--lines);

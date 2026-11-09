@@ -26,16 +26,14 @@ type Props = {
   hint: ReactNode
   submitLabel: string
   onSubmit: () => void
-  /** Campos que van antes del selector de tipo (el alt del carrusel). */
-  before?: ReactNode
 }
 
 /**
  * Formulario de subida de un medio del ABM: selector imagen/vídeo, selector de
- * archivo, ayuda y botón «Subir». Lo comparten el medio de un pin y el
- * carrusel de un caso; cada uno pone sus textos y qué se hace al subir
- * (`useMediaUpload`). Devuelve un fragmento: los campos caen en el contenedor
- * de quien lo usa.
+ * archivo, ayuda y botón «Subir». Lo usa el medio de un pin, que pone sus
+ * textos y qué se hace al subir (`useMediaUpload`). Devuelve un fragmento: los
+ * campos caen en el contenedor de quien lo usa. El carrusel de un caso sube
+ * en lote y tiene su propio formulario (`CaseCarouselManager`).
  */
 export function MediaUploader({
   kind,
@@ -50,12 +48,9 @@ export function MediaUploader({
   hint,
   submitLabel,
   onSubmit,
-  before,
 }: Props) {
   return (
     <>
-      {before}
-
       <AdminField label="Tipo de archivo" htmlFor={kindFieldId}>
         <AdminSelect
           id={kindFieldId}

@@ -1,5 +1,6 @@
-import { findCsvRowForFile, type PinCsvRow } from '@/modules/pin/domain/pinCsv'
+import { isVideoFile } from '@/modules/media/client/mediaFileKind'
 import { ratioFromFilename } from '@/modules/media/domain/ratioFromFilename'
+import { findCsvRowForFile, type PinCsvRow } from '@/modules/pin/domain/pinCsv'
 
 export type RowStatus = 'pending' | 'uploading' | 'ok' | 'error'
 
@@ -22,15 +23,8 @@ export type Row = {
   note?: string
 }
 
-// MP4, WebM y MOV. Se mira el tipo MIME y, como
-// respaldo, la extensión: algunos sistemas no informan del MIME de un .mov.
-const VIDEO_EXTENSION = /\.(mp4|webm|mov|m4v)$/i
-
 function detectKind(file: File): RowKind {
-  return file.type.toLowerCase().startsWith('video/') ||
-    VIDEO_EXTENSION.test(file.name)
-    ? 'video'
-    : 'image'
+  return isVideoFile(file) ? 'video' : 'image'
 }
 
 function labelFromFilename(filename: string): string {

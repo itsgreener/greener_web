@@ -837,6 +837,25 @@ export type Database = {
         Args: { p_content_id: string; p_media_id: string }
         Returns: string
       }
+      reorder_case_carousel: {
+        Args: { p_content_id: string; p_media_ids: string[] }
+        Returns: number
+      }
+      replace_case_carousel_media: {
+        Args: {
+          p_alt: string
+          p_bytes: number
+          p_cloudinary_public_id: string
+          p_content_id: string
+          p_duration_seconds?: number
+          p_format: string
+          p_height: number
+          p_kind: Database["public"]["Enums"]["media_kind"]
+          p_media_id: string
+          p_width: number
+        }
+        Returns: string
+      }
       schedule_content: {
         Args: { p_content_id: string; p_publish_at: string }
         Returns: string
@@ -846,6 +865,10 @@ export type Database = {
         Returns: string
       }
       unpublish_content: { Args: { p_content_id: string }; Returns: string }
+      update_case_carousel_alt: {
+        Args: { p_alt: string; p_content_id: string; p_media_id: string }
+        Returns: string
+      }
       update_content: {
         Args: {
           p_content_id: string

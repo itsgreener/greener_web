@@ -23,7 +23,7 @@ import { TOKEN, CANDIDATE_ID, validFormInput } from '@tests/helpers/talentFakes'
 /**
  * Tests de CONTRATO (fase 1 de plan-talent-careers.md): fijan, columna a
  * columna, lo que la web escribe en Supabase-talent. n8n lee estas filas sin
- * comprobar nada (docs/especificaciones/contrato-datos-talent.md §4): si un
+ * comprobar nada (docs/contratos/contrato-datos-talent.md §4): si un
  * test de aquí tiene que cambiar, primero cambia el contrato.
  */
 

@@ -87,8 +87,8 @@ export function CaseDetail({
   carousel: PublicCaseCarouselItem[]
 }) {
   // El carrusel entero usa el ratio del medio MÁS
-  // ANCHO para todas las diapositivas por igual — el resto se encaja con
-  // barras negras (object-fit: contain) en vez de recortarse. Se calcula
+  // ANCHO para todas las diapositivas por igual — el resto se encaja
+  // recortando (object-fit: cover; sin barras ni fondo). Se calcula
   // UNA sola vez a partir de los datos ya cargados por el servidor.
   const carouselRatio =
     carousel.length > 0 ? widestCarouselRatio(carousel) : FALLBACK_RATIO

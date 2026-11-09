@@ -26,6 +26,10 @@ vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
   removeCaseCarouselMediaAction: vi.fn(),
   removeAllCaseCarouselMediaAction: (...a: unknown[]) =>
     removeAllCarousel(...a),
+  reorderCaseCarouselAction: vi.fn(),
+  updateCaseCarouselAltAction: vi.fn(),
+  replaceCaseCarouselImageAction: vi.fn(),
+  replaceCaseCarouselVideoAction: vi.fn(),
 }))
 
 vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({

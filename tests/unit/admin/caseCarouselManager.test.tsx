@@ -42,6 +42,10 @@ vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
   removeCaseCarouselMediaAction: vi.fn(),
   removeAllCaseCarouselMediaAction: (...args: unknown[]) =>
     removeAllCaseCarouselMediaAction(...args),
+  reorderCaseCarouselAction: vi.fn(),
+  updateCaseCarouselAltAction: vi.fn(),
+  replaceCaseCarouselImageAction: vi.fn(),
+  replaceCaseCarouselVideoAction: vi.fn(),
 }))
 
 import { resetEditorLockForTests } from '@/app/admin/(panel)/contents/[id]/edit/editorLock'
@@ -85,12 +89,12 @@ function selectAndUpload(file: File) {
   fireEvent.change(screen.getByLabelText('Tipo de archivo'), {
     target: { value: 'video' },
   })
-  const input = document.querySelector('input[type="file"]') as HTMLInputElement
+  const input = document.getElementById('carousel-files') as HTMLInputElement
   fireEvent.change(input, { target: { files: [file] } })
-  fireEvent.change(screen.getByLabelText('Alt (obligatorio)'), {
+  fireEvent.change(screen.getByLabelText(`Alt de ${file.name}`), {
     target: { value: 'Texto alternativo de prueba' },
   })
-  fireEvent.click(screen.getByRole('button', { name: /añadir al carrusel/i }))
+  fireEvent.click(screen.getByRole('button', { name: 'Subir 1 vídeo' }))
 }
 
 beforeEach(() => {

@@ -1,5 +1,5 @@
 /**
- * Constantes del contrato de datos de talent (`docs/especificaciones/
+ * Constantes del contrato de datos de talent (`docs/contratos/
  * contrato-datos-talent.md`). Los valores salen de lo que n8n reconoce: si
  * alguno cambia, se cambia primero el contrato y luego aquí.
  */

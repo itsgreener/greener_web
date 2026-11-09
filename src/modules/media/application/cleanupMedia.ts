@@ -8,8 +8,8 @@ import type {
 
 /**
  * Limpieza de Cloudinary: con el plan Free no se pueden acumular archivos
- * que ya no usa nadie. Hay tres momentos en los que un archivo puede
- * quedarse sin dueño y este módulo cubre los tres:
+ * que ya no usa nadie. Hay cuatro momentos en los que un archivo puede
+ * quedarse sin dueño y este módulo cubre los cuatro:
  *
  * 1. Se borra un PIN o un CONTENIDO entero → `snapshot…` antes de borrar
  *    en Postgres + `purgeRemovedMedia` después (las funciones SQL
@@ -17,7 +17,10 @@ import type {
  *    quedan sin referencias; aquí se borra el archivo real).
  * 2. Se sube un archivo desde el navegador y algo falla antes de
  *    registrarlo → `discardUnregisteredUpload`.
- * 3. Cualquier otra cosa (pestaña cerrada a medias, restos históricos) →
+ * 3. Se SUSTITUYE el medio de una diapositiva del carrusel →
+ *    `snapshotMedia` del medio anterior antes de sustituir + `purgeRemovedMedia`
+ *    después (`replace_case_carousel_media` ya borra su `media_asset`).
+ * 4. Cualquier otra cosa (pestaña cerrada a medias, restos históricos) →
  *    `scripts/reconcile-cloudinary.mjs`.
  *
  * Todo es best-effort: un fallo de Cloudinary NUNCA debe impedir ni deshacer

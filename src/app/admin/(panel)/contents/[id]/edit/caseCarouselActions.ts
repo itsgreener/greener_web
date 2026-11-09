@@ -10,11 +10,19 @@ import {
   addCaseCarouselVideo,
   removeAllCaseCarouselMedia,
   removeCaseCarouselMedia,
+  reorderCaseCarousel,
+  replaceCaseCarouselImage,
+  replaceCaseCarouselVideo,
+  updateCaseCarouselAlt,
 } from '@/modules/content/container'
 import {
   addCaseCarouselImageSchema,
   addCaseCarouselVideoSchema,
   removeCaseCarouselMediaSchema,
+  reorderCaseCarouselSchema,
+  replaceCaseCarouselImageSchema,
+  replaceCaseCarouselVideoSchema,
+  updateCaseCarouselAltSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
 import {
   ImageVerificationError,
@@ -26,6 +34,15 @@ export type CaseCarouselActionResult =
 
 export type RemoveCaseCarouselMediaActionResult =
   { ok: true; warning?: string } | { ok: false; error: string }
+
+export type EditCaseCarouselActionResult =
+  { ok: true; warning?: string } | { ok: false; error: string }
+
+const SLIDE_GONE_MESSAGE =
+  'Esta diapositiva ya no está en el carrusel (¿se ha quitado desde otra pestaña?). Recarga la página.'
+
+const PREVIOUS_FILE_WARNING =
+  'Se ha sustituido el medio, pero el archivo anterior no se ha podido borrar de Cloudinary. Se limpiará con el reconciliador (scripts/reconcile-cloudinary.mjs).'
 
 function revalidateContent(contentId: string) {
   revalidatePath(`/admin/contents/${contentId}/edit`)
@@ -234,4 +251,176 @@ export async function removeAllCaseCarouselMediaAction(
   return {
     ok: true,
   }
+}
+
+/**
+ * Deja las diapositivas en el orden recibido (la lista completa de medios).
+ * Si el carrusel ya no coincide con la base de datos (otra pestaña añadió o
+ * quitó alguna) Postgres lo rechaza en vez de pisar ese cambio.
+ */
+export async function reorderCaseCarouselAction(
+  input: unknown,
+): Promise<EditCaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  const result = reorderCaseCarouselSchema.safeParse(input)
+
+  if (!result.success) {
+    return {
+      ok: false,
+      error: 'El orden de las diapositivas no es válido.',
+    }
+  }
+
+  try {
+    await reorderCaseCarousel(result.data)
+  } catch (error) {
+    console.error('Admin · reorderCaseCarouselAction:', error)
+
+    return {
+      ok: false,
+      error: adminErrorMessage(
+        error,
+        'No se ha podido guardar el orden.',
+        ['not_a_case'],
+        {
+          media_not_owned:
+            'El carrusel ha cambiado desde otra pestaña y el orden no se ha guardado. Recarga la página y vuelve a ordenarlo.',
+        },
+      ),
+    }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  return { ok: true }
+}
+
+/** Cambia solo el alt de una diapositiva (no toca el medio). */
+export async function updateCaseCarouselAltAction(
+  input: unknown,
+): Promise<EditCaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  const result = updateCaseCarouselAltSchema.safeParse(input)
+
+  if (!result.success) {
+    return {
+      ok: false,
+      error: 'El alt no es válido: es obligatorio.',
+    }
+  }
+
+  try {
+    await updateCaseCarouselAlt(result.data)
+  } catch (error) {
+    console.error('Admin · updateCaseCarouselAltAction:', error)
+
+    return {
+      ok: false,
+      error: adminErrorMessage(error, 'No se ha podido guardar el alt.', [], {
+        media_not_owned: SLIDE_GONE_MESSAGE,
+      }),
+    }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  return { ok: true }
+}
+
+/**
+ * Sustituye el medio de una diapositiva por una imagen nueva ya subida a
+ * Cloudinary, conservando su posición. El archivo anterior se borra después
+ * de Cloudinary; si no se puede, se avisa (no se deshace la sustitución).
+ */
+export async function replaceCaseCarouselImageAction(
+  input: unknown,
+): Promise<EditCaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  const result = replaceCaseCarouselImageSchema.safeParse(input)
+
+  if (!result.success) {
+    return {
+      ok: false,
+      error: 'Los datos de la imagen no son válidos.',
+    }
+  }
+
+  let outcome: Awaited<ReturnType<typeof replaceCaseCarouselImage>>
+
+  try {
+    outcome = await replaceCaseCarouselImage(result.data)
+  } catch (error) {
+    console.error('Admin · replaceCaseCarouselImageAction:', error)
+
+    if (error instanceof ImageVerificationError) {
+      return { ok: false, error: error.message }
+    }
+
+    return {
+      ok: false,
+      error: adminErrorMessage(
+        error,
+        'No se ha podido sustituir la imagen.',
+        ['image_too_large', 'not_a_case', 'media_in_use'],
+        { media_not_owned: SLIDE_GONE_MESSAGE },
+      ),
+    }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  return outcome.purge.failed > 0
+    ? { ok: true, warning: PREVIOUS_FILE_WARNING }
+    : { ok: true }
+}
+
+/** Igual que la de imagen, con un vídeo (100 MB y 180 s). */
+export async function replaceCaseCarouselVideoAction(
+  input: unknown,
+): Promise<EditCaseCarouselActionResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  const result = replaceCaseCarouselVideoSchema.safeParse(input)
+
+  if (!result.success) {
+    return {
+      ok: false,
+      error: 'Los datos del vídeo no son válidos.',
+    }
+  }
+
+  let outcome: Awaited<ReturnType<typeof replaceCaseCarouselVideo>>
+
+  try {
+    outcome = await replaceCaseCarouselVideo(result.data)
+  } catch (error) {
+    console.error('Admin · replaceCaseCarouselVideoAction:', error)
+
+    if (error instanceof VideoVerificationError) {
+      return { ok: false, error: error.message }
+    }
+
+    return {
+      ok: false,
+      error: adminErrorMessage(
+        error,
+        'No se ha podido sustituir el vídeo.',
+        ['video_too_long', 'video_too_large', 'not_a_case', 'media_in_use'],
+        { media_not_owned: SLIDE_GONE_MESSAGE },
+      ),
+    }
+  }
+
+  revalidateContent(result.data.contentId)
+
+  return outcome.purge.failed > 0
+    ? { ok: true, warning: PREVIOUS_FILE_WARNING }
+    : { ok: true }
 }

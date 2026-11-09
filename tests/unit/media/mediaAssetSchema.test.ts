@@ -3,7 +3,12 @@ import {
   addCaseCarouselImageSchema,
   addCaseCarouselVideoSchema,
   mediaStatusSchema,
+  MAX_CAROUSEL_REORDER_IDS,
   removeCaseCarouselMediaSchema,
+  reorderCaseCarouselSchema,
+  replaceCaseCarouselImageSchema,
+  replaceCaseCarouselVideoSchema,
+  updateCaseCarouselAltSchema,
 } from '@/modules/media/domain/mediaAssetSchema'
 import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
 
@@ -223,5 +228,108 @@ describe('removeCaseCarouselMediaSchema', () => {
     })
 
     expect(result.success).toBe(false)
+  })
+})
+
+describe('reorderCaseCarouselSchema', () => {
+  it('acepta una lista de ids de medio', () => {
+    expect(
+      reorderCaseCarouselSchema.safeParse({
+        contentId: CONTENT_ID,
+        mediaIds: [MEDIA_ID],
+      }).success,
+    ).toBe(true)
+  })
+
+  it('rechaza una lista vacía, ids que no son uuid y listas desmesuradas', () => {
+    expect(
+      reorderCaseCarouselSchema.safeParse({
+        contentId: CONTENT_ID,
+        mediaIds: [],
+      }).success,
+    ).toBe(false)
+    expect(
+      reorderCaseCarouselSchema.safeParse({
+        contentId: CONTENT_ID,
+        mediaIds: ['x'],
+      }).success,
+    ).toBe(false)
+    expect(
+      reorderCaseCarouselSchema.safeParse({
+        contentId: CONTENT_ID,
+        mediaIds: Array.from(
+          { length: MAX_CAROUSEL_REORDER_IDS + 1 },
+          () => MEDIA_ID,
+        ),
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('updateCaseCarouselAltSchema', () => {
+  it('recorta el alt y rechaza uno en blanco', () => {
+    const ok = updateCaseCarouselAltSchema.parse({
+      contentId: CONTENT_ID,
+      mediaId: MEDIA_ID,
+      alt: '  Equipo  ',
+    })
+
+    expect(ok.alt).toBe('Equipo')
+    expect(
+      updateCaseCarouselAltSchema.safeParse({
+        contentId: CONTENT_ID,
+        mediaId: MEDIA_ID,
+        alt: '   ',
+      }).success,
+    ).toBe(false)
+  })
+})
+
+describe('replaceCaseCarouselImageSchema / replaceCaseCarouselVideoSchema', () => {
+  const image = {
+    contentId: CONTENT_ID,
+    mediaId: MEDIA_ID,
+    cloudinaryPublicId: 'greener/content/abc',
+    format: 'webp',
+    width: 100,
+    height: 100,
+    bytes: 1000,
+    alt: 'Equipo',
+  }
+
+  it('la imagen exige el medio a sustituir y el alt', () => {
+    expect(replaceCaseCarouselImageSchema.safeParse(image).success).toBe(true)
+    expect(
+      replaceCaseCarouselImageSchema.safeParse({ ...image, mediaId: undefined })
+        .success,
+    ).toBe(false)
+    expect(
+      replaceCaseCarouselImageSchema.safeParse({ ...image, alt: ' ' }).success,
+    ).toBe(false)
+  })
+
+  it('la imagen respeta el tope de 5 MB y el vídeo los de 180 s y 100 MB', () => {
+    expect(
+      replaceCaseCarouselImageSchema.safeParse({
+        ...image,
+        bytes: 5 * 1024 * 1024 + 1,
+      }).success,
+    ).toBe(false)
+
+    const video = { ...image, durationSeconds: 45 }
+
+    expect(replaceCaseCarouselVideoSchema.safeParse(video).success).toBe(true)
+    expect(
+      replaceCaseCarouselVideoSchema.safeParse({
+        ...video,
+        durationSeconds: 181,
+      }).success,
+    ).toBe(false)
+    expect(
+      replaceCaseCarouselVideoSchema.safeParse({
+        ...video,
+        bytes: 100 * 1024 * 1024 + 1,
+      }).success,
+    ).toBe(false)
   })
 })

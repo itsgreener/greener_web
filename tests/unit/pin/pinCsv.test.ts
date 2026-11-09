@@ -91,6 +91,44 @@ describe('parsePinCsv', () => {
   })
 })
 
+describe('parsePinCsv — lo que sale de Excel', () => {
+  it('acepta el punto y coma de Excel con configuración regional española', () => {
+    const rows = parsePinCsv(
+      ['filename;label;alt', 'foto1.jpg;Pistachos, avellanas;Cosecha'].join(
+        '\n',
+      ),
+    )
+
+    expect(rows).toEqual([
+      {
+        filename: 'foto1.jpg',
+        label: 'Pistachos, avellanas',
+        alt: 'Cosecha',
+      },
+    ])
+  })
+
+  it('acepta el BOM de «CSV UTF-8»', () => {
+    expect(
+      parsePinCsv('\uFEFFfilename,label\nfoto1.jpg,Hola')[0].filename,
+    ).toBe('foto1.jpg')
+  })
+
+  it('un campo entre comillas puede llevar un salto de línea', () => {
+    const rows = parsePinCsv(
+      'filename,alt\nfoto1.jpg,"Dos\nlíneas"\nfoto2.jpg,B',
+    )
+
+    expect(rows.map((row) => row.alt)).toEqual(['Dos\nlíneas', 'B'])
+  })
+
+  it('una columna llamada como una propiedad heredada no rompe nada', () => {
+    expect(parsePinCsv('filename,constructor\nfoto1.jpg,x')).toEqual([
+      { filename: 'foto1.jpg' },
+    ])
+  })
+})
+
 describe('findCsvRowForFile', () => {
   const rows = parsePinCsv(
     ['filename,label', 'Foto1.JPG,Uno', 'foto2.jpg,Dos'].join('\n'),
@@ -103,5 +141,17 @@ describe('findCsvRowForFile', () => {
 
   it('devuelve undefined si no hay fila para ese archivo', () => {
     expect(findCsvRowForFile(rows, 'foto3.jpg')).toBeUndefined()
+  })
+})
+
+describe('findCsvRowForFile — nombres con tilde', () => {
+  it('empareja la tilde compuesta del CSV con la descompuesta de macOS', () => {
+    const rows = parsePinCsv(
+      ['filename,label', 'café.jpg,Uno'.normalize('NFC')].join('\n'),
+    )
+
+    expect(findCsvRowForFile(rows, 'café.jpg'.normalize('NFD'))?.label).toBe(
+      'Uno',
+    )
   })
 })

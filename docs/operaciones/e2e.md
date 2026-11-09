@@ -1,6 +1,6 @@
 # Tests E2E (Playwright)
 
-Tests de navegador sobre la web real: compilación de producción y un Supabase local en Docker con las 59 migraciones y los datos de demo. Plan y decisiones: `especificaciones/plan-mejoras-codigo-nov-2026.md` §9. Los ficheros son `.github/workflows/e2e.yml` (oculto: se copia a mano al repositorio), `e2e/` (`specs/` con los casos y `support/` con las ayudas), `scripts/e2e-env.mjs`, `scripts/e2e-serve.mjs` y `supabase/config.toml`. `e2e/` tiene su propio `tsconfig.json` y queda fuera del de la web (`docs/operaciones/ci.md` §2).
+Tests de navegador sobre la web real: compilación de producción y un Supabase local en Docker con las 60 migraciones y los datos de demo. Plan y decisiones: `especificaciones/plan-mejoras-codigo-nov-2026.md` §9. Los ficheros son `.github/workflows/e2e.yml` (oculto: se copia a mano al repositorio), `e2e/` (`specs/` con los casos y `support/` con las ayudas), `scripts/e2e-env.mjs`, `scripts/e2e-serve.mjs` y `supabase/config.toml`. `e2e/` tiene su propio `tsconfig.json` y queda fuera del de la web (`docs/operaciones/ci.md` §2).
 
 ## 1. Cuándo corren
 

@@ -20,11 +20,6 @@ import { useEditorOperation, useEditorRefresh } from './useEditorOperation'
 type Options = {
   /** Reglas de duración y tamaño de los vídeos de este gestor. */
   videoRules: VideoRules
-  /**
-   * Comprobación previa a subir, con el archivo ya elegido: devuelve el
-   * mensaje de error o `null` si todo está bien (el alt del carrusel).
-   */
-  precheck?: (kind: MediaKind) => string | null
   /** Guarda la imagen subida en la base de datos. */
   registerImage: (image: CloudinaryImageResult) => Promise<RegisterResult>
   /** Guarda el vídeo subido en la base de datos. */
@@ -37,12 +32,11 @@ type Options = {
     video: CloudinaryVideoResult,
     setWarning: (message: string | null) => void,
   ) => void
-  /** Al terminar una subida, además de vaciar el archivo (el alt del carrusel). */
-  onFinish?: () => void
 }
 
 /**
- * Lógica común de los gestores de medios del editor (pin y carrusel): el
+ * Lógica común de los gestores de medios del editor de UN archivo (hoy, el
+ * medio de un pin; el carrusel de un caso sube en lote): el
  * archivo y el tipo elegidos, el `<input>` que se vacía al terminar, y los
  * dos flujos «comprobar → subir → registrar → refrescar». Cada gestor solo
  * dice qué registra y qué comprueba de más. Conserva el orden de
@@ -51,11 +45,9 @@ type Options = {
  */
 export function useMediaUpload({
   videoRules,
-  precheck,
   registerImage,
   registerVideo,
   onVideoUploaded,
-  onFinish,
 }: Options) {
   const upload = useCloudinaryUpload()
   const operation = useEditorOperation(upload)
@@ -80,21 +72,12 @@ export function useMediaUpload({
 
   function finishUpload() {
     setFile(null)
-    onFinish?.()
     setInputKey((key) => key + 1)
   }
 
   async function handleImageUpload() {
     if (!file) {
       upload.setError('Selecciona una imagen.')
-
-      return
-    }
-
-    const precheckError = precheck?.('image')
-
-    if (precheckError) {
-      upload.setError(precheckError)
 
       return
     }
@@ -120,14 +103,6 @@ export function useMediaUpload({
   async function handleVideoUpload() {
     if (!file) {
       upload.setError('Selecciona un vídeo.')
-
-      return
-    }
-
-    const precheckError = precheck?.('video')
-
-    if (precheckError) {
-      upload.setError(precheckError)
 
       return
     }

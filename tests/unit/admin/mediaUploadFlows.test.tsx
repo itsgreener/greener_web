@@ -10,17 +10,14 @@ vi.mock('next/navigation', () => ({
 }))
 
 /**
- * Flujos de imagen y comprobaciones previas de los dos gestores de medios del
- * editor, que desde la auditoría TSX (ADM-C1/B1) comparten `MediaUploader` y
- * `useMediaUpload`. Los vídeos ya los cubren `pinMediaManager` y
- * `caseCarouselManager`; aquí se fija lo que quedaba sin test: el alt
- * obligatorio del carrusel, el registro de una imagen, el vaciado del
- * formulario tras subir y el descarte si el registro falla.
+ * Flujo de imagen del gestor de medios de un pin, que desde la auditoría TSX
+ * (ADM-C1/B1) usa `MediaUploader` y `useMediaUpload`. Los vídeos los cubre
+ * `pinMediaManager`. El carrusel de un caso ya no sube de uno en uno: su
+ * carga en lote se prueba en `caseCarouselBulkUpload`.
  */
 
 const getSignedImageUpload = vi.fn()
 const uploadImageToCloudinary = vi.fn()
-const addCaseCarouselImageAction = vi.fn()
 const attachPinImageAction = vi.fn()
 const discardUploadQuietly = vi.fn()
 
@@ -43,14 +40,6 @@ vi.mock('@/modules/media/client/validateImageSelection', () => ({
   validateImageSelection: () => Promise.resolve(null),
 }))
 
-vi.mock('@/app/admin/(panel)/contents/[id]/edit/caseCarouselActions', () => ({
-  addCaseCarouselImageAction: (...args: unknown[]) =>
-    addCaseCarouselImageAction(...args),
-  addCaseCarouselVideoAction: vi.fn(),
-  removeCaseCarouselMediaAction: vi.fn(),
-  removeAllCaseCarouselMediaAction: vi.fn(),
-}))
-
 vi.mock('@/app/admin/(panel)/contents/[id]/edit/pinActions', () => ({
   attachPinImageAction: (...args: unknown[]) => attachPinImageAction(...args),
   attachPinVideoAction: vi.fn(),
@@ -62,7 +51,6 @@ vi.mock('@/app/admin/(panel)/contents/[id]/edit/discardUpload', () => ({
 }))
 
 import { resetEditorLockForTests } from '@/app/admin/(panel)/contents/[id]/edit/editorLock'
-import CaseCarouselManager from '@/app/admin/(panel)/contents/[id]/edit/CaseCarouselManager'
 import PinMediaManager from '@/app/admin/(panel)/contents/[id]/edit/PinMediaManager'
 
 const IMAGE = new File(['x'], 'foto.jpg', { type: 'image/jpeg' })
@@ -98,108 +86,6 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
-})
-
-describe('CaseCarouselManager — subida de una imagen', () => {
-  it('sin alt no sube nada y lo explica', async () => {
-    render(<CaseCarouselManager contentId="content-1" items={[]} />)
-
-    chooseFile(IMAGE)
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir al carrusel' }))
-
-    expect(
-      await screen.findByText(
-        'El alt es obligatorio antes de subir la imagen.',
-      ),
-    ).toBeInTheDocument()
-    expect(uploadImageToCloudinary).not.toHaveBeenCalled()
-  })
-
-  it('con el vídeo elegido, el mensaje habla del vídeo', async () => {
-    render(<CaseCarouselManager contentId="content-1" items={[]} />)
-
-    fireEvent.change(screen.getByLabelText('Tipo de archivo'), {
-      target: { value: 'video' },
-    })
-    chooseFile(new File(['x'], 'clip.mp4', { type: 'video/mp4' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir al carrusel' }))
-
-    expect(
-      await screen.findByText('El alt es obligatorio antes de subir el vídeo.'),
-    ).toBeInTheDocument()
-    expect(uploadImageToCloudinary).not.toHaveBeenCalled()
-  })
-
-  it('registra la imagen con el alt recortado y el orden al final, vacía el alt y refresca', async () => {
-    addCaseCarouselImageAction.mockResolvedValue({ ok: true })
-
-    render(
-      <CaseCarouselManager
-        contentId="content-1"
-        items={[
-          {
-            mediaId: 'm-1',
-            kind: 'image',
-            cloudinaryPublicId: 'a',
-            sortOrder: 0,
-            alt: 'Uno',
-          },
-          {
-            mediaId: 'm-2',
-            kind: 'image',
-            cloudinaryPublicId: 'b',
-            sortOrder: 1,
-            alt: 'Dos',
-          },
-        ]}
-      />,
-    )
-
-    fireEvent.change(screen.getByLabelText('Alt (obligatorio)'), {
-      target: { value: '  Fachada del edificio  ' },
-    })
-    chooseFile(IMAGE)
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir al carrusel' }))
-
-    await waitFor(() =>
-      expect(addCaseCarouselImageAction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          contentId: 'content-1',
-          cloudinaryPublicId: 'greener/content/images/foto',
-          sortOrder: 2,
-          alt: 'Fachada del edificio',
-        }),
-      ),
-    )
-
-    await waitFor(() => expect(refreshRouter).toHaveBeenCalledTimes(1))
-    expect(screen.getByLabelText('Alt (obligatorio)')).toHaveValue('')
-    expect(discardUploadQuietly).not.toHaveBeenCalled()
-  })
-
-  it('si el registro falla, enseña el error y descarta el archivo subido', async () => {
-    addCaseCarouselImageAction.mockResolvedValue({
-      ok: false,
-      error: 'No se ha podido guardar la diapositiva.',
-    })
-
-    render(<CaseCarouselManager contentId="content-1" items={[]} />)
-
-    fireEvent.change(screen.getByLabelText('Alt (obligatorio)'), {
-      target: { value: 'Alt' },
-    })
-    chooseFile(IMAGE)
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir al carrusel' }))
-
-    expect(
-      await screen.findByText('No se ha podido guardar la diapositiva.'),
-    ).toBeInTheDocument()
-    expect(discardUploadQuietly).toHaveBeenCalledWith({
-      publicId: 'greener/content/images/foto',
-      kind: 'image',
-    })
-    expect(refreshRouter).not.toHaveBeenCalled()
-  })
 })
 
 describe('PinMediaManager — subida de una imagen', () => {
