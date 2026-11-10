@@ -1,3 +1,4 @@
+
 import type {
   FeedConfig,
   FeedSnapshot,
@@ -11,29 +12,24 @@ import { orderCasePins } from './caseStream'
 import { largestRemainderQuotas } from './quotas'
 import { buildTypeSkeleton } from './typeSkeleton'
 
-const EMPTY_QUOTAS = { insights: 0, tools: 0, channel: 0, other: 0 }
+const EMPTY_QUOTAS = {
+  insights: 0,
+  tools: 0,
+  channel: 0,
+  other: 0,
+}
 
 /**
- * Genera la ronda completa, determinista, a partir de un universo de
- * contenidos, configuración, seed y número de ronda (arquitectura §8, Anexo
- * C). Función de dominio pura: misma entrada, siempre la misma salida.
+ * Genera una ronda completa y determinista del feed.
  *
- * La ronda es la «vuelta» completa del feed: se precalcula entera, se guarda
- * (feed_round) y se sirve por lotes (getFeedSessionBatch).
- *
- * Los pasos:
- *
- * 1. Casos: cada uno aporta `fuerza` pines, repartidos por toda la cola de
- *    casos (caseStream.ts).
- * 2. Tamaño de la ronda: con casos, `casos / 0,70`; sin casos (subhomes), una
- *    vuelta completa por los contenidos disponibles.
- * 3. Cuotas de los demás tipos por restos mayores, sobre el hueco que dejan
- *    los casos y con los pesos renormalizados entre esos cuatro tipos.
- * 4. Cola de cada tipo: ciclo sin repetir contenido hasta agotar los de su
- *    tipo (rotateQueue.ts).
- * 5. Esqueleto de tipos: reparto uniforme por toda la ronda con la regla de
- *    vecindad (typeSkeleton.ts).
- * 6. Cada posición toma el siguiente pin de la cola de su tipo.
+ * 1. Ordena los pines de Cases.
+ * 2. Calcula el tamaño de la ronda, evitando que pocos Cases
+ *    oculten los demás tipos de contenido.
+ * 3. Calcula las cuotas de los otros tipos.
+ * 4. Genera las colas de contenido.
+ * 5. Construye el esqueleto de distribución.
+ * 6. Genera la secuencia definitiva.
+ * 7. Devuelve el informe de observabilidad.
  */
 export function generateRound(
   snapshot: FeedSnapshot,
@@ -41,47 +37,72 @@ export function generateRound(
   seed: string,
   roundIndex: number,
 ): GenerateRoundResult {
-  // 1. Cola de casos.
-  const casePool = orderCasePins(seed, roundIndex, snapshot.cases)
+  // 1. Cola de Cases.
+  const casePool = orderCasePins(
+    seed,
+    roundIndex,
+    snapshot.cases,
+  )
+
   const totalCasePins = casePool.length
 
-  // 2. Tamaño total de la ronda. Normalmente lo fijan los casos (brief §4.4).
-  // En una subhome sin casos (Insights / Tools / Channel) la ronda es UNA
-  // VUELTA COMPLETA por los contenidos disponibles: 16 episodios => 16
-  // posiciones. En Home / All, mientras haya casos, se conserva la lógica de
-  // porcentajes y fuerza de casos.
+  // 2. Tamaño de la ronda.
   const nonCaseContentCount =
     snapshot.insights.length +
     snapshot.tools.length +
     snapshot.channel.length +
     snapshot.other.length
 
-  const total =
+  const caseBasedTotal =
     totalCasePins > 0 && config.ratios.cases > 0
-      ? Math.ceil(totalCasePins / (config.ratios.cases / 100))
-      : nonCaseContentCount > 0
-        ? nonCaseContentCount
-        : totalCasePins
+      ? Math.ceil(
+          totalCasePins / (config.ratios.cases / 100),
+        )
+      : 0
 
-  // 3. Cuotas del resto de tipos por restos mayores, sobre el hueco que
-  // dejan los casos. Si un tipo no tiene NINGÚN contenido en el universo, su
-  // peso se anula antes de repartir (arquitectura §8.2).
+  // Garantiza espacio para los contenidos no Case
+  // cuando todavía hay pocos Cases publicados.
+  const total = Math.max(
+    caseBasedTotal,
+    nonCaseContentCount,
+    totalCasePins,
+  )
+
+  // 3. Cuotas de los demás tipos.
   const remaining = total - totalCasePins
+
   const availableRatios = {
     ...config.ratios,
-    insights: snapshot.insights.length > 0 ? config.ratios.insights : 0,
-    tools: snapshot.tools.length > 0 ? config.ratios.tools : 0,
-    channel: snapshot.channel.length > 0 ? config.ratios.channel : 0,
-    other: snapshot.other.length > 0 ? config.ratios.other : 0,
+    insights:
+      snapshot.insights.length > 0
+        ? config.ratios.insights
+        : 0,
+    tools:
+      snapshot.tools.length > 0
+        ? config.ratios.tools
+        : 0,
+    channel:
+      snapshot.channel.length > 0
+        ? config.ratios.channel
+        : 0,
+    other:
+      snapshot.other.length > 0
+        ? config.ratios.other
+        : 0,
   }
+
   const quotas =
     remaining > 0
-      ? largestRemainderQuotas(remaining, availableRatios)
+      ? largestRemainderQuotas(
+          remaining,
+          availableRatios,
+        )
       : EMPTY_QUOTAS
 
-  // 4. Cola de cada tipo.
+  // 4. Colas de cada tipo.
   const pools: Record<FeedContentKind, GeneratedPin[]> = {
     case: casePool,
+
     insight: circularFillPool(
       seed,
       roundIndex,
@@ -89,6 +110,7 @@ export function generateRound(
       snapshot.insights,
       quotas.insights,
     ),
+
     tool: circularFillPool(
       seed,
       roundIndex,
@@ -96,6 +118,7 @@ export function generateRound(
       snapshot.tools,
       quotas.tools,
     ),
+
     channel: circularFillPool(
       seed,
       roundIndex,
@@ -103,6 +126,7 @@ export function generateRound(
       snapshot.channel,
       quotas.channel,
     ),
+
     other: circularFillPool(
       seed,
       roundIndex,
@@ -112,7 +136,7 @@ export function generateRound(
     ),
   }
 
-  // 5. Esqueleto de tipos con las cuotas realmente disponibles.
+  // 5. Esqueleto de distribución.
   const skeleton = buildTypeSkeleton(
     {
       case: pools.case.length,
@@ -125,7 +149,7 @@ export function generateRound(
     roundIndex,
   )
 
-  // 6. Cada posición toma el siguiente pin de la cola de su tipo.
+  // 6. Construcción de la secuencia.
   const pointers: Record<FeedContentKind, number> = {
     case: 0,
     insight: 0,
@@ -133,9 +157,12 @@ export function generateRound(
     channel: 0,
     other: 0,
   }
-  const sequence = skeleton.map((kind) => pools[kind][pointers[kind]++])
 
-  // 7. Informe de observabilidad (arquitectura §8.6).
+  const sequence = skeleton.map(
+    (kind) => pools[kind][pointers[kind]++],
+  )
+
+  // 7. Informe de observabilidad.
   const actualCounts: Record<FeedContentKind, number> = {
     case: 0,
     insight: 0,
@@ -143,10 +170,14 @@ export function generateRound(
     channel: 0,
     other: 0,
   }
-  for (const pin of sequence) actualCounts[pin.kind]++
+
+  for (const pin of sequence) {
+    actualCounts[pin.kind]++
+  }
 
   const report: RoundReport = {
     totalPins: sequence.length,
+
     requestedQuotas: {
       case: totalCasePins,
       insight: quotas.insights,
@@ -154,12 +185,22 @@ export function generateRound(
       channel: quotas.channel,
       other: quotas.other,
     },
+
     actualCounts,
+
     repeatedPins: {
-      quota: sequence.filter((p) => p.repeat === 'quota').length,
-      force: sequence.filter((p) => p.repeat === 'force').length,
+      quota: sequence.filter(
+        (p) => p.repeat === 'quota',
+      ).length,
+
+      force: sequence.filter(
+        (p) => p.repeat === 'force',
+      ).length,
     },
   }
 
-  return { sequence, report }
+  return {
+    sequence,
+    report,
+  }
 }
