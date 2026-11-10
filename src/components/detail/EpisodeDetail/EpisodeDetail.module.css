@@ -105,14 +105,13 @@
    grupos algo mayor que el interior de cada uno; el CTA cierra la columna
    abajo a la derecha. Los dos huecos son variables locales para ajustarlos
    en un solo sitio.
-   `container-type: inline-size` convierte a esta columna en contenedor: el
-   título se dimensiona con `cqw` (% del ANCHO DE LA COLUMNA, no de la
-   ventana), porque esa columna es la que sobra junto al embed y varía
-   mucho; un título enorme en una columna estrecha se partiría palabra a
-   palabra. */
+   `container-type: inline-size` convierte a esta columna en contenedor. Lo
+   necesitaba el título, que se dimensionaba con `cqw`; desde el 9 nov 2026
+   el título es de tamaño fijo y ya no lo usa nadie (se conserva por si se
+   vuelve a un tamaño relativo a la columna). */
 .text {
-  --episode-gap-inner: var(--space-md);
-  --episode-gap-groups: calc(var(--space-sm) + var(--space-lg));
+  --episode-gap-inner: var(--space-sm);
+  --episode-gap-groups: var(--space-sm);
 
   container-type: inline-size;
   display: flex;
@@ -132,6 +131,7 @@
 /* Tipo de episodio: en negrita (Helvetica Neue 700, existe de verdad). */
 .kind {
   font-size: var(--fs-md);
+  opacity: 0.85;
   font-weight: 700;
 }
 
@@ -144,8 +144,8 @@
 .title {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 4;
-  font-size: var(--fs-2xl); /* respaldo si el navegador no soporta cqw */
-  font-size: clamp(var(--fs-2xl), 16cqw, 3.75rem);
+  /* Tamaño fijo, como en caso (9 nov 2026; antes clamp con cqw). */
+  font-size: var(--fs-3xl);
   line-height: 0.9;
   overflow-wrap: anywhere;
 }
@@ -154,17 +154,21 @@
    CaseDetail.module.css — mismos límites (área "límites de caracteres",
    textLimits.ts), mismo mecanismo. */
 .highlight {
-  font-size: var(--fs-lg);
+  font-size: var(--fs-base);
   font-weight: 700;
-  opacity: 0.85;
   max-width: 55ch;
+  line-height: 1.1;
+  margin: 10px 0;
 }
 
 .body {
   composes: lineClamp from '../../text/lineClamp.module.css';
-  --lines: 8;
+  --lines: 12;
+  font-size: var(--fs-md);
   white-space: pre-wrap;
+  opacity: 0.7;
   max-width: 70ch;
+  line-height: 1.1;
 }
 
 /* Segundo CTA «Watch more» → episodio en su plataforma. El aspecto es el de
