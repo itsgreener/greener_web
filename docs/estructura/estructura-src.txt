@@ -224,8 +224,12 @@ src/components/consent/consentButton.module.css
 src/components/cta/Cta/Cta.module.css
 src/components/cta/Cta/index.tsx
 src/components/cta/README.md
+src/components/detail/CaseDetail/CaseCarousel.module.css
+src/components/detail/CaseDetail/CaseCarousel.tsx
 src/components/detail/CaseDetail/CaseDetail.module.css
+src/components/detail/CaseDetail/carouselDots.ts
 src/components/detail/CaseDetail/index.tsx
+src/components/detail/CaseDetail/useSlidePaging.ts
 src/components/detail/EmbedConsentPrompt/EmbedConsentPrompt.module.css
 src/components/detail/EmbedConsentPrompt/copy.ts
 src/components/detail/EmbedConsentPrompt/index.tsx

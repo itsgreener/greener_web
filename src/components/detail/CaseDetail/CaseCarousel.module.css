@@ -1,0 +1,102 @@
+.carousel {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.track {
+  display: flex;
+  overflow-x: auto;
+  /* `overflow-x: auto` convierte `overflow-y` en `auto` (CSS lo calcula así).
+     Con el alto fijado desde JS, la barra horizontal le quitaba su grosor a
+     la diapositiva y aparecía un scroll vertical diminuto: se corta el
+     vertical y se ocultan las barras (el scroll sigue funcionando con
+     rueda, trackpad y táctil). */
+  overflow-y: hidden;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  /* Un gesto horizontal que llega al borde no encadena con el gesto de
+     «atrás/adelante» del navegador ni con el scroll de la página. */
+  overscroll-behavior-x: contain;
+  border-radius: var(--radius-media);
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.slide {
+  flex: 0 0 100%;
+  scroll-snap-align: start;
+  /* Un gesto fuerte (táctil o trackpad con inercia) se detiene en la
+     siguiente diapositiva en vez de recorrer varias. La rueda del ratón se
+     limita aparte, desde `useSlidePaging`. */
+  scroll-snap-stop: always;
+  /* aspect-ratio ya no es el único límite: el contenedor .track trae
+     su propio width/height reales (útil × ratio, §2), esto solo asegura
+     que cada diapositiva mantenga el mismo ratio dentro de ese hueco.
+     Sin fondo: el carrusel es casi siempre 16:9, no hay barras que tapar. */
+  aspect-ratio: var(--ratio);
+}
+
+.media {
+  width: 100%;
+  height: 100%;
+  /* cover: el medio llena la diapositiva. Los medios del carrusel comparten
+     ratio (16:9 casi siempre) y el ratio del carrusel es el ratio estándar
+     más cercano, así que el recorte es de unos píxeles y desaparecen los
+     bordes que dejaba `contain` por esa diferencia. */
+  object-fit: cover;
+}
+
+.dots {
+  display: flex;
+  justify-content: center;
+}
+
+/* El botón mide 24 px (zona de toque cómoda); el punto que se ve, 8 px.
+   La fila nunca pasa de 7 puntos (168 px), vengan las diapositivas que
+   vengan. */
+.dot {
+  display: grid;
+  place-items: center;
+  width: var(--space-lg);
+  height: var(--space-lg);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+
+  &::after {
+    content: '';
+    width: var(--space-sm);
+    height: var(--space-sm);
+    border-radius: var(--radius-pill);
+    background: var(--color-text);
+    opacity: 0.2;
+    transition:
+      opacity var(--transition),
+      transform var(--transition);
+  }
+
+  /* Puntos del borde de la ventana deslizante: más pequeños, porque la
+     serie continúa por ese lado. */
+  &[data-size='medium']::after {
+    transform: scale(0.75);
+  }
+
+  &[data-size='small']::after {
+    transform: scale(0.5);
+  }
+
+  &[aria-current='true']::after {
+    opacity: 1;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-inset);
+    border-radius: var(--radius-pill);
+  }
+}
