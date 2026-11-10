@@ -243,31 +243,25 @@ describe('EpisodeDetail — grupos de texto y tipografía', () => {
     expect(rule(css(), '.title')).not.toMatch(/font-weight:\s*(bold|[5-9]00)/)
   })
 
-  it('el título es grande y se dimensiona con el ancho de su columna (cqw), con respaldo', () => {
+  it('el título es grande y de tamaño fijo, como el de caso (9 nov 2026)', () => {
     const title = rule(css(), '.title')
 
-    // Respaldo para navegadores sin container query units…
-    expect(title).toMatch(
-      /font-size:\s*var\(--fs-2xl\);[\s\S]*font-size:\s*clamp\(/,
-    )
-    // …y el mínimo del clamp es --fs-2xl (2rem), el máximo llega a 3,75rem.
-    expect(title).toMatch(/clamp\(var\(--fs-2xl\),\s*16cqw,\s*3\.75rem\)/)
+    // Antes clamp con cqw (columna variable); Greener lo igualó al de caso.
+    expect(title).toMatch(/font-size:\s*var\(--fs-3xl\)/)
+    expect(title).not.toMatch(/cqw/)
     expect(
       readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8'),
-    ).toMatch(/--fs-2xl:\s*2rem;/)
-    expect(rule(css(), '.text')).toMatch(/container-type:\s*inline-size/)
+    ).toMatch(/--fs-3xl:\s*3rem;/)
   })
 
-  it('el hueco entre grupos es mayor que el de dentro de cada grupo', () => {
+  it('los huecos del texto son los de la ficha de caso (--space-sm; 9 nov 2026)', () => {
     const source = css()
     const text = rule(source, '.text')
 
-    // Dentro de un grupo: 16 px (--space-md); entre grupos: 8 + 24 = 32 px
-    // (ajuste de diseño de Greener, 6 oct 2026; antes 4 y 12 px).
-    expect(text).toMatch(/--episode-gap-inner:\s*var\(--space-md\)/)
-    expect(text).toMatch(
-      /--episode-gap-groups:\s*calc\(var\(--space-sm\)\s*\+\s*var\(--space-lg\)\)/,
-    )
+    // Antes 16 px dentro de cada grupo y 32 px entre grupos (6 oct 2026);
+    // Greener los igualó a la ficha de caso.
+    expect(text).toMatch(/--episode-gap-inner:\s*var\(--space-sm\)/)
+    expect(text).toMatch(/--episode-gap-groups:\s*var\(--space-sm\)/)
     expect(text).toMatch(/gap:\s*var\(--episode-gap-groups\)/)
     expect(rule(source, '.heading,\n.details')).toMatch(
       /gap:\s*var\(--episode-gap-inner\)/,

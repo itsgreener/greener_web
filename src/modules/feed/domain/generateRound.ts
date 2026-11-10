@@ -1,4 +1,3 @@
-
 import type {
   FeedConfig,
   FeedSnapshot,
@@ -38,11 +37,7 @@ export function generateRound(
   roundIndex: number,
 ): GenerateRoundResult {
   // 1. Cola de Cases.
-  const casePool = orderCasePins(
-    seed,
-    roundIndex,
-    snapshot.cases,
-  )
+  const casePool = orderCasePins(seed, roundIndex, snapshot.cases)
 
   const totalCasePins = casePool.length
 
@@ -55,48 +50,27 @@ export function generateRound(
 
   const caseBasedTotal =
     totalCasePins > 0 && config.ratios.cases > 0
-      ? Math.ceil(
-          totalCasePins / (config.ratios.cases / 100),
-        )
+      ? Math.ceil(totalCasePins / (config.ratios.cases / 100))
       : 0
 
   // Garantiza espacio para los contenidos no Case
   // cuando todavía hay pocos Cases publicados.
-  const total = Math.max(
-    caseBasedTotal,
-    nonCaseContentCount,
-    totalCasePins,
-  )
+  const total = Math.max(caseBasedTotal, nonCaseContentCount, totalCasePins)
 
   // 3. Cuotas de los demás tipos.
   const remaining = total - totalCasePins
 
   const availableRatios = {
     ...config.ratios,
-    insights:
-      snapshot.insights.length > 0
-        ? config.ratios.insights
-        : 0,
-    tools:
-      snapshot.tools.length > 0
-        ? config.ratios.tools
-        : 0,
-    channel:
-      snapshot.channel.length > 0
-        ? config.ratios.channel
-        : 0,
-    other:
-      snapshot.other.length > 0
-        ? config.ratios.other
-        : 0,
+    insights: snapshot.insights.length > 0 ? config.ratios.insights : 0,
+    tools: snapshot.tools.length > 0 ? config.ratios.tools : 0,
+    channel: snapshot.channel.length > 0 ? config.ratios.channel : 0,
+    other: snapshot.other.length > 0 ? config.ratios.other : 0,
   }
 
   const quotas =
     remaining > 0
-      ? largestRemainderQuotas(
-          remaining,
-          availableRatios,
-        )
+      ? largestRemainderQuotas(remaining, availableRatios)
       : EMPTY_QUOTAS
 
   // 4. Colas de cada tipo.
@@ -158,9 +132,7 @@ export function generateRound(
     other: 0,
   }
 
-  const sequence = skeleton.map(
-    (kind) => pools[kind][pointers[kind]++],
-  )
+  const sequence = skeleton.map((kind) => pools[kind][pointers[kind]++])
 
   // 7. Informe de observabilidad.
   const actualCounts: Record<FeedContentKind, number> = {
@@ -189,13 +161,9 @@ export function generateRound(
     actualCounts,
 
     repeatedPins: {
-      quota: sequence.filter(
-        (p) => p.repeat === 'quota',
-      ).length,
+      quota: sequence.filter((p) => p.repeat === 'quota').length,
 
-      force: sequence.filter(
-        (p) => p.repeat === 'force',
-      ).length,
+      force: sequence.filter((p) => p.repeat === 'force').length,
     },
   }
 

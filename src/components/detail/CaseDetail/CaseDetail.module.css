@@ -88,18 +88,18 @@
   font-size: var(--fs-base);
   margin: 10px 0;
   font-weight: 700;
-  max-width: 55ch;
   line-height: 1.1;
+  max-width: 55ch;
 }
 
 .body {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 20;
   font-size: var(--fs-md);
+  line-height: 1.1;
   opacity: 0.7;
   white-space: pre-wrap;
   max-width: 70ch;
-  line-height: 1.1;
 }
 
 .client {
