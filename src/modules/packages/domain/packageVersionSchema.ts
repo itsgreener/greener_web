@@ -11,3 +11,8 @@ export const deleteHtmlPackageVersionSchema = z.object({
   contentId: idSchema('content'),
   versionId: idSchema('version'),
 })
+
+export const downloadHtmlPackageVersionSchema = z.object({
+  contentId: idSchema('content'),
+  versionId: idSchema('version'),
+})

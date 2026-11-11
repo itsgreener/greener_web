@@ -5,6 +5,7 @@ import {
   makeDeleteHtmlPackageVersion,
   makeDeleteOldHtmlPackageVersions,
 } from './application/deleteHtmlPackageVersion'
+import { makeDownloadHtmlPackageVersion } from './application/downloadHtmlPackageVersion'
 import { makePublishHtmlPackageVersion } from './application/publishHtmlPackageVersion'
 import { makeSweepStagedUploads } from './application/sweepStagedUploads'
 import {
@@ -14,9 +15,11 @@ import {
 } from './application/uploadHtmlPackage'
 import { cloudmersiveVirusScanner } from './infrastructure/cloudmersiveVirusScan'
 import { supabaseHtmlPackageRepository } from './infrastructure/supabaseHtmlPackageRepository'
+import { supabaseHtmlPackageVersionReader } from './infrastructure/supabaseHtmlPackageVersionReader'
 import { supabasePackageUploadStaging } from './infrastructure/supabasePackageUploadStaging'
 import { supabaseStagedUploadSweeper } from './infrastructure/supabaseStagedUploadSweeper'
 import { supabasePublishedPackageSource } from './infrastructure/supabaseStorageSource'
+import { zipPackageBuilder } from './infrastructure/zipPackageBuilder'
 import { zipPackageValidator } from './infrastructure/zipValidation'
 
 /** Composition root del módulo de paquetes HTML. Ver `media/container.ts`. */
@@ -59,4 +62,10 @@ export const deleteHtmlPackageVersion = makeDeleteHtmlPackageVersion({
 
 export const deleteOldHtmlPackageVersions = makeDeleteOldHtmlPackageVersions({
   packages: htmlPackages,
+})
+
+/** Descarga de una versión como ZIP reconstruido (`GET /api/admin/packages/download`). */
+export const downloadHtmlPackageVersion = makeDownloadHtmlPackageVersion({
+  reader: supabaseHtmlPackageVersionReader,
+  zipBuilder: zipPackageBuilder,
 })

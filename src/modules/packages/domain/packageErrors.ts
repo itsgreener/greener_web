@@ -16,3 +16,18 @@ export class VirusScanError extends Error {
     this.name = 'VirusScanError'
   }
 }
+
+/**
+ * El ZIP reconstruido de una versión pesa más de lo que la plataforma deja
+ * devolver en una respuesta (`MAX_PACKAGE_DOWNLOAD_BYTES`). Es un aviso para
+ * el admin, no un fallo del servicio: lleva el tamaño para poder decirlo.
+ */
+export class PackageDownloadTooLargeError extends Error {
+  bytes: number
+
+  constructor(bytes: number) {
+    super(`El ZIP reconstruido pesa ${bytes} bytes`)
+    this.name = 'PackageDownloadTooLargeError'
+    this.bytes = bytes
+  }
+}

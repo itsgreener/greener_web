@@ -2779,3 +2779,22 @@ Petición de Greener: poder **cambiar el orden de las diapositivas sin quitarlas
 **SQL.** Comprobada contra un Postgres real (PGlite, con tablas mínimas de `content`, `pin` y `audit_log`): activar sin pines, activar con ratios mezclados (`ZG019`, la marca no cambia), pin nuevo con otro ratio y cambio de ratio con la marca activa (`ZG019`), desactivar, case (`ZG007`), contenido inexistente (`P0002`), no administrador (`42501`) y las dos filas de `audit_log`. Consecuencia: con la marca activa el ratio de los pines no se cambia ni de golpe; hay que desactivarla, cambiarlos y volver a activarla.
 
 **Pendiente.** La migración `20261111110000` la ejecuta Greener a mano en Supabase y debe estar aplicada ANTES de desplegar esta versión (el feed y el editor leen la columna nueva; la migración es aditiva, así que la versión anterior sigue funcionando con ella). No se pudo comprobar con Cloudinary ni Supabase reales (§4.2 de PROGRESO tiene la lista).
+
+### 2.151 Descargar como ZIP las versiones de tools, insights y other desde el ABM (11 nov 2026)
+
+**Qué se pidió.** Poder bajarse desde el ABM los paquetes que hay subidos (tools, insights y other), como opción más junto a «Borrar» y «Volver a esta versión». Motivo: el talent adaptado tiene que estar en Supabase y Greener no daba con él tras los cambios de nombre. Se hace antes de retomar los cambios de talent.
+
+**Cómo funciona.** El ZIP original no se guarda: al subirlo se valida y se almacenan los ficheros ya extraídos en el bucket `html-packages` (`<contentId>/v<n>/...`). La descarga **reconstruye** el ZIP al momento con esos ficheros, así que no es idéntico byte a byte al subido, pero tiene el mismo contenido (`index.html` y `manifest.json` primero, el resto por ruta) y pasa la misma validación si se vuelve a subir (hay un test que lo recorre con `validateHtmlPackageZip`). Nombre del fichero: `<slug>-v<n>.zip`.
+
+**Código.**
+- Dominio (`packageDownload.ts`): puertos `HtmlPackageVersionReader` y `PackageZipBuilder` (aparte de `HtmlPackageRepository`, para no romper los dobles de test existentes), `orderPackageFiles`, `packageDownloadFileName` y `MAX_PACKAGE_DOWNLOAD_BYTES` (4 400 000). Error `PackageDownloadTooLargeError` en `packageErrors.ts`; esquema `downloadHtmlPackageVersionSchema`.
+- Aplicación: `downloadHtmlPackageVersion` valida ids, lee, devuelve `null` si la versión no existe o no tiene ficheros, construye el ZIP y rechaza si pasa del tope.
+- Infraestructura: `supabaseHtmlPackageVersionReader` (cliente de sesión, la política del bucket exige `is_admin()`; busca la versión por `id` **y** `package_id`, de modo que una versión de otro contenido no se descarga; la ruta de almacenamiento sale de la base de datos, no del cliente; descargas con concurrencia 8 y error si falla cualquiera), `zipPackageBuilder` (adm-zip, ficheros normales, sin enlaces simbólicos) y `storageListing.ts`, con `listFilesRecursive` sacado de `supabaseHtmlPackageRepository.ts` para compartirlo.
+- Ruta `GET /api/admin/packages/download?content=<uuid>&version=<uuid>`: `adminApiGuard`, 400 con parámetros inválidos, 404 si no existe, 413 si el ZIP supera el tope, 503 genérico para el resto, `Cache-Control: no-store`, `Content-Disposition: attachment`.
+- ABM: `DownloadVersionButton` (cliente) en cada fila de versión de `PackageUpload`, sea borrador, activa o anterior. Usa `fetch` para poder mostrar el error en la propia página (un enlace directo dejaría al admin en una pantalla de JSON); bloquea el doble clic; etiqueta «Descargar ZIP» / «Preparando…». Como `PackageUpload` es común, vale para tools, insights y other.
+
+**Por qué 4,4 MB.** Las funciones de Vercel no pueden devolver más de 4,5 MB; el ZIP de subida admite 3,5 MB, así que lo normal es que quepa. Si el reconstruido se pasa, el ABM lo explica en vez de fallar en silencio.
+
+**Decisiones por defecto (sin respuesta de Greener).** No se anota la descarga en `audit_log` (es una lectura de administrador, como abrir un CV pide trazabilidad por los datos personales y esto no los tiene); si se quiere, es una línea en la ruta. Sin migraciones ni variables nuevas.
+
+**Tests.** `downloadHtmlPackageVersion` (nombre saneado, orden, constructor, caso de uso, ida y vuelta contra el validador real, tope, ids inválidos), `supabaseHtmlPackageVersionReader`, `packageDownloadRoute` y `packageVersionDownload` (botón, error en pantalla, nombre del fichero, doble clic): 4 ficheros nuevos. Suite: 356 ficheros / 4414 tests; `tsc` (tras `next typegen`), ESLint y Prettier limpios.

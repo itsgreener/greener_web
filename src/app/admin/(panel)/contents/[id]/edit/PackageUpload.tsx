@@ -26,6 +26,7 @@ import {
   uploadHtmlPackageAction,
   type UploadPackageActionState,
 } from './packageActions'
+import DownloadVersionButton from './DownloadVersionButton'
 import styles from './PackageUpload.module.css'
 
 type Props = {
@@ -224,6 +225,12 @@ export default function PackageUpload({ contentId, versions }: Props) {
                   )}
 
                   {version.status === 'published' && <span>Activa</span>}
+
+                  <DownloadVersionButton
+                    contentId={contentId}
+                    versionId={version.id}
+                    version={version.version}
+                  />
                 </AdminCellActions>
               </td>
             </tr>

@@ -63,6 +63,7 @@ src/app/admin/(panel)/contents/[id]/edit/CaseDetailForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/ContentTranslations.module.css
 src/app/admin/(panel)/contents/[id]/edit/ContentTranslations.tsx
 src/app/admin/(panel)/contents/[id]/edit/DeleteContentButton.tsx
+src/app/admin/(panel)/contents/[id]/edit/DownloadVersionButton.tsx
 src/app/admin/(panel)/contents/[id]/edit/EditContentForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/EpisodeDetailForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/OtherDetailForm.tsx
@@ -143,6 +144,7 @@ src/app/admin/admin.css
 src/app/admin/layout.tsx
 src/app/api/admin/media/sign-video/route.ts
 src/app/api/admin/media/sign/route.ts
+src/app/api/admin/packages/download/route.ts
 src/app/api/admin/talent/cv/route.ts
 src/app/api/analytics/package/route.ts
 src/app/api/cron/_lib/cronAuth.ts
@@ -514,6 +516,7 @@ src/modules/newsletter/domain/newsletterSchema.ts
 src/modules/newsletter/infrastructure/mailchimpNewsletter.ts
 src/modules/packages/application/composeToolDocument.ts
 src/modules/packages/application/deleteHtmlPackageVersion.ts
+src/modules/packages/application/downloadHtmlPackageVersion.ts
 src/modules/packages/application/publishHtmlPackageVersion.ts
 src/modules/packages/application/renderPackageHead.ts
 src/modules/packages/application/sweepStagedUploads.ts
@@ -524,6 +527,7 @@ src/modules/packages/domain/htmlPackageRepository.ts
 src/modules/packages/domain/imageDimensions.ts
 src/modules/packages/domain/manifest.ts
 src/modules/packages/domain/manifestSchema.ts
+src/modules/packages/domain/packageDownload.ts
 src/modules/packages/domain/packageErrors.ts
 src/modules/packages/domain/packageFiles.ts
 src/modules/packages/domain/packageKind.ts
@@ -532,10 +536,13 @@ src/modules/packages/domain/packageUploadPorts.ts
 src/modules/packages/domain/packageVersionSchema.ts
 src/modules/packages/domain/publishedPackageSource.ts
 src/modules/packages/infrastructure/cloudmersiveVirusScan.ts
+src/modules/packages/infrastructure/storageListing.ts
 src/modules/packages/infrastructure/supabaseHtmlPackageRepository.ts
+src/modules/packages/infrastructure/supabaseHtmlPackageVersionReader.ts
 src/modules/packages/infrastructure/supabasePackageUploadStaging.ts
 src/modules/packages/infrastructure/supabaseStagedUploadSweeper.ts
 src/modules/packages/infrastructure/supabaseStorageSource.ts
+src/modules/packages/infrastructure/zipPackageBuilder.ts
 src/modules/packages/infrastructure/zipValidation.ts
 src/modules/pin/application/attachPinImage.ts
 src/modules/pin/application/attachPinVideo.ts
