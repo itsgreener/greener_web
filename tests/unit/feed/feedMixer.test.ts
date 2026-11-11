@@ -14,7 +14,7 @@ import type {
 } from '@/modules/feed/domain/types'
 
 const CONFIG: FeedConfig = {
-  ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
+  ratios: { cases: 70, insights: 10, tools: 10, channel: 10, other: 0 },
   batchSize: 40,
 }
 
@@ -28,14 +28,18 @@ function queues(prefix: string, count: number, pins = 1): ContentPinQueue[] {
   }))
 }
 
-/** Escenario real que pidió Greener: 150 casos (fuerza 1-5), 50 tools, 20 insights, 40 episodios, 7 other. */
+/**
+ * Escenario de referencia de Greener: 150 casos (fuerza 1-5), 50 tools, 20
+ * insights y 40 episodios. Sin `other`: en la home no entra en la ronda, va
+ * como interludio (`interludes.ts`) y su ratio es 0.
+ */
 function realisticSnapshot(): FeedSnapshot {
   return {
     cases: queues('case', 150, 3).map((c, i) => ({ ...c, force: (i % 5) + 1 })),
     insights: queues('insight', 20),
     tools: queues('tool', 50),
     channel: queues('episode', 40),
-    other: queues('other', 7),
+    other: [],
   }
 }
 
@@ -49,7 +53,7 @@ function longestRun(kinds: string[]): number {
   return best
 }
 
-describe('generateRound — escenario real (150 casos, 50 tools, 20 insights, 40 episodios, 7 other)', () => {
+describe('generateRound — escenario de referencia (150 casos, 50 tools, 20 insights, 40 episodios)', () => {
   const snapshot = realisticSnapshot()
 
   it('ningún tramo de la ronda es de un solo tipo: la racha máxima de insights/tools/episodios/other es 1', () => {
@@ -82,6 +86,17 @@ describe('generateRound — escenario real (150 casos, 50 tools, 20 insights, 40
         c.force,
       )
     }
+  })
+
+  it('insights, tools y episodios pesan ~10 % cada uno y `other` no entra en la ronda (70/10/10/10)', () => {
+    const { report } = generateRound(snapshot, CONFIG, 'seed', 0)
+
+    for (const kind of ['insight', 'tool', 'channel'] as const) {
+      const share = report.actualCounts[kind] / report.totalPins
+      expect(share).toBeGreaterThan(0.095)
+      expect(share).toBeLessThan(0.105)
+    }
+    expect(report.actualCounts.other).toBe(0)
   })
 
   it('un visitante no ve ningún caso repetido en sus primeros 100 pines', () => {

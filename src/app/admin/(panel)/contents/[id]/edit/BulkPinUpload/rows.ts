@@ -21,6 +21,20 @@ export type Row = {
   error?: string
   // Aviso no bloqueante de una fila ya subida (p. ej. ratio del vídeo).
   note?: string
+  // Carrusel de pines (§2.150): el CSV o el nombre del archivo traían un ratio
+  // distinto del único del carrusel y se ha ignorado.
+  ratioIgnored?: boolean
+}
+
+/**
+ * Orden natural por nombre de archivo («2» antes que «10»): es el orden de las
+ * diapositivas de un carrusel de pines. Los pines se suben de uno en uno, así
+ * que el orden de las filas es el orden en que se crean (`queue_order`).
+ */
+export function sortFilesNaturally(files: File[]): File[] {
+  return [...files].sort((a, b) =>
+    a.name.localeCompare(b.name, 'es', { numeric: true, sensitivity: 'base' }),
+  )
 }
 
 function detectKind(file: File): RowKind {
@@ -37,6 +51,9 @@ export type RowDefaults = {
   // Idioma impuesto por el contenido (un solo idioma): gana al CSV y al valor
   // por defecto.
   fixedLanguage?: string | null
+  // Carrusel de pines (§2.150): todas las diapositivas llevan este ratio y se
+  // ignora el del CSV y el del nombre del archivo.
+  forceRatio?: string | null
 }
 
 function buildRow(
@@ -49,13 +66,18 @@ function buildRow(
   // trae una proporción legible no se aplica nada (queda el valor por defecto).
   const filenameRatio = ratioFromFilename(file.name)
 
-  const ratio = csvRow?.ratio || filenameRatio || defaults.ratio
+  const requestedRatio = csvRow?.ratio || filenameRatio
+  const forced = defaults.forceRatio ?? null
 
-  const ratioSource: Row['ratioSource'] = csvRow?.ratio
-    ? 'csv'
-    : filenameRatio
-      ? 'filename'
-      : 'default'
+  const ratio = forced ?? (requestedRatio || defaults.ratio)
+
+  const ratioSource: Row['ratioSource'] = forced
+    ? 'default'
+    : csvRow?.ratio
+      ? 'csv'
+      : filenameRatio
+        ? 'filename'
+        : 'default'
 
   return {
     key: `${file.name}-${index}`,
@@ -67,6 +89,8 @@ function buildRow(
     language: defaults.fixedLanguage || csvRow?.language || defaults.language,
     alt: csvRow?.alt || labelFromFilename(file.name),
     status: 'pending',
+    ratioIgnored:
+      forced !== null && !!requestedRatio && requestedRatio !== forced,
   }
 }
 

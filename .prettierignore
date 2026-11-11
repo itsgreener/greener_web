@@ -8,6 +8,6 @@ tsconfig.tsbuildinfo
 data/demo/feed-snapshot.json
 /docs
 /scripts
-/.github
 src/lib/supabase/database.types.ts
 next-env.d.ts
+/.github

@@ -102,3 +102,35 @@
   font-weight: 400;
   text-overflow: ellipsis;
 }
+
+/*
+ * Carrusel de pines de episodio (§2.150). La pista se desplaza sola por JS
+ * (useCarouselAutoplay) y con el dedo o el trackpad por scroll nativo: cada
+ * diapositiva mide lo mismo que la tarjeta y el scroll se detiene en la
+ * siguiente aunque el gesto tuviera fuerza para pasar varias. Sin barra de
+ * desplazamiento. `overscroll-behavior-x: contain` evita que un gesto
+ * horizontal dispare «atrás» del navegador; el vertical sigue siendo el de la
+ * página.
+ */
+.track {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.slide {
+  position: relative;
+  flex: 0 0 100%;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}

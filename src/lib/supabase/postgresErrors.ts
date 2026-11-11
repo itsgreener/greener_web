@@ -36,6 +36,7 @@ const KIND_BY_SQLSTATE: Readonly<Record<string, DomainErrorKind>> = {
   ZG010: 'publish_date_in_past',
   ZG017: 'other_kind_required',
   ZG018: 'page_pin_required',
+  ZG019: 'carousel_ratio_mismatch',
   ZG014: 'media_not_owned',
   ZG015: 'only_draft_deletable',
   ZG016: 'active_version_undeletable',

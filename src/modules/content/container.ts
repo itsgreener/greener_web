@@ -39,6 +39,7 @@ import {
 } from './application/resolvePreviewContext'
 import { resolveDetailCover } from './application/resolveDetailCover'
 import { makeRevokePreviewLinks } from './application/revokePreviewLinks'
+import { makeSetEpisodePinsCarousel } from './application/setEpisodePinsCarousel'
 import { makeUnpublishContent } from './application/unpublishContent'
 import { makeUpdateCaseCarouselAlt } from './application/updateCaseCarouselAlt'
 import { makeUpdateContent } from './application/updateContent'
@@ -107,6 +108,8 @@ export const scheduleContent = makeScheduleContent({
 })
 
 export const unpublishContent = makeUnpublishContent({ contents })
+
+export const setEpisodePinsCarousel = makeSetEpisodePinsCarousel({ contents })
 
 export const upsertCaseDetail = makeUpsertCaseDetail({
   caseDetails,

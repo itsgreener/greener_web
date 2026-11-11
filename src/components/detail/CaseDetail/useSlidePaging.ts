@@ -40,7 +40,7 @@ export function useSlidePaging(count: number) {
   }, [])
 
   const goTo = useCallback(
-    (index: number) => {
+    (index: number, options: { instant?: boolean } = {}) => {
       const track = trackRef.current
       if (!track || count === 0) return
       const clamped = Math.min(Math.max(index, 0), count - 1)
@@ -49,7 +49,9 @@ export function useSlidePaging(count: number) {
       if (typeof track.scrollTo === 'function') {
         track.scrollTo({
           left,
-          behavior: readReducedMotion() ? 'auto' : 'smooth',
+          // `instant`: volver al principio de un carrusel que da la vuelta
+          // (carrusel de pines del feed, §2.150) sin recorrerlo entero.
+          behavior: options.instant || readReducedMotion() ? 'auto' : 'smooth',
         })
       } else {
         track.scrollLeft = left

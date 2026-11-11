@@ -1,42 +1,24 @@
 'use client'
 
-import { useMemo, useRef } from 'react'
-import { buildFeedVideoSources } from '@/modules/media/client/cloudinaryUrl'
-import { canAnimateInFeed } from '@/modules/media/domain/mediaLimits'
-import { trackAnalyticsEvent } from '@/modules/analytics/analytics'
-import { rememberNavigationSource } from '@/modules/analytics/navigationAttribution'
-import { useMotionPreferences } from '@/lib/useMotionPreferences'
-import { useVideoSlot } from '@/components/pin/useVideoSlot'
-import { usePinVideo } from '@/components/pin/usePinVideo'
+import { useRef } from 'react'
 import { useHoverIntent } from '@/components/pin/useHoverIntent'
 import { CardLink } from './CardLink'
 import { PinCardLabel } from './PinCardLabel'
 import { PinCardMedia } from './PinCardMedia'
-import {
-  cardPositionStyle,
-  type PinAnalyticsContext,
-  type PinCardData,
-  type PinCardStyle,
-  type PinMediaData,
-} from './types'
+import { PinCarouselCard } from './PinCarouselCard'
+import { trackPinClick } from './pinClick'
+import { usePinPlayback } from './usePinPlayback'
+import { cardPositionStyle, type PinCardProps } from './types'
 import styles from './PinCard.module.css'
 
 export { cardPositionStyle } from './types'
 export type {
   PinAnalyticsContext,
   PinCardData,
+  PinCardProps,
   PinCardStyle,
   PinMediaData,
 } from './types'
-
-/**
- * `pinType` del evento "Pin Click" (§18.2) — ya no existe un `pin_type`
- * de base de datos del que leerlo directamente, se deriva del propio
- * array de medios que ya tiene el componente.
- */
-function analyticsPinType(media: PinMediaData[]): 'image' | 'video' {
-  return media[0]?.kind === 'video' ? 'video' : 'image'
-}
 
 /**
  * Tarjeta de pin: imagen optimizada para feed (nunca el original — política
@@ -60,102 +42,42 @@ function analyticsPinType(media: PinMediaData[]): 'image' | 'video' {
  * póster fijo. Un pin `hover` no hace prefetch (el vídeo se pide con la
  * intención de hover).
  */
-export function PinCard({
+export function PinCard(props: PinCardProps) {
+  // Un episodio con «formar un carrusel con los pines» llega como UNA tarjeta
+  // con varias diapositivas (§2.150); todo lo demás, un único medio.
+  return props.pin.media.length > 1 ? (
+    <PinCarouselCard {...props} />
+  ) : (
+    <SinglePinCard {...props} />
+  )
+}
+
+function SinglePinCard({
   pin,
   style,
   analyticsContext,
   instanceId,
-}: {
-  pin: PinCardData
-  style: PinCardStyle
-  analyticsContext?: PinAnalyticsContext
-  /**
-   * Identidad de ESTA tarjeta (no la del pin): el mismo pin puede estar
-   * montado dos veces a la vez y el coordinador de vídeo indexa por id, así
-   * que con `pinId` la segunda tarjeta le pisaba el registro a la primera.
-   * Las listas pasan aquí la clave de posición; sin ella se usa el pinId.
-   */
-  instanceId?: string
-}) {
+}: PinCardProps) {
   const videoId = instanceId ?? pin.pinId
   const media = pin.media
 
   const { active: hovering, handlers: hoverHandlers } = useHoverIntent()
   const cardRef = useRef<HTMLAnchorElement | null>(null)
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-  const { feedAutoplayAllowed } = useMotionPreferences()
 
   const current = media[0]
-  const isVideoSlide = current?.kind === 'video'
 
-  // Un vídeo largo (> PIN_ANIMATION_LIMITS) sigue siendo un vídeo — se
-  // pinta con su poster —, pero NO se anima ni compite por un hueco: solo
-  // se reproduce en el detalle. Así el feed nunca descarga uno entero.
-  const isAnimatable =
-    isVideoSlide && canAnimateInFeed(current?.durationSeconds)
-
-  // Un pin de vídeo solo compite por un hueco global en modo 'viewport' —
-  // 'hover' no compite (arriba, en el docstring, se explica el porqué). Sin autoplay
-  // permitido en el feed (reduced-motion, save-data, conexión lenta) no
-  // compite por nada: póster fijo.
-  const wantsGlobalSlot =
-    isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport'
-  const hasSlot = useVideoSlot(videoId, cardRef, wantsGlobalSlot)
-
-  const isPlaying =
-    isAnimatable &&
-    (pin.autoplayMode === 'viewport'
-      ? hasSlot
-      : pin.autoplayMode === 'hover'
-        ? // Sin autoplay permitido (reduced-motion, save-data, conexión
-          // lenta) el hover tampoco reproduce: póster fijo.
-          feedAutoplayAllowed && hovering
-        : false)
-
-  // Fuentes del vídeo del slide activo: dos explícitas (WebM/VP9 y
-  // MP4/H.264), a un solo ancho (contrato de medios §4.4-§4.5).
-  const sources = useMemo(
-    () =>
-      isVideoSlide && current
-        ? buildFeedVideoSources(current.cloudinaryPublicId)
-        : [],
-    [isVideoSlide, current],
-  )
-
-  // Prefetch, listo-para-reproducir, tiempo máximo y reintentos del vídeo.
-  const video = usePinVideo({
-    id: videoId,
+  const { video, videoRef, sources } = usePinPlayback({
+    videoId,
     cardRef,
-    videoRef,
-    resetKey: current?.cloudinaryPublicId ?? '',
-    sourceCount: sources.length,
-    // Solo se hace prefetch de lo que se reproduce solo al entrar en
-    // pantalla (`viewport`). Un pin `hover` no precarga nada: el vídeo se pide
-    // cuando hay intención de hover (en Cloudinary Free cada MB cuenta).
-    prefetchEnabled:
-      isAnimatable && feedAutoplayAllowed && pin.autoplayMode === 'viewport',
-    wantsPlay: isPlaying,
+    media: current,
+    autoplayMode: pin.autoplayMode,
+    hovering,
   })
 
   if (!current) return null
 
   function handlePinClick() {
-    if (!analyticsContext) return
-
-    // Para que la ficha de destino sepa de qué sección vino ("Case Open").
-    // Solo memoria de la pestaña; no se escribe nada en el navegador.
-    rememberNavigationSource(pin.destination, analyticsContext.section)
-
-    trackAnalyticsEvent(
-      'Pin Click',
-      {
-        destinationType: analyticsContext.destinationType,
-        section: analyticsContext.section,
-        ...(analyticsContext.tag ? { tag: analyticsContext.tag } : {}),
-        pinType: analyticsPinType(media),
-      },
-      { interactive: true },
-    )
+    trackPinClick(pin.destination, analyticsContext, current)
   }
 
   // Las Tools conservan una única ficha aunque tengan muchos pines. El

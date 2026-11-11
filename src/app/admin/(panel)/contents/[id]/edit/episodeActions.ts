@@ -9,7 +9,12 @@ import { adminErrorMessage } from '@/app/admin/_lib/adminErrorMessage'
 
 import { episodeSchema } from '@/modules/content/domain/episodeSchema'
 
-import { contents, episodes, upsertEpisode } from '@/modules/content/container'
+import {
+  contents,
+  episodes,
+  setEpisodePinsCarousel,
+  upsertEpisode,
+} from '@/modules/content/container'
 
 import {
   fieldErrorsOf,
@@ -108,5 +113,43 @@ export async function saveEpisodeAction(
 
   return {
     success: true,
+  }
+}
+
+export type SetPinsCarouselResult =
+  { ok: true; enabled: boolean } | { ok: false; error: string }
+
+/**
+ * Activa o desactiva que los pines de un episodio formen un único carrusel en
+ * el feed (§2.150). La casilla de la carga masiva la llama ANTES de subir el
+ * primer archivo; la de la lista de pines, cuando ya hay pines. Si no se puede
+ * activar (los pines tienen ratios distintos) devuelve el motivo y no cambia
+ * nada.
+ */
+export async function setPinsCarouselAction(
+  contentId: string,
+  enabled: boolean,
+): Promise<SetPinsCarouselResult> {
+  if (!(await isAdminRequest()))
+    return { ok: false, error: ADMIN_REQUIRED_MESSAGE }
+
+  try {
+    const value = await setEpisodePinsCarousel({ id: contentId, enabled })
+
+    revalidatePath(`/admin/contents/${contentId}/edit`)
+    invalidateFeedCache()
+
+    return { ok: true, enabled: value }
+  } catch (error) {
+    console.error('Admin · setPinsCarouselAction:', error)
+
+    return {
+      ok: false,
+      error: adminErrorMessage(
+        error,
+        'No se ha podido cambiar el carrusel de pines.',
+        ['not_an_episode', 'not_found', 'carousel_ratio_mismatch'],
+      ),
+    }
   }
 }

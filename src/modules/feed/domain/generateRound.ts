@@ -10,6 +10,7 @@ import { circularFillPool } from './rotateQueue'
 import { orderCasePins } from './caseStream'
 import { largestRemainderQuotas } from './quotas'
 import { buildTypeSkeleton } from './typeSkeleton'
+import { hashToSeed } from './prng'
 
 const EMPTY_QUOTAS = {
   insights: 0,
@@ -22,8 +23,8 @@ const EMPTY_QUOTAS = {
  * Genera una ronda completa y determinista del feed.
  *
  * 1. Ordena los pines de Cases.
- * 2. Calcula el tamaño de la ronda, evitando que pocos Cases
- *    oculten los demás tipos de contenido.
+ * 2. Calcula el tamaño de la ronda: con casos, `ceil(pinesDeCasos / ratio)`
+ *    (70 % casos); sin casos, el número de contenidos del scope.
  * 3. Calcula las cuotas de los otros tipos.
  * 4. Genera las colas de contenido.
  * 5. Construye el esqueleto de distribución.
@@ -53,9 +54,19 @@ export function generateRound(
       ? Math.ceil(totalCasePins / (config.ratios.cases / 100))
       : 0
 
-  // Garantiza espacio para los contenidos no Case
-  // cuando todavía hay pocos Cases publicados.
-  const total = Math.max(caseBasedTotal, nonCaseContentCount, totalCasePins)
+  // Con casos, el tamaño sale SOLO de ellos: `ceil(pinesDeCasos / 0,70)`, así
+  // que la ronda es siempre ~70 % casos. NO se pone un suelo según el número
+  // de contenidos que no son caso (se probó el 10 nov y con pocos casos
+  // dejaba la ronda en ~10 % casos y ~55 % insights): los demás contenidos
+  // no necesitan caber en una sola ronda, porque `circularFillPool` los
+  // recorre como un ciclo que sigue de una ronda a la siguiente, y los lotes
+  // se completan con el principio de la ronda siguiente
+  // (`getFeedSessionBatch`). Sin casos (subhomes), la ronda es una vuelta
+  // completa por los contenidos del scope.
+  const total =
+    caseBasedTotal > 0
+      ? Math.max(caseBasedTotal, totalCasePins)
+      : nonCaseContentCount
 
   // 3. Cuotas de los demás tipos.
   const remaining = total - totalCasePins
@@ -68,9 +79,15 @@ export function generateRound(
     other: snapshot.other.length > 0 ? config.ratios.other : 0,
   }
 
+  // El desempate de restos depende de la seed (no de la ronda): la cuota de
+  // cada tipo es la misma en todas las rondas de la sesión.
   const quotas =
     remaining > 0
-      ? largestRemainderQuotas(remaining, availableRatios)
+      ? largestRemainderQuotas(
+          remaining,
+          availableRatios,
+          hashToSeed(seed, 'quota-ties') % 12,
+        )
       : EMPTY_QUOTAS
 
   // 4. Colas de cada tipo.

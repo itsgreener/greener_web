@@ -24,7 +24,14 @@ export interface FeedSnapshot {
   other: ContentPinQueue[]
 }
 
-/** Porcentajes objetivo por tipo. Deben sumar 100 (arquitectura §8.1). */
+/**
+ * Porcentajes objetivo por tipo. Deben sumar 100 (arquitectura §8.1).
+ *
+ * Por defecto 70/10/10/10/0 (decisión de Greener, 11 nov 2026): `other` vale 0
+ * porque no entra en la cuota de la ronda, sino que se intercala como
+ * interludio según su propio calendario (`interludes.ts`). La clave se
+ * conserva para no cambiar el esquema de `feed_config.ratios`.
+ */
 export interface FeedRatios {
   cases: number
   insights: number
@@ -38,8 +45,10 @@ export interface FeedConfig {
   /**
    * Pines por lote (feed_config.batch_size, 40 por defecto): tamaño máximo de
    * cada respuesta de la API. La ronda se precalcula ENTERA y se sirve por
-   * tramos de este tamaño (el cliente puede pedir menos: 20 en teléfono).
-   * No interviene en la generación de la ronda.
+   * tramos de este tamaño (el cliente puede pedir menos: 20 en teléfono); si
+   * la ronda es más corta que el lote (pocos casos), el lote se completa con
+   * el principio de la ronda siguiente. No interviene en la generación de la
+   * ronda.
    */
   batchSize: number
 }

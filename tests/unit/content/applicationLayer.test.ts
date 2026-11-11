@@ -8,6 +8,7 @@ import {
   makeScheduleContent,
 } from '@/modules/content/application/publishContent'
 import { makeUnpublishContent } from '@/modules/content/application/unpublishContent'
+import { makeSetEpisodePinsCarousel } from '@/modules/content/application/setEpisodePinsCarousel'
 import { makeUpdateContent } from '@/modules/content/application/updateContent'
 import { makeUpsertCaseDetail } from '@/modules/content/application/upsertCaseDetail'
 import { makeUpsertContentTranslation } from '@/modules/content/application/upsertContentTranslation'
@@ -37,6 +38,9 @@ function fakeContents() {
       (input: { id: string; publishAt: Date }) => Promise<string>
     >(async () => CONTENT_ID),
     unpublish: vi.fn(async () => CONTENT_ID),
+    setPinsCarousel: vi.fn(
+      async (input: { enabled: boolean }) => input.enabled,
+    ),
   }
 }
 
@@ -358,5 +362,40 @@ describe('unpublishContent', () => {
     await expect(unpublishContent({ id: 'no-es-uuid' })).rejects.toThrow()
 
     expect(contents.unpublish).not.toHaveBeenCalled()
+  })
+})
+
+describe('setEpisodePinsCarousel', () => {
+  it('delega en setPinsCarousel con los datos validados', async () => {
+    const contents = fakeContents()
+    const setEpisodePinsCarousel = makeSetEpisodePinsCarousel({ contents })
+
+    const result = await setEpisodePinsCarousel({
+      id: CONTENT_ID,
+      enabled: true,
+    })
+
+    expect(result).toBe(true)
+    expect(contents.setPinsCarousel).toHaveBeenCalledWith({
+      id: CONTENT_ID,
+      enabled: true,
+    })
+  })
+
+  it('rechaza un id inválido o un valor que no es booleano sin tocar el repositorio', async () => {
+    const contents = fakeContents()
+    const setEpisodePinsCarousel = makeSetEpisodePinsCarousel({ contents })
+
+    await expect(
+      setEpisodePinsCarousel({ id: 'no-es-uuid', enabled: true }),
+    ).rejects.toThrow()
+    await expect(
+      setEpisodePinsCarousel({
+        id: CONTENT_ID,
+        enabled: 'si' as unknown as boolean,
+      }),
+    ).rejects.toThrow()
+
+    expect(contents.setPinsCarousel).not.toHaveBeenCalled()
   })
 })

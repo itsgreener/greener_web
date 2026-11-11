@@ -30,6 +30,7 @@ export const DOMAIN_ERROR_KINDS = [
   'package_required',
   'other_kind_required',
   'page_pin_required',
+  'carousel_ratio_mismatch',
   'publish_date_in_past',
   'active_version_undeletable',
 ] as const

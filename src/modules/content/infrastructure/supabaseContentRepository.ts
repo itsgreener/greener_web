@@ -13,6 +13,7 @@ import type {
   DeleteContentInput,
   PublishContentInput,
   ScheduleContentInput,
+  SetPinsCarouselInput,
   UnpublishContentInput,
   UpdateContentInput,
 } from '@/modules/content/domain/contentSchema'
@@ -28,6 +29,7 @@ type SupabaseContentRow = {
   default_locale: Locale
   created_at: string
   publish_at: string | null
+  pins_as_carousel: boolean
 
   translations: Array<{
     locale: Locale
@@ -51,6 +53,7 @@ function mapContent(row: SupabaseContentRow): ContentDetail {
     title: translation?.title ?? '',
     createdAt: row.created_at,
     publishAt: row.publish_at,
+    pinsAsCarousel: row.pins_as_carousel,
   }
 }
 
@@ -195,6 +198,7 @@ export const supabaseContentRepository: ContentRepository = {
         default_locale,
         created_at,
         publish_at,
+        pins_as_carousel,
         translations:content_translation (
           locale,
           title
@@ -288,6 +292,22 @@ export const supabaseContentRepository: ContentRepository = {
       p_content_id: input.id,
 
       p_publish_at: input.publishAt.toISOString(),
+    })
+
+    if (error) {
+      throw createRepositoryError(error.message, error.code)
+    }
+
+    return data
+  },
+
+  async setPinsCarousel(input: SetPinsCarouselInput) {
+    const supabase = await createClient()
+
+    const { data, error } = await supabase.rpc('set_content_pins_carousel', {
+      p_content_id: input.id,
+
+      p_enabled: input.enabled,
     })
 
     if (error) {

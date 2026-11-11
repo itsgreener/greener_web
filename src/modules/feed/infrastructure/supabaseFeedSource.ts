@@ -4,6 +4,7 @@ import {
   derivedFeedLanguages,
   derivedFeedText,
 } from '@/modules/content/domain/pinFooter'
+import { MAX_PINS_PER_CONTENT } from '@/modules/pin/domain/pinLimits'
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import { feedRatiosSchema } from '@/modules/feed/domain/feedConfigSchema'
 import type { FeedCatalog } from '@/modules/feed/domain/feedPorts'
@@ -36,6 +37,8 @@ type FeedContentMeta = {
   type: ContentType
   slug: string
   default_locale?: string
+  // Solo episodios (§2.150): sus pines forman un único carrusel.
+  pins_as_carousel?: boolean
   content_translation?: ContentTranslationRow[]
   case_detail?: {
     force?: number
@@ -88,17 +91,9 @@ export function buildFeedUnitsForPin(
   pin: PinRow,
   content: FeedContentMeta,
 ): { unitId: string; entry: PinDirectoryEntry }[] {
-  const first = [...pin.pin_media]
-    .sort((a, b) => a.slide_order - b.slide_order)
-    .filter((pm) => pm.media_asset !== null)[0]
+  const media = firstServableMedia(pin)
 
-  if (!first) return []
-
-  const media = {
-    kind: first.media_asset!.kind,
-    cloudinaryPublicId: first.media_asset!.cloudinary_public_id,
-    durationSeconds: first.media_asset!.duration_seconds ?? null,
-  }
+  if (!media) return []
 
   const pinFooter = { label: pin.label, language: pin.language }
   const footerContent = {
@@ -127,6 +122,82 @@ export function buildFeedUnitsForPin(
         textLanguages: derivedFeedLanguages(pinFooter, footerContent),
         autoplayMode: pin.autoplay_mode,
         media: [toFeedItemMedia(media)],
+      },
+    },
+  ]
+}
+
+/** El primer medio listo del pin, o null si no tiene ninguno (no es servible). */
+function firstServableMedia(pin: PinRow): {
+  kind: 'image' | 'video'
+  cloudinaryPublicId: string
+  durationSeconds: number | null
+} | null {
+  const first = [...pin.pin_media]
+    .sort((a, b) => a.slide_order - b.slide_order)
+    .filter((pm) => pm.media_asset !== null)[0]
+
+  if (!first) return null
+
+  return {
+    kind: first.media_asset!.kind,
+    cloudinaryPublicId: first.media_asset!.cloudinary_public_id,
+    durationSeconds: first.media_asset!.duration_seconds ?? null,
+  }
+}
+
+/** Orden de las diapositivas: el del ABM (`queue_order`); `id` desempata. */
+function byQueueOrder(a: PinRow, b: PinRow): number {
+  return a.queue_order - b.queue_order || a.id.localeCompare(b.id)
+}
+
+/**
+ * Las unidades de feed de UN contenido (§2.150). Es el único sitio que decide
+ * si sus pines salen sueltos o como carrusel, y lo usan las dos rutas que
+ * construyen el directorio (`getFeedDataset` y `getPinDirectoryByIds`) para
+ * que una ronda nueva y una ya guardada den siempre el mismo resultado.
+ *
+ * - Lo normal: una unidad por pin servible (`buildFeedUnitsForPin`).
+ * - Episodio con `pins_as_carousel` y al menos 2 pines servibles: UNA unidad,
+ *   con el id del primer pin (el de menor `queue_order`) y una diapositiva por
+ *   pin servible. Con un solo pin servible es un pin normal: un carrusel de una
+ *   diapositiva no tiene sentido.
+ *
+ * Las unidades salen en el orden del ABM, que es el que rota la cola del
+ * contenido.
+ */
+export function buildFeedUnitsForContent(
+  pins: PinRow[],
+  content: FeedContentMeta,
+): { unitId: string; entry: PinDirectoryEntry }[] {
+  const ordered = [...pins].sort(byQueueOrder)
+
+  if (content.type !== 'episode' || !content.pins_as_carousel) {
+    return ordered.flatMap((pin) => buildFeedUnitsForPin(pin, content))
+  }
+
+  const slides = ordered.slice(0, MAX_PINS_PER_CONTENT).flatMap((pin) => {
+    const media = firstServableMedia(pin)
+
+    return media ? [{ pin, media }] : []
+  })
+
+  if (slides.length < 2) {
+    return ordered.flatMap((pin) => buildFeedUnitsForPin(pin, content))
+  }
+
+  const [head] = buildFeedUnitsForPin(slides[0].pin, content)
+
+  return [
+    {
+      unitId: head.unitId,
+      entry: {
+        ...head.entry,
+        media: slides.map(({ pin, media }) => ({
+          ...toFeedItemMedia(media),
+          alt: pin.alt,
+          autoplayMode: pin.autoplay_mode,
+        })),
       },
     },
   ]
@@ -175,6 +246,7 @@ export async function getFeedDataset(
       type,
       slug,
       default_locale,
+      pins_as_carousel,
       content_translation ( locale, title ),
       case_detail ( force, client ),
       episode ( program, episode_kind ),
@@ -214,16 +286,11 @@ export async function getFeedDataset(
     const kind = CONTENT_TYPE_TO_KIND[content.type]
     if (!kind) continue // tipo desconocido — no debería pasar con el filtro .in() de arriba
 
-    const orderedPins = [...content.pin].sort(
-      (a, b) => a.queue_order - b.queue_order,
-    )
     const unitIds: string[] = []
 
-    for (const pin of orderedPins) {
-      for (const unit of buildFeedUnitsForPin(pin, content)) {
-        unitIds.push(unit.unitId)
-        pinDirectory[unit.unitId] = unit.entry
-      }
+    for (const unit of buildFeedUnitsForContent(content.pin, content)) {
+      unitIds.push(unit.unitId)
+      pinDirectory[unit.unitId] = unit.entry
     }
 
     if (unitIds.length === 0) continue // sin unidades servibles: no entra en el universo del feed
@@ -273,6 +340,7 @@ export async function getPinDirectoryByIds(
         type,
         slug,
         default_locale,
+        pins_as_carousel,
         content_translation ( locale, title ),
         case_detail ( client ),
         episode ( program, episode_kind )
@@ -288,13 +356,72 @@ export async function getPinDirectoryByIds(
   }
 
   const directory: Record<string, PinDirectoryEntry> = {}
+  const carouselContents = new Map<string, FeedContentMeta>()
+
   for (const pin of data ?? []) {
     if (!pin.content) continue
+
+    if (pin.content.type === 'episode' && pin.content.pins_as_carousel) {
+      carouselContents.set(pin.content.id, pin.content)
+      continue
+    }
+
     for (const unit of buildFeedUnitsForPin(pin, pin.content)) {
       directory[unit.unitId] = unit.entry
     }
   }
+
+  if (carouselContents.size > 0) {
+    await addCarouselUnits(directory, carouselContents, new Set(pinIds), client)
+  }
+
   return directory
+}
+
+/**
+ * La unidad de un episodio con carrusel necesita TODOS sus pines, no solo el
+ * pedido: se leen los hermanos y se construye con `buildFeedUnitsForContent`,
+ * igual que en `getFeedDataset`. Solo se guardan las unidades pedidas: el id de
+ * un pin que ya no es la cabeza (porque se activó el carrusel después de
+ * generar la ronda) no produce unidad y la ronda lo salta, como con cualquier
+ * unidad que ya no existe.
+ */
+async function addCarouselUnits(
+  directory: Record<string, PinDirectoryEntry>,
+  contents: Map<string, FeedContentMeta>,
+  requestedIds: Set<string>,
+  client: AppSupabaseClient,
+): Promise<void> {
+  const { data, error } = await client
+    .from('pin')
+    .select(`content_id, ${PIN_SELECT}` as const)
+    .in('content_id', [...contents.keys()])
+
+  if (error) {
+    throw new Error(
+      `No se pudieron leer los pines de los carruseles de la ronda: ${error.message}`,
+    )
+  }
+
+  const pinsByContent = new Map<string, PinRow[]>()
+
+  for (const pin of data ?? []) {
+    const siblings = pinsByContent.get(pin.content_id) ?? []
+
+    siblings.push(pin)
+    pinsByContent.set(pin.content_id, siblings)
+  }
+
+  for (const [contentId, content] of contents) {
+    for (const unit of buildFeedUnitsForContent(
+      pinsByContent.get(contentId) ?? [],
+      content,
+    )) {
+      if (requestedIds.has(unit.unitId)) {
+        directory[unit.unitId] = unit.entry
+      }
+    }
+  }
 }
 
 /**

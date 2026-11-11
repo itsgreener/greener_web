@@ -15,6 +15,7 @@ import { DeleteAllPinsButton } from './DeletePinButtons'
 import { EditPinForm } from './EditPinForm'
 import styles from './PinList.module.css'
 import { PinRow } from './PinRow'
+import { PinsCarouselToggle } from './PinsCarouselToggle'
 
 type Props = {
   contentId: string
@@ -23,6 +24,8 @@ type Props = {
   // Idioma que toman los pines cuando el contenido es de un solo idioma; null
   // si cada pin elige el suyo (caso, tool).
   fixedLanguage: Locale | null
+  // Solo en episodios (§2.150): estado del carrusel de pines.
+  carousel?: { enabled: boolean; ratiosMixed: boolean } | null
 }
 
 export default function PinList({
@@ -30,6 +33,7 @@ export default function PinList({
   contentType,
   pins,
   fixedLanguage,
+  carousel = null,
 }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const derivedLabel = hasDerivedPinLabel(contentType)
@@ -42,6 +46,14 @@ export default function PinList({
           ? ' — máximo alcanzado, no se pueden crear más.'
           : '.'}
       </p>
+
+      {carousel && (
+        <PinsCarouselToggle
+          contentId={contentId}
+          enabled={carousel.enabled}
+          ratiosMixed={carousel.ratiosMixed}
+        />
+      )}
 
       <AdminTable>
         <thead>
@@ -90,6 +102,7 @@ export default function PinList({
               contentId={contentId}
               derivedLabel={derivedLabel}
               fixedLanguage={fixedLanguage}
+              ratioLocked={carousel?.enabled ?? false}
             />
 
             <PinMediaManager

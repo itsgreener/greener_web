@@ -39,6 +39,21 @@ export function AdminSelect({
   )
 }
 
+/** Casilla con su texto: el `label` envuelve al control, así que se pulsa en toda la línea. */
+export function AdminCheckbox({
+  label,
+  className,
+  ...props
+}: { label: React.ReactNode } & Omit<React.ComponentProps<'input'>, 'type'>) {
+  return (
+    <label className={cx(styles.checkbox, className)}>
+      <input type="checkbox" {...props} />
+
+      <span>{label}</span>
+    </label>
+  )
+}
+
 export function AdminTextarea({
   className,
   ...props

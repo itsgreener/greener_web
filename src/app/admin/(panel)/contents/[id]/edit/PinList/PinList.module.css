@@ -17,3 +17,9 @@
   border-radius: var(--admin-radius-md);
   background: var(--color-surface);
 }
+
+.carousel {
+  display: grid;
+  gap: var(--space-xs);
+  margin-block-end: var(--space-md);
+}

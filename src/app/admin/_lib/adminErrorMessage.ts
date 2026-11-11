@@ -24,6 +24,8 @@ const DEFAULT_MESSAGES: Readonly<Partial<Record<DomainErrorKind, string>>> = {
     'Este contenido Other no tiene subtipo (newsletter o página satélite): no se puede publicar sin él.',
   page_pin_required:
     'Esta página satélite no tiene ningún pin con medio: añade uno antes de publicarla, o no saldrá en el feed.',
+  carousel_ratio_mismatch:
+    'Todos los pines de un carrusel deben tener el mismo ratio. Unifica el ratio de los pines del episodio antes de activarlo.',
   media_in_use:
     'Este medio se sigue usando en otro sitio y no se puede borrar.',
   only_draft_deletable: 'Solo se pueden eliminar contenidos en estado draft.',

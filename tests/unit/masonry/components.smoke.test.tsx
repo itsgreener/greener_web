@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { PinCard } from '@/components/pin/PinCard'
 
@@ -74,9 +74,10 @@ describe('PinCard — prueba de humo', () => {
 })
 
 /**
- * 7 oct 2026 (§2.41): un pin es un único medio y no existe el carrusel de
- * pines. Si por datos antiguos llegaran varios medios, la tarjeta pinta el
- * primero y no avanza nunca.
+ * 7 oct 2026 (§2.41): un pin es un único medio y su tarjeta no avanza nunca.
+ * La única excepción es el carrusel de pines de un episodio (11 nov 2026,
+ * §2.150), que llega como una unidad con varios medios y tiene sus propios
+ * tests (tests/unit/pin/pinCarouselCard.test.tsx).
  */
 describe('PinCard — un pin es un único medio (sin carrusel)', () => {
   const PIN = {
@@ -96,33 +97,6 @@ describe('PinCard — un pin es un único medio (sin carrusel)', () => {
 
   afterEach(() => {
     vi.useRealTimers()
-  })
-
-  it('con varios medios en los datos pinta solo el primero y no avanza con el tiempo', () => {
-    render(
-      <PinCard
-        pin={{
-          ...PIN,
-          media: [
-            { kind: 'image', cloudinaryPublicId: 'imagen-1' },
-            { kind: 'image', cloudinaryPublicId: 'imagen-2' },
-          ],
-        }}
-        style={STYLE}
-      />,
-    )
-
-    const img = screen.getByAltText('Alt del pin')
-    expect(img).toHaveAttribute('src', expect.stringContaining('imagen-1'))
-
-    act(() => {
-      vi.advanceTimersByTime(30_000)
-    })
-
-    expect(screen.getByAltText('Alt del pin')).toHaveAttribute(
-      'src',
-      expect.stringContaining('imagen-1'),
-    )
   })
 
   it('el destino de una tool no lleva ningún parámetro slide', () => {

@@ -27,6 +27,7 @@ export function EditPinForm({
   contentId,
   derivedLabel,
   fixedLanguage = null,
+  ratioLocked = false,
 }: {
   pin: PinListItem
   contentId: string
@@ -34,6 +35,9 @@ export function EditPinForm({
   // Idioma del contenido cuando es de un solo idioma: no se pregunta, se
   // envía tal cual (y el servidor lo vuelve a imponer).
   fixedLanguage?: Locale | null
+  // Con el carrusel de pines activo el ratio es el mismo para todos y no se
+  // cambia pin a pin (la base de datos también lo impide).
+  ratioLocked?: boolean
 }) {
   const [state, formAction, pending] = useActionState(
     updatePinAction.bind(null, pin.id, contentId),
@@ -43,11 +47,24 @@ export function EditPinForm({
   return (
     <AdminForm action={formAction}>
       <AdminFormGrid>
-        <AdminField label="Ratio" htmlFor={`ratio-${pin.id}`}>
+        <AdminField
+          label="Ratio"
+          htmlFor={`ratio-${pin.id}`}
+          help={
+            ratioLocked
+              ? 'Bloqueado: todos los pines del carrusel comparten ratio. Desmarca el carrusel para cambiarlo.'
+              : undefined
+          }
+        >
+          {/* Un control deshabilitado no se envía: el valor viaja aparte. */}
+          {ratioLocked && (
+            <input name="ratio" type="hidden" value={pin.ratio} />
+          )}
           <AdminSelect
             id={`ratio-${pin.id}`}
-            name="ratio"
+            name={ratioLocked ? undefined : 'ratio'}
             defaultValue={pin.ratio}
+            disabled={ratioLocked}
             required
           >
             <RatioOptions />

@@ -25,12 +25,25 @@ function functionBody(name: string): string {
 }
 
 describe('migración del carrusel: orden y edición', () => {
-  it('es la última migración (se aplica después de todas las anteriores)', () => {
-    const names = readdirSync(dir)
-      .filter((name) => name.endsWith('.sql'))
+  it('ninguna migración posterior redefine sus funciones (se aplica después de todas las que las tocan)', () => {
+    const later = readdirSync(dir)
+      .filter((name) => name.endsWith('.sql') && name > FILE)
       .sort()
+    const functions = [
+      'reorder_case_carousel',
+      'update_case_carousel_alt',
+      'replace_case_carousel_media',
+    ]
 
-    expect(names.at(-1)).toBe(FILE)
+    for (const name of later) {
+      const other = readFileSync(join(dir, name), 'utf8')
+
+      for (const fn of functions) {
+        expect(other, `${name} redefine ${fn}`).not.toContain(
+          `function public.${fn}(`,
+        )
+      }
+    }
   })
 
   it.each([

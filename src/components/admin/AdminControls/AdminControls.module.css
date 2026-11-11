@@ -66,3 +66,17 @@
   line-height: var(--admin-lh-snug);
   resize: vertical;
 }
+
+/* Casilla con su texto en una línea (p. ej. «formar un carrusel con los pines»). */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--admin-fs-base);
+  cursor: pointer;
+
+  &:has(:disabled) {
+    color: var(--admin-text-muted);
+    cursor: not-allowed;
+  }
+}

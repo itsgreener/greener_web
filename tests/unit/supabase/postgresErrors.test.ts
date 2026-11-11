@@ -31,6 +31,7 @@ const BY_CODE: ReadonlyArray<readonly [string, DomainErrorKind]> = [
   ['ZG016', 'active_version_undeletable'],
   ['ZG017', 'other_kind_required'],
   ['ZG018', 'page_pin_required'],
+  ['ZG019', 'carousel_ratio_mismatch'],
 ]
 
 describe('mapPostgresError — por SQLSTATE', () => {

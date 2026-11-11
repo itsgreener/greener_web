@@ -14,7 +14,7 @@ npx supabase link --project-ref <project-ref>
 npx supabase db push --remote
 ```
 
-Esto aplica, en orden de nombre, todos los archivos de `migrations/` (60 a 9 nov 2026; lo que ya esté aplicado no se repite). El nombre empieza por la fecha, así que el orden es el cronológico. Por bloques:
+Esto aplica, en orden de nombre, todos los archivos de `migrations/` (62 a 11 nov 2026; lo que ya esté aplicado no se repite). El nombre empieza por la fecha, así que el orden es el cronológico. Por bloques:
 
 1. **`20260806*` — modelo base** (arquitectura §7): enumerados, supertipo `content` y traducciones, bloques, extensiones por tipo, medios y pines, taxonomía y `feed_config`, acceso de administración y auditoría, y las políticas de RLS (`is_admin()`).
 2. **`20260820*` a `20260828*` — funciones del ABM**: alta, edición y borrado de contenido, traducciones, bloques, medios de imagen y de vídeo.
@@ -24,6 +24,7 @@ Esto aplica, en orden de nombre, todos los archivos de `migrations/` (60 a 9 nov
 6. **`20261029*` — revocación de enlaces de preview** (`20261029100000`): columna `content.preview_revoked_at` y función `revoke_content_preview_links`. Sin ella fallan el botón «Revocar enlaces» y la apertura de cualquier enlace de preview; **Greener la tiene pendiente de ejecutar** (`docs/PROGRESO.md` §4.1).
 7. **`20261106*` — nuevo programa del podcast** (`20261106140000`): añade `brand_founders_leaders` («Brand Founders & Leaders») al enumerado `episode_program`. Sin ella el ABM no puede guardar un episodio de ese programa; **pendiente de ejecutar** (`docs/PROGRESO.md` §4.1).
 8. **`20261109*` — carrusel de los casos: reordenar y editar** (`20261109140000`): tres funciones (`reorder_case_carousel`, `update_case_carousel_alt`, `replace_case_carousel_media`), sin tocar tablas. Sin ella fallan «Guardar orden» y «Guardar cambios» del carrusel de un caso; **pendiente de ejecutar** (`docs/PROGRESO.md` §4.1).
+9. **`20261111*` — pines de episodio como carrusel** (`20261111110000`): columna `content.pins_as_carousel`, función `set_content_pins_carousel` y un trigger que obliga a que todos los pines de un carrusel compartan ratio (`ZG019`). Es requisito de esta versión de la web (el feed y el editor leen la columna nueva) y es aditiva: aplicarla ANTES de desplegar; **pendiente de ejecutar** (`docs/PROGRESO.md` §4.1).
 
 La lista exacta es el contenido de `migrations/`; cada fichero empieza con un comentario que dice qué cambia y por qué. Los pendientes de aplicar en producción están en `docs/PROGRESO.md` §4.1; para saber cuáles faltan, `npx supabase migration list`.
 

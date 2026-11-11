@@ -185,6 +185,7 @@ export type Database = {
           default_locale: Database["public"]["Enums"]["locale"]
           id: string
           og_media_id: string | null
+          pins_as_carousel: boolean
           preview_revoked_at: string | null
           publish_at: string | null
           slug: string
@@ -197,6 +198,7 @@ export type Database = {
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
           og_media_id?: string | null
+          pins_as_carousel?: boolean
           preview_revoked_at?: string | null
           publish_at?: string | null
           slug: string
@@ -209,6 +211,7 @@ export type Database = {
           default_locale?: Database["public"]["Enums"]["locale"]
           id?: string
           og_media_id?: string | null
+          pins_as_carousel?: boolean
           preview_revoked_at?: string | null
           publish_at?: string | null
           slug?: string
@@ -836,6 +839,10 @@ export type Database = {
       remove_case_carousel_media: {
         Args: { p_content_id: string; p_media_id: string }
         Returns: string
+      }
+      set_content_pins_carousel: {
+        Args: { p_content_id: string; p_enabled: boolean }
+        Returns: boolean
       }
       reorder_case_carousel: {
         Args: { p_content_id: string; p_media_ids: string[] }

@@ -97,7 +97,7 @@ Igual que tool/insight, **sin CTA, sin paquete HTML** — `cover_media_id` admit
 | Campo      | Notas                                                                                                                |
 | ---------- | -------------------------------------------------------------------------------------------------------------------- |
 | `label`    | Gancho/título del pin. Obligatorio en tool/insight/libre, opcional (no se muestra) en caso/episodio                  |
-| Medios     | Hasta 8 (imagen o vídeo, mezclados; vídeo ≤8 s, y ≤15 s / 15 MB en pines de tool, §8) + flag "mostrar como carrusel" |
+| Medio      | Uno (imagen o vídeo; vídeo ≤8 s, y ≤15 s / 15 MB en pines de tool, §8). Un episodio puede agrupar todos sus pines (hasta 8) en **un carrusel** del feed (`content.pins_as_carousel`, §2.150) |
 | `ratio`    | Uno de los 7 ratios cerrados                                                                                         |
 | `language` |                                                                                                                      |
 | `alt`      |                                                                                                                      |

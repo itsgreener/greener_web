@@ -85,6 +85,19 @@ export default async function EditContentPage({ params }: Props) {
     ? content.defaultLocale
     : null
 
+  // Carrusel de pines (§2.150), solo en episodios. Con pines ya subidos que
+  // comparten ratio, ese es el ratio de todo el carrusel; con ratios distintos
+  // no se puede activar hasta unificarlos.
+  const pinRatios = [...new Set(pins.map((pin) => pin.ratio))]
+  const carousel =
+    content.type === 'episode'
+      ? {
+          enabled: content.pinsAsCarousel,
+          lockedRatio: pinRatios.length === 1 ? pinRatios[0] : null,
+          ratiosMixed: pinRatios.length > 1,
+        }
+      : null
+
   return (
     <AdminPage>
       <AdminBackLink href="/admin/contents">
@@ -231,6 +244,12 @@ export default async function EditContentPage({ params }: Props) {
                 contentType={content.type}
                 pins={pins}
                 fixedLanguage={pinFixedLanguage}
+                carousel={
+                  carousel && {
+                    enabled: carousel.enabled,
+                    ratiosMixed: carousel.ratiosMixed,
+                  }
+                }
               />
             </AdminCardSection>
 
@@ -252,6 +271,7 @@ export default async function EditContentPage({ params }: Props) {
                   contentType={content.type}
                   availableSlots={remainingPinSlots(pins.length)}
                   fixedLanguage={pinFixedLanguage}
+                  carousel={carousel}
                 />
               )}
             </AdminCardSection>

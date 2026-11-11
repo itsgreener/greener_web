@@ -54,7 +54,15 @@ export const unpublishContentSchema = z.object({
   id: idSchema('content'),
 })
 
+export const setPinsCarouselSchema = z.object({
+  id: idSchema('content'),
+
+  enabled: z.boolean(),
+})
+
 export type CreateContentInput = z.infer<typeof createContentSchema>
+
+export type SetPinsCarouselInput = z.infer<typeof setPinsCarouselSchema>
 
 export type UpdateContentInput = z.infer<typeof updateContentSchema>
 

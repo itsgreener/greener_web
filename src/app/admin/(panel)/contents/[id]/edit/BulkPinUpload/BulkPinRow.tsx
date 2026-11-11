@@ -7,6 +7,7 @@ import type { Row } from './rows'
 
 export function BulkPinRow({
   row,
+  position,
   derivedLabel,
   showLanguage,
   disabled,
@@ -14,6 +15,9 @@ export function BulkPinRow({
   onRemove,
 }: {
   row: Row
+  // Posición de la diapositiva en un carrusel de pines (§2.150); null fuera de
+  // un carrusel. En un carrusel el ratio es único y no se edita por fila.
+  position: number | null
   derivedLabel: boolean
   // false en un contenido de un solo idioma: el idioma no se pregunta.
   showLanguage: boolean
@@ -23,6 +27,8 @@ export function BulkPinRow({
 }) {
   return (
     <tr>
+      {position !== null && <td>{position}</td>}
+
       <td>{row.file.name}</td>
 
       <td>
@@ -39,22 +45,24 @@ export function BulkPinRow({
         )}
       </td>
 
-      <td>
-        <AdminSelect
-          compact
-          aria-label={`Ratio de ${row.file.name}`}
-          value={row.ratio}
-          disabled={disabled}
-          onChange={(event) =>
-            onChange({ ratio: event.target.value, ratioSource: 'manual' })
-          }
-        >
-          <RatioOptions />
-        </AdminSelect>
-        {row.ratioSource === 'filename' && (
-          <small className={styles.note}> detectado del nombre</small>
-        )}
-      </td>
+      {position === null && (
+        <td>
+          <AdminSelect
+            compact
+            aria-label={`Ratio de ${row.file.name}`}
+            value={row.ratio}
+            disabled={disabled}
+            onChange={(event) =>
+              onChange({ ratio: event.target.value, ratioSource: 'manual' })
+            }
+          >
+            <RatioOptions />
+          </AdminSelect>
+          {row.ratioSource === 'filename' && (
+            <small className={styles.note}> detectado del nombre</small>
+          )}
+        </td>
+      )}
 
       {showLanguage && (
         <td>

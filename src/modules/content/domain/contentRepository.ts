@@ -6,6 +6,7 @@ import type {
   DeleteContentInput,
   PublishContentInput,
   ScheduleContentInput,
+  SetPinsCarouselInput,
   UnpublishContentInput,
   UpdateContentInput,
 } from './contentSchema'
@@ -34,6 +35,8 @@ export type ContentDetail = {
   title: string
   createdAt: string
   publishAt: string | null
+  /** Solo episodios (§2.150): sus pines forman un único carrusel en el feed. */
+  pinsAsCarousel: boolean
 }
 
 export type ContentListPage = {
@@ -64,4 +67,7 @@ export interface ContentRepository {
   schedule(input: ScheduleContentInput): Promise<string>
 
   unpublish(input: UnpublishContentInput): Promise<string>
+
+  /** Activa o desactiva el carrusel de pines de un episodio (§2.150). */
+  setPinsCarousel(input: SetPinsCarouselInput): Promise<boolean>
 }

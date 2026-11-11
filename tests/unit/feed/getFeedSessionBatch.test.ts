@@ -70,7 +70,7 @@ const SESSION: FeedSession = {
 }
 
 const CONFIG: FeedConfig = {
-  ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
+  ratios: { cases: 70, insights: 10, tools: 10, channel: 10, other: 0 },
   batchSize: 40,
 }
 
@@ -163,7 +163,8 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('primer lote (sin cursor): genera la ronda 0, la persiste y devuelve items enriquecidos', async () => {
-    const result = await getFeedSessionBatch(SESSION.id, null, deps)
+    // size 4 = la ronda entera de este universo (2 casos de fuerza 2).
+    const result = await getFeedSessionBatch(SESSION.id, null, deps, 4)
 
     expect(result.items.length).toBe(4) // force 2 + force 2, sin más tipos en el universo
     expect(result.hasMore).toBe(true)
@@ -219,8 +220,8 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('el cursor devuelto avanza a roundIndex+1 y sirve la siguiente ronda al usarlo', async () => {
-    const first = await getFeedSessionBatch(SESSION.id, null, deps)
-    const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+    const first = await getFeedSessionBatch(SESSION.id, null, deps, 4)
+    const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps, 4)
 
     expect(deps.rounds.has(`${SESSION.id}:1`)).toBe(true)
     // Con seed fija, la ronda 1 es determinista pero no tiene por qué
@@ -229,12 +230,31 @@ describe('getFeedSessionBatch', () => {
   })
 
   it('devuelve el índice de ronda (round) que lee el evento Feed Depth', async () => {
-    const first = await getFeedSessionBatch(SESSION.id, null, deps)
-    const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+    const first = await getFeedSessionBatch(SESSION.id, null, deps, 4)
+    const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps, 4)
 
     expect(first.round).toBe(0)
     expect(second.round).toBe(1)
     expect(first.batch).toBe(0)
+  })
+
+  it('si la ronda es más corta que el lote, el lote se completa con las rondas siguientes (hasta 6) y el universo se lee una sola vez', async () => {
+    // Ronda de 4 pines (2 casos de fuerza 2) y lote de 40: tope de 6 rondas.
+    const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+    expect(result.items).toHaveLength(24)
+    expect(result.round).toBe(0)
+    expect(result.batch).toBe(0)
+    expect([...deps.rounds.keys()].sort()).toEqual(
+      [0, 1, 2, 3, 4, 5].map((r) => `${SESSION.id}:${r}`),
+    )
+    // Cada ronda se genera con el mismo universo: se lee una vez por petición.
+    expect(deps.getDataset).toHaveBeenCalledTimes(1)
+    expect(deps.saveRound).toHaveBeenCalledTimes(6)
+    // Los 24 pines son las seis rondas guardadas, en orden.
+    expect(result.items.map((i) => i.pinId)).toEqual(
+      [0, 1, 2, 3, 4, 5].flatMap((r) => deps.rounds.get(`${SESSION.id}:${r}`)!),
+    )
   })
 
   it('un cursor de otra sesión se rechaza (InvalidFeedCursorError)', async () => {
@@ -446,21 +466,94 @@ describe('getFeedSessionBatch', () => {
       return batches
     }
 
-    it('parte la ronda en lotes de batch_size y el siguiente tramo continúa donde lo dejó el anterior', async () => {
+    it('los lotes son siempre de batch_size: el que llega al final de la ronda sigue por el principio de la siguiente', async () => {
       const batches = await readAll()
 
-      expect(batches.slice(0, 3).map((b) => b.items.length)).toEqual([4, 4, 2])
-      expect(batches.slice(0, 3).map((b) => [b.round, b.batch])).toEqual([
+      // Ronda de 10 pines y lotes de 4: ningún lote sale corto.
+      expect(batches.map((b) => b.items.length)).toEqual([4, 4, 4, 4, 4, 4])
+      // `round` y `batch` son los del primer pin del lote.
+      expect(batches.slice(0, 4).map((b) => [b.round, b.batch])).toEqual([
         [0, 0],
         [0, 1],
         [0, 2],
+        [1, 0],
       ])
-      // Los tres lotes son exactamente la ronda 0 guardada, en su orden.
+      // Los lotes son exactamente la ronda 0 guardada y la ronda 1, en su orden.
+      const round0 = deps.rounds.get(`${SESSION.id}:0`)!
+      const round1 = deps.rounds.get(`${SESSION.id}:1`)!
       expect(
-        batches.slice(0, 3).flatMap((b) => b.items.map((i) => i.pinId)),
-      ).toEqual(deps.rounds.get(`${SESSION.id}:0`))
-      // El cuarto lote es el principio de la ronda 1.
-      expect([batches[3].round, batches[3].batch]).toEqual([1, 0])
+        batches.slice(0, 4).flatMap((b) => b.items.map((i) => i.pinId)),
+      ).toEqual([...round0, ...round1].slice(0, 16))
+    })
+
+    it('un lote de 25 con rondas de 10 recorre tres rondas y el siguiente continúa en mitad de la tercera', async () => {
+      deps.getConfig = vi.fn(async () => ({ ...CONFIG, batchSize: 25 }))
+      const round = (r: number) => deps.rounds.get(`${SESSION.id}:${r}`)!
+
+      const first = await getFeedSessionBatch(SESSION.id, null, deps)
+
+      expect(first.items.map((i) => i.pinId)).toEqual([
+        ...round(0),
+        ...round(1),
+        ...round(2).slice(0, 5),
+      ])
+      // Tres rondas generadas, el universo se lee una sola vez en la petición.
+      expect(deps.saveRound).toHaveBeenCalledTimes(3)
+      expect(deps.getDataset).toHaveBeenCalledTimes(1)
+
+      const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+
+      // Arranca en la ronda 2, desplazamiento 5: 5 + 10 + 10 = 25 pines.
+      expect([second.round, second.batch]).toEqual([2, 0])
+      expect(second.items.map((i) => i.pinId)).toEqual([
+        ...round(2).slice(5),
+        ...round(3),
+        ...round(4),
+      ])
+    })
+
+    it('mezcla rondas guardadas y nuevas en el mismo lote: el directorio se pide solo para los pines del lote', async () => {
+      deps.getConfig = vi.fn(async () => ({ ...CONFIG, batchSize: 15 }))
+      // El primer lote guarda las rondas 0 y 1 (15 pines).
+      const first = await getFeedSessionBatch(SESSION.id, null, deps)
+      vi.mocked(deps.getDataset).mockClear()
+      vi.mocked(deps.getDirectoryByIds).mockClear()
+
+      // El segundo: resto de la ronda 1 (guardada) + ronda 2 (nueva).
+      const second = await getFeedSessionBatch(SESSION.id, first.cursor, deps)
+
+      expect(second.items).toHaveLength(15)
+      expect(deps.getDataset).toHaveBeenCalledTimes(1)
+      expect(deps.getDirectoryByIds).toHaveBeenCalledTimes(1)
+      expect(vi.mocked(deps.getDirectoryByIds).mock.calls[0][0]).toHaveLength(
+        15,
+      )
+    })
+
+    it('un universo diminuto no genera más de 6 rondas por petición: el lote simplemente sale más corto', async () => {
+      const single = {
+        snapshot: {
+          cases: [{ contentId: 'case-1', pinIds: ['pin-1'], force: 1 }],
+          insights: [],
+          tools: [],
+          channel: [],
+          other: [],
+        },
+        pinDirectory: { 'pin-1': entry('case-1', 'case') } as Record<
+          string,
+          PinDirectoryEntry
+        >,
+      }
+      deps.getDataset = vi.fn(async () => single)
+      deps.getConfig = vi.fn(async () => ({ ...CONFIG, batchSize: 40 }))
+      deps.getDirectoryByIds = vi.fn(async (ids: string[]) =>
+        Object.fromEntries(ids.map((id) => [id, single.pinDirectory[id]])),
+      )
+
+      const result = await getFeedSessionBatch(SESSION.id, null, deps)
+
+      expect(result.items).toHaveLength(6)
+      expect(deps.saveRound).toHaveBeenCalledTimes(6)
     })
 
     it('la ronda se genera una sola vez y los tramos siguientes solo piden las fichas de su tramo', async () => {

@@ -8,7 +8,9 @@ import type {
   FeedSnapshot,
 } from '@/modules/feed/domain/types'
 
-// Ratios confirmados con Greener (ADR-11): 70/15/5/5/5.
+// Reparto de prueba con los cinco tipos activos, para ejercitar el motor con
+// `other` incluido. El reparto real desde el 11 nov 2026 es 70/10/10/10/0
+// (`other` va por libre, como interludio); antes, ADR-11: 70/15/5/5/5.
 const BASE_CONFIG: FeedConfig = {
   ratios: { cases: 70, insights: 15, tools: 5, channel: 5, other: 5 },
   batchSize: 40,

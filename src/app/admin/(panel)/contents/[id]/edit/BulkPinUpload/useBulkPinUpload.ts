@@ -17,6 +17,7 @@ import {
 import type { ContentType } from '@/modules/shared/domain/contentType'
 import type { Locale } from '@/modules/shared/domain/locale'
 
+import { setPinsCarouselAction } from '@/app/admin/(panel)/contents/[id]/edit/episodeActions'
 import {
   createPinWithImageAction,
   createPinWithVideoAction,
@@ -28,7 +29,24 @@ import {
 
 import { useUploadQueue } from '@/app/admin/_lib/useUploadQueue'
 
-import { regenerateRows, type Row, type RowDefaults } from './rows'
+import {
+  regenerateRows,
+  sortFilesNaturally,
+  type Row,
+  type RowDefaults,
+} from './rows'
+
+/**
+ * Carrusel de pines (§2.150), solo en episodios: `enabled` = ya está activo;
+ * `lockedRatio` = ratio de los pines que ya hay (el de todo el carrusel);
+ * `ratiosMixed` = los pines actuales tienen ratios distintos y no se puede
+ * activar hasta unificarlos.
+ */
+export type BulkCarouselOption = {
+  enabled: boolean
+  lockedRatio: string | null
+  ratiosMixed: boolean
+}
 
 function rowKey(row: Row) {
   return row.key
@@ -39,6 +57,7 @@ export function useBulkPinUpload({
   contentType,
   availableSlots,
   fixedLanguage,
+  carousel,
 }: {
   contentId: string
   contentType: ContentType
@@ -46,6 +65,8 @@ export function useBulkPinUpload({
   availableSlots: number
   // Idioma que toman todos los pines si el contenido es de un solo idioma.
   fixedLanguage: Locale | null
+  // Solo se pasa en episodios: sin él no hay casilla de carrusel.
+  carousel?: BulkCarouselOption | null
 }) {
   const derivedLabel = hasDerivedPinLabel(contentType)
 
@@ -67,23 +88,49 @@ export function useBulkPinUpload({
     'viewport',
   )
   const [formError, setFormError] = useState<string | null>(null)
+  // Casilla «formar un carrusel con los pines». Si el carrusel ya está activo
+  // en el episodio, queda marcada y bloqueada (se desactiva desde la lista).
+  const [carouselChecked, setCarouselChecked] = useState(false)
+  // Activando el carrusel antes de subir el primer archivo.
+  const [preparing, setPreparing] = useState(false)
+
+  const carouselActive = !!carousel && (carousel.enabled || carouselChecked)
+  const carouselRatio = carousel?.lockedRatio ?? null
 
   function rebuildRows(
     nextFiles: File[],
     nextCsvRows: PinCsvRow[],
     // El valor recién elegido: el estado de React aún no se ha actualizado
     // cuando se llama desde el onChange de los selects por defecto.
-    overrides: Partial<RowDefaults> = {},
+    overrides: Partial<RowDefaults> & { carousel?: boolean } = {},
   ) {
+    const ratio = overrides.ratio ?? defaultRatio
+    const carouselOn = overrides.carousel ?? carouselActive
+
     const defaults: RowDefaults = {
-      ratio: overrides.ratio ?? defaultRatio,
+      ratio,
       language: overrides.language ?? defaultLanguage,
       fixedLanguage,
+      // Un carrusel tiene un único ratio: el de los pines que ya hay o, si no
+      // hay, el elegido en el selector común.
+      forceRatio: carouselOn ? (carouselRatio ?? ratio) : null,
     }
 
+    // En un carrusel el orden de las filas es el de las diapositivas: orden
+    // natural por nombre de archivo.
     setRows((current) =>
-      regenerateRows(current, nextFiles, nextCsvRows, defaults),
+      regenerateRows(
+        current,
+        carouselOn ? sortFilesNaturally(nextFiles) : nextFiles,
+        nextCsvRows,
+        defaults,
+      ),
     )
+  }
+
+  function changeCarousel(checked: boolean) {
+    setCarouselChecked(checked)
+    rebuildRows(files, csvRows, { carousel: checked })
   }
 
   function handleFilesChange(fileList: FileList | null) {
@@ -241,6 +288,23 @@ export function useBulkPinUpload({
       return
     }
 
+    // Con la casilla marcada se activa el carrusel ANTES de subir el primer
+    // archivo: así la base de datos ya obliga a que todos compartan ratio. Si
+    // no se puede activar (los pines actuales tienen ratios distintos) no se
+    // sube nada.
+    if (carousel && !carousel.enabled && carouselChecked) {
+      setPreparing(true)
+
+      const activated = await setPinsCarouselAction(contentId, true)
+
+      setPreparing(false)
+
+      if (!activated.ok) {
+        setFormError(activated.error)
+        return
+      }
+    }
+
     // Secuencial, no en paralelo: son subidas directas a Cloudinary desde
     // el navegador, y un lote de cientos de archivos en paralelo satura
     // la conexión del admin sin necesidad. Si algo falla tras subir el
@@ -256,13 +320,19 @@ export function useBulkPinUpload({
   return {
     derivedLabel,
     rows,
-    defaultRatio,
+    // En un carrusel con pines ya subidos el ratio ya está fijado por ellos.
+    defaultRatio:
+      carouselActive && carouselRatio ? carouselRatio : defaultRatio,
     defaultLanguage,
     videoAutoplay,
     setVideoAutoplay,
     hasVideo: rows.some((row) => row.kind === 'video'),
-    uploading,
+    uploading: uploading || preparing,
     formError,
+    carouselActive,
+    carouselChecked,
+    changeCarousel,
+    ignoredRatioCount: rows.filter((row) => row.ratioIgnored).length,
     okCount: rows.filter((row) => row.status === 'ok').length,
     errorCount: rows.filter((row) => row.status === 'error').length,
     handleFilesChange,

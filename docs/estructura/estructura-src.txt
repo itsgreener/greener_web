@@ -72,6 +72,7 @@ src/app/admin/(panel)/contents/[id]/edit/PinList/DeletePinButtons.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinList/EditPinForm.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinList/PinList.module.css
 src/app/admin/(panel)/contents/[id]/edit/PinList/PinRow.tsx
+src/app/admin/(panel)/contents/[id]/edit/PinList/PinsCarouselToggle.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinList/index.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinMediaManager/MediaThumb.tsx
 src/app/admin/(panel)/contents/[id]/edit/PinMediaManager/index.tsx
@@ -272,8 +273,12 @@ src/components/pin/PinCard/CardLink.tsx
 src/components/pin/PinCard/PinCard.module.css
 src/components/pin/PinCard/PinCardLabel.tsx
 src/components/pin/PinCard/PinCardMedia.tsx
+src/components/pin/PinCard/PinCarouselCard.tsx
 src/components/pin/PinCard/index.tsx
+src/components/pin/PinCard/pinClick.ts
 src/components/pin/PinCard/types.ts
+src/components/pin/PinCard/useCarouselAutoplay.ts
+src/components/pin/PinCard/usePinPlayback.ts
 src/components/pin/useHoverIntent.ts
 src/components/pin/usePinVideo/index.ts
 src/components/pin/useVideoSlot/index.ts
@@ -379,6 +384,7 @@ src/modules/content/application/replaceCaseCarouselMedia.ts
 src/modules/content/application/resolveDetailCover.ts
 src/modules/content/application/resolvePreviewContext.ts
 src/modules/content/application/revokePreviewLinks.ts
+src/modules/content/application/setEpisodePinsCarousel.ts
 src/modules/content/application/unpublishContent.ts
 src/modules/content/application/updateCaseCarouselAlt.ts
 src/modules/content/application/updateContent.ts
@@ -435,6 +441,7 @@ src/modules/feed/application/createFeedSession.ts
 src/modules/feed/application/getFeedSessionBatch.ts
 src/modules/feed/container.ts
 src/modules/feed/domain/batchSize.ts
+src/modules/feed/domain/carouselTiming.ts
 src/modules/feed/domain/caseStream.ts
 src/modules/feed/domain/excludeContent.ts
 src/modules/feed/domain/feedConfigSchema.ts

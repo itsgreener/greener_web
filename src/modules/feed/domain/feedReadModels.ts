@@ -9,6 +9,11 @@ export interface FeedItemMedia {
   // encima de PIN_ANIMATION_LIMITS.maxDurationSeconds solo se enseña el
   // poster. Ausente/null = se desconoce y se trata como animable.
   durationSeconds?: number | null
+  // Solo en las unidades de carrusel (§2.150): cada diapositiva es un pin con
+  // su propio alt y su propio modo de autoplay. En un pin normal (un solo
+  // medio) se leen los del pin, así que viajan ausentes.
+  alt?: string
+  autoplayMode?: 'viewport' | 'hover' | null
 }
 
 export interface PinDirectoryEntry {
@@ -44,7 +49,10 @@ export interface PinDirectoryEntry {
   // está encima (no compite por el hueco — es una acción explícita del
   // usuario, no reproducción ambiental), null no reproduce nunca.
   autoplayMode: 'viewport' | 'hover' | null
-  // Un pin es un único medio (7 oct 2026, §2.41): siempre 1 elemento.
+  // Un pin es un único medio (7 oct 2026, §2.41): 1 elemento. La excepción es
+  // la unidad de carrusel de un episodio con `pins_as_carousel` (§2.150):
+  // 2 a 8 elementos, uno por pin del episodio, en el orden del ABM, todos con
+  // el mismo ratio.
   media: FeedItemMedia[]
 }
 

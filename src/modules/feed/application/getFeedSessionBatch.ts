@@ -99,6 +99,15 @@ function interludeItem(
 const MAX_SKIPPED_SLICES = 5
 
 /**
+ * Cuántas rondas puede recorrer como máximo un solo lote para llegar a su
+ * tamaño. Con pocos casos la ronda es corta (10 casos de fuerza 1 son 15
+ * pines) y un lote de 40 necesita tres; el tope evita que un universo
+ * diminuto (una ronda de 1 o 2 pines) genere y guarde decenas de rondas en una
+ * sola petición: en ese caso el lote simplemente sale más corto.
+ */
+const MAX_ROUNDS_PER_BATCH = 6
+
+/**
  * Caso de uso: "dame el siguiente lote de esta sesión de feed" (§16.1,
  * §8.5). Una ronda ya generada se lee tal cual de feed_round (inmutable:
  * los pines ya servidos no cambian aunque cambie el contenido publicado
@@ -118,6 +127,11 @@ const MAX_SKIPPED_SLICES = 5
  * que la respuesta, la consulta del directorio y el DOM del cliente son de
  * tamaño acotado. El cursor lleva roundIndex + offset dentro de la ronda; al
  * acabar una ronda el siguiente tramo es el principio de la ronda siguiente.
+ * Si la ronda es más corta que el lote (con pocos casos mide
+ * `pinesDeCasos / 0,70`), el propio lote se completa con el principio de la
+ * ronda siguiente (hasta `MAX_ROUNDS_PER_BATCH`), para que un catálogo
+ * pequeño no obligue a pedir lotes de 15 pines. `round` y `batch` de la
+ * respuesta son los del primer pin del lote.
  *
  * @throws FeedSessionNotFoundError si la sesión no existe o caducó
  * @throws InvalidFeedCursorError si el cursor no es de esta sesión
@@ -166,33 +180,119 @@ export function makeGetFeedSessionBatch({
     const config = await catalog.config()
     const size = resolveBatchSize(requestedSize, config.batchSize)
 
-    // Ronda en curso, cargada una sola vez; si el cursor apunta a la
-    // siguiente se recarga/genera.
-    let loadedIndex = -1
-    let unitIds: string[] = []
-    let generatedDirectory: Record<string, PinDirectoryEntry> | null = null
+    // Rondas leídas o generadas en esta petición (un lote puede recorrer
+    // varias). `directory` solo viene relleno en las generadas ahora: es el
+    // directorio del universo completo, que ya sirve para enriquecer el lote.
+    const loadedRounds = new Map<
+      number,
+      { ids: string[]; directory: Record<string, PinDirectoryEntry> | null }
+    >()
 
-    async function loadRound(index: number): Promise<void> {
-      if (loadedIndex === index) return
-      loadedIndex = index
-      generatedDirectory = null
+    // El universo se lee una sola vez por petición aunque se generen varias
+    // rondas (el catálogo además lo cachea).
+    let datasetPromise: ReturnType<FeedCatalog['dataset']> | null = null
 
-      const stored = await sessions.getRound(sessionId, index)
-      if (stored) {
-        unitIds = stored
-        return
-      }
-
+    function loadDataset(): ReturnType<FeedCatalog['dataset']> {
       // Ronda nueva: hace falta el universo completo para poder generarla,
       // filtrado por el scope con el que se abrió la sesión (§6.1, §8.2).
-      const { snapshot, pinDirectory } = await catalog.dataset(
+      datasetPromise ??= catalog.dataset(
         session!.scope,
         session!.excludeContentId,
       )
+
+      return datasetPromise
+    }
+
+    async function loadRound(index: number) {
+      const loaded = loadedRounds.get(index)
+      if (loaded) return loaded
+
+      const stored = await sessions.getRound(sessionId, index)
+      if (stored) {
+        const round = { ids: stored, directory: null }
+        loadedRounds.set(index, round)
+
+        return round
+      }
+
+      const { snapshot, pinDirectory } = await loadDataset()
       const { sequence } = generateRound(snapshot, config, session!.seed, index)
-      unitIds = sequence.map((pin) => pin.pinId)
-      await sessions.saveRound(sessionId, index, unitIds)
-      generatedDirectory = pinDirectory
+      const ids = sequence.map((pin) => pin.pinId)
+      await sessions.saveRound(sessionId, index, ids)
+
+      const round = { ids, directory: pinDirectory }
+      loadedRounds.set(index, round)
+
+      return round
+    }
+
+    /**
+     * Los pines del lote que empieza en (`fromRound`, `fromOffset`). Si la
+     * ronda se acaba antes de llegar a `size` (pocos casos: la ronda mide
+     * `pinesDeCasos / 0,70`), el lote sigue por el principio de la ronda
+     * siguiente, hasta `MAX_ROUNDS_PER_BATCH` rondas. Devuelve también dónde
+     * debe continuar el cursor.
+     */
+    async function takeSlice(fromRound: number, fromOffset: number) {
+      const ids: string[] = []
+      let round = fromRound
+      let offset = fromOffset
+      let firstRound = fromRound
+      let firstOffset = fromOffset
+      let directory: Record<string, PinDirectoryEntry> | null = null
+      let anyStored = false
+      let roundsRead = 0
+
+      while (ids.length < size && roundsRead < MAX_ROUNDS_PER_BATCH) {
+        const current = await loadRound(round)
+        roundsRead++
+
+        // Ronda realmente vacía (universo sin pines): el cursor pasa a la
+        // siguiente y, si no había nada que servir, el lote sale vacío.
+        if (current.ids.length === 0) {
+          if (ids.length === 0) {
+            round += 1
+            offset = 0
+          }
+          break
+        }
+
+        // Offset más allá del final (ronda cambiada de tamaño, cursor viejo):
+        // principio de la ronda siguiente.
+        if (offset >= current.ids.length) {
+          round += 1
+          offset = 0
+          continue
+        }
+
+        if (ids.length === 0) {
+          firstRound = round
+          firstOffset = offset
+        }
+
+        const part = current.ids.slice(offset, offset + size - ids.length)
+        ids.push(...part)
+        offset += part.length
+
+        if (current.directory) directory = current.directory
+        else anyStored = true
+
+        if (offset >= current.ids.length) {
+          round += 1
+          offset = 0
+        }
+      }
+
+      return {
+        ids,
+        // Solo si todas las rondas del lote se generaron ahora se tiene ya el
+        // directorio; si alguna venía guardada, se consulta el del tramo.
+        directory: anyStored ? null : directory,
+        firstRound,
+        firstOffset,
+        nextRound: round,
+        nextOffset: offset,
+      }
     }
 
     // Interludios: se leen una sola vez por petición y solo si aplican.
@@ -221,22 +321,17 @@ export function makeGetFeedSessionBatch({
     let servedRound = roundIndex
 
     for (let skipped = 0; skipped <= MAX_SKIPPED_SLICES; skipped++) {
-      await loadRound(roundIndex)
+      const taken = await takeSlice(roundIndex, offset)
+      const slice = taken.ids
 
-      // Offset más allá del final (ronda cambiada de tamaño, cursor viejo):
-      // principio de la ronda siguiente.
-      if (offset >= unitIds.length && unitIds.length > 0) {
-        roundIndex += 1
-        offset = 0
-        continue
-      }
+      // `round` y `batch` son los del primer pin del lote (Feed Depth); un
+      // lote que cruza de ronda lleva el principio de la siguiente al final.
+      servedRound = taken.firstRound
+      batch = Math.floor(taken.firstOffset / size)
+      roundIndex = taken.nextRound
+      offset = taken.nextOffset
 
-      const slice = unitIds.slice(offset, offset + size)
-      servedRound = roundIndex
-      batch = Math.floor(offset / size)
-
-      const directory =
-        generatedDirectory ?? (await catalog.directoryByIds(slice))
+      const directory = taken.directory ?? (await catalog.directoryByIds(slice))
       const entries = await loadInterludes()
       const slotByPosition = new Map(
         interludesInRange(
@@ -264,14 +359,6 @@ export function makeGetFeedSessionBatch({
           : null
       })
       served += slice.length
-
-      const end = offset + size
-      if (end >= unitIds.length) {
-        roundIndex += 1
-        offset = 0
-      } else {
-        offset = end
-      }
 
       // Ronda realmente vacía (universo sin pines): lote vacío, el cliente
       // lo trata como fin. Tramo sin pines publicados: se salta al siguiente.
