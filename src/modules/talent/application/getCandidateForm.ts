@@ -56,6 +56,8 @@ export function makeGetCandidateForm({
           languages: record.languages ?? {},
           socials: record.socials ?? {},
           newsletterAccepted: record.newsletterAccepted ?? false,
+          studiesFinished: record.studiesFinished,
+          studiesEndDate: record.studiesEndDate,
           projects: record.projects,
           files: record.files.map((file) => ({
             id: file.id,

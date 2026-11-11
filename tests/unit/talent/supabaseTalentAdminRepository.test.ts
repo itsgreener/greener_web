@@ -205,6 +205,8 @@ describe('findDetail', () => {
     languages: { English: 'avanzado' },
     socials: { LinkedIn: 'https://linkedin.com/in/ada' },
     newsletter_accepted: true,
+    studies_finished: true,
+    studies_end_date: '2026-06-15',
     uploaded_by: 'ana@itsgreener.com',
     blocked: null,
     file_path: 'uploads/abc.pdf',
@@ -237,6 +239,8 @@ describe('findDetail', () => {
       cvName: 'resume-ada.pdf',
       workTypes: ['freelance'],
       rateDay: 300,
+      studiesFinished: true,
+      studiesEndDate: '2026-06-15',
       languages: { English: 'avanzado' },
       projects: [{ link: 'https://ada.example', comment: null }],
       files: [
@@ -252,6 +256,7 @@ describe('findDetail', () => {
     expect(JSON.stringify(detail)).not.toContain('drive.google.com/file/d/f')
     expect(JSON.stringify(detail)).not.toContain('uploads/abc.pdf')
     expect(stepsOf(0).select[0]).not.toContain('access_token')
+    expect(stepsOf(0).select[0]).toContain('studies_finished,studies_end_date')
   })
 
   it('las columnas nulas se normalizan: arrays y objetos nunca null', async () => {

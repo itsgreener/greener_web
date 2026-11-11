@@ -175,6 +175,8 @@ export function fakeRepository(initial: StoredCandidate[] = []) {
         languages: null,
         socials: null,
         newsletterAccepted: null,
+        studiesFinished: null,
+        studiesEndDate: null,
         projects: [],
         files: [],
         ...candidate,

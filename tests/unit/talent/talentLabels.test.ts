@@ -7,6 +7,7 @@ import {
   processingMessage,
   profileLabel,
   statusLabel,
+  studiesLabel,
 } from '@/app/admin/(panel)/talent/talentLabels'
 import {
   CANDIDATE_STATUS_FILTER_VALUES,
@@ -68,5 +69,18 @@ describe('processingMessage', () => {
     ] as const) {
       expect(processingMessage(result)).toBeTruthy()
     }
+  })
+})
+
+describe('studiesLabel', () => {
+  it('sin responder, no, y sí con o sin fecha', () => {
+    expect(studiesLabel(null, null)).toBe('Sin responder')
+    expect(studiesLabel(false, null)).toBe('No')
+    expect(studiesLabel(true, '2026-06-05')).toBe('Sí · 05/06/2026')
+    expect(studiesLabel(true, null)).toBe('Sí')
+  })
+
+  it('una fecha que no es válida se ignora en vez de enseñar basura', () => {
+    expect(studiesLabel(true, '2026-13-40')).toBe('Sí')
   })
 })

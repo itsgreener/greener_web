@@ -10,7 +10,7 @@
 
 Tres tablas en `public`. En las tres, todas las columnas de texto son `text` (no hay enumerados en uso, ver §2). «n8n» indica qué hacen los workflows con la columna; «—» es que no la tocan.
 
-### `candidates` (22 columnas + `access_token_expires_at` desde el 28 oct; la posición 16 no existe, se borró una columna en su día)
+### `candidates` (22 columnas + `access_token_expires_at` desde el 28 oct + `studies_finished` y `studies_end_date` desde el 11 nov; la posición 16 no existe, se borró una columna en su día)
 
 | Columna | Tipo | Nulo | Por defecto | n8n |
 | --- | --- | --- | --- | --- |
@@ -37,6 +37,8 @@ Tres tablas en `public`. En las tres, todas las columnas de texto son `text` (no
 | `ai_comment` | text | sí | — | escribe |
 | `file_name` | text | sí | — | escribe y lee |
 | `access_token_expires_at` | timestamptz | sí | `now() + 7 días` | — (añadida el 28 oct 2026, SEC-PUB-C2) |
+| `studies_finished` | boolean | sí | — | — (añadida el 11 nov 2026) |
+| `studies_end_date` | date | sí | — | — (añadida el 11 nov 2026) |
 
 `access_token_expires_at` es la **única columna que la web nueva añade** al esquema de talent: fin de la vigencia del enlace personal. `null` = sin caducidad (filas anteriores). La web la rellena al dar de alta y cada vez que reenvía el enlace (una semana desde ese momento) y trata un enlace caducado como uno que no existe; el valor por defecto cubre las filas que inserta n8n. SQL en `docs/operaciones/talent-puesta-en-marcha.md` §4.6.
 
@@ -125,6 +127,7 @@ Cada regla indica qué nodo de n8n falla si no se cumple.
 | `projects` | Se borran y se vuelven a insertar por candidato, como hoy. `link` obligatorio; `comment` puede ser `null` (el aviso escribe «no hay comentario»). **Al menos un proyecto por candidato:** `Get projects` no tiene «Always Output Data» (`Get files` sí) y un nodo de n8n que no devuelve filas detiene la rama. El formulario actual parece exigirlo (hay 19 candidatos `closed`); la web nueva lo mantiene, o se activa esa opción en el nodo. | `Get projects` lee todas las filas del candidato; con cero filas, la rama se detiene antes de `Send email` y el candidato no llega a `closed`. |
 | Ficheros | Bucket `cvs`, ruta `uploads/<uuid>.<ext>`: nombre **generado, ASCII y sin espacios**. `files.path` lleva exactamente esa ruta. | `Guardar archivos` descarga por `files.path` y, en la rama de documentos, pide al modelo que devuelva el nombre del fichero y **borra del bucket (`Delete files`, `Delete resume`) según ese nombre devuelto**. Un nombre con espacios o acentos puede volver alterado y dejar el fichero huérfano (hipótesis para parte de las 65 filas del §3, sin verificar). |
 | `name` | **La web no lo escribe.** Lo pone n8n al analizar el CV; el formulario solo lo lee para saludar. | Escribirlo desde el formulario pisaría lo que ha deducido la IA. |
+| `studies_finished`, `studies_end_date` | «¿Has finalizado tus estudios?» (último paso). `studies_finished`: `true`, `false` o `null` (**sin responder**, que es distinto de «no»). `studies_end_date`: `AAAA-MM-DD`, solo con `studies_finished = true` (un `check` de la base lo impone), entre 1950-01-01 y mañana en UTC, y opcional. **Solo se escriben cuando el cuerpo del `PUT` trae `studiesFinished`**: sin la clave (el paquete o la web antigua sin actualizar) no se tocan, para que un cliente que no conoce la pregunta no borre una respuesta ya guardada; `null` explícito sí la limpia. Con `false` o `null` la fecha se guarda como `null`. | Ningún nodo de n8n las lee ni las escribe; son columnas aditivas. |
 | `experience`, `work_types`, `rate_day`, `rate_hour` | Tramos de experiencia: `0`, `0-1`, `1-3`, `3-5`, `5-10`, `10+`. Tipos de trabajo: `internship`, `parttime`, `fulltime`, `freelance`. Las tarifas solo se piden con `freelance` y son números (puede ser `null`). | Ningún nodo de n8n lee `experience` ni las tarifas; `work_types` va al aviso. |
 | `uploaded_by` | Email de quien sube el CV, solo en la subida del personal (ABM, fase 3). En las altas por email no se escribe. | n8n lo usa como copia y destinatario de avisos. |
 | `uploaded_by_id` | **La web no lo escribe** (la subida del personal envía solo `status = 'pending'`, `file_path` y `uploaded_by`). | Ningún nodo de n8n lo lee. |

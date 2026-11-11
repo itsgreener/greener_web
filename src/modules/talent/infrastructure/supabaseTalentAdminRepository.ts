@@ -34,7 +34,7 @@ const LIST_COLUMNS =
   'id,name,email,status,profile,file_path,uploaded_by,created_at'
 
 const DETAIL_COLUMNS =
-  'id,created_at,status,name,email,phone,comment,ai_comment,profile,experience,work_types,rate_day,rate_hour,languages,socials,newsletter_accepted,uploaded_by,blocked,file_path,file_name'
+  'id,created_at,status,name,email,phone,comment,ai_comment,profile,experience,work_types,rate_day,rate_hour,languages,socials,newsletter_accepted,studies_finished,studies_end_date,uploaded_by,blocked,file_path,file_name'
 
 type ListRow = {
   id: string
@@ -58,6 +58,8 @@ type DetailRow = ListRow & {
   languages: Record<string, string> | null
   socials: Record<string, string> | null
   newsletter_accepted: boolean | null
+  studies_finished: boolean | null
+  studies_end_date: string | null
   blocked: boolean | null
   file_name: string | null
 }
@@ -187,6 +189,8 @@ export const supabaseTalentAdminRepository: TalentAdminRepository = {
       languages: row.languages ?? {},
       socials: row.socials ?? {},
       newsletterAccepted: row.newsletter_accepted,
+      studiesFinished: row.studies_finished,
+      studiesEndDate: row.studies_end_date,
       uploadedBy: row.uploaded_by,
       blocked: row.blocked,
       cvKind: classifyCvLocation(row.file_path),

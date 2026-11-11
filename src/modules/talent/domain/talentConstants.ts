@@ -178,6 +178,14 @@ export const ALLOWED_FILE_EXTENSIONS = [
 
 export type AllowedFileExtension = (typeof ALLOWED_FILE_EXTENSIONS)[number]
 
+/**
+ * Fecha de fin de estudios («¿has finalizado tus estudios?», último paso del
+ * formulario): no anterior a esta, `AAAA-MM-DD`. El tope superior es mañana en
+ * UTC (cubre a quien rellena el formulario en un huso adelantado); ver
+ * `talentStudies.ts`.
+ */
+export const STUDIES_MIN_DATE = '1950-01-01'
+
 /** Tope de proyectos, de longitudes de texto y del cuerpo JSON de las rutas. */
 export const TALENT_TEXT_LIMITS = {
   phone: 40,

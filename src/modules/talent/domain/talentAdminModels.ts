@@ -74,6 +74,10 @@ export type CandidateDetail = {
   languages: Record<string, string>
   socials: Record<string, string>
   newsletterAccepted: boolean | null
+  /** `null`: sin responder. */
+  studiesFinished: boolean | null
+  /** `AAAA-MM-DD`. */
+  studiesEndDate: string | null
   uploadedBy: string | null
   blocked: boolean | null
   cvKind: CvLocationKind

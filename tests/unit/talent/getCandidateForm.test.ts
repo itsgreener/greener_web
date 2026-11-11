@@ -74,6 +74,8 @@ describe('getCandidateForm', () => {
         'rateDay',
         'rateHour',
         'socials',
+        'studiesEndDate',
+        'studiesFinished',
         'workTypes',
       ].sort(),
     )
@@ -86,6 +88,35 @@ describe('getCandidateForm', () => {
       socials: {},
       newsletterAccepted: false,
       workTypes: ['Freelance'],
+    })
+  })
+
+  it('estudios sin responder salen como null (no se convierten en false)', async () => {
+    const result = await setup().get(TOKEN, CONTEXT)
+
+    expect(result.ok && result.form.studiesFinished).toBeNull()
+    expect(result.ok && result.form.studiesEndDate).toBeNull()
+  })
+
+  it('con la pregunta contestada devuelve la respuesta y la fecha tal cual', async () => {
+    const repo = fakeRepository([
+      {
+        id: 'c1',
+        email: 'ada@example.com',
+        status: 'closed',
+        accessToken: TOKEN,
+        studiesFinished: true,
+        studiesEndDate: '2026-06-15',
+      },
+    ])
+    const result = await makeGetCandidateForm({
+      repository: repo.repository,
+      limiters: openLimiters(),
+    })(TOKEN, CONTEXT)
+
+    expect(result.ok && result.form).toMatchObject({
+      studiesFinished: true,
+      studiesEndDate: '2026-06-15',
     })
   })
 

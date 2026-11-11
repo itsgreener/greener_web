@@ -62,8 +62,8 @@ Módulo `src/modules/talent` (dominio con esquemas zod y filas, casos de uso, re
 | Ruta | Cuerpo | Éxito |
 | --- | --- | --- |
 | `POST /api/talent/candidates` | `{ email }` | 200 `{ ok: true }`, **igual exista o no el email** |
-| `GET /api/talent/form/[token]` | — | 200 `{ form }` con `email`, `name`, `phone`, `comment`, `profile`, `experience`, `workTypes`, `rateDay`, `rateHour`, `languages`, `socials`, `newsletterAccepted`, `projects` y `files` (`{ id, extension }`). Nunca salen el token, el estado, la ruta del CV ni el comentario de la IA |
-| `PUT /api/talent/form/[token]` | `{ email, phone?, comment?, profile[1+], experience?, workTypes[], rateDay?, rateHour?, languages{}, socials{}, newsletterAccepted, projects[1+ de { link, comment? }] }` | 200 `{ ok: true }` |
+| `GET /api/talent/form/[token]` | — | 200 `{ form }` con `email`, `name`, `phone`, `comment`, `profile`, `experience`, `workTypes`, `rateDay`, `rateHour`, `languages`, `socials`, `newsletterAccepted`, `studiesFinished`, `studiesEndDate` (ambos `null` si no ha contestado), `projects` y `files` (`{ id, extension }`). Nunca salen el token, el estado, la ruta del CV ni el comentario de la IA |
+| `PUT /api/talent/form/[token]` | `{ email, phone?, comment?, profile[1+], experience?, workTypes[], rateDay?, rateHour?, languages{}, socials{}, newsletterAccepted, studiesFinished?, studiesEndDate?, projects[1+ de { link, comment? }] }` (las dos de estudios, opcionales: ausentes no se escriben; ver `contrato-datos-talent.md` §4) | 200 `{ ok: true }` |
 | `POST /api/talent/form/[token]/files` | `multipart/form-data`, campo `file` (uno por petición) | 201 `{ file: { id, extension } }`; rechazos `file_empty` 400, `file_too_large` 413, `file_type` 415, `too_many_files` 409, `file_scan` 422 |
 | `DELETE /api/talent/form/[token]/files?fileId=<uuid>` | — | 200 `{ ok: true }` (solo ficheros propios aún sin procesar) |
 

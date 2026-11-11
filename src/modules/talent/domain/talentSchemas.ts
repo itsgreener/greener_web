@@ -8,6 +8,7 @@ import {
   TALENT_TEXT_LIMITS,
   WORK_TYPE_VALUES,
 } from './talentConstants'
+import { isStudiesEndDate } from './talentStudies'
 
 /**
  * Esquemas de entrada de las rutas `/api/talent`. El cuerpo del navegador va en
@@ -139,29 +140,66 @@ const rateSchema = z
  *
  * El email sí se puede cambiar («¿prefieres cambiarlo?», último paso).
  */
-export const candidateFormSchema = z.object({
-  email: talentEmailSchema,
-  phone: optionalText(TALENT_TEXT_LIMITS.phone).refine(
-    (value) => value === null || isPlausiblePhone(value),
-    'Enter a valid phone number',
-  ),
-  comment: optionalText(TALENT_TEXT_LIMITS.comment),
-  profile: profileSchema,
-  experience: z.enum(EXPERIENCE_VALUES).nullish().transform(orNull),
-  workTypes: z
-    .array(z.enum(WORK_TYPE_VALUES))
-    .default([])
-    .transform((values) => [...new Set(values)]),
-  rateDay: rateSchema,
-  rateHour: rateSchema,
-  languages: languagesSchema.default({}),
-  socials: socialsSchema.default({}),
-  newsletterAccepted: z.boolean().default(false),
-  projects: z
-    .array(projectSchema)
-    .min(1, 'Add at least one project')
-    .max(TALENT_TEXT_LIMITS.projects),
-})
+export const candidateFormSchema = z
+  .object({
+    email: talentEmailSchema,
+    phone: optionalText(TALENT_TEXT_LIMITS.phone).refine(
+      (value) => value === null || isPlausiblePhone(value),
+      'Enter a valid phone number',
+    ),
+    comment: optionalText(TALENT_TEXT_LIMITS.comment),
+    profile: profileSchema,
+    experience: z.enum(EXPERIENCE_VALUES).nullish().transform(orNull),
+    workTypes: z
+      .array(z.enum(WORK_TYPE_VALUES))
+      .default([])
+      .transform((values) => [...new Set(values)]),
+    rateDay: rateSchema,
+    rateHour: rateSchema,
+    languages: languagesSchema.default({}),
+    socials: socialsSchema.default({}),
+    newsletterAccepted: z.boolean().default(false),
+    projects: z
+      .array(projectSchema)
+      .min(1, 'Add at least one project')
+      .max(TALENT_TEXT_LIMITS.projects),
+    /**
+     * «¿Has finalizado tus estudios?» (último paso). Tres estados: `true`, `false`
+     * y `null` («sin responder»). **Ausente (`undefined`) no es lo mismo que
+     * `null`**: un cliente que no conoce la pregunta (el paquete o la web antigua
+     * sin actualizar) no manda las claves y no debe borrar la respuesta ya
+     * guardada, así que `undefined` no se escribe (ver `buildCandidateUpdate`).
+     */
+    studiesFinished: z.boolean().nullish(),
+    /** `AAAA-MM-DD`; solo cuenta con `studiesFinished: true` y es opcional. */
+    studiesEndDate: z.string().trim().max(10).nullish(),
+  })
+  .superRefine((form, context) => {
+    if (
+      form.studiesFinished === true &&
+      form.studiesEndDate &&
+      !isStudiesEndDate(form.studiesEndDate)
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['studiesEndDate'],
+        message: 'Enter a valid date',
+      })
+    }
+  })
+  .transform((form) => {
+    // Sin la clave de la pregunta, ninguna de las dos se toca.
+    if (form.studiesFinished === undefined) {
+      return { ...form, studiesFinished: undefined, studiesEndDate: undefined }
+    }
+
+    if (form.studiesFinished === true) {
+      return { ...form, studiesEndDate: form.studiesEndDate || null }
+    }
+
+    // «No» y «sin responder» no llevan fecha, aunque el cuerpo la traiga.
+    return { ...form, studiesEndDate: null }
+  })
 
 export type CandidateFormInput = z.output<typeof candidateFormSchema>
 

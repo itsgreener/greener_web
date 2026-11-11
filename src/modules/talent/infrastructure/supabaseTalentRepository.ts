@@ -14,7 +14,7 @@ import { getTalentClient } from './talentSupabaseClient'
 
 /** `candidates` no declara claves foráneas conocidas: se lee por tablas. */
 const FORM_COLUMNS =
-  'id,email,name,phone,comment,profile,experience,work_types,rate_day,rate_hour,languages,socials,newsletter_accepted'
+  'id,email,name,phone,comment,profile,experience,work_types,rate_day,rate_hour,languages,socials,newsletter_accepted,studies_finished,studies_end_date'
 
 const UNIQUE_VIOLATION = '23505'
 
@@ -46,6 +46,8 @@ type FormRow = {
   languages: Record<string, string> | null
   socials: Record<string, string> | null
   newsletter_accepted: boolean | null
+  studies_finished: boolean | null
+  studies_end_date: string | null
 }
 
 function fail(operation: string, error: { message: string }): never {
@@ -180,6 +182,8 @@ export const supabaseTalentRepository: TalentRepository = {
       languages: row.languages,
       socials: row.socials,
       newsletterAccepted: row.newsletter_accepted,
+      studiesFinished: row.studies_finished,
+      studiesEndDate: row.studies_end_date,
       projects: (projectsResult.data ?? []) as CandidateProject[],
       files: await listPendingFilesOf(row.id),
     }

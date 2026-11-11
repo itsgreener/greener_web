@@ -37,6 +37,14 @@ export type CandidateUpdateRow = {
   languages: Record<string, string>
   socials: Record<string, string>
   newsletter_accepted: boolean
+  /**
+   * `true`, `false` o `null` («sin responder»). Solo están cuando el cuerpo
+   * trae la pregunta: ausentes, el `update` no las toca (un cliente antiguo no
+   * debe borrar la respuesta). Columnas aditivas, que n8n no lee.
+   */
+  studies_finished?: boolean | null
+  /** `AAAA-MM-DD`; con `studies_finished` distinto de `true` es `null`. */
+  studies_end_date?: string | null
 }
 
 /**
@@ -150,6 +158,10 @@ export function buildCandidateUpdate(
     languages,
     socials,
     newsletter_accepted: form.newsletterAccepted,
+    ...(form.studiesFinished !== undefined && {
+      studies_finished: form.studiesFinished,
+      studies_end_date: form.studiesEndDate ?? null,
+    }),
   }
 }
 

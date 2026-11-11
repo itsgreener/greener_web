@@ -33,6 +33,7 @@ import {
   LEVEL_LABELS,
   profileLabel,
   statusLabel,
+  studiesLabel,
   WORK_TYPE_LABELS,
 } from '@/app/admin/(panel)/talent/talentLabels'
 import CandidateActions from './CandidateActions'
@@ -191,6 +192,10 @@ export default async function AdminTalentCandidatePage({ params }: Props) {
               {detail.experience
                 ? (EXPERIENCE_LABELS[detail.experience] ?? detail.experience)
                 : '—'}
+            </Row>
+
+            <Row label="Estudios finalizados">
+              {studiesLabel(detail.studiesFinished, detail.studiesEndDate)}
             </Row>
 
             <Row label="Colaboración">

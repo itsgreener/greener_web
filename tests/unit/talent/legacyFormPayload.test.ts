@@ -35,6 +35,26 @@ describe('cuerpo del formulario de la web antigua', () => {
     }
   })
 
+  it('sin las claves de estudios (cuerpo de antes de la pregunta) no las toca', () => {
+    const result = candidateFormSchema.safeParse(LEGACY_FORM_BODY)
+
+    expect(result.success && result.data.studiesFinished).toBeUndefined()
+    expect(result.success && result.data.studiesEndDate).toBeUndefined()
+  })
+
+  it('con las claves de estudios que envía el formulario actualizado también valida', () => {
+    const result = candidateFormSchema.safeParse({
+      ...LEGACY_FORM_BODY,
+      studiesFinished: true,
+      studiesEndDate: '2026-06-15',
+    })
+
+    expect(result.success && result.data).toMatchObject({
+      studiesFinished: true,
+      studiesEndDate: '2026-06-15',
+    })
+  })
+
   it('con tarifas de autónomo también valida', () => {
     const result = candidateFormSchema.safeParse({
       ...LEGACY_FORM_BODY,

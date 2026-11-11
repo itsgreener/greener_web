@@ -79,6 +79,36 @@ describe('formulario → UPDATE de candidates', () => {
     })
   })
 
+  it('sin la pregunta de estudios, no escribe sus columnas (no borra la respuesta guardada)', () => {
+    const row = buildCandidateUpdate(
+      candidateFormSchema.parse(validFormInput()),
+    )
+
+    expect(row).not.toHaveProperty('studies_finished')
+    expect(row).not.toHaveProperty('studies_end_date')
+  })
+
+  it.each([
+    [true, '2026-06-15', true, '2026-06-15'],
+    [true, undefined, true, null],
+    [true, '', true, null],
+    [false, '2026-06-15', false, null],
+    [null, '2026-06-15', null, null],
+    [null, undefined, null, null],
+  ])(
+    'estudios: finished=%s fecha=%s → columnas %s / %s',
+    (finished, date, expectedFinished, expectedDate) => {
+      const row = buildCandidateUpdate(
+        candidateFormSchema.parse(
+          validFormInput({ studiesFinished: finished, studiesEndDate: date }),
+        ),
+      )
+
+      expect(row.studies_finished).toBe(expectedFinished)
+      expect(row.studies_end_date).toBe(expectedDate)
+    },
+  )
+
   it('el status es completed (como la web antigua); closed lo pone n8n', () => {
     const row = buildCandidateUpdate(
       candidateFormSchema.parse(validFormInput()),

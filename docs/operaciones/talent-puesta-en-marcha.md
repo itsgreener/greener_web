@@ -254,6 +254,28 @@ where access_token is not null
 
 El valor por defecto cubre las filas que inserta n8n (la subida del personal); la web lo fija al dar de alta por email y en cada reenvío del enlace (desde el ABM o repitiendo el email en el alta pública), así que reenviar el enlace es la forma de dar otra semana a un candidato.
 
+### 4.7 Estudios finalizados («¿Has finalizado tus estudios?», 11 nov 2026)
+
+**Hay que ejecutarlo ANTES de desplegar la versión del 11 nov de la web:** el código lee `studies_finished` y `studies_end_date` en el formulario y en la ficha del ABM y, si las columnas no existen, Supabase rechaza la consulta y ambos dan «no disponible» (mismo caso que el §4.6). Columnas aditivas y nulables: n8n no las lee ni las escribe y las 1.018 filas existentes quedan en `null` («sin responder»).
+
+```sql
+alter table public.candidates
+  add column if not exists studies_finished boolean,
+  add column if not exists studies_end_date date;
+
+alter table public.candidates
+  drop constraint if exists candidates_studies_end_date_needs_finished;
+alter table public.candidates
+  add constraint candidates_studies_end_date_needs_finished
+  check (studies_end_date is null or studies_finished is true);
+
+notify pgrst, 'reload schema';
+```
+
+El `check` evita una fecha con «No» o sin responder; `notify` hace que la API vea las columnas sin esperar. Comprobación: `select studies_finished, studies_end_date from public.candidates limit 1;` debe devolver `null, null`.
+
+**Orden:** (1) este SQL; (2) desplegar la web (los clientes actuales siguen funcionando: no mandan la pregunta y el servidor no toca esas columnas); (3) subir el paquete nuevo del formulario como versión en borrador del contenido `talent` y publicarla (`Volver a esta versión` devuelve la anterior); (4) la web antigua, cuando se quiera (se compila con las variables del `LEEME-web-antigua.md` y se sube a Dinahosting). Marcha atrás: la web y el paquete se revierten sin tocar la base de datos. **Opcional, de Greener en n8n:** añadir la respuesta a la plantilla del aviso de `Recibir datos candidato` (los datos ya llegan en la fila).
+
 ## 5. Prueba de extremo a extremo
 
 Con un email propio:

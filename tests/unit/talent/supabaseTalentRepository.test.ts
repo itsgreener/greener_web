@@ -195,6 +195,8 @@ describe('findFormByToken', () => {
           work_types: ['x'],
           rate_day: 5,
           newsletter_accepted: true,
+          studies_finished: true,
+          studies_end_date: '2026-06-15',
         },
       ],
     })
@@ -228,9 +230,13 @@ describe('findFormByToken', () => {
       workTypes: ['x'],
       rateDay: 5,
       newsletterAccepted: true,
+      studiesFinished: true,
+      studiesEndDate: '2026-06-15',
       projects: [{ link: 'https://a.example', comment: null }],
       files: [{ id: 'f1', path: 'uploads/a.pdf', status: 'pending' }],
     })
+    expect(columns).toContain('studies_finished')
+    expect(columns).toContain('studies_end_date')
   })
 
   it('token sin candidato: null y no consulta proyectos ni ficheros', async () => {

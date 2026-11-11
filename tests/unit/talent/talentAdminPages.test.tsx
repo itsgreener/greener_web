@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -241,6 +248,8 @@ const DETAIL = {
     Raro: 'javascript:alert(1)',
   },
   newsletterAccepted: true,
+  studiesFinished: true,
+  studiesEndDate: '2026-06-15',
   uploadedBy: null,
   blocked: null,
   cvKind: 'bucket',
@@ -284,6 +293,31 @@ describe('/admin/talent/[id] — ficha', () => {
       screen.getByText('English (Avanzado), Castellano (Nativo)'),
     ).toBeInTheDocument()
     expect(screen.getByText('Perfil sólido')).toBeInTheDocument()
+  })
+
+  it('estudios finalizados: sí con la fecha, no, y sin responder', async () => {
+    await renderDetail()
+    expect(screen.getByText('Sí · 15/06/2026')).toBeInTheDocument()
+    cleanup()
+
+    detail.mockReset().mockResolvedValue({
+      ...DETAIL,
+      studiesFinished: false,
+      studiesEndDate: null,
+    })
+    await renderDetail()
+    expect(screen.getByText('Estudios finalizados')).toBeInTheDocument()
+    expect(screen.getByText('No')).toBeInTheDocument()
+    expect(screen.queryByText(/^Sí · /)).not.toBeInTheDocument()
+    cleanup()
+
+    detail.mockReset().mockResolvedValue({
+      ...DETAIL,
+      studiesFinished: null,
+      studiesEndDate: null,
+    })
+    await renderDetail()
+    expect(screen.getByText('Sin responder')).toBeInTheDocument()
   })
 
   it('no enseña el token ni rutas internas', async () => {

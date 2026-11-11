@@ -34,6 +34,10 @@ export type CandidateFormRecord = {
   languages: Record<string, string> | null
   socials: Record<string, string> | null
   newsletterAccepted: boolean | null
+  /** `null`: sin responder. */
+  studiesFinished: boolean | null
+  /** `AAAA-MM-DD`. */
+  studiesEndDate: string | null
   projects: CandidateProject[]
   files: CandidateFileRecord[]
 }
@@ -56,6 +60,10 @@ export type CandidateFormView = {
   languages: Record<string, string>
   socials: Record<string, string>
   newsletterAccepted: boolean
+  /** `null`: sin responder (no se convierte en `false`). */
+  studiesFinished: boolean | null
+  /** `AAAA-MM-DD`; `null` si no hay. */
+  studiesEndDate: string | null
   projects: CandidateProject[]
   files: UploadedFileView[]
 }

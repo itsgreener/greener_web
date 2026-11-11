@@ -603,6 +603,7 @@ src/modules/talent/domain/talentRetention.ts
 src/modules/talent/domain/talentRows.ts
 src/modules/talent/domain/talentSchemas.ts
 src/modules/talent/domain/talentSearchQuery.ts
+src/modules/talent/domain/talentStudies.ts
 src/modules/talent/infrastructure/n8nTalentWorkflows.ts
 src/modules/talent/infrastructure/supabaseStaffSessionVerifier.ts
 src/modules/talent/infrastructure/supabaseTalentAdminRepository.ts

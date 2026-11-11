@@ -1,5 +1,6 @@
 import type { CvLocationKind } from '@/modules/talent/domain/talentAdminModels'
 import { TALENT_STAFF_UPLOAD } from '@/modules/talent/domain/talentConstants'
+import { formatIsoDate } from '@/modules/talent/domain/talentStudies'
 
 import type { ProcessPendingResult } from '@/modules/talent/application/processPendingCvs'
 import type { FileRejection } from '@/modules/talent/application/talentResults'
@@ -63,6 +64,23 @@ export const EXPERIENCE_LABELS: Readonly<Record<string, string>> = {
   '3-5': '3 a 5 años',
   '5-10': '5 a 10 años',
   '10+': 'Más de 10 años',
+}
+
+/**
+ * «Estudios finalizados» de la ficha: sin responder (`null`), no, o sí con la
+ * fecha si la dio (`15/06/2026`).
+ */
+export function studiesLabel(
+  finished: boolean | null,
+  endDate: string | null,
+): string {
+  if (finished === null) return 'Sin responder'
+
+  if (!finished) return 'No'
+
+  const date = formatIsoDate(endDate)
+
+  return date ? `Sí · ${date}` : 'Sí'
 }
 
 export const CV_KIND_LABELS: Readonly<Record<CvLocationKind, string>> = {
