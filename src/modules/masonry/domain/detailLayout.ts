@@ -17,6 +17,7 @@ const RATIO_GROUP: Record<PinRatioValue, RatioGroup> = {
   '16:9': 'panoramica',
   '1:1': 'ancha',
   '4:3': 'ancha',
+  '3:2': 'ancha',
   '4:5': 'vertical',
   '3:4': 'vertical',
   '2:3': 'vertical',

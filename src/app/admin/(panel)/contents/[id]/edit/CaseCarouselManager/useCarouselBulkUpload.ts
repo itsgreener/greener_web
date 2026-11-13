@@ -176,7 +176,7 @@ export function useCarouselBulkUpload({
     })
   }
 
-  // Sube un vídeo y lo registra como diapositiva: 100 MB / 180 s, validado
+  // Sube un vídeo y lo registra como diapositiva: 125 MB / 300 s (VIDEO_LIMITS), validado
   // antes con lo que sabe el navegador y después con lo que mide Cloudinary.
   async function uploadVideoRow(row: SlideRow, sortOrder: number) {
     await uploadVideoFlow(row.file, {

@@ -380,7 +380,7 @@ export async function replaceCaseCarouselImageAction(
     : { ok: true }
 }
 
-/** Igual que la de imagen, con un vídeo (100 MB y 180 s). */
+/** Igual que la de imagen, con un vídeo (VIDEO_LIMITS: 125 MB y 300 s). */
 export async function replaceCaseCarouselVideoAction(
   input: unknown,
 ): Promise<EditCaseCarouselActionResult> {

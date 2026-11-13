@@ -22,6 +22,10 @@ describe('escalones M y L de la ficha (contrato §4.3)', () => {
         [1104, 828],
         [1380, 1036],
       ],
+      '3:2': [
+        [1176, 784],
+        [1470, 980],
+      ],
       '1:1': [
         [960, 960],
         [1200, 1200],
@@ -52,7 +56,7 @@ describe('escalones M y L de la ficha (contrato §4.3)', () => {
     }
   })
 
-  it('hay fila para los 7 ratios cerrados', () => {
+  it('hay fila para los 8 ratios cerrados', () => {
     expect(Object.keys(DETAIL_VIDEO_RUNGS).sort()).toEqual(
       Object.keys(RATIO_DECIMAL_VALUE).sort(),
     )

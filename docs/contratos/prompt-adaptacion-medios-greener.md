@@ -16,9 +16,9 @@ Zips llamados `Home-…`, `Interna-…` y similares, y a veces otros con nombres
 
 # Pins de home (feed)
 
-- Proporciones cerradas: 1x1, 4x5, 3x4, 2x3, 9x16, 16x9, 4x3. Tolerancia ±5 % (distancia logarítmica). Calcula la proporción real por las dimensiones, nunca por el nombre. Verifica que el nombre y las dimensiones coinciden y avísame si no.
+- Proporciones cerradas: 1x1, 4x5, 3x4, 2x3, 9x16, 16x9, 4x3, 3x2. Tolerancia ±5 % (distancia logarítmica). Calcula la proporción real por las dimensiones, nunca por el nombre. Verifica que el nombre y las dimensiones coinciden y avísame si no.
 - Si la proporción es inexacta pero está dentro del 5 %, recorte centrado a la proporción exacta. Si está fuera de las proporciones cerradas, no inventes: avísame.
-- Tamaños de feed (nunca amplíes; si el original es menor, avísame): 1x1 1080×1080, 4x5 1024×1280, 3x4 960×1280, 2x3 960×1440, 9x16 900×1600, 16x9 1280×720, 4x3 1280×960. Reescalado con LANCZOS, a RGB.
+- Tamaños de feed (nunca amplíes; si el original es menor, avísame): 1x1 1080×1080, 4x5 1024×1280, 3x4 960×1280, 2x3 960×1440, 9x16 900×1600, 16x9 1280×720, 4x3 1280×960, 3x2 1440×960. Reescalado con LANCZOS, a RGB.
 - WebP `method=6`, calidad 88 y, si pesa más de 300 KB, baja a 87, 86… hasta 82. Sin EXIF ni metadatos. Máximo 300 KB (si alguno no lo logra con q82, avísame y deja constancia).
 - Nombre: `{slug}-{ratio}-img.webp`, y para los siguientes de la misma proporción `-img-2`, `-img-3`… (contador por proporción), por ejemplo `bon-o-bon-1x1-img-3.webp`. El token de proporción va como `4x5`, `9x16`…
 - CSV `carga-masiva.csv` en la carpeta `home/`, UTF-8 sin BOM, cabecera exacta `filename,label,ratio,language,alt`, filas ordenadas por nombre; label vacío, ratio escrito `4:5`, `9:16`…, language `en`, alt en inglés.
@@ -33,13 +33,13 @@ Zips llamados `Home-…`, `Interna-…` y similares, y a veces otros con nombres
 
 # Vídeos: qué tocar y qué no
 
-- Límites de la carga: vídeo ≤100 MB y ≤180 s. Cloudinary Free no transforma archivos de más de 40 MB, así que tu objetivo es ≤38 MiB.
+- Límites de la carga: vídeo de caso ≤125 MB y ≤300 s; vídeo de pin ≤10 MB y ≤8 s (tools: ≤15 MB y ≤15 s). Cloudinary Free no transforma archivos de más de 40 MB, así que tu objetivo es ≤38 MiB.
 - **Política de fps:** NO recomprimas ningún vídeo por frame rate, pero AVÍSAME en el mensaje final de cualquier vídeo ≥50 fps (ejemplo: 59,94 fps) y ofréceme pasarlo a 30 fps. Mira `avg_frame_rate`, no `r_frame_rate`.
 - **Comprime solo lo que sea pesado** (>38 MiB, o 4K/HEVC), y el resto lo dejas sin tocar. Receta:
   `ffmpeg -vf scale=1280:720:flags=lanczos` (vertical: `scale=720:1280`) `-c:v libx264 -profile:v high -pix_fmt yuv420p -crf 22–29 -preset slow -g 50 -c:a aac -b:a 96–128k -movflags +faststart`, con `-map 0:v:0 -map 0:a:0 -dn -map_metadata -1 -write_tmcd 0` para quitar pistas de datos y timecode.
   Sube el CRF solo hasta que quepa en 38 MiB. Si no se logra con CRF razonable, usa 2 pasadas con `-b:v` fijo (por ejemplo 1000k para un vídeo de 4,5 minutos). Lanza codificaciones largas en segundo plano con `nohup` y espera a que terminen.
 - Verifica siempre: duración igual a la del original, faststart (en los primeros bytes `moov` aparece antes que `mdat`), SSIM contra el original reescalado con el mismo filtro (`[0:v]scale=…:flags=lanczos[a];[a][1:v]ssim`; en 720p con CRF 22–26 sale ≥0,96), `volumedetect` para confirmar que hay audio, y peso final.
-- Vídeo de más de 180 s: no se puede subir hoy. Comprímelo igualmente y avísame (el plan contempla vídeos largos vía Bunny hasta unos 3:30–4 min).
+- Vídeo de más de 300 s: no se puede subir hoy. Comprímelo igualmente y avísame (el plan contempla vídeos largos vía Bunny hasta unos 3:30–4 min).
 - Vídeo con proporción no cerrada (por ejemplo 3072×1152): mantén su proporción al comprimir, sin recortar ni añadir bandas, ponle en el nombre la proporción cerrada más cercana y avísame. Ofréceme la versión recortada a 16:9 si hace falta. Si te la pido, haz un recorte centrado y envíala suelta, sin tocar el zip del lote.
 
 # Alts (textos alternativos)
@@ -59,4 +59,4 @@ Slug del caso en minúsculas con guiones (por ejemplo `la-maquinista`, `agroptim
 
 # Mensaje final (formato)
 
-En prosa breve y por caso: qué lleva cada carpeta y los avisos que correspondan, por este orden de importancia: vídeos ≥50 fps, vídeos de más de 180 s o con proporción rara, asignaciones dudosas de zips o slugs, duplicados omitidos, órdenes que son propuesta tuya, imágenes redundantes, alts escritos por ti. Termina con el nombre del zip. No repitas el contenido de los CSVs ni listes archivos uno a uno.
+En prosa breve y por caso: qué lleva cada carpeta y los avisos que correspondan, por este orden de importancia: vídeos ≥50 fps, vídeos de más de 300 s o con proporción rara, asignaciones dudosas de zips o slugs, duplicados omitidos, órdenes que son propuesta tuya, imágenes redundantes, alts escritos por ti. Termina con el nombre del zip. No repitas el contenido de los CSVs ni listes archivos uno a uno.

@@ -21,12 +21,23 @@ function functionBody(name: string): string {
 }
 
 describe('migración: pines de episodio como carrusel', () => {
-  it('es la última migración', () => {
-    const names = readdirSync(dir)
-      .filter((name) => name.endsWith('.sql'))
+  it('ninguna migración posterior redefine sus funciones', () => {
+    const later = readdirSync(dir)
+      .filter((name) => name.endsWith('.sql') && name > FILE)
       .sort()
 
-    expect(names.at(-1)).toBe(FILE)
+    for (const name of later) {
+      const other = readFileSync(join(dir, name), 'utf8')
+
+      for (const fn of [
+        'set_content_pins_carousel',
+        'enforce_carousel_pin_ratio',
+      ]) {
+        expect(other, `${name} redefine ${fn}`).not.toContain(
+          `function public.${fn}(`,
+        )
+      }
+    }
   })
 
   it('añade la columna con false por defecto y not null', () => {

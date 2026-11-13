@@ -61,7 +61,7 @@ export function closestClosedRatio(
  */
 const RATIO_MATCH_TOLERANCE = 0.05
 
-/** ¿Es este texto uno de los 7 ratios cerrados de pin? */
+/** ¿Es este texto uno de los 8 ratios cerrados de pin? */
 export function isPinRatioValue(value: string): value is PinRatioValue {
   return value in RATIO_DECIMAL_VALUE
 }

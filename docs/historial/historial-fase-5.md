@@ -2816,3 +2816,48 @@ Petición de Greener: poder **cambiar el orden de las diapositivas sin quitarlas
 **Verificación.** Tests nuevos de dominio (`talentStudies.test.ts`, con fast-check) y ampliaciones de contrato (`talentRows.contract`: sin la pregunta no se escriben las columnas, y los seis casos de combinación), esquema, `getCandidateForm`, los dos repositorios de Supabase (consultas exactas), `legacyFormPayload` (cuerpo antiguo sin claves y cuerpo nuevo), ficha del ABM y `studiesLabel`. Paquete y web antigua recorridos en Chromium contra un servidor de pruebas que imita `/api/talent`: sin responder, sí con fecha, sí sin fecha, sí y luego no, respuesta ya guardada al abrir el enlace, fecha futura, es/ca/en, 390 px sin scroll horizontal y cuerpo exacto del `PUT` en cada caso; sin errores de consola. El SQL del §4.7 se probó contra un Postgres real (PGlite): idempotente, las filas existentes quedan en `null` y el `check` rechaza una fecha con «No» o sin responder. Suite completa: 357 ficheros / 4444 tests; `tsc`, ESLint y Prettier limpios. **No se ha probado contra Supabase-talent, n8n ni Mailchimp reales.**
 
 **Orden de despliegue.** (1) SQL del §4.7; (2) web; (3) paquete nuevo como versión en borrador del contenido `talent` y publicarlo (`Volver a esta versión` deshace); (4) web antigua. Marcha atrás sin tocar la base de datos. Opcional, de Greener: la respuesta en la plantilla del aviso de `Recibir datos candidato` (n8n).
+
+### 2.153 Carrusel de caso: flechas anterior/siguiente (13 nov 2026)
+
+**Qué hay ahora.** Dos botones dentro de la imagen del carrusel de un caso: anterior a la izquierda y siguiente a la derecha, a media altura y a `--space-md` (16 px) de cada borde. Círculo de 40 px (`--radius-pill`), fondo `--color-bg` (blanco) y chevron en `--color-text` (negro); al pasar el puntero, fondo `--color-surface`; foco visible con el contorno azul de la web. Siempre visibles (no dependen del hover). Los puntos se quedan debajo, sin cambios. Con una sola diapositiva no se pinta ni una cosa ni la otra.
+
+**Extremos.** La flecha que no tiene a dónde ir se oculta (no se atenúa ni da la vuelta): sin flecha izquierda en la primera diapositiva y sin derecha en la última. Si la flecha pulsada es la que desaparece, el foco pasa a la contraria en vez de perderse en el documento (teclado).
+
+**Accesibilidad.** Botones reales con `aria-label` «Previous slide» / «Next slide» (en inglés, como «Go to slide N of M»); el icono es `aria-hidden`. Al ir a media altura no tapan la barra de controles nativa de los vídeos, que va abajo. La transición usa `--transition` (0 ms con `prefers-reduced-motion`).
+
+**Código.** `CaseCarousel.tsx`: nueva caja `.viewport` (posición de referencia) que envuelve la pista y las flechas, e icono SVG inline. `useSlidePaging.ts`: nuevo `step(±1)`, que parte del destino en curso (dos pulsaciones seguidas avanzan dos diapositivas aunque la primera aún se esté desplazando), y `goTo` guarda ese destino hasta que el scroll llega a él (o pasan 700 ms, o el visitante toca el carrusel). Antes, `active` se deducía de `scrollLeft` en cada evento y, durante la primera mitad de un desplazamiento suave, volvía a la diapositiva anterior; con las flechas de los extremos eso se habría visto como parpadeo, y también lo sufrían los puntos. El carrusel de pines del feed (`PinCarouselCard`) usa el mismo hook, solo gana esa estabilidad; no tiene flechas ni puntos.
+
+**Tests.** `tests/unit/detail/caseCarouselControls.test.tsx` (26 en total, 12 nuevos: 11 de flechas y 1 de CSS): presencia por posición, una sola diapositiva, avance y retroceso, pulsaciones seguidas, desaparición en los extremos, traspaso del foco, sincronía con scroll nativo y puntos, sin parpadeo durante un desplazamiento pedido, interrupción con el dedo y CSS (círculo blanco, icono negro, a media altura, un lado cada una). Los tests de `ciWorkflow` y `e2eWorkflow` fallan solo si falta `.github/` (no viene en el zip de trabajo).
+
+**Pendiente de comprobar en el navegador:** ver la lista del §4 («Carrusel de caso: flechas»).
+
+### 2.154 Topes de vídeo separados: caso 300 s / 125 MB y pin normal 10 MB (13 nov 2026)
+
+**Qué cambia.** Hasta hoy el vídeo de contenido (carrusel de caso) y el de un pin normal compartían el tope de peso (`VIDEO_LIMITS`, 100 MB). Ahora cada uno tiene el suyo:
+
+| Vídeo | Duración | Peso | Dónde |
+| --- | --- | --- | --- |
+| Carrusel de caso | 180 s → **300 s** | 100 MB → **125 MB** | `VIDEO_LIMITS`; SQL `add_case_carousel_video` y `replace_case_carousel_media` |
+| Pin normal (case, insight, episode, other) | 8 s (igual) | 100 MB → **10 MB** | `PIN_ANIMATION_LIMITS`; SQL `attach_pin_video` |
+| Pin de tool | 15 s (igual) | 15 MB (igual) | `TOOL_PIN_VIDEO_LIMITS` |
+
+**Código.** `mediaLimits.ts` (constantes y `pinVideoLimitsFor`), `uploadedMediaFields.ts` (`videoBytesField` para contenido; nuevo `pinVideoBytesField` con el techo absoluto de un pin, 15 MB, porque el esquema no conoce el tipo del contenido: el límite real lo aplica SQL), `pinMediaSchema.ts`, mensajes del ABM (`adminErrorMessage.ts` ahora los lee de `VIDEO_LIMITS`; `pinActions.ts` dice «10 MB; 15 MB en las tools») y comentarios.
+
+**Supabase.** Migración `20261113100000_video_limits_case_300s_125mb_pin_10mb.sql`: `create or replace` de las tres funciones, con el cuerpo vigente de cada una (`20261009120000` las dos de alta y de pin, `20261109140000` la de sustitución) y SOLO las constantes cambiadas; un test (`videoLimitsMigration.test.ts`) lo comprueba comparando el cuerpo con el de la versión anterior. Conserva los permisos. `register_cover_video` ya no existe (`20261015130000`). El `file_size_limit` de 50 MiB de `config.toml` es el Storage de paquetes, no de vídeos. Los vídeos ya guardados no se tocan: los topes solo se comprueban al subir o sustituir.
+
+**Aviso (Cloudinary).** El plan Free de Cloudinary limita el vídeo subido a **100 MB** por archivo, sea cual sea el método de subida (tabla de planes y soporte de Cloudinary). Greener decidió el 13 nov aplicar igualmente los 125 MB, porque lo más probable es que los vídeos pesados migren a otro servicio (`plan-bunny-videos-largos.md`). Mientras tanto, un archivo de 100 a 125 MB pasa las validaciones de la web y lo rechaza Cloudinary. El calentamiento factura por segundos de vídeo: un vídeo de 300 s cuesta un 67 % más que uno de 180 s.
+
+**Tests.** Actualizados los de límites, esquemas, subida del ABM y carrusel; nuevos `videoLimitsMigration.test.ts` y los de `mediaLimits.test.ts`.
+
+### 2.155 Proporción 3:2 (13 nov 2026)
+
+**Qué hay ahora.** La lista cerrada de ratios pasa de 7 a **8**: `1:1`, `4:3`, `3:2`, `4:5`, `3:4`, `2:3`, `9:16`, `16:9`. Es la misma lista para pines, portadas y elección del ratio del carrusel de caso (decisión de Greener: global, como el 4:3).
+
+**Qué se ha tocado**, siguiendo el recorrido del 4:3: `ratio.ts` (lista y valor 3/2), `layout.ts` (altura = ancho × 2/3), `detailLayout.ts` (grupo «ancha»: 4 columnas de contenido y 2 de recomendación en 6, como 1:1 y 4:3), `mediaDelivery.ts` (escalones de vídeo **M 1176×784** y **L 1470×980**, mismo presupuesto de píxeles que los demás), `ratioFromFilename.ts` (token compacto `32`; `3x2` ya se leía), los scripts `warm-cloudinary.mjs` y `warm-probe.mjs` (copias a mano de esas tablas), `database.types.ts` y los textos del ABM, que ahora leen la lista de `pinRatioSchema` en vez de escribirla.
+
+**Supabase.** Migración `20261113100100_pin_ratio_add_3_2.sql`: solo `alter type pin_ratio add value if not exists '3:2'`, en su propio fichero porque Postgres no deja usar el valor en la misma transacción.
+
+**Propuestas sin confirmar** (en `contrato-medios-fase-1.md`): tamaños de origen del 3:2, 1800×1200 para el pin de tool y 1440×960 para el pin solo de feed (los del 2:3 girados).
+
+**Tests.** Los de ratios (esquema, entrega, layout, detalle, nombre de archivo, ABM, lista cerrada) incluyen el 3:2; test nuevo del fichero SQL del enum.
+

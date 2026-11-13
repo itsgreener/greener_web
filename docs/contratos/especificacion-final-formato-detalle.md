@@ -31,7 +31,7 @@ Esto se confundió varias veces por el camino, así que lo dejo explicado paso a
 | Grupo de ratio      | Columnas de contenido (imagen+texto) | Columnas de recomendación (el resto, hasta 6) |
 | ------------------- | ------------------------------------ | --------------------------------------------- |
 | 16:9                | 5                                    | 1                                             |
-| 1:1, 4:3            | 4                                    | 2                                             |
+| 1:1, 4:3, 3:2       | 4                                    | 2                                             |
 | 9:16, 3:4, 4:5, 2:3 | 3                                    | 3                                             |
 
 Verificado con la captura de "Destroyer 2.0" (ratio 4:5): 3 columnas de recomendación de ~130px cada una a la derecha, bloque de contenido ocupando el equivalente a 3 columnas a la izquierda — cuadra exacto.
@@ -43,7 +43,7 @@ Verificado con la captura de "Destroyer 2.0" (ratio 4:5): 3 columnas de recomend
 | Grupo de ratio      | 6 col | 5 col | 4 col | 3 col |
 | ------------------- | ----- | ----- | ----- | ----- |
 | 16:9                | 1     | 1     | 0     | 0     |
-| 1:1, 4:3            | 2     | 2     | 1     | 0     |
+| 1:1, 4:3, 3:2       | 2     | 2     | 1     | 0     |
 | 9:16, 3:4, 4:5, 2:3 | 3     | 2     | 1     | 1     |
 
 (Fila de verticales ajustada según pediste, para dejar más espacio al contenido en anchos intermedios.)
@@ -64,7 +64,7 @@ _(traducible = por idioma, es/en/ca; el resto es un único valor)_
 | `body`              | Sí         | Cuerpo de texto — **campo nuevo**, no existe hoy en la base de datos                            |
 | `seo_title`         | Sí         | Título SEO                                                                                      |
 | `seo_description`   | Sí         | Descripción SEO                                                                                 |
-| Carrusel de detalle | —          | 1-N imágenes/vídeos mixtos, sin tope. Imagen: WebP, máx. 5 MB. Vídeo: WebM, máx. 100 MB / 180 s. Alt obligatorio en cada diapositiva. En el ABM se añaden **en lote de un solo tipo** (imagen o vídeo), por orden de nombre de archivo, con un CSV opcional `filename,alt` (§2.145). Una vez subidas se pueden **reordenar** (flechas y posición, con «Guardar orden») y **editar** (alt y/o archivo nuevo en el mismo sitio; el anterior se borra de Cloudinary) (§2.146) |
+| Carrusel de detalle | —          | 1-N imágenes/vídeos mixtos, sin tope. Imagen: WebP, máx. 5 MB. Vídeo: WebM, máx. 125 MB / 300 s (13 nov 2026; antes 100 MB / 180 s). Alt obligatorio en cada diapositiva. En el ABM se añaden **en lote de un solo tipo** (imagen o vídeo), por orden de nombre de archivo, con un CSV opcional `filename,alt` (§2.145). Una vez subidas se pueden **reordenar** (flechas y posición, con «Guardar orden») y **editar** (alt y/o archivo nuevo en el mismo sitio; el anterior se borra de Cloudinary) (§2.146) |
 
 `sector`, `services`, `year`, `credits`, `links` **quedan eliminados** — no tienen cabida en el nuevo diseño, no se arrastran como campos muertos.
 
@@ -98,15 +98,15 @@ Igual que tool/insight, **sin CTA, sin paquete HTML** — `cover_media_id` admit
 | ---------- | -------------------------------------------------------------------------------------------------------------------- |
 | `label`    | Gancho/título del pin. Obligatorio en tool/insight/libre, opcional (no se muestra) en caso/episodio                  |
 | Medio      | Uno (imagen o vídeo; vídeo ≤8 s, y ≤15 s / 15 MB en pines de tool, §8). Un episodio puede agrupar todos sus pines (hasta 8) en **un carrusel** del feed (`content.pins_as_carousel`, §2.150) |
-| `ratio`    | Uno de los 7 ratios cerrados                                                                                         |
+| `ratio`    | Uno de los 8 ratios cerrados                                                                                         |
 | `language` |                                                                                                                      |
 | `alt`      |                                                                                                                      |
 
 ---
 
-## 4. Ratios — lista cerrada, 7 valores
+## 4. Ratios — lista cerrada, 8 valores
 
-`1:1` · `4:3` · `4:5` · `3:4` · `2:3` · `9:16` · `16:9`
+`1:1` · `4:3` · `3:2` · `4:5` · `3:4` · `2:3` · `9:16` · `16:9`
 
 ---
 

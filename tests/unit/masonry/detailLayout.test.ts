@@ -20,12 +20,16 @@ describe('columnReservationForRatio — tabla base de 6 columnas (especificacion
     })
   })
 
-  it('1:1 y 4:3 → 4 columnas de contenido, 2 de recomendación', () => {
+  it('1:1, 4:3 y 3:2 → 4 columnas de contenido, 2 de recomendación', () => {
     expect(columnReservationForRatio('1:1', 6)).toEqual({
       contentColumns: 4,
       recommendationColumns: 2,
     })
     expect(columnReservationForRatio('4:3', 6)).toEqual({
+      contentColumns: 4,
+      recommendationColumns: 2,
+    })
+    expect(columnReservationForRatio('3:2', 6)).toEqual({
       contentColumns: 4,
       recommendationColumns: 2,
     })
@@ -53,6 +57,9 @@ describe('columnReservationForRatio — aproximación para 5/4/3 columnas totale
     expect(columnReservationForRatio('4:3', 5).recommendationColumns).toBe(2)
     expect(columnReservationForRatio('4:3', 4).recommendationColumns).toBe(1)
     expect(columnReservationForRatio('4:3', 3).recommendationColumns).toBe(0)
+    expect(columnReservationForRatio('3:2', 5).recommendationColumns).toBe(2)
+    expect(columnReservationForRatio('3:2', 4).recommendationColumns).toBe(1)
+    expect(columnReservationForRatio('3:2', 3).recommendationColumns).toBe(0)
   })
 
   it('verticales: 2 rec a 5 columnas, 1 a 4, 1 a 3 (fila ajustada del documento)', () => {
@@ -62,7 +69,16 @@ describe('columnReservationForRatio — aproximación para 5/4/3 columnas totale
   })
 
   it('el contenido siempre es "lo que sobra": contentColumns + recommendationColumns === totalColumns', () => {
-    const ratios = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
+    const ratios = [
+      '16:9',
+      '1:1',
+      '4:3',
+      '3:2',
+      '4:5',
+      '3:4',
+      '2:3',
+      '9:16',
+    ] as const
     for (const ratio of ratios) {
       for (const total of [3, 4, 5, 6]) {
         const { contentColumns, recommendationColumns } =
@@ -95,12 +111,22 @@ describe('contentBlockImageDimensions — altura 66,7vh × ratio, tope 83% del a
   })
 
   it('el ratio nunca cambia: width / height es siempre el ratio pedido, se recorte o no la altura', () => {
-    const ratios = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
+    const ratios = [
+      '16:9',
+      '1:1',
+      '4:3',
+      '3:2',
+      '4:5',
+      '3:4',
+      '2:3',
+      '9:16',
+    ] as const
     for (const ratio of ratios) {
       const decimal = {
         '16:9': 16 / 9,
         '1:1': 1,
         '4:3': 4 / 3,
+        '3:2': 3 / 2,
         '4:5': 4 / 5,
         '3:4': 3 / 4,
         '2:3': 2 / 3,
@@ -158,11 +184,21 @@ describe('mobileContentImageDimensions — placeholder de móvil (decisión del 
 // Texto de tipo A limitado a una columna (2 oct 2026)
 // ---------------------------------------------------------------------
 
-const ALL_RATIOS = ['16:9', '1:1', '4:3', '4:5', '3:4', '2:3', '9:16'] as const
+const ALL_RATIOS = [
+  '16:9',
+  '1:1',
+  '4:3',
+  '3:2',
+  '4:5',
+  '3:4',
+  '2:3',
+  '9:16',
+] as const
 const RATIO_DECIMAL: Record<(typeof ALL_RATIOS)[number], number> = {
   '16:9': 16 / 9,
   '1:1': 1,
   '4:3': 4 / 3,
+  '3:2': 3 / 2,
   '4:5': 4 / 5,
   '3:4': 3 / 4,
   '2:3': 2 / 3,

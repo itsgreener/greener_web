@@ -455,13 +455,13 @@ describe('CaseCarouselManager — editar una diapositiva', () => {
     expect(replaceCaseCarouselImageAction).not.toHaveBeenCalled()
   })
 
-  it('un vídeo de más de 180 s según Cloudinary se rechaza, se descarta y no se registra', async () => {
+  it('un vídeo de más de 300 s según Cloudinary se rechaza, se descarta y no se registra', async () => {
     uploadVideoToCloudinary.mockResolvedValue({
       public_id: 'greener/content/videos/largo',
       format: 'mp4',
       width: 1920,
       height: 1080,
-      duration: 240,
+      duration: 360,
       bytes: 4 * 1024 * 1024,
     })
     renderManager()
@@ -470,7 +470,7 @@ describe('CaseCarouselManager — editar una diapositiva', () => {
     chooseFile(newVideo())
     saveChanges()
 
-    expect(await screen.findByText(/180 segundos/)).toBeInTheDocument()
+    expect(await screen.findByText(/300 segundos/)).toBeInTheDocument()
     expect(replaceCaseCarouselVideoAction).not.toHaveBeenCalled()
     expect(discardUploadQuietly).toHaveBeenCalledWith({
       publicId: 'greener/content/videos/largo',

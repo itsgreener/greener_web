@@ -9,7 +9,16 @@ import {
   type PinRatio,
 } from '@/modules/masonry/domain/layout'
 
-const RATIOS: PinRatio[] = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
+const RATIOS: PinRatio[] = [
+  '1:1',
+  '4:3',
+  '3:2',
+  '4:5',
+  '3:4',
+  '2:3',
+  '9:16',
+  '16:9',
+]
 
 const itemArb: fc.Arbitrary<LayoutInputItem> = fc.record({
   id: fc.uuid(),

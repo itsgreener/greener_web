@@ -28,7 +28,7 @@ export function LocaleOptions({
   ))
 }
 
-/** Los siete ratios cerrados de un pin (`1:1`, `4:3`… `16:9`). */
+/** Los ocho ratios cerrados de un pin (`1:1`, `4:3`… `16:9`). */
 export function RatioOptions() {
   return pinRatioSchema.options.map((ratio) => (
     <option key={ratio} value={ratio}>

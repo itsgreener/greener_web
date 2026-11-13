@@ -54,11 +54,11 @@ describe('AdminOptions', () => {
     ])
   })
 
-  it('RatioOptions: los siete ratios del dominio, en su orden', () => {
+  it('RatioOptions: los ocho ratios del dominio, en su orden', () => {
     expect(optionsOf(<RatioOptions />)).toEqual(
       pinRatioSchema.options.map((ratio) => ({ value: ratio, text: ratio })),
     )
-    expect(optionsOf(<RatioOptions />)).toHaveLength(7)
+    expect(optionsOf(<RatioOptions />)).toHaveLength(8)
   })
 
   it('ContentTypeOptions: los cinco tipos con su etiqueta', () => {

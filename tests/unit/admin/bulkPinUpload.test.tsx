@@ -293,7 +293,7 @@ describe('BulkPinUpload — vídeos en la carga masiva (5 oct 2026)', () => {
     createPinWithVideoAction.mockResolvedValue({
       ok: false,
       error:
-        'El vídeo supera el peso máximo de un pin (100 MB; 15 MB en las tools).',
+        'El vídeo supera el peso máximo de un pin (10 MB; 15 MB en las tools).',
     })
     renderBulk('tool')
     selectFiles([video()])

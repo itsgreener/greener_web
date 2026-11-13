@@ -11,8 +11,17 @@ const CONTENT_ID = '3c9a5b8e-6f2a-4b1a-9b1a-2f6a5c9d1e3f'
 const PIN_ID = '7a1f2e3d-4c5b-6a7d-8e9f-0a1b2c3d4e5f'
 
 describe('pinRatioSchema', () => {
-  it('acepta los siete ratios cerrados (especificacion-final-formato-detalle.md §4)', () => {
-    for (const ratio of ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']) {
+  it('acepta los ocho ratios cerrados (especificacion-final-formato-detalle.md §4)', () => {
+    for (const ratio of [
+      '1:1',
+      '4:3',
+      '3:2',
+      '4:5',
+      '3:4',
+      '2:3',
+      '9:16',
+      '16:9',
+    ]) {
       expect(pinRatioSchema.safeParse(ratio).success).toBe(true)
     }
   })

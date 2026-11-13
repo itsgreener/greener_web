@@ -133,7 +133,7 @@ describe('CaseCarouselManager — subida de vídeo cuando el navegador no sabe l
       format: 'mov',
       width: 1920,
       height: 1080,
-      duration: 70, // 1:10 — dentro del límite de 180s de carrusel
+      duration: 70, // 1:10 — dentro del límite de 300s de carrusel
       bytes: 45 * 1024 * 1024,
     })
     addCaseCarouselVideoAction.mockResolvedValue({ ok: true })
@@ -206,7 +206,7 @@ describe('CaseCarouselManager — subida de vídeo cuando el navegador no sabe l
       format: 'mov',
       width: 1920,
       height: 1080,
-      duration: 240, // por encima de los 180s de VIDEO_LIMITS
+      duration: 360, // por encima de los 300s de VIDEO_LIMITS
       bytes: 45 * 1024 * 1024,
     })
 
@@ -217,19 +217,19 @@ describe('CaseCarouselManager — subida de vídeo cuando el navegador no sabe l
       expect(uploadVideoToCloudinary).toHaveBeenCalledOnce()
     })
     await waitFor(() => {
-      expect(screen.getByText(/180 segundos/)).toBeInTheDocument()
+      expect(screen.getByText(/300 segundos/)).toBeInTheDocument()
     })
     expect(addCaseCarouselVideoAction).not.toHaveBeenCalled()
   })
 
   it('si el navegador SÍ puede leer la duración y es demasiado larga, se sigue rechazando antes de subir (sin cambios de comportamiento)', async () => {
-    mockVideoElement('succeed', 240)
+    mockVideoElement('succeed', 360)
 
     render(<CaseCarouselManager contentId="content-1" items={[]} />)
     selectAndUpload(SMALL_VIDEO_FILE)
 
     await waitFor(() => {
-      expect(screen.getByText(/180 segundos/)).toBeInTheDocument()
+      expect(screen.getByText(/300 segundos/)).toBeInTheDocument()
     })
     expect(uploadVideoToCloudinary).not.toHaveBeenCalled()
   })

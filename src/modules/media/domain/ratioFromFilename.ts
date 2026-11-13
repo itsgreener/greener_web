@@ -19,7 +19,7 @@ import {
  *     una proporción válida, en cualquiera de las dos formas, se usa.
  *  3. Si no, se usa el último bloque con forma explícita `AxB` válida, en
  *     cualquier posición (el `x` evita confundirlo con un número del nombre).
- *  4. Si no hay nada legible o no es una de las 7 proporciones cerradas
+ *  4. Si no hay nada legible o no es una de las 8 proporciones cerradas
  *     (p. ej. `5x7`), devuelve `null` y el formulario no aplica nada.
  *
  * La forma compacta solo se admite en el penúltimo bloque a propósito: en
@@ -30,6 +30,7 @@ import {
 const COMPACT: Record<string, PinRatioValue> = {
   '11': '1:1',
   '43': '4:3',
+  '32': '3:2',
   '45': '4:5',
   '34': '3:4',
   '23': '2:3',

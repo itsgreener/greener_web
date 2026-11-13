@@ -132,17 +132,17 @@ describe('addCaseCarouselVideo', () => {
     alt: 'Vídeo del equipo de Agróptimum',
   }
 
-  it('rechaza más de 180 s sin llamar al repositorio ni calentar', async () => {
+  it('rechaza más de 300 s sin llamar al repositorio ni calentar', async () => {
     const media = fakeMedia()
     const scheduler = warm()
     const addCaseCarouselVideo = makeAddCaseCarouselVideo({
       media,
-      verifier: fakeVerifier(200),
+      verifier: fakeVerifier(320),
       warm: scheduler,
     })
 
     await expect(
-      addCaseCarouselVideo({ ...input, durationSeconds: 200 }),
+      addCaseCarouselVideo({ ...input, durationSeconds: 320 }),
     ).rejects.toThrow()
 
     expect(media.addCaseCarouselVideo).not.toHaveBeenCalled()
@@ -455,10 +455,10 @@ describe('replaceCaseCarouselVideo', () => {
     expect(scheduler.forContent).toHaveBeenCalledWith(CONTENT_ID)
   })
 
-  it('rechaza más de 180 s sin sustituir, calentar ni purgar', async () => {
-    const { media, cleanup, scheduler, replace } = setup(200)
+  it('rechaza más de 300 s sin sustituir, calentar ni purgar', async () => {
+    const { media, cleanup, scheduler, replace } = setup(320)
 
-    await expect(replace({ ...input, durationSeconds: 200 })).rejects.toThrow()
+    await expect(replace({ ...input, durationSeconds: 320 })).rejects.toThrow()
 
     expect(media.replaceCaseCarouselMedia).not.toHaveBeenCalled()
     expect(scheduler.forContent).not.toHaveBeenCalled()

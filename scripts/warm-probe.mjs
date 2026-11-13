@@ -88,6 +88,7 @@ export const DETAIL_QUALITY = 'auto'
 export const RUNG_M = {
   '16:9': { width: 1280, height: 720 },
   '4:3': { width: 1104, height: 828 },
+  '3:2': { width: 1176, height: 784 },
   '1:1': { width: 960, height: 960 },
   '4:5': { width: 856, height: 1070 },
   '3:4': { width: 828, height: 1104 },

@@ -9,6 +9,7 @@ describe('ratioFromFilename — convención nombre-proporción-tipo.ext', () => 
   it.each([
     ['flap-1x1-img.jpg', '1:1'],
     ['flap-4x3-img.jpg', '4:3'],
+    ['flap-3x2-img.jpg', '3:2'],
     ['flap-4x5-video.mp4', '4:5'],
     ['flap-3x4-img.png', '3:4'],
     ['flap-2x3-img.webp', '2:3'],
@@ -21,6 +22,7 @@ describe('ratioFromFilename — convención nombre-proporción-tipo.ext', () => 
   it.each([
     ['flap-11-img.jpg', '1:1'],
     ['flap-43-img.jpg', '4:3'],
+    ['flap-32-img.jpg', '3:2'],
     ['flap-45-img.jpg', '4:5'],
     ['flap-34-img.jpg', '3:4'],
     ['flap-23-img.jpg', '2:3'],

@@ -21,10 +21,17 @@ export const IMAGE_LIMITS = {
   recommendedFormats: ['webp', 'avif'] as const,
 } as const
 
+/**
+ * Vídeo de CONTENIDO (el del carrusel de un caso): 125 MB y 300 s desde el
+ * 13 nov 2026 (antes 100 MB y 180 s). Los pines tienen los suyos
+ * (PIN_ANIMATION_LIMITS y TOOL_PIN_VIDEO_LIMITS): ya no comparten el peso.
+ * OJO: el plan Free de Cloudinary rechaza vídeos de más de 100 MB; el tope de
+ * la web va por delante del proveedor hasta que los vídeos pesados migren.
+ */
 export const VIDEO_LIMITS = {
-  maxSizeBytes: 100 * 1024 * 1024,
+  maxSizeBytes: 125 * 1024 * 1024,
 
-  maxDurationSeconds: 180,
+  maxDurationSeconds: 300,
 
   recommendedFormat: 'mp4',
 
@@ -32,20 +39,23 @@ export const VIDEO_LIMITS = {
 } as const
 
 /**
- * Límite de un vídeo de pin «normal» (casos, insights, episodios, other) y,
- * a la vez, umbral por debajo del cual un vídeo se anima en el feed.
+ * Límite de un vídeo de pin «normal» (casos, insights, episodios, other): 8 s
+ * y 10 MB (el peso era el de VIDEO_LIMITS, 100 MB, hasta el 13 nov 2026) y, a
+ * la vez, umbral por debajo del cual un vídeo se anima en el feed.
  * Un vídeo de pin de una tool puede durar más (ver
  * TOOL_PIN_VIDEO_LIMITS), pero por encima de este umbral en el feed solo
  * se enseña su poster — el vídeo completo se descarga solo en el detalle.
  */
 export const PIN_ANIMATION_LIMITS = {
   maxDurationSeconds: 8,
+  maxSizeBytes: 10 * 1024 * 1024,
 } as const
 
 /**
  * Vídeos de demostración de una tool: viajan en el flujo de
  * pines existente y sustituyen a la imagen de la ficha `/tools/{slug}?pin=`.
- * Más estrictos en peso que el vídeo genérico (100 MB) porque el plan Free
+ * Más permisivos en peso (15 MB) que un pin normal (10 MB) y mucho más
+ * estrictos que el vídeo de contenido (125 MB) porque el plan Free
  * de Cloudinary no admite derroche, y más largos que una animación de pin
  * porque en el detalle se ven enteros.
  */
@@ -337,8 +347,8 @@ export function validateVideoUpload(
 
 /**
  * Límites de un vídeo de pin según el tipo de contenido del pin: los de una
- * tool son TOOL_PIN_VIDEO_LIMITS, el resto los de siempre (VIDEO_LIMITS en
- * peso, PIN_ANIMATION_LIMITS en duración). La misma regla vive en SQL
+ * tool son TOOL_PIN_VIDEO_LIMITS, el resto PIN_ANIMATION_LIMITS (8 s y 10 MB;
+ * el vídeo de contenido tiene los suyos, VIDEO_LIMITS). La misma regla vive en SQL
  * (`attach_pin_video`), que es la autoritativa; esto es lo que usa el ABM
  * para avisar antes de subir y para redactar los mensajes.
  */
@@ -355,7 +365,7 @@ export function pinVideoLimitsFor(contentType: ContentType | string): {
 
   return {
     maxDurationSeconds: PIN_ANIMATION_LIMITS.maxDurationSeconds,
-    maxSizeBytes: VIDEO_LIMITS.maxSizeBytes,
+    maxSizeBytes: PIN_ANIMATION_LIMITS.maxSizeBytes,
   }
 }
 

@@ -27,7 +27,7 @@ export interface VideoRules {
 
 const MB = 1024 * 1024
 
-/** Reglas de los vídeos de contenido (portada y carrusel): 100 MB / 180 s. */
+/** Reglas de los vídeos de contenido (carrusel de caso): VIDEO_LIMITS (125 MB / 300 s). */
 export function contentVideoRules(discardNote: string): VideoRules {
   return {
     validate: validateVideoUpload,
@@ -36,7 +36,7 @@ export function contentVideoRules(discardNote: string): VideoRules {
   }
 }
 
-/** Reglas de los vídeos de pin: dependen del tipo de contenido (tools: 15 s / 15 MB). */
+/** Reglas de los vídeos de pin: dependen del tipo de contenido (tools: 15 s / 15 MB; el resto: 8 s / 10 MB). */
 export function pinVideoRules(contentType: string): VideoRules {
   return {
     validate: (sizeBytes, durationSeconds) =>

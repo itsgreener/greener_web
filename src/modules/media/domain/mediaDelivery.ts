@@ -135,6 +135,10 @@ export const DETAIL_VIDEO_RUNGS: Record<
     M: { width: 1104, height: 828 },
     L: { width: 1380, height: 1036 },
   },
+  '3:2': {
+    M: { width: 1176, height: 784 },
+    L: { width: 1470, height: 980 },
+  },
   '1:1': {
     M: { width: 960, height: 960 },
     L: { width: 1200, height: 1200 },

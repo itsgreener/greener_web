@@ -365,15 +365,23 @@ describe('límites de vídeo de pin por tipo de contenido (5 oct 2026)', () => {
     expect(validatePinVideoUpload('tool', 15 * 1024 * 1024, 15)).toBeNull()
   })
 
-  it('el resto de pines mantienen 8 s y 100 MB', () => {
+  it('el resto de pines admiten 8 s y 10 MB (el vídeo de contenido tiene los suyos)', () => {
     for (const type of ['case', 'insight', 'episode', 'other']) {
       expect(pinVideoLimitsFor(type)).toEqual({
         maxDurationSeconds: 8,
-        maxSizeBytes: VIDEO_LIMITS.maxSizeBytes,
+        maxSizeBytes: 10 * 1024 * 1024,
       })
     }
 
-    expect(validatePinVideoUpload('case', 50 * 1024 * 1024, 8)).toBeNull()
+    expect(validatePinVideoUpload('case', 10 * 1024 * 1024, 8)).toBeNull()
+    expect(validatePinVideoUpload('case', 10 * 1024 * 1024 + 1, 8)).toEqual({
+      code: 'VIDEO_TOO_LARGE',
+      maxBytes: 10 * 1024 * 1024,
+    })
+    // Un pin normal ya no comparte el peso del vídeo de contenido.
+    expect(PIN_ANIMATION_LIMITS.maxSizeBytes).toBeLessThan(
+      VIDEO_LIMITS.maxSizeBytes,
+    )
   })
 
   it('rechaza un vídeo de tool por encima de 15 s o de 15 MB', () => {
@@ -408,7 +416,7 @@ describe('límites de vídeo de pin por tipo de contenido (5 oct 2026)', () => {
     const sql = readFileSync(
       resolve(
         __dirname,
-        '../../../supabase/migrations/20261005090000_pin_video_limits_by_content_type.sql',
+        '../../../supabase/migrations/20261113100000_video_limits_case_300s_125mb_pin_10mb.sql',
       ),
       'utf8',
     )
@@ -422,7 +430,27 @@ describe('límites de vídeo de pin por tipo de contenido (5 oct 2026)', () => {
     expect(sql).toContain(
       `v_max_duration := ${PIN_ANIMATION_LIMITS.maxDurationSeconds};`,
     )
-    expect(sql).toContain(`v_max_bytes := ${VIDEO_LIMITS.maxSizeBytes};`)
+    expect(sql).toContain(
+      `v_max_bytes := ${PIN_ANIMATION_LIMITS.maxSizeBytes};`,
+    )
+  })
+})
+
+describe('límites del vídeo de contenido (13 nov 2026)', () => {
+  it('son 125 MB y 300 s', () => {
+    expect(VIDEO_LIMITS.maxSizeBytes).toBe(125 * 1024 * 1024)
+    expect(VIDEO_LIMITS.maxDurationSeconds).toBe(300)
+  })
+
+  it('un segundo o un byte por encima se rechazan', () => {
+    expect(validateVideoUpload(125 * 1024 * 1024 + 1, 60)).toEqual({
+      code: 'VIDEO_TOO_LARGE',
+      maxBytes: 125 * 1024 * 1024,
+    })
+    expect(validateVideoUpload(1024, 301)).toEqual({
+      code: 'VIDEO_TOO_LONG',
+      maxSeconds: 300,
+    })
   })
 })
 
@@ -431,7 +459,7 @@ describe('validateVideoUpload', () => {
     expect(validateVideoUpload(10 * 1024 * 1024, 60)).toBeNull()
   })
 
-  it('acepta exactamente los límites de tamaño y duración (100 MB / 180 s)', () => {
+  it('acepta exactamente los límites de tamaño y duración (125 MB / 300 s)', () => {
     expect(
       validateVideoUpload(
         VIDEO_LIMITS.maxSizeBytes,

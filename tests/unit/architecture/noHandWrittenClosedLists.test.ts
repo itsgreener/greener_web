@@ -19,7 +19,7 @@ const TYPE_NAMING_ALLOWED = [
   'src/app/admin/_lib/contentCapabilities.ts',
 ]
 
-const RATIOS = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
+const RATIOS = ['1:1', '4:3', '3:2', '4:5', '3:4', '2:3', '9:16', '16:9']
 const CONTENT_TYPES = ['case', 'insight', 'tool', 'episode', 'other']
 
 function distinctQuoted(code: string, values: string[]) {

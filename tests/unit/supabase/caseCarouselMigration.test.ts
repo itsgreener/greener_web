@@ -26,8 +26,18 @@ function functionBody(name: string): string {
 
 describe('migración del carrusel: orden y edición', () => {
   it('ninguna migración posterior redefine sus funciones (se aplica después de todas las que las tocan)', () => {
+    // La del 13 nov 2026 redefine `replace_case_carousel_media` SOLO para subir
+    // los topes del vídeo (300 s / 125 MB); un test propio
+    // (videoLimitsMigration.test.ts) comprueba que el resto del cuerpo es
+    // idéntico a esta.
+    const LIMITS_ONLY = [
+      '20261113100000_video_limits_case_300s_125mb_pin_10mb.sql',
+    ]
     const later = readdirSync(dir)
-      .filter((name) => name.endsWith('.sql') && name > FILE)
+      .filter(
+        (name) =>
+          name.endsWith('.sql') && name > FILE && !LIMITS_ONLY.includes(name),
+      )
       .sort()
     const functions = [
       'reorder_case_carousel',

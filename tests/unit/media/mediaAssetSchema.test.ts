@@ -95,18 +95,18 @@ describe('addCaseCarouselVideoSchema — límites del vídeo subido', () => {
     }
   })
 
-  it('rechaza una duración por encima de 180 s', () => {
+  it('rechaza una duración por encima de 300 s', () => {
     expect(
-      addCaseCarouselVideoSchema.safeParse({ ...base, durationSeconds: 181 })
+      addCaseCarouselVideoSchema.safeParse({ ...base, durationSeconds: 301 })
         .success,
     ).toBe(false)
   })
 
-  it('rechaza bytes por encima de 100 MB', () => {
+  it('rechaza bytes por encima de 125 MB', () => {
     expect(
       addCaseCarouselVideoSchema.safeParse({
         ...base,
-        bytes: 100 * 1024 * 1024 + 1,
+        bytes: 125 * 1024 * 1024 + 1,
       }).success,
     ).toBe(false)
   })
@@ -158,7 +158,7 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
     expect(result.success).toBe(false)
   })
 
-  it('acepta un vídeo válido dentro de los límites de caso (100 MB / 180 s)', () => {
+  it('acepta un vídeo válido dentro de los límites de caso (125 MB / 300 s)', () => {
     const result = addCaseCarouselVideoSchema.safeParse({
       contentId: CONTENT_ID,
       cloudinaryPublicId: 'greener/content/videos/abc123',
@@ -174,14 +174,14 @@ describe('addCaseCarouselImageSchema / addCaseCarouselVideoSchema — carrusel d
     expect(result.success).toBe(true)
   })
 
-  it('rechaza un vídeo por encima de 180 s', () => {
+  it('rechaza un vídeo por encima de 300 s', () => {
     const result = addCaseCarouselVideoSchema.safeParse({
       contentId: CONTENT_ID,
       cloudinaryPublicId: 'greener/content/videos/abc123',
       format: 'mp4',
       width: 1920,
       height: 1080,
-      durationSeconds: 181,
+      durationSeconds: 301,
       bytes: 20 * 1024 * 1024,
       sortOrder: 0,
       alt: 'Vídeo del equipo de Agróptimum',
@@ -308,7 +308,7 @@ describe('replaceCaseCarouselImageSchema / replaceCaseCarouselVideoSchema', () =
     ).toBe(false)
   })
 
-  it('la imagen respeta el tope de 5 MB y el vídeo los de 180 s y 100 MB', () => {
+  it('la imagen respeta el tope de 5 MB y el vídeo los de 300 s y 125 MB', () => {
     expect(
       replaceCaseCarouselImageSchema.safeParse({
         ...image,
@@ -322,13 +322,13 @@ describe('replaceCaseCarouselImageSchema / replaceCaseCarouselVideoSchema', () =
     expect(
       replaceCaseCarouselVideoSchema.safeParse({
         ...video,
-        durationSeconds: 181,
+        durationSeconds: 301,
       }).success,
     ).toBe(false)
     expect(
       replaceCaseCarouselVideoSchema.safeParse({
         ...video,
-        bytes: 100 * 1024 * 1024 + 1,
+        bytes: 125 * 1024 * 1024 + 1,
       }).success,
     ).toBe(false)
   })

@@ -82,7 +82,7 @@ Cómo saber cuál domina (lo hace Greener): DevTools → Network → filtro Medi
 2. El `src` de las imágenes del feed usa el **ancho exacto de la tarjeta** (`buildImageUrl(id, 'feed', Math.round(style.width))`). Con `srcset` el navegador no lo pide, pero cualquier cliente que lo ignore crearía versiones únicas sueltas (`w_189`, `w_217`…).
 3. Las miniaturas del ABM piden `feed, 200` y `feed, 300` (`CaseCarouselManager`, `CoverMediaUpload`, `PinMediaManager`): versiones que no comparte ninguna otra pieza.
 4. El vídeo del feed y el de la ficha usan `f_auto`: hasta 3-4 derivadas por vídeo según los formatos que pidan los navegadores. Hoy la ficha de tool sirve hasta 1920 px de ancho (escalera 960/1440/1920 con DPR 2).
-5. Los **vídeos del carrusel de caso** y la portada de vídeo de contenido libre (`other`) usan `buildVideoFullUrl` sin tope (hasta 180 s y 100 MB).
+5. Los **vídeos del carrusel de caso** y la portada de vídeo de contenido libre (`other`) usan `buildVideoFullUrl` sin tope (hasta 300 s y 125 MB desde el 13 nov 2026, §2.154 del historial; antes 180 s y 100 MB. El plan Free de Cloudinary solo admite 100 MB por archivo, así que de 100 a 125 MB fallará la subida en el proveedor hasta que los vídeos pesados migren).
 6. No hay `preconnect` a Cloudinary. Impacto bajo: las imágenes ya calientan la conexión. No es prioridad.
 
 ## 4. Contrato de entrega (decidido el 6 oct 2026, a implementar en la fase 1)
@@ -119,6 +119,7 @@ Tamaños por ratio (la entrega usa `c_limit` con ancho **y** alto, `w_<W>,h_<H>`
 | ----- | -------------- | -------------- |
 | 16:9  | 1280×720       | 1600×900       |
 | 4:3   | 1104×828       | 1380×1036      |
+| 3:2   | 1176×784       | 1470×980       |
 | 1:1   | 960×960        | 1200×1200      |
 | 4:5   | 856×1070       | 1070×1338      |
 | 3:4   | 828×1104       | 1036×1380      |
@@ -179,6 +180,7 @@ Formato: **WebP o JPEG** de calidad 82-88 en sRGB, sin metadatos; PNG solo para 
 | ----- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
 | 16:9  | 1920×1080                                                                      | 1280×720                                                           |
 | 4:3   | 1600×1200                                                                      | 1280×960                                                           |
+| 3:2   | 1800×1200                                                                      | 1440×960                                                           |
 | 1:1   | 1600×1600                                                                      | 1080×1080                                                          |
 | 4:5   | 1280×1600                                                                      | 1024×1280                                                          |
 | 3:4   | 1200×1600                                                                      | 960×1280                                                           |
@@ -193,6 +195,7 @@ MP4 H.264 High, `yuv420p`, **sin audio**, **30 fps** (24 vale para demos; nunca 
 | ----- | ---------------------- | ------------------ |
 | 16:9  | 1280×720               | 1600×900           |
 | 4:3   | 1104×828               | 1380×1036          |
+| 3:2   | 1176×784               | 1470×980           |
 | 1:1   | 960×960                | 1200×1200          |
 | 4:5   | 856×1070               | 1070×1338          |
 | 3:4   | 828×1104               | 1036×1380          |
@@ -203,7 +206,7 @@ Peso esperado de un clip de 7 s en M: entre 0,7 y 2 MB (estimación; depende del
 
 ### 5.4 Vídeo de carrusel de caso (aparte)
 
-Hasta 180 s según el límite actual. Propuesta: ≤ 1280×720, 30 fps, AAC 128 kbps si lleva audio, y **bajar el tope de subida de 100 a 40 MB** por el límite de transformación de Free. **Actualización del 7 oct:** Greener quiere el tope **solo si Cloudinary no puede gestionar vídeos mayores en Free**; como el eager asíncrono parece poder, **provisionalmente NO se aplica** y lo decide la prueba del paso 0 de §9.9 (detalle en §9.8). Si se aplica, afecta a `VIDEO_LIMITS` en `mediaLimits.ts`, al SQL de `attach_pin_video`/casos y a los mensajes del ABM.
+Hasta 300 s (antes 180 s; cambio del 13 nov 2026) según el límite actual. Propuesta: ≤ 1280×720, 30 fps, AAC 128 kbps si lleva audio, y **bajar el tope de subida de 100 a 40 MB** por el límite de transformación de Free. **Actualización del 7 oct:** Greener quiere el tope **solo si Cloudinary no puede gestionar vídeos mayores en Free**; como el eager asíncrono parece poder, **provisionalmente NO se aplica** y lo decide la prueba del paso 0 de §9.9 (detalle en §9.8). Si se aplica, afecta a `VIDEO_LIMITS` en `mediaLimits.ts`, al SQL de `attach_pin_video`/casos y a los mensajes del ABM.
 
 ## 6. Comportamiento de reproducción objetivo (fase 1)
 

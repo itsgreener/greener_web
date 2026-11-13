@@ -59,7 +59,7 @@ export function usePinMediaManager({
         durationSeconds: video.duration,
         bytes: video.bytes,
       }),
-    // Los vídeos deben venir en uno de los 7 ratios cerrados, igual que las
+    // Los vídeos deben venir en uno de los 8 ratios cerrados, igual que las
     // imágenes. No se bloquea (el vídeo ya está guardado): si su ratio real
     // no es el del pin, se avisa, porque en el feed y en la ficha se
     // recortará con `object-fit: cover`.

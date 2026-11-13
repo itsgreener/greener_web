@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, type CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import {
   buildVideoPosterUrl,
   buildVideoSources,
@@ -57,12 +57,36 @@ function CarouselVideo({
   )
 }
 
+/** Chevron de las flechas: hereda el color del botón (`currentColor`). */
+function ArrowIcon({ direction }: { direction: 'previous' | 'next' }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="20"
+      height="20"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d={direction === 'previous' ? 'M15 5 8 12l7 7' : 'm9 5 7 7-7 7'}
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 /**
  * Carrusel de la ficha de un caso: scroll nativo con una diapositiva por
- * gesto (`useSlidePaging`) y, bajo las diapositivas, puntos que marcan la
- * visible y permiten saltar. Hasta 7 diapositivas, un punto por cada una;
- * con más, una ventana deslizante de 7 (`carouselDots.ts`). Con una sola
- * diapositiva no se pintan.
+ * gesto (`useSlidePaging`), dos flechas dentro de la imagen (a media altura,
+ * una en cada lateral; la del extremo se oculta en la primera y en la última
+ * diapositiva) y, bajo las diapositivas, puntos que marcan la visible y
+ * permiten saltar. Hasta 7 diapositivas, un punto por cada una; con más, una
+ * ventana deslizante de 7 (`carouselDots.ts`). Con una sola diapositiva no se
+ * pintan ni los puntos ni las flechas.
  *
  * El ancho y el alto los fija la ficha (`width`, `height`, en píxeles útiles
  * × ratio, especificacion-final-formato-detalle.md §2): el alto es el de las
@@ -79,7 +103,30 @@ export function CaseCarousel({
   width: number | string
   height: number | undefined
 }) {
-  const { trackRef, active, goTo } = useSlidePaging(carousel.length)
+  const { trackRef, active, goTo, step } = useSlidePaging(carousel.length)
+  const previousRef = useRef<HTMLButtonElement>(null)
+  const nextRef = useRef<HTMLButtonElement>(null)
+  const focusAfterRef = useRef<'previous' | 'next' | null>(null)
+
+  const lastIndex = carousel.length - 1
+  const hasPrevious = active > 0
+  const hasNext = active < lastIndex
+
+  const onPrevious = () => {
+    if (step(-1) === 0) focusAfterRef.current = 'next'
+  }
+  const onNext = () => {
+    if (step(1) === lastIndex) focusAfterRef.current = 'previous'
+  }
+
+  // La flecha que llega al extremo desaparece: el foco pasa a la contraria en
+  // vez de perderse en el documento.
+  useEffect(() => {
+    const target = focusAfterRef.current
+    focusAfterRef.current = null
+    if (target === 'previous') previousRef.current?.focus()
+    if (target === 'next') nextRef.current?.focus()
+  }, [hasPrevious, hasNext])
 
   // Un vídeo que ya no se ve no sigue sonando: al cambiar de diapositiva se
   // pausan los de las demás.
@@ -94,28 +141,55 @@ export function CaseCarousel({
 
   return (
     <div className={styles.carousel} style={{ width }}>
-      <div ref={trackRef} className={styles.track} style={{ height }}>
-        {carousel.map((item, index) => (
-          <div
-            key={item.mediaId}
-            className={styles.slide}
-            style={{ '--ratio': cssAspectRatio(ratio) } as CSSProperties}
+      <div className={styles.viewport}>
+        <div ref={trackRef} className={styles.track} style={{ height }}>
+          {carousel.map((item, index) => (
+            <div
+              key={item.mediaId}
+              className={styles.slide}
+              style={{ '--ratio': cssAspectRatio(ratio) } as CSSProperties}
+            >
+              {item.kind === 'image' ? (
+                <CloudinaryImage
+                  publicId={item.cloudinaryPublicId}
+                  kind="image"
+                  profile="detail"
+                  sizes={DETAIL_IMAGE_SIZES}
+                  alt={item.alt}
+                  loading={index === 0 ? 'eager' : 'lazy'}
+                  className={styles.media}
+                />
+              ) : (
+                <CarouselVideo item={item} isFirstSlide={index === 0} />
+              )}
+            </div>
+          ))}
+        </div>
+
+        {hasPrevious && (
+          <button
+            ref={previousRef}
+            type="button"
+            className={styles.arrow}
+            data-direction="previous"
+            aria-label="Previous slide"
+            onClick={onPrevious}
           >
-            {item.kind === 'image' ? (
-              <CloudinaryImage
-                publicId={item.cloudinaryPublicId}
-                kind="image"
-                profile="detail"
-                sizes={DETAIL_IMAGE_SIZES}
-                alt={item.alt}
-                loading={index === 0 ? 'eager' : 'lazy'}
-                className={styles.media}
-              />
-            ) : (
-              <CarouselVideo item={item} isFirstSlide={index === 0} />
-            )}
-          </div>
-        ))}
+            <ArrowIcon direction="previous" />
+          </button>
+        )}
+        {hasNext && (
+          <button
+            ref={nextRef}
+            type="button"
+            className={styles.arrow}
+            data-direction="next"
+            aria-label="Next slide"
+            onClick={onNext}
+          >
+            <ArrowIcon direction="next" />
+          </button>
+        )}
       </div>
 
       {carousel.length > 1 && (

@@ -341,7 +341,7 @@ export async function verifyCloudinaryImageAsset(
  * rechaza el vídeo.
  *
  * A diferencia de las imágenes, no se descarga el original completo:
- * un vídeo puede pesar hasta 100 MB y Cloudinary ya ha procesado el asset
+ * un vídeo puede pesar hasta 125 MB (VIDEO_LIMITS; el plan Free de Cloudinary solo admite 100) y Cloudinary ya ha procesado el asset
  * y expone sus metadatos reales mediante la Admin API.
  */
 export async function verifyCloudinaryVideoAsset(

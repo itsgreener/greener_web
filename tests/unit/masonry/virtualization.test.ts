@@ -20,7 +20,16 @@ function rng(seed: number) {
   }
 }
 
-const RATIOS: PinRatio[] = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
+const RATIOS: PinRatio[] = [
+  '1:1',
+  '4:3',
+  '3:2',
+  '4:5',
+  '3:4',
+  '2:3',
+  '9:16',
+  '16:9',
+]
 
 /** Feed sintético: `batches` lotes de `batchSize` pines con proporciones y rótulos variados. */
 function buildFeed(

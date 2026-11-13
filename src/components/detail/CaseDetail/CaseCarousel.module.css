@@ -5,6 +5,15 @@
   gap: var(--space-xs);
 }
 
+/* Caja de las diapositivas: referencia de posición de las flechas, que van
+   dentro de la imagen (los puntos quedan fuera, debajo). */
+.viewport {
+  position: relative;
+  /* Tamaño de la flecha y margen al borde de la imagen. */
+  --arrow-size: 40px;
+  --arrow-inset: var(--space-md);
+}
+
 .track {
   display: flex;
   overflow-x: auto;
@@ -48,6 +57,46 @@
      más cercano, así que el recorte es de unos píxeles y desaparecen los
      bordes que dejaba `contain` por esa diferencia. */
   object-fit: cover;
+}
+
+/* Flechas anterior/siguiente: círculo blanco con chevron negro, a media
+   altura y pegadas a cada lateral. A media altura no tapan la barra de
+   controles nativa de los vídeos, que va abajo. */
+.arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--arrow-size);
+  height: var(--arrow-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition: background-color var(--transition);
+
+  &[data-direction='previous'] {
+    left: var(--arrow-inset);
+  }
+
+  &[data-direction='next'] {
+    right: var(--arrow-inset);
+  }
+
+  &:hover {
+    background: var(--color-surface);
+  }
+
+  /* Contorno azul del resto de la web, separado del círculo para que se vea
+     sobre cualquier imagen. */
+  &:focus-visible {
+    outline: var(--focus-width) solid var(--color-cta);
+    outline-offset: var(--focus-offset-tight);
+  }
 }
 
 .dots {

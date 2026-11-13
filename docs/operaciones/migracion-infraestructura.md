@@ -14,7 +14,7 @@
 | DNS | Dinahosting | **Cloudflare**, sin proxy en el sitio principal (solo DNS). Única excepción: el subdominio de medios |
 | Correo | Servicio de correo de Dinahosting (ya no sirve) | **Google Workspace**. El formulario de contacto envía hoy por el SMTP de Dinahosting (funciona desde Vercel; en local da error 535, §2.114) y habrá que cambiar `CONTACT_SMTP_*` |
 | Imágenes y vídeo ≤ 15 s | Cloudinary Free | **Cloudflare**: originales en R2, imágenes con Image Transformations y vídeo corto con Media Transformations, siempre a través de `media.itsgreener.com` (proxificado) |
-| Vídeo de más de 15 s (hasta 3:30, quizá 4 min) | Cloudinary (tope de 180 s) | **Servicio especialista**: Bunny Stream o Mux (Cloudflare Stream queda como alternativa). Se elige tras la prueba técnica |
+| Vídeo de más de 15 s (hasta 3:30, quizá 4 min) | Cloudinary (tope de 300 s desde el 13 nov) | **Servicio especialista**: Bunny Stream o Mux (Cloudflare Stream queda como alternativa). Se elige tras la prueba técnica |
 | Contenido para el feed | WebM y MP4 | Tras el tratamiento previo, **MP4**; imágenes siempre **WebP** (AVIF sale de las subidas) |
 
 Decisiones de Greener que lo condicionan (26 y 27 oct): proxy de Cloudflare solo en un subdominio de medios; AVIF fuera; los vídeos de más de 60 s son obligatorios (no se limitan); primero se migra el dominio y desde allí el resto; el correo va aparte; la web se queda sin proxy de Cloudflare; BotID de Vercel, como opción para el asesor, sin decidir.

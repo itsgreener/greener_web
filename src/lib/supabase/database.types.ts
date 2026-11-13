@@ -951,7 +951,7 @@ export type Database = {
       media_status: "processing" | "ready" | "error"
       other_kind: "newsletter" | "page"
       pin_autoplay_mode: "viewport" | "hover"
-      pin_ratio: "1:1" | "4:5" | "3:4" | "2:3" | "9:16" | "16:9" | "4:3"
+      pin_ratio: "1:1" | "4:5" | "3:4" | "2:3" | "9:16" | "16:9" | "4:3" | "3:2"
       tag_section: "home" | "insights" | "tools" | "channel" | "shop"
     }
     CompositeTypes: {
@@ -1097,7 +1097,7 @@ export const Constants = {
       media_status: ["processing", "ready", "error"],
       other_kind: ["newsletter", "page"],
       pin_autoplay_mode: ["viewport", "hover"],
-      pin_ratio: ["1:1", "4:5", "3:4", "2:3", "9:16", "16:9", "4:3"],
+      pin_ratio: ["1:1", "4:5", "3:4", "2:3", "9:16", "16:9", "4:3", "3:2"],
       tag_section: ["home", "insights", "tools", "channel", "shop"],
     },
   },

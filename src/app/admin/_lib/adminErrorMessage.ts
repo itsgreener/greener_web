@@ -2,6 +2,7 @@ import {
   isDomainError,
   type DomainErrorKind,
 } from '@/modules/shared/domain/domainError'
+import { VIDEO_LIMITS } from '@/modules/media/domain/mediaLimits'
 import { PIN_LABEL_REQUIRED_MESSAGE } from '@/modules/pin/domain/pinMessages'
 
 /**
@@ -16,8 +17,8 @@ const DEFAULT_MESSAGES: Readonly<Partial<Record<DomainErrorKind, string>>> = {
   not_an_episode: 'Este contenido no es de tipo Episode.',
   episode_locale_only: 'Los episodios solo admiten su idioma principal.',
   image_too_large: 'La imagen supera los 5 MB.',
-  video_too_long: 'El vídeo supera los 180 segundos.',
-  video_too_large: 'El vídeo supera los 100 MB.',
+  video_too_long: `El vídeo supera los ${VIDEO_LIMITS.maxDurationSeconds} segundos.`,
+  video_too_large: `El vídeo supera los ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB.`,
   pin_label_required: PIN_LABEL_REQUIRED_MESSAGE,
   pin_media_limit: 'Un pin admite hasta 8 medios',
   other_kind_required:

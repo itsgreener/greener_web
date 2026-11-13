@@ -63,6 +63,7 @@ export const DEFAULT_MAX_CREDITS = 5
 export const RUNG_M = {
   '16:9': { width: 1280, height: 720 },
   '4:3': { width: 1104, height: 828 },
+  '3:2': { width: 1176, height: 784 },
   '1:1': { width: 960, height: 960 },
   '4:5': { width: 856, height: 1070 },
   '3:4': { width: 828, height: 1104 },
@@ -73,6 +74,7 @@ export const RUNG_M = {
 export const RUNG_L = {
   '16:9': { width: 1600, height: 900 },
   '4:3': { width: 1380, height: 1036 },
+  '3:2': { width: 1470, height: 980 },
   '1:1': { width: 1200, height: 1200 },
   '4:5': { width: 1070, height: 1338 },
   '3:4': { width: 1036, height: 1380 },
@@ -83,6 +85,7 @@ export const RUNG_L = {
 const RATIO_VALUE = {
   '1:1': 1 / 1,
   '4:3': 4 / 3,
+  '3:2': 3 / 2,
   '4:5': 4 / 5,
   '3:4': 3 / 4,
   '2:3': 2 / 3,
@@ -91,7 +94,7 @@ const RATIO_VALUE = {
 }
 
 // Mismo orden que `pinRatioSchema.options`: en un empate gana el primero.
-const RATIO_ORDER = ['1:1', '4:3', '4:5', '3:4', '2:3', '9:16', '16:9']
+const RATIO_ORDER = ['1:1', '4:3', '3:2', '4:5', '3:4', '2:3', '9:16', '16:9']
 
 const FORMATS = ['f_webm,vc_vp9', 'f_mp4,vc_h264']
 
@@ -351,12 +354,7 @@ function contentKind(type) {
 /** Vídeos y usos de todo el contenido (o de uno), con su estado. */
 export async function readWarmData(supabase, { content, includeDrafts }) {
   const contents = (
-    await readAll(
-      supabase,
-      'content',
-      'id, type, status',
-      'id',
-    )
+    await readAll(supabase, 'content', 'id, type, status', 'id')
   ).filter(
     (c) =>
       (!content || c.id === content) && (includeDrafts || c.status !== 'draft'),

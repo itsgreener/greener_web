@@ -16,7 +16,6 @@ import {
 import {
   PIN_ANIMATION_LIMITS,
   TOOL_PIN_VIDEO_LIMITS,
-  VIDEO_LIMITS,
 } from '@/modules/media/domain/mediaLimits'
 import { CreatePinWithMediaError } from '@/modules/pin/domain/createPinWithMediaError'
 import { PIN_LABEL_REQUIRED_MESSAGE } from '@/modules/pin/domain/pinMessages'
@@ -398,7 +397,7 @@ function videoAttachErrorMessage(error: unknown): string {
     ['pin_media_limit'],
     {
       video_too_long: `El vídeo supera la duración máxima de un pin (${PIN_ANIMATION_LIMITS.maxDurationSeconds} s; ${TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds} s en las tools).`,
-      video_too_large: `El vídeo supera el peso máximo de un pin (${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB; ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB en las tools).`,
+      video_too_large: `El vídeo supera el peso máximo de un pin (${PIN_ANIMATION_LIMITS.maxSizeBytes / 1024 / 1024} MB; ${TOOL_PIN_VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB en las tools).`,
     },
   )
 }

@@ -10,6 +10,7 @@ describe('mediaMatchesRatio — aviso de recorte de un vídeo en el ABM (5 oct 2
   it.each([
     ['1:1', 1080, 1080],
     ['4:3', 1440, 1080],
+    ['3:2', 1620, 1080],
     ['4:5', 1080, 1350],
     ['3:4', 1080, 1440],
     ['2:3', 1080, 1620],
@@ -38,10 +39,11 @@ describe('mediaMatchesRatio — aviso de recorte de un vídeo en el ABM (5 oct 2
   })
 })
 
-describe('closestClosedRatio — dimensiones exactas de cada uno de los 7 ratios', () => {
+describe('closestClosedRatio — dimensiones exactas de cada uno de los 8 ratios', () => {
   it.each([
     ['1:1', 1000, 1000],
     ['4:3', 1200, 900],
+    ['3:2', 1200, 800],
     ['4:5', 800, 1000],
     ['3:4', 900, 1200],
     ['2:3', 800, 1200],

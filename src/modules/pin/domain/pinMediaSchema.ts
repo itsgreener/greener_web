@@ -6,7 +6,7 @@ import {
   cloudinaryPublicIdField,
   imageBytesField,
   mediaDimensionField,
-  videoBytesField,
+  pinVideoBytesField,
   videoDurationField,
 } from '@/modules/media/domain/uploadedMediaFields'
 import { mediaKindSchema } from '@/modules/shared/domain/mediaKind'
@@ -38,13 +38,14 @@ export const attachPinVideoSchema = z.object({
 
   height: mediaDimensionField,
 
-  // Techo ABSOLUTO (el de los pines de tools). El límite real depende del
-  // tipo de contenido del pin (8 s en el resto, ver pinVideoLimitsFor) y lo
+  // Techo ABSOLUTO (el de los pines de tools, en duración y en peso). El
+  // límite real depende del tipo de contenido del pin (8 s y 10 MB en el
+  // resto, ver pinVideoLimitsFor) y lo
   // aplica `attach_pin_video` en SQL, que sí conoce el pin; el ABM avisa
   // antes de subir con validatePinVideoUpload.
   durationSeconds: videoDurationField(TOOL_PIN_VIDEO_LIMITS.maxDurationSeconds),
 
-  bytes: videoBytesField,
+  bytes: pinVideoBytesField,
 })
 
 /**

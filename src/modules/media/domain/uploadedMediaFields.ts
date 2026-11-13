@@ -1,6 +1,10 @@
 import { z } from 'zod'
 
-import { IMAGE_LIMITS, VIDEO_LIMITS } from './mediaLimits'
+import {
+  IMAGE_LIMITS,
+  TOOL_PIN_VIDEO_LIMITS,
+  VIDEO_LIMITS,
+} from './mediaLimits'
 
 /**
  * Campos zod de un medio ya subido a Cloudinary, comunes a todos los
@@ -25,14 +29,25 @@ export const imageBytesField = z
     `La imagen no puede superar ${IMAGE_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
   )
 
-export const videoBytesField = z
-  .number()
-  .int()
-  .positive()
-  .max(
-    VIDEO_LIMITS.maxSizeBytes,
-    `El vídeo no puede superar ${VIDEO_LIMITS.maxSizeBytes / 1024 / 1024} MB`,
-  )
+function videoBytesFieldWithMax(maxBytes: number) {
+  return z
+    .number()
+    .int()
+    .positive()
+    .max(maxBytes, `El vídeo no puede superar ${maxBytes / 1024 / 1024} MB`)
+}
+
+/** Peso de un vídeo de contenido (carrusel de caso): VIDEO_LIMITS. */
+export const videoBytesField = videoBytesFieldWithMax(VIDEO_LIMITS.maxSizeBytes)
+
+/**
+ * Peso de un vídeo de pin. Techo ABSOLUTO (el de los pines de tool, 15 MB);
+ * el de un pin normal es menor (10 MB, PIN_ANIMATION_LIMITS) y lo aplica
+ * `attach_pin_video` en SQL, que sí conoce el tipo del contenido.
+ */
+export const pinVideoBytesField = videoBytesFieldWithMax(
+  TOOL_PIN_VIDEO_LIMITS.maxSizeBytes,
+)
 
 /** Duración en segundos, redondeada hacia arriba, con un techo propio. */
 export function videoDurationField(maxSeconds: number) {

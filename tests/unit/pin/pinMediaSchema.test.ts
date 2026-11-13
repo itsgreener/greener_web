@@ -52,7 +52,7 @@ describe('attachPinVideoSchema', () => {
     expect(attachPinVideoSchema.safeParse(base).success).toBe(true)
   })
 
-  it('rechaza más de 15 segundos — techo absoluto de un vídeo de pin (el de las tools), no los 180s de un vídeo de caso', () => {
+  it('rechaza más de 15 segundos — techo absoluto de un vídeo de pin (el de las tools), no los 300s de un vídeo de caso', () => {
     expect(
       attachPinVideoSchema.safeParse({ ...base, durationSeconds: 16 }).success,
     ).toBe(false)
@@ -76,11 +76,11 @@ describe('attachPinVideoSchema', () => {
     }
   })
 
-  it('rechaza bytes por encima de 100 MB', () => {
+  it('rechaza bytes por encima de 15 MB — techo absoluto de un vídeo de pin (el de las tools); el de un pin normal, 10 MB, lo aplica SQL', () => {
     expect(
       attachPinVideoSchema.safeParse({
         ...base,
-        bytes: 100 * 1024 * 1024 + 1,
+        bytes: 15 * 1024 * 1024 + 1,
       }).success,
     ).toBe(false)
   })

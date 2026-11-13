@@ -5,6 +5,7 @@ import { AdminFormBody } from '@/components/admin/AdminForm'
 import { AdminMediaGrid } from '@/components/admin/AdminMediaItem'
 import { AdminMessage } from '@/components/admin/AdminMessage'
 import { MediaUploader } from '@/components/admin/MediaUploader'
+import { pinRatioSchema } from '@/modules/shared/domain/ratio'
 
 import { MediaThumb } from './MediaThumb'
 import type { PinMediaManagerProps } from './types'
@@ -55,8 +56,9 @@ export default function PinMediaManager(props: PinMediaManagerProps) {
               kind === 'video' ? (
                 <>
                   Vídeo MP4, WebM o MOV, máximo {videoLimits.maxDurationSeconds}{' '}
-                  s y {maxVideoMb} MB, en uno de los 7 ratios (1:1, 4:3, 4:5,
-                  3:4, 2:3, 9:16, 16:9).
+                  s y {maxVideoMb} MB, en uno de los{' '}
+                  {pinRatioSchema.options.length} ratios (
+                  {pinRatioSchema.options.join(', ')}).
                   {contentType === 'tool'
                     ? ' Por encima de 8 s, en el feed solo se verá el poster; el vídeo completo se ve en la ficha de la tool.'
                     : ''}

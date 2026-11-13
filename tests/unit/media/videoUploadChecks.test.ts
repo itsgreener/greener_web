@@ -49,12 +49,12 @@ describe('assertLocalVideoWithinLimits', () => {
     ).resolves.toBeUndefined()
   })
 
-  it('vídeo de contenido: más de 180 s se rechaza', async () => {
-    readLocalVideoDuration.mockResolvedValue(200)
+  it('vídeo de contenido: más de 300 s se rechaza', async () => {
+    readLocalVideoDuration.mockResolvedValue(320)
 
     await expect(
       assertLocalVideoWithinLimits(file(MB), contentVideoRules('x')),
-    ).rejects.toThrow('El vídeo no puede superar los 180 segundos.')
+    ).rejects.toThrow('El vídeo no puede superar los 300 segundos.')
   })
 
   it('demasiado pesado, con duración legible', async () => {
@@ -106,22 +106,22 @@ describe('assertUploadedVideoWithinLimits', () => {
   it('duración real excesiva en un contenido: la nota la pone quien llama', () => {
     expect(() =>
       assertUploadedVideoWithinLimits(
-        { bytes: MB, duration: 200 },
+        { bytes: MB, duration: 320 },
         contentVideoRules(
           'el archivo subido se ha descartado y la portada anterior no se ha tocado',
         ),
       ),
     ).toThrow(
-      'El vídeo dura más de los 180 segundos permitidos (el archivo subido se ha descartado y la portada anterior no se ha tocado).',
+      'El vídeo dura más de los 300 segundos permitidos (el archivo subido se ha descartado y la portada anterior no se ha tocado).',
     )
   })
 
   it('peso real excesivo', () => {
     expect(() =>
       assertUploadedVideoWithinLimits(
-        { bytes: 101 * MB, duration: 5 },
+        { bytes: 126 * MB, duration: 5 },
         contentVideoRules('nota'),
       ),
-    ).toThrow('El vídeo supera los 100 MB (nota).')
+    ).toThrow('El vídeo supera los 125 MB (nota).')
   })
 })
