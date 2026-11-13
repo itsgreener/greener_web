@@ -45,8 +45,8 @@
   --radius-pill: 999px;
 
   /* Escala de tamaños de texto. Los módulos usan estas variables, nunca un
-     tamaño en rem a mano. --fs-sm es el del texto de las tarjetas del feed
-     y de .text-body. */
+     tamaño en rem a mano. --fs-sm es el de .text-body; el de las tarjetas
+     del feed es --fs-card (igual que --fs-sm hasta 1919 px). */
   --fs-xs: 0.75rem;
   --fs-sm: 0.8rem;
   --fs-md: 0.875rem;
@@ -55,6 +55,45 @@
   --fs-xl: 1.75rem;
   --fs-2xl: 2rem;
   --fs-3xl: 3rem;
+
+  /* Texto de las tarjetas del masonry (feed y recomendaciones). 0.8rem
+     (= --fs-sm) hasta 1919 px; desde 1920 px (1080p, BREAKPOINT_PX.fullHd)
+     0.9rem, un escalón único. labelHeight.ts reserva el alto de rótulo con
+     la misma regla: cambiar un valor obliga a cambiar el otro. */
+  --fs-card: 0.8rem;
+
+  /* Tipografía fluida de las fichas de detalle (caso, episodio, tool,
+     insight, variety). Se escala con el ANCHO de la ventana (vw): la imagen
+     crece con el alto (66,7 vh) y un texto fijo en rem queda pequeño en QHD
+     y grande en 1440x900. Anclas del título (Greener, 13 nov 2026):
+     36 px a 1440, 48 px a 1920 (el antiguo --fs-3xl) y 56 px a 2560.
+     Tres tramos de recta:
+       - 768-1440:  1.125rem + 1.25vw  (27,6 px a 768 -> 36 px a 1440)
+       - 1440-1920: 2.5vw              (36 px -> 48 px)
+       - 1920-2560: 1.5rem + 1.25vw    (48 px -> 56 px)
+     max(tramo 1, min(tramo 2, tramo 3)) los une y el clamp deja el valor
+     plano por debajo de 768 (el diseño de móvil aún no está hecho, así que
+     no se toca) y por encima de 2560. La parte en rem respeta el zoom y el
+     tamaño de letra del navegador.
+     Destacado y cuerpo tienen su propia rampa con las anclas de Greener:
+     destacado 12 / 16 / 18 px y cuerpo 10,5 / 14 / 16 px a 1440 / 1920 /
+     2560. Dos tramos (min de dos rectas: 1440-1920 y 1920-2560), planos
+     por debajo de 1440 (suelo) y por encima de 2560 (tope). */
+  --fs-detail-title: clamp(
+    1.725rem,
+    max(1.125rem + 1.25vw, min(2.5vw, 1.5rem + 1.25vw)),
+    3.5rem
+  );
+  --fs-detail-highlight: clamp(
+    0.75rem,
+    min(0.8333vw, 0.625rem + 0.3125vw),
+    1.125rem
+  );
+  --fs-detail-body: clamp(
+    0.65625rem,
+    min(0.7292vw, 0.5rem + 0.3125vw),
+    1rem
+  );
 
   /* Foco visible (teclado): grosor y separación del contorno. Hacia fuera
      3px por defecto, 2px donde el entorno es más justo (botones del admin,
@@ -123,6 +162,14 @@
 @media (prefers-reduced-motion: reduce) {
   :root {
     --transition: 0ms linear;
+  }
+}
+
+/* 1080p y mayores (BREAKPOINT_PX.fullHd): texto de las tarjetas del masonry
+   un escalón más grande. Ver --fs-card y labelHeight.ts. */
+@media (min-width: 1920px) {
+  :root {
+    --fs-card: 0.9rem;
   }
 }
 

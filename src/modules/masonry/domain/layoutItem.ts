@@ -27,10 +27,11 @@ export interface MasonryPinInput extends LabelHeightInput {
 export function toLayoutItem(
   item: MasonryPinInput,
   columnWidth: number,
+  viewportWidth?: number,
 ): LayoutInputItem {
   return {
     id: item.pinId,
     ratio: item.ratio as PinRatio,
-    labelHeight: estimateLabelHeight(item, columnWidth),
+    labelHeight: estimateLabelHeight(item, columnWidth, viewportWidth),
   }
 }

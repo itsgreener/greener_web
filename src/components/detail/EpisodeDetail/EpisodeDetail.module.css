@@ -130,7 +130,7 @@
 
 /* Tipo de episodio: en negrita (Helvetica Neue 700, existe de verdad). */
 .kind {
-  font-size: var(--fs-md);
+  font-size: var(--fs-detail-body);
   opacity: 0.85;
   font-weight: 700;
 }
@@ -144,8 +144,9 @@
 .title {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 4;
-  /* Tamaño fijo, como en caso (9 nov 2026; antes clamp con cqw). */
-  font-size: var(--fs-3xl);
+  /* Fluido con el ancho de la ventana, igual que en caso (13 nov 2026;
+     antes fijo a --fs-3xl y, antes, clamp con cqw). */
+  font-size: var(--fs-detail-title);
   line-height: 0.9;
   overflow-wrap: anywhere;
 }
@@ -154,7 +155,7 @@
    CaseDetail.module.css — mismos límites (área "límites de caracteres",
    textLimits.ts), mismo mecanismo. */
 .highlight {
-  font-size: var(--fs-base);
+  font-size: var(--fs-detail-highlight);
   font-weight: 700;
   max-width: 55ch;
   line-height: 1.1;
@@ -164,7 +165,7 @@
 .body {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 12;
-  font-size: var(--fs-md);
+  font-size: var(--fs-detail-body);
   white-space: pre-wrap;
   opacity: 0.7;
   max-width: 70ch;

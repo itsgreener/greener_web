@@ -34,9 +34,13 @@ describe('tipografías — CSS global', () => {
     expect(body).toContain('font-family: var(--font-body)')
     expect(body).toMatch(/font-weight:\s*400/)
     expect(body).not.toMatch(/max-width/)
-    // Mismo cuerpo que el texto bajo cada pin (.label).
+    // Mismo cuerpo que el texto bajo cada pin (.label): --fs-card vale lo
+    // mismo que --fs-sm por debajo de 1920 px; desde 1080p el pin sube un
+    // escalón y .text-body (contacto) no (13 nov 2026).
     expect(body).toMatch(/font-size:\s*var\(--fs-sm\)/)
-    expect(label).toMatch(/font-size:\s*var\(--fs-sm\)/)
+    expect(label).toMatch(/font-size:\s*var\(--fs-card\)/)
+    expect(globalsCss).toMatch(/--fs-card:\s*0\.8rem;/)
+    expect(globalsCss).toMatch(/--fs-sm:\s*0\.8rem;/)
     expect(body.match(/line-height:\s*[\d.]+/)?.[0]).toBe(
       label.match(/line-height:\s*[\d.]+/)?.[0],
     )

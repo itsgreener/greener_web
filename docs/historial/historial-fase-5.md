@@ -2861,3 +2861,19 @@ Petición de Greener: poder **cambiar el orden de las diapositivas sin quitarlas
 
 **Tests.** Los de ratios (esquema, entrega, layout, detalle, nombre de archivo, ABM, lista cerrada) incluyen el 3:2; test nuevo del fichero SQL del enum.
 
+
+### 2.156 Tamaños de texto adaptativos (13 nov 2026)
+
+**Problema.** La imagen de la ficha crece con el alto de la ventana (66,7 vh) y el texto estaba fijo en rem: pequeño en QHD y grande en 1440×900.
+
+**Fichas de detalle (caso, episodio, tool, insight y variety).** Tipografía fluida con el ANCHO de la ventana (`vw`), sin `@media`. Tokens nuevos en `globals.css`:
+
+- `--fs-detail-title`: `clamp(1.725rem, max(1.125rem + 1.25vw, min(2.5vw, 1.5rem + 1.25vw)), 3.5rem)`. Anclas pedidas por Greener: 36 px a 1440, 48 px a 1920 (el antiguo `--fs-3xl`) y 56 px a 2560. Tres tramos de recta (768-1440, 1440-1920, 1920-2560), plano por debajo de 768 y por encima de 2560. La parte en rem respeta el zoom y el tamaño de letra del navegador.
+- `--fs-detail-highlight` y `--fs-detail-body`: rampa propia cada uno (ya no derivan del título), con las anclas que dio Greener: destacado 12 / 16 / 18 px y cuerpo 10,5 / 14 / 16 px a 1440 / 1920 / 2560. Dos rectas unidas con `min()`, plano por debajo de 1440 (suelo) y por encima de 2560 (tope). El cuerpo de tool/insight (`.summary`) y el título de tool/insight usan el destacado.
+- `--fs-3xl` se mantiene (3rem) para contacto, que no se ha tocado. Fuera de alcance: tarjetas del feed y recomendaciones (ver abajo), CTA, consentimiento de embeds, cookies, privacidad y ABM.
+
+**Confirmado por Greener (13 nov).** Escala por ancho; todas las fichas de detalle, con especial interés en episodios; 18 px (destacado) y 16 px (cuerpo) a QHD. **Decisión nuestra:** el 768 es solo el inicio de la rampa (no es un breakpoint nuevo: `BREAKPOINT_PX.mobile` sigue en 640); el suelo del destacado y del cuerpo es su valor a 1440, de modo que por debajo de 1440 el título sigue bajando hasta 27,6 px a 768 y destacado y cuerpo se quedan planos.
+
+**Home y masonry en general (mensaje posterior de Greener).** Un solo escalón en 1080p, sin rampa: `BREAKPOINT_PX.fullHd = 1920`. El texto de las tarjetas (`PinCard .label`) usa el token `--fs-card`: 0.8rem hasta 1919 px y 0.9rem desde 1920 px (único `@media (min-width)` de la web, en `globals.css`). La magnitud (+12,5 %) es una decisión nuestra, no pedida. Como el layout es absoluto, `labelHeight.ts` reserva el alto del rótulo con la misma regla (`labelMetrics(viewportWidth)`: línea de 19 px y carácter un 12,5 % más ancho desde 1920 px); `toLayoutItem` y los dos hooks (`useMasonryPositions` y `useRecommendationMasonry`) le pasan `window.innerWidth`. Afecta también a las tarjetas del panel de recomendaciones de las fichas, que son las mismas `PinCard`.
+
+**Tests.** `tests/unit/detail/detailTypography.test.ts` (nuevo: anclas de título, destacado y cuerpo a 1440/1920/2560, planos fuera de rango, monotonía y que los CSS de ficha solo usen los tokens), `episodeDetail.design` (título con `--fs-detail-title`), `breakpoints.test.ts` (ahora recorre también `min-width` y comprueba el escalón de 1920) y `labelHeight.test.ts` (1919 / 1920).

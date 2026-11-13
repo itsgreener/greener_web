@@ -93,6 +93,10 @@ export function useMasonryPositions<T extends MasonryEntry>(
     if (containerWidth === 0) return []
 
     const columnWidth = (containerWidth - GAP * (columnCount - 1)) / columnCount
+    // Mismo criterio que el @media (min-width) de las tarjetas: el ancho del
+    // viewport, no el del contenedor. Se relee con cada cambio de
+    // containerWidth, que es lo que cambia al redimensionar la ventana.
+    const viewportWidth = window.innerWidth
 
     return items.map((item) =>
       isNewsletterEntry(item)
@@ -101,7 +105,7 @@ export function useMasonryPositions<T extends MasonryEntry>(
             ratio: NEWSLETTER_CARD_RATIO,
             labelHeight: 0,
           }
-        : toLayoutItem(item, columnWidth),
+        : toLayoutItem(item, columnWidth, viewportWidth),
     )
   }, [items, containerWidth, columnCount])
 

@@ -40,13 +40,13 @@
 .title {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 3;
-  font-size: var(--fs-3xl);
+  font-size: var(--fs-detail-title);
   line-height: 0.9;
   max-width: 40ch;
 }
 
 .highlight {
-  font-size: var(--fs-base);
+  font-size: var(--fs-detail-highlight);
   margin: 10px 0;
   font-weight: 700;
   line-height: 1.1;
@@ -56,7 +56,7 @@
 .body {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 20;
-  font-size: var(--fs-md);
+  font-size: var(--fs-detail-body);
   line-height: 1.1;
   opacity: 0.7;
   white-space: pre-wrap;
@@ -64,7 +64,7 @@
 }
 
 .client {
-  font-size: var(--fs-md);
+  font-size: var(--fs-detail-body);
   opacity: 0.85;
   max-width: 60ch;
   overflow: hidden;

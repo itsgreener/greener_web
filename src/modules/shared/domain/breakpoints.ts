@@ -13,4 +13,11 @@ export const BREAKPOINT_PX = {
   tablet: 900,
   /** < 1200: 4 columnas; a partir de aquí, escritorio (6). */
   desktop: 1200,
+  /**
+   * >= 1920 (1080p): único `@media (min-width)` de la web. Aquí el texto de
+   * las tarjetas del masonry pasa de 0.8rem a 0.9rem (--fs-card en
+   * globals.css) y `labelHeight.ts` reserva el alto de rótulo
+   * correspondiente. Por debajo no cambia nada.
+   */
+  fullHd: 1920,
 } as const

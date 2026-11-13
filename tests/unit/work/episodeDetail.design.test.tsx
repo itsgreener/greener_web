@@ -243,15 +243,13 @@ describe('EpisodeDetail — grupos de texto y tipografía', () => {
     expect(rule(css(), '.title')).not.toMatch(/font-weight:\s*(bold|[5-9]00)/)
   })
 
-  it('el título es grande y de tamaño fijo, como el de caso (9 nov 2026)', () => {
+  it('el título es grande y fluido con el ancho, como el de caso (13 nov 2026)', () => {
     const title = rule(css(), '.title')
 
-    // Antes clamp con cqw (columna variable); Greener lo igualó al de caso.
-    expect(title).toMatch(/font-size:\s*var\(--fs-3xl\)/)
+    // Antes fijo a --fs-3xl (9 nov) y, antes, clamp con cqw (columna variable).
+    // Ahora usa la rampa fluida compartida con las demás fichas de detalle.
+    expect(title).toMatch(/font-size:\s*var\(--fs-detail-title\)/)
     expect(title).not.toMatch(/cqw/)
-    expect(
-      readFileSync(join(process.cwd(), 'src/app/globals.css'), 'utf8'),
-    ).toMatch(/--fs-3xl:\s*3rem;/)
   })
 
   it('los huecos del texto son los de la ficha de caso (--space-sm; 9 nov 2026)', () => {

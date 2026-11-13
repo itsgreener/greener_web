@@ -56,12 +56,13 @@
 .title {
   composes: lineClamp from '../../text/lineClamp.module.css';
   --lines: 2;
-  font-size: var(--fs-base);
+  font-size: var(--fs-detail-highlight);
   margin-top: var(--space-md);
   max-width: 40ch;
 }
 
 .summary {
+  font-size: var(--fs-detail-highlight);
   opacity: 0.85;
   max-width: 70ch;
   /* separación mínima con el CTA cuando no sobra espacio (margin-top:auto del CTA absorbe el resto) */

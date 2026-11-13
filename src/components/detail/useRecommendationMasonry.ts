@@ -235,7 +235,7 @@ export function useRecommendationMasonry(
       (containerWidth - GAP * (totalColumns - 1)) / totalColumns
 
     const layoutItems: LayoutInputItem[] = items.map((item) =>
-      toLayoutItem(item, columnWidth),
+      toLayoutItem(item, columnWidth, window.innerWidth),
     )
     // Límite conocido de TIPO A (tool/insight/other): la siembra usa la
     // altura de la IMAGEN (contentBlockImageDimensions, §2), no la altura

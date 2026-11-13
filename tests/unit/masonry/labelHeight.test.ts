@@ -3,6 +3,8 @@ import {
   estimateLabelHeight,
   estimateWrappedLines,
   LABEL_LINE_HEIGHT,
+  LABEL_LINE_HEIGHT_FULL_HD,
+  labelMetrics,
   LABEL_SAFETY,
   LABEL_SECONDARY_GAP,
   LABEL_TOP_GAP,
@@ -56,5 +58,29 @@ describe('estimateLabelHeight', () => {
     expect(
       estimateLabelHeight({ displayTitle: 'Título', label: 'Gancho' }, 300),
     ).toBe(LABEL_TOP_GAP + LABEL_LINE_HEIGHT + LABEL_SAFETY)
+  })
+})
+
+describe('estimateLabelHeight a partir de 1080p (1920 px de viewport)', () => {
+  it('por debajo de 1920 px no cambia nada', () => {
+    expect(labelMetrics(1919).lineHeight).toBe(LABEL_LINE_HEIGHT)
+    expect(estimateLabelHeight({ label: 'Corto' }, 300, 1919)).toBe(
+      estimateLabelHeight({ label: 'Corto' }, 300),
+    )
+  })
+
+  it('desde 1920 px (incluido) la línea mide 19 px', () => {
+    expect(labelMetrics(1920).lineHeight).toBe(LABEL_LINE_HEIGHT_FULL_HD)
+    expect(estimateLabelHeight({ label: 'Corto' }, 300, 1920)).toBe(
+      LABEL_TOP_GAP + LABEL_LINE_HEIGHT_FULL_HD + LABEL_SAFETY,
+    )
+  })
+
+  it('la letra más grande cabe menos por línea: un título que ocupa una línea a 1919 pasa a dos a 1920', () => {
+    const title = 'Una campaña de movilidad en el barrio'
+    const small = estimateLabelHeight({ displayTitle: title }, 270, 1919)
+    const large = estimateLabelHeight({ displayTitle: title }, 270, 1920)
+
+    expect(large).toBeGreaterThan(small)
   })
 })

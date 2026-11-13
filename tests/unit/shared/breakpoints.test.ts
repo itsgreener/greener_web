@@ -20,9 +20,9 @@ function cssFiles(dir: string): string[] {
 function mediaWidths(file: string): number[] {
   const css = readFileSync(file, 'utf8')
 
-  return [...css.matchAll(/@media[^{]*\(\s*max-width:\s*(\d+)px\s*\)/g)].map(
-    (match) => Number(match[1]),
-  )
+  return [
+    ...css.matchAll(/@media[^{]*\(\s*(?:max|min)-width:\s*(\d+)px\s*\)/g),
+  ].map((match) => Number(match[1]))
 }
 
 describe('breakpoints', () => {
@@ -34,6 +34,18 @@ describe('breakpoints', () => {
       Infinity,
     ])
     expect(MOBILE_BREAKPOINT_PX).toBe(BREAKPOINT_PX.mobile)
+  })
+
+  it('el escalón de 1080p del texto de las tarjetas está en CSS y en la estimación del rótulo', () => {
+    expect(BREAKPOINT_PX.fullHd).toBe(1920)
+
+    const globals = readFileSync('src/app/globals.css', 'utf8')
+    expect(globals).toMatch(
+      new RegExp(
+        `@media \\(min-width: ${BREAKPOINT_PX.fullHd}px\\)\\s*\\{\\s*:root\\s*\\{\\s*--fs-card: 0\\.9rem;`,
+      ),
+    )
+    expect(globals).toMatch(/--fs-card: 0\.8rem;/)
   })
 
   it('todos los CSS (web pública y ABM) solo usan anchos de BREAKPOINT_PX', () => {
