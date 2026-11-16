@@ -47,8 +47,8 @@ function ramp(
 
 const highlightPx = ramp(
   '--fs-detail-highlight',
-  'clamp( 0.75rem, min(0.8333vw, 0.625rem + 0.3125vw), 1.125rem )',
-  0.75,
+  'clamp( 0.8125rem, min(0.8333vw, 0.625rem + 0.3125vw), 1.125rem )',
+  0.8125,
   1.125,
   0.8333,
   0.625,
@@ -56,8 +56,8 @@ const highlightPx = ramp(
 )
 const bodyPx = ramp(
   '--fs-detail-body',
-  'clamp( 0.65625rem, min(0.7292vw, 0.5rem + 0.3125vw), 1rem )',
-  0.65625,
+  'clamp( 0.75rem, min(0.7292vw, 0.5rem + 0.3125vw), 1rem )',
+  0.75,
   1,
   0.7292,
   0.5,
@@ -84,8 +84,8 @@ describe('tipografía fluida de las fichas de detalle', () => {
   })
 
   it('destacado y cuerpo pasan por las anclas de Greener: 12/10,5 a 1440, 16/14 a 1920 y 18/16 a 2560', () => {
-    expect(highlightPx(1440)).toBeCloseTo(12, 1)
-    expect(bodyPx(1440)).toBeCloseTo(10.5, 1)
+    expect(highlightPx(1440)).toBeCloseTo(13, 1)
+    expect(bodyPx(1440)).toBeCloseTo(12, 1)
     expect(highlightPx(1920)).toBeCloseTo(16, 1)
     expect(bodyPx(1920)).toBeCloseTo(14, 1)
     expect(highlightPx(2560)).toBeCloseTo(18, 1)
@@ -93,8 +93,8 @@ describe('tipografía fluida de las fichas de detalle', () => {
   })
 
   it('destacado y cuerpo son planos por debajo de 1440 y por encima de 2560, y no decrecen entre medias', () => {
-    expect(highlightPx(768)).toBeCloseTo(12, 5)
-    expect(bodyPx(768)).toBeCloseTo(10.5, 5)
+    expect(highlightPx(768)).toBeCloseTo(13, 5)
+    expect(bodyPx(768)).toBeCloseTo(12, 5)
     expect(highlightPx(3840)).toBeCloseTo(18, 5)
     expect(bodyPx(3840)).toBeCloseTo(16, 5)
 

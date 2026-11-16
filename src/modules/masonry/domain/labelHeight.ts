@@ -63,10 +63,7 @@ export function estimateWrappedLines(
   const normalized = text.trim()
   if (!normalized) return 0
 
-  const charsPerLine = Math.max(
-    8,
-    Math.floor(availableWidth / charWidth),
-  )
+  const charsPerLine = Math.max(8, Math.floor(availableWidth / charWidth))
 
   let lines = 1
   let currentLength = 0
@@ -123,12 +120,7 @@ export function estimateLabelHeight(
 
   // Tool / Insight / Other: gancho libre del admin, máximo dos líneas.
   if (item.label) {
-    const lines = estimateWrappedLines(
-      item.label,
-      availableWidth,
-      2,
-      charWidth,
-    )
+    const lines = estimateWrappedLines(item.label, availableWidth, 2, charWidth)
     return LABEL_TOP_GAP + lines * lineHeight + LABEL_SAFETY
   }
 

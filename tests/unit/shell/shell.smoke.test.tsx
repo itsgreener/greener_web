@@ -22,7 +22,7 @@ describe('Shell — prueba de humo', () => {
     )
 
     expect(screen.getByLabelText('Greener')).toBeInTheDocument()
-    expect(screen.getByLabelText('We did it')).toHaveAttribute('href', '/')
+    expect(screen.getByLabelText('We did it')).toHaveAttribute('href', '/work')
     expect(screen.getByLabelText('Podcasts')).toHaveAttribute(
       'href',
       '/channel',

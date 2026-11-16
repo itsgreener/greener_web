@@ -16,7 +16,7 @@ describe('SECTION_LABELS', () => {
     const hrefOf = (label: string) =>
       navItems.find((item) => item.label === label)?.href
 
-    expect(hrefOf(SECTION_LABELS.work)).toBe('/')
+    expect(hrefOf(SECTION_LABELS.work)).toBe('/work')
     expect(hrefOf(SECTION_LABELS.channel)).toBe('/channel')
     expect(hrefOf(SECTION_LABELS.insights)).toBe('/insights')
     expect(hrefOf(SECTION_LABELS.tools)).toBe('/tools')

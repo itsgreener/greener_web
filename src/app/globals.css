@@ -89,11 +89,7 @@
     min(0.8333vw, 0.625rem + 0.3125vw),
     1.125rem
   );
-  --fs-detail-body: clamp(
-    0.75rem,
-    min(0.7292vw, 0.5rem + 0.3125vw),
-    1rem
-  );
+  --fs-detail-body: clamp(0.75rem, min(0.7292vw, 0.5rem + 0.3125vw), 1rem);
 
   /* Foco visible (teclado): grosor y separación del contorno. Hacia fuera
      3px por defecto, 2px donde el entorno es más justo (botones del admin,
