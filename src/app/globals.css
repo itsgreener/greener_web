@@ -85,12 +85,12 @@
     3.5rem
   );
   --fs-detail-highlight: clamp(
-    0.75rem,
+    0.8125rem,
     min(0.8333vw, 0.625rem + 0.3125vw),
     1.125rem
   );
   --fs-detail-body: clamp(
-    0.65625rem,
+    0.75rem,
     min(0.7292vw, 0.5rem + 0.3125vw),
     1rem
   );

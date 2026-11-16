@@ -17,7 +17,7 @@ import { SECTION_LABELS } from '@/components/nav/sectionLabels'
  * cuando haya funcionalidad real detrás, activarlo es una sola línea.
  */
 const NAV_ITEMS = [
-  { href: '/', label: SECTION_LABELS.work, icon: 'works', visible: true },
+  { href: '/work', label: SECTION_LABELS.work, icon: 'works', visible: true },
   {
     href: '/channel',
     label: SECTION_LABELS.channel,
