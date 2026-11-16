@@ -11,14 +11,20 @@ const globals = read('src/app/globals.css')
 function token(name: string): string {
   const match = globals.match(new RegExp(`${name}:\\s*([^;]+);`))
   if (!match) throw new Error(`Falta ${name} en globals.css`)
-  return match[1].replace(/\s+/g, ' ').trim()
+  // Se compara la fórmula sin depender de cómo esté maquetada: un `clamp(`
+  // en varias líneas deja espacios tras `(` y antes de `)`.
+  return match[1]
+    .replace(/\s+/g, ' ')
+    .replace(/\(\s+/g, '(')
+    .replace(/\s+\)/g, ')')
+    .trim()
 }
 
 // La rampa del título, evaluada a mano con 16 px por rem. El test lee la
 // fórmula de globals.css y comprueba que las anclas son las pedidas.
 function titlePx(viewportPx: number): number {
   expect(token('--fs-detail-title')).toBe(
-    'clamp( 1.725rem, max(1.125rem + 1.25vw, min(2.5vw, 1.5rem + 1.25vw)), 3.5rem )',
+    'clamp(1.725rem, max(1.125rem + 1.25vw, min(2.5vw, 1.5rem + 1.25vw)), 3.5rem)',
   )
   const vw = viewportPx / 100
   const first = 1.125 * 16 + 1.25 * vw
@@ -47,7 +53,7 @@ function ramp(
 
 const highlightPx = ramp(
   '--fs-detail-highlight',
-  'clamp( 0.8125rem, min(0.8333vw, 0.625rem + 0.3125vw), 1.125rem )',
+  'clamp(0.8125rem, min(0.8333vw, 0.625rem + 0.3125vw), 1.125rem)',
   0.8125,
   1.125,
   0.8333,
@@ -56,7 +62,7 @@ const highlightPx = ramp(
 )
 const bodyPx = ramp(
   '--fs-detail-body',
-  'clamp( 0.75rem, min(0.7292vw, 0.5rem + 0.3125vw), 1rem )',
+  'clamp(0.75rem, min(0.7292vw, 0.5rem + 0.3125vw), 1rem)',
   0.75,
   1,
   0.7292,
@@ -83,7 +89,7 @@ describe('tipografía fluida de las fichas de detalle', () => {
     }
   })
 
-  it('destacado y cuerpo pasan por las anclas de Greener: 12/10,5 a 1440, 16/14 a 1920 y 18/16 a 2560', () => {
+  it('destacado y cuerpo pasan por las anclas de Greener: 13/12 a 1440, 16/14 a 1920 y 18/16 a 2560', () => {
     expect(highlightPx(1440)).toBeCloseTo(13, 1)
     expect(bodyPx(1440)).toBeCloseTo(12, 1)
     expect(highlightPx(1920)).toBeCloseTo(16, 1)
