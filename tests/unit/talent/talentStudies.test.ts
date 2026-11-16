@@ -28,7 +28,13 @@ describe('parseIsoDate', () => {
   it('para cualquier día real el resultado es el mismo texto', () => {
     fc.assert(
       fc.property(
-        fc.date({ min: new Date('1950-01-01'), max: new Date('2100-12-31') }),
+        // fc.date genera por defecto algún `Invalid Date` (NaN, ~1 de cada 1500
+        // valores): sin noInvalidDate el test falla de forma intermitente.
+        fc.date({
+          min: new Date('1950-01-01'),
+          max: new Date('2100-12-31'),
+          noInvalidDate: true,
+        }),
         (date) => {
           const iso = date.toISOString().slice(0, 10)
 

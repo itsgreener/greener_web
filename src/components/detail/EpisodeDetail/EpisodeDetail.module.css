@@ -111,7 +111,7 @@
    vuelve a un tamaño relativo a la columna). */
 .text {
   --episode-gap-inner: var(--space-sm);
-  --episode-gap-groups: var(--space-sm);
+  --episode-gap-groups: var(--space-md);
 
   container-type: inline-size;
   display: flex;

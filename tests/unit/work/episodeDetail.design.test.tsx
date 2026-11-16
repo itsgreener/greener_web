@@ -259,7 +259,7 @@ describe('EpisodeDetail — grupos de texto y tipografía', () => {
     // Antes 16 px dentro de cada grupo y 32 px entre grupos (6 oct 2026);
     // Greener los igualó a la ficha de caso.
     expect(text).toMatch(/--episode-gap-inner:\s*var\(--space-sm\)/)
-    expect(text).toMatch(/--episode-gap-groups:\s*var\(--space-sm\)/)
+    expect(text).toMatch(/--episode-gap-groups:\s*var\(--space-md\)/)
     expect(text).toMatch(/gap:\s*var\(--episode-gap-groups\)/)
     expect(rule(source, '.heading,\n.details')).toMatch(
       /gap:\s*var\(--episode-gap-inner\)/,
