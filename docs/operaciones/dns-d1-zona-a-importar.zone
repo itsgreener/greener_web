@@ -1,0 +1,39 @@
+$ORIGIN itsgreener.com.
+$TTL 300
+; Zona A IMPORTAR en Cloudflare (D1). Sale de dns-d0-zona-dinahosting.zone (exportacion de Dinahosting, 16 nov 2026).
+; Se descartan 7 subdominios por decision de Greener (16 nov): app, wip, storm-ultra, mailing19, mailing2019, agroptimum10 y countdown.
+; Sin NS ni SOA (Cloudflare los gestiona); los SPF de tipo SPF pasan a TXT. Los DOS SPF del apex se copian tal cual y se unifican despues de D1.
+; El export no traia TTL: se usa 300 s. Todo A/CNAME en DNS only (nube gris). Al importar, desmarcar 'Proxy imported DNS records'.
+
+@	300	IN	A	104.198.14.52	; cf_tags=cf-proxied:false
+autoconfig	300	IN	A	82.98.145.51	; cf_tags=cf-proxied:false
+autodiscover	300	IN	A	82.98.145.60	; cf_tags=cf-proxied:false
+ftp	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mail	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+accounts	300	IN	CNAME	accounts.clerk.services.	; cf_tags=cf-proxied:false
+backroom	300	IN	CNAME	cname.vercel-dns.com.	; cf_tags=cf-proxied:false
+chat	300	IN	CNAME	a1303867068500d0.vercel-dns-016.com.	; cf_tags=cf-proxied:false
+clerk	300	IN	CNAME	frontend-api.clerk.services.	; cf_tags=cf-proxied:false
+clk._domainkey	300	IN	CNAME	dkim1.906nzm3v6tsw.clerk.services.	; cf_tags=cf-proxied:false
+clk2._domainkey	300	IN	CNAME	dkim2.906nzm3v6tsw.clerk.services.	; cf_tags=cf-proxied:false
+clkmail	300	IN	CNAME	mail.906nzm3v6tsw.clerk.services.	; cf_tags=cf-proxied:false
+getitdone	300	IN	CNAME	ae2fa5f4a3047393.vercel-dns-017.com.	; cf_tags=cf-proxied:false
+k1._domainkey	300	IN	CNAME	dkim.mcsv.net.	; cf_tags=cf-proxied:false
+keepintouch	300	IN	CNAME	323cd6b63c183c7a.vercel-dns-017.com.	; cf_tags=cf-proxied:false
+rsend	300	IN	CNAME	send.forge.rmta.net.	; cf_tags=cf-proxied:false
+sharing	300	IN	CNAME	3648fe99bc753f16.vercel-dns-017.com.	; cf_tags=cf-proxied:false
+stock	300	IN	CNAME	f92d8948ddebbd51.vercel-dns-016.com.	; cf_tags=cf-proxied:false
+www	300	IN	CNAME	itsgreener.com.	; cf_tags=cf-proxied:false
+@	300	IN	MX	20	alt1.aspmx.l.google.com.
+@	300	IN	MX	10	aspmx.l.google.com.
+@	300	IN	MX	30	alt2.aspmx.l.google.com.
+@	300	IN	MX	40	alt3.aspmx.l.google.com.
+@	300	IN	MX	50	alt4.aspmx.l.google.com.
+reply	300	IN	MX	10	receive-euw1.forge.rmta.net.
+send	300	IN	MX	10	feedback-smtp.eu-west-1.amazonses.com.
+@	300	IN	TXT	"v=spf1 include:servers.mcsv.net ?all"
+@	300	IN	TXT	"v=spf1 a mx ~all"
+default._domainkey	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCjgcu91OShjTrZXMWOHCnA4inXHE1D5m0fbK+08lk+hhnHMvLhw7979tX6qjBKc9/YeYXDuKxZGckqpcBg2WqSdOEEJvv9ApH/Fk3YtDVmfcVmnjyjhcoZUl+mFgwhe7YR4b1wUlUUxSSEZ2y84OuVwFj3BbUkA1HU3aFsrG/K0QIDAQAB"
+resend._domainkey	300	IN	TXT	"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDYKL3BW5EuoSrNMpOKolamkZQpKvTWyULEOI06PQQhiOOZyJlpkP0RfmRQ55CJH5ukHd1VYMP7vMz+C7A1ZZOUyyXqe+cs5mgImRk7fL5KOKJnpLC+ru2g/5KqivZe5qfT1k6b0KqOUbOktk21yH36H0wdQWW6+I0LL73iLz9DwIDAQAB"
+resend._domainkey.reply	300	IN	TXT	"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyPeWLgYWQ4tNGR9owM9sYzRxu5mMW3YqCvDfM1YLdINtNRrkzlKH0Dd1sJ4BCLlQoePWlJ/LH7i6wvvBSQNHqailOsd6oNE2L5gmtJuFLvo5v6x0zCfIEGfoQjDvdyD5Ka/VXss3V4ZIcANySAWezaVH6VTHSL3FEpipTUrBT5QIDAQAB"
+send	300	IN	TXT	"v=spf1 include:amazonses.com ~all"
