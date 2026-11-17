@@ -1,0 +1,15 @@
+; Zona DNS propia de talent.itsgreener.com en Dinahosting (exportacion de Greener, 17 nov 2026). REFERENCIA DE MARCHA ATRAS.
+; Host 'SOA' = apex de la zona talent (@). El tipo SPF pasa a TXT en Cloudflare. Sin TTL en el export: 300 s.
+$ORIGIN talent.itsgreener.com.
+$TTL 300
+@	300	IN	A	82.98.169.92
+autoconfig	300	IN	A	82.98.145.51
+autodiscover	300	IN	A	82.98.145.60
+ftp	300	IN	A	82.98.169.92
+mail	300	IN	A	82.98.169.92
+mysql	300	IN	A	82.98.169.92
+www	300	IN	A	82.98.169.92
+@	300	IN	MX	10	mail.talent.itsgreener.com.
+@	300	IN	SPF	"v=spf1 a mx ~all"
+default._domainkey	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7Chc8GRrGGgWiUbOKcDEnNAK1aF9WqSPNSdly7Rf87NuL7yEVIO6F+vVIaROLapeSzv7W6TS4q8D4XFI1lnoOfEiGgc1oOBfWpT1Z95WzxmjDI9xU1eelSFe0n6viRpNbncmjlxVrqfSZqBIy56CYeuRcNz9oPTpmPGn6jYBJWwIDAQAB"
+_dmarc	300	IN	TXT	"v=DMARC1; p=none; rua=mailto:admin@itsgreener.info"

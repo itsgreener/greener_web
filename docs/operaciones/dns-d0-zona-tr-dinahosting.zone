@@ -1,0 +1,16 @@
+; Zona DNS propia de tr.itsgreener.com en Dinahosting (exportacion de Greener, 17 nov 2026). REFERENCIA DE MARCHA ATRAS.
+; Host 'SOA' = apex de la zona tr (@). El tipo SPF pasa a TXT en Cloudflare. Sin TTL en el export: 300 s.
+$ORIGIN tr.itsgreener.com.
+$TTL 300
+app	300	IN	A	82.98.169.92
+@	300	IN	A	82.98.169.92
+www	300	IN	A	82.98.169.92
+mail	300	IN	A	82.98.169.92
+autoconfig	300	IN	A	82.98.145.51
+autodiscover	300	IN	A	82.98.145.60
+ftp	300	IN	A	82.98.169.92
+mysql	300	IN	A	82.98.169.92
+@	300	IN	MX	10	mail.tr.itsgreener.com.
+@	300	IN	SPF	"v=spf1 a mx ~all"
+_dmarc	300	IN	TXT	"v=DMARC1; p=none; rua=mailto:contacto@tr.itsgreener.com"
+default._domainkey	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDV2itADwu/MuwvqQuhHT6uHuFJDwA84m7weMy9yJOqcyV1ui+GnNtTsa+Ja4Cnd/ealcC2xLgf8L7iJj39F2HPUm2Aiy7M5wMEM0YqoO82AoaAZ0NE8TZjRTP6A2IzkVakdDUxLpr9YhB4wT4v/s88jDxNn/IztxDpISa6sseywwIDAQAB"

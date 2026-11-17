@@ -4,12 +4,29 @@ $TTL 300
 ; Se descartan 7 subdominios por decision de Greener (16 nov): app, wip, storm-ultra, mailing19, mailing2019, agroptimum10 y countdown.
 ; Sin NS ni SOA (Cloudflare los gestiona); los SPF de tipo SPF pasan a TXT. Los DOS SPF del apex se copian tal cual y se unifican despues de D1.
 ; El export no traia TTL: se usa 300 s. Todo A/CNAME en DNS only (nube gris). Al importar, desmarcar 'Proxy imported DNS records'.
+; 17 nov: se anaden las zonas propias de tr.itsgreener.com y talent.itsgreener.com (Dinahosting la sirve aparte de la zona del dominio; no sale en el export de D0), con los nombres cualificados (app.tr, mail.tr...).
+; Cloudflare Free no admite subdominios como zonas propias, por eso van dentro de la zona de itsgreener.com. Se conservan tr y talent (17 nov). Se descartan insight, tools, blog y screencore. Total: 55 registros.
 
 @	300	IN	A	104.198.14.52	; cf_tags=cf-proxied:false
 autoconfig	300	IN	A	82.98.145.51	; cf_tags=cf-proxied:false
 autodiscover	300	IN	A	82.98.145.60	; cf_tags=cf-proxied:false
 ftp	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
 mail	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+app.tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+www.tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mail.tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+autoconfig.tr	300	IN	A	82.98.145.51	; cf_tags=cf-proxied:false
+autodiscover.tr	300	IN	A	82.98.145.60	; cf_tags=cf-proxied:false
+ftp.tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mysql.tr	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+autoconfig.talent	300	IN	A	82.98.145.51	; cf_tags=cf-proxied:false
+autodiscover.talent	300	IN	A	82.98.145.60	; cf_tags=cf-proxied:false
+ftp.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mail.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mysql.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+www.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
 accounts	300	IN	CNAME	accounts.clerk.services.	; cf_tags=cf-proxied:false
 backroom	300	IN	CNAME	cname.vercel-dns.com.	; cf_tags=cf-proxied:false
 chat	300	IN	CNAME	a1303867068500d0.vercel-dns-016.com.	; cf_tags=cf-proxied:false
@@ -31,9 +48,17 @@ www	300	IN	CNAME	itsgreener.com.	; cf_tags=cf-proxied:false
 @	300	IN	MX	50	alt4.aspmx.l.google.com.
 reply	300	IN	MX	10	receive-euw1.forge.rmta.net.
 send	300	IN	MX	10	feedback-smtp.eu-west-1.amazonses.com.
+tr	300	IN	MX	10	mail.tr.itsgreener.com.
+talent	300	IN	MX	10	mail.talent.itsgreener.com.
 @	300	IN	TXT	"v=spf1 include:servers.mcsv.net ?all"
 @	300	IN	TXT	"v=spf1 a mx ~all"
 default._domainkey	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCjgcu91OShjTrZXMWOHCnA4inXHE1D5m0fbK+08lk+hhnHMvLhw7979tX6qjBKc9/YeYXDuKxZGckqpcBg2WqSdOEEJvv9ApH/Fk3YtDVmfcVmnjyjhcoZUl+mFgwhe7YR4b1wUlUUxSSEZ2y84OuVwFj3BbUkA1HU3aFsrG/K0QIDAQAB"
 resend._domainkey	300	IN	TXT	"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDDYKL3BW5EuoSrNMpOKolamkZQpKvTWyULEOI06PQQhiOOZyJlpkP0RfmRQ55CJH5ukHd1VYMP7vMz+C7A1ZZOUyyXqe+cs5mgImRk7fL5KOKJnpLC+ru2g/5KqivZe5qfT1k6b0KqOUbOktk21yH36H0wdQWW6+I0LL73iLz9DwIDAQAB"
 resend._domainkey.reply	300	IN	TXT	"p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCyPeWLgYWQ4tNGR9owM9sYzRxu5mMW3YqCvDfM1YLdINtNRrkzlKH0Dd1sJ4BCLlQoePWlJ/LH7i6wvvBSQNHqailOsd6oNE2L5gmtJuFLvo5v6x0zCfIEGfoQjDvdyD5Ka/VXss3V4ZIcANySAWezaVH6VTHSL3FEpipTUrBT5QIDAQAB"
 send	300	IN	TXT	"v=spf1 include:amazonses.com ~all"
+tr	300	IN	TXT	"v=spf1 a mx ~all"
+_dmarc.tr	300	IN	TXT	"v=DMARC1; p=none; rua=mailto:contacto@tr.itsgreener.com"
+default._domainkey.tr	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDV2itADwu/MuwvqQuhHT6uHuFJDwA84m7weMy9yJOqcyV1ui+GnNtTsa+Ja4Cnd/ealcC2xLgf8L7iJj39F2HPUm2Aiy7M5wMEM0YqoO82AoaAZ0NE8TZjRTP6A2IzkVakdDUxLpr9YhB4wT4v/s88jDxNn/IztxDpISa6sseywwIDAQAB"
+talent	300	IN	TXT	"v=spf1 a mx ~all"
+default._domainkey.talent	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7Chc8GRrGGgWiUbOKcDEnNAK1aF9WqSPNSdly7Rf87NuL7yEVIO6F+vVIaROLapeSzv7W6TS4q8D4XFI1lnoOfEiGgc1oOBfWpT1Z95WzxmjDI9xU1eelSFe0n6viRpNbncmjlxVrqfSZqBIy56CYeuRcNz9oPTpmPGn6jYBJWwIDAQAB"
+_dmarc.talent	300	IN	TXT	"v=DMARC1; p=none; rua=mailto:admin@itsgreener.info"

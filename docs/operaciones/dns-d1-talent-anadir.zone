@@ -1,0 +1,11 @@
+; Registros A de talent.itsgreener.com a ANADIR a la zona de Cloudflare (17 nov 2026, decision de Greener).
+; Salen de la zona propia de talent en Dinahosting (captura del panel). Nombres cualificados. Importar con 'Proxy imported DNS records' desmarcado.
+$ORIGIN itsgreener.com.
+$TTL 300
+talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+autoconfig.talent	300	IN	A	82.98.145.51	; cf_tags=cf-proxied:false
+autodiscover.talent	300	IN	A	82.98.145.60	; cf_tags=cf-proxied:false
+ftp.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mail.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+mysql.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false
+www.talent	300	IN	A	82.98.169.92	; cf_tags=cf-proxied:false

@@ -1,0 +1,8 @@
+; Registros de CORREO de talent.itsgreener.com a ANADIR a la zona de Cloudflare (17 nov 2026): MX, SPF, DKIM y DMARC.
+; Los 7 A de talent van en dns-d1-talent-anadir.zone. Salen de la zona propia de talent en Dinahosting. Importar con 'Proxy imported DNS records' desmarcado.
+$ORIGIN itsgreener.com.
+$TTL 300
+talent	300	IN	MX	10	mail.talent.itsgreener.com.
+talent	300	IN	TXT	"v=spf1 a mx ~all"
+default._domainkey.talent	300	IN	TXT	"v=DKIM1; g=*; k=rsa; p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC7Chc8GRrGGgWiUbOKcDEnNAK1aF9WqSPNSdly7Rf87NuL7yEVIO6F+vVIaROLapeSzv7W6TS4q8D4XFI1lnoOfEiGgc1oOBfWpT1Z95WzxmjDI9xU1eelSFe0n6viRpNbncmjlxVrqfSZqBIy56CYeuRcNz9oPTpmPGn6jYBJWwIDAQAB"
+_dmarc.talent	300	IN	TXT	"v=DMARC1; p=none; rua=mailto:admin@itsgreener.info"
