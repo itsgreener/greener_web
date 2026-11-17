@@ -131,9 +131,9 @@ Es la parte que el plan de octubre no tenía y la que más puede salir mal, porq
 | R2 (3 buckets, UE) | 0,015 USD/GB-mes con 10 GB-mes, 1 M de operaciones de clase A y 10 M de clase B gratis; sin cobro de salida. Hoy: 0,25 GB-mes | 0 USD (Cloudinary tiene 2,13 GB en total) |
 | Images (transformaciones) | 5.000 únicas al mes incluidas; 0,50 USD por cada 1.000 de más. Para imágenes alojadas en R2 solo se factura «Images Transformed». Las 629 imágenes de la web por los 3 anchos de feed, 3 de ficha y 1 de OG del contrato dan, como techo, ≈ 4.400; los 44 vídeos cortos (≈ 1.000 unidades más, a 1 por segundo de salida y con varias variantes) lo acercan al cupo gratuito. La librería no cuenta: sigue en Cloudinary | 0 a 1 USD |
 | Stream (vídeo largo) | 5 USD por cada 1.000 minutos almacenados (por adelantado) y 1 USD por cada 1.000 entregados; codificación y subida gratis; sin cupo gratuito | **5 USD**: los 83 vídeos suman ≈ 47 minutos, así que los 39 que van a Stream caben de sobra en un bloque. La entrega, con unos cientos de visitas, son céntimos |
-| Media Transformations (vídeo corto) | Si comparte el cupo de 5.000 de las imágenes o tiene el suyo no está verificado | P8 lo mide |
+| Media Transformations (vídeo corto) | Si comparte el cupo de 5.000 de las imágenes o tiene el suyo no está verificado (el Starter Bundle habla de un cupo común de «imágenes y vídeo») | P8 lo mide |
 
-Orden de magnitud total: **de 5 a 6 USD al mes** (estimación; el único cargo seguro es el bloque de Stream), frente a los 89–99 USD del plan Plus de Cloudinary (descartado por precio el 6 de octubre). Quien contrata (la dirección) necesita: **Images de pago** (comprobar en el panel si hay cuota mínima: la página de precios no da una vía de compra ni cuota fija) y **Stream** (prepago en bloques de 1.000 minutos). Las dos antes de F3. Stream hace falta antes de la prueba P9.
+Orden de magnitud total: **unos 5 USD al mes con el Starter Bundle (17 nov) y de 5 a 6 USD si se contratan por separado** (estimación; el único cargo seguro es el del paquete o el bloque de Stream), frente a los 89–99 USD del plan Plus de Cloudinary (descartado por precio el 6 de octubre). Quien contrata (la dirección) necesita **Images de pago** y **Stream**. Greener localizó el 17 nov en el panel el **Starter Bundle** (Images + Stream, desde 5 USD al mes): 5.000 transformaciones únicas al mes (1 USD por cada 2.000 de más, de imágenes y de vídeo), 100.000 imágenes alojadas y 500.000 entregadas (no se usan: el almacenamiento es R2), 1.000 minutos de vídeo almacenados y 5.000 entregados (5 USD por cada 1.000 almacenados de más y 1 USD por cada 1.000 entregados de más). Cubre las dos piezas y deja el cargo fijo en 5 USD, sin bloque de Stream aparte. Que el cupo de transformaciones sea común a imágenes y vídeo apunta a que Media Transformations comparte los 5.000 (P8 lo confirma). Contratarlo antes de la prueba P9 y, en todo caso, antes de F3 (pendiente de la dirección a 17 nov).
 
 ## 8. Fases
 
@@ -151,7 +151,7 @@ Regla de calendario heredada: **no coinciden en la misma semana** el cambio de `
 ### F0 — Entorno de Cloudflare y prueba de concepto (G, 0,5 a 1 día + pruebas)
 
 1. Zona `itsgreener.com` activa (D1) en la cuenta del bucket de R2.
-2. Contratar **Images de pago** y **Stream**; método de pago y alertas de uso y facturación.
+2. Contratar el **Starter Bundle** (Images + Stream, desde 5 USD al mes; §7) o, si no, Images de pago y Stream por separado; método de pago y alertas de uso y facturación.
 3. Crear el bucket `greener-media` en la **jurisdicción UE** (los otros dos, cuando toque, §6). El endpoint S3 es `<ACCOUNT_ID>.eu.r2.cloudflarestorage.com`; las URL prefirmadas solo valen contra ese dominio, no contra el público.
 4. Dominio personalizado `media.itsgreener.com` (con proxy); `r2.dev` apagado.
 5. Regla de caché «Eligible for cache» en `media.` para las claves sin extensión.
@@ -268,7 +268,7 @@ Cloudinary aparece como encargado en `policyContent.ts` (el pasaje de IP y las l
 
 De Greener:
 
-1. Quién contrata Images y Stream, y cuándo (Stream antes de la prueba P9).
+1. Quién contrata Images y Stream, y cuándo (Stream antes de la prueba P9). El 17 nov encaja el Starter Bundle (§7).
 2. Fechas: D1 se intenta el 17 nov si la dirección puede; D3 depende del contenido de la web y no tiene fecha; el cambio de medios, después de D3.
 3. Resultado de la consulta de clasificación de los 39 vídeos de §2.1 (¿algún pin?).
 

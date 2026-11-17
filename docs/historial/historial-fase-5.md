@@ -2925,3 +2925,27 @@ Petición de Greener: poder **cambiar el orden de las diapositivas sin quitarlas
 **Decisión de Greener.** Se conservan `tr` (sitio estático, irá a Vercel) y `talent` (decidido a las 10:51, tras haberlo descartado antes); `insight`, `tools`, `blog` y `screencore` se descartan porque el despliegue de la web previsto para el viernes 20 nov hace innecesario trasladarlos. Dejarán de resolver en cuanto se cambien los NS.
 
 **Cambios.** Nuevos `docs/operaciones/dns-d0-zona-tr-dinahosting.zone` (12 registros) y `dns-d0-zona-talent-dinahosting.zone` (11 registros: 7 A, MX, SPF, DKIM y DMARC), referencias de marcha atrás de las zonas propias. `dns-d1-zona-a-importar.zone` pasa de 32 a 55 registros (12 de `tr` y 11 de `talent`, con nombres cualificados); `dns-d1-talent-anadir.zone` (7 A) y `dns-d1-talent-correo-anadir.zone` (MX, SPF, DKIM y DMARC) contienen solo los de `talent` para añadirlos a una zona ya importada. `dns-d2-tabla-registros.md`, `migracion-infraestructura.md` y `PROGRESO.md` actualizados. Comparación con `scripts/dns-compare.sh` contra `leanna.ns.cloudflare.com`: 39 pares en OK con 44 registros; pendiente repetirla con `talent` y su correo (50 pares), revisar el `rua` del DMARC de `talent` (apunta a `admin@itsgreener.info`), migrar `tr` a Vercel y decidir el destino de `talent` antes de D4. Sin cambios en `src/`.
+
+### 2.161 D1 hecho: NS de `itsgreener.com` a Cloudflare (17 nov 2026)
+
+**Qué se hizo.** Con la zona de Cloudflare vaciada del escaneo automático e importada desde `dns-d1-zona-a-importar.zone` (55 registros, todo en DNS only, TTL de 5 min) y los NS de Dinahosting anotados como marcha atrás (`ns`, `ns2`, `ns3` y `ns4.dinahosting.com`), Greener cambió los nameservers en el registrador hacia las 11:40 a `leanna.ns.cloudflare.com` y `mack.ns.cloudflare.com`. Antes, `scripts/dns-compare.sh` dio todo OK en 39 pares con 44 registros y en 50 pares con la zona completa (incluidos `tr` y `talent`, con el correo de `talent`).
+
+**Comprobado a las 11:45** desde el ordenador de Greener: `dig NS` devuelve solo los dos de Cloudflare, `dig MX` los cinco de Google, `mail.itsgreener.com` la 82.98.169.92 y `chat.itsgreener.com` el CNAME de Vercel con sus IP. Greener informa de que todas las páginas funcionan como antes y de que el mailing de `talent` funciona.
+
+**Pendiente.** Estado «Activa» de la zona en Cloudflare; prueba del formulario de contacto y de la recepción en Workspace; dejar Dinahosting intacto al menos 48 h (hasta el 19 nov ~11:40); SPF único y DMARC `p=none` (los dos avisos de Cloudflare: dos SPF en el apex y falta de DMARC; hace falta decidir el buzón de `rua`); D2. Calendario: Greener quiere desplegar la web el viernes 20 nov. Sin cambios en `src/`.
+
+### 2.162 Zona «Activa» y `tr` dado de baja (17 nov 2026)
+
+**Estado.** A las 11:58 Greener confirma que Cloudflare muestra la zona como activa y que le ha llegado un correo (se entiende que el aviso de activación; la prueba del formulario y de la recepción en Workspace sigue por confirmar). Greener duda de que el mailing de itsgreener funcionara bien antes del traslado y lo comprobará el viernes, cuando se despliegue la web (D3). El SPF único propuesto incluye `ip4:82.98.169.92`, la IP del VPS de Dinahosting, que no cubre ninguno de los dos SPF actuales del apex.
+
+**`tr` dado de baja.** Greener comunica que el subdominio `tr` puede darse de baja y borra sus 12 registros de Cloudflare (`tr` en A, MX y TXT, `www.tr`, `app.tr`, `mail.tr`, `ftp.tr`, `mysql.tr`, `autoconfig.tr`, `autodiscover.tr`, `_dmarc.tr` y `default._domainkey.tr`). La zona vigente queda en **43 registros** (32 del dominio y 11 de `talent`). Ya no se migra `tr` a Vercel. No se cancela su producto en Dinahosting hasta el 19 nov ~11:40, porque su zona forma parte de la marcha atrás, y conviene sacar antes una copia de sus archivos si hay algo que conservar.
+
+**Cambios en el repositorio.** `dns-d1-zona-a-importar.zone` pasa de 55 a 43 registros (comparaciones futuras con `scripts/dns-compare.sh`: 38 pares). `dns-d0-zona-tr-dinahosting.zone` se conserva como referencia. Actualizados `dns-d2-tabla-registros.md`, `migracion-infraestructura.md` y `PROGRESO.md`. Sin cambios en `src/`.
+
+### 2.163 SPF único y DMARC aplicados; relevo de la migración de medios (17 nov 2026)
+
+**Correo.** Greener aplicó en Cloudflare el SPF único del apex (`v=spf1 include:_spf.google.com include:servers.mcsv.net ip4:82.98.169.92 ~all`, que sustituye a los dos anteriores) y el DMARC `v=DMARC1; p=none; rua=mailto:services@itsgreener.com`. Con `dig TXT itsgreener.com` se vio el SPF cambiado; el DMARC vive en `_dmarc.itsgreener.com` y no aparece en esa consulta. El DMARC se confirmó después. Las pruebas de un correo a `services@` y del formulario de contacto, hechas **antes** del cambio de SPF, llegaron a la carpeta de spam, lo esperable con dos SPF; hay que repetirlas. Si el formulario siguiera en spam con el SPF correcto, se revisan las cabeceras (SPF, DKIM, DMARC) y, si el remitente es de `@itsgreener.com` en Workspace, el DKIM de Google (D4). El mailing de itsgreener se comprueba el viernes, tras D3.
+
+**`tr`.** Ya no resuelve; lo que se veía era caché del navegador.
+
+**Medios.** Se anota en el plan (§7, F0 y §11) el Starter Bundle de Cloudflare (Images + Stream, desde 5 USD al mes, con 5.000 transformaciones únicas, 1.000 minutos de Stream almacenados y 5.000 entregados), que cubre las dos piezas con un cargo fijo de 5 USD. Pendiente de que lo contrate la dirección. La implementación continúa en otra conversación, a partir de F0. Sin cambios en `src/`.
