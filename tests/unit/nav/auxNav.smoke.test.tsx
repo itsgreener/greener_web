@@ -40,6 +40,19 @@ describe('AuxNav — prueba de humo', () => {
     )
   })
 
+  it('pinta la frase de marca al otro lado del menú, igual que el titular de /contact y sin ser un enlace', () => {
+    mockUsePathname.mockReturnValue('/')
+
+    render(<AuxNav />)
+
+    const tagline = screen.getByText('We should have a brand together')
+    expect(tagline.tagName).toBe('P')
+    expect(tagline).toHaveClass('text-display')
+    expect(tagline.closest('a')).toBeNull()
+    // Sigue habiendo seis enlaces: la frase no suma ninguno.
+    expect(screen.getAllByRole('link')).toHaveLength(6)
+  })
+
   it('marca "All" como página actual cuando el pathname es /', () => {
     mockUsePathname.mockReturnValue('/')
 

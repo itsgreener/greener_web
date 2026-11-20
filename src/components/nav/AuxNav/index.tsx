@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { SECTION_LABELS } from '@/components/nav/sectionLabels'
+import { BRAND_TAGLINE } from '@/components/text/brandTagline'
 import styles from './AuxNav.module.css'
 
 /**
@@ -29,20 +30,26 @@ export function AuxNav() {
   const pathname = usePathname()
 
   return (
-    <nav className={styles.nav} aria-label="Sections">
-      <ul className={styles.list}>
-        {AUX_NAV_ITEMS.map((item) => (
-          <li key={item.href}>
-            <Link
-              href={item.href}
-              className={styles.link}
-              aria-current={pathname === item.href ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <div className={styles.bar}>
+      <nav className={styles.nav} aria-label="Sections">
+        <ul className={styles.list}>
+          {AUX_NAV_ITEMS.map((item) => (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={styles.link}
+                aria-current={pathname === item.href ? 'page' : undefined}
+              >
+                {item.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </nav>
+      {/* Frase de marca a la derecha (space-between): misma que el titular
+          de /contact, en Kinder y en negro. Texto plano, no enlace: «Contact»
+          ya está en el menú. */}
+      <p className={`${styles.tagline} text-display`}>{BRAND_TAGLINE}</p>
+    </div>
   )
 }

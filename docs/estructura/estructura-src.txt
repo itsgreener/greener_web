@@ -298,6 +298,7 @@ src/components/status/README.md
 src/components/status/StatusPage/StatusPage.module.css
 src/components/status/StatusPage/index.tsx
 src/components/text/BrokenHeadline/index.tsx
+src/components/text/brandTagline.ts
 src/components/text/lineClamp.module.css
 src/fonts/README.md
 src/fonts/helvetica-neue-400.woff2

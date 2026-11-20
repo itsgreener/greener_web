@@ -1,9 +1,10 @@
 import { BrokenHeadline } from '@/components/text/BrokenHeadline'
+import { BRAND_TAGLINE_LINES } from '@/components/text/brandTagline'
 import { buildPageMetadata } from '@/lib/pageMetadata'
 import { ContactForm } from './ContactForm'
 import styles from './page.module.css'
 
-const CONTACT_HEADLINE = ['We', 'should have', 'a brand', 'together']
+const CONTACT_HEADLINE = BRAND_TAGLINE_LINES
 
 /**
  * Formulario de contacto real (brief §5.6, arquitectura §14.1):
